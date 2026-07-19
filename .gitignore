@@ -23,3 +23,6 @@ captures/
 *.pfx
 *.snk
 .env
+
+# Configuration locale Claude Code
+.claude/settings.local.json
