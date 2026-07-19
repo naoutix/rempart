@@ -1,0 +1,36 @@
+{
+  "toolVersion": "test",
+  "startedAtUtc": "2026-07-19T23:34:00.7483730Z",
+  "collectors": [
+    {
+      "name": "inventory",
+      "status": "Ok",
+      "fields": {
+        "os.product": "Windows 10 Pro",
+        "os.displayVersion": "25H2",
+        "os.build": "26200",
+        "os.name": "Windows 11 Pro",
+        "os.updateBuildRevision": "8875",
+        "os.edition": "Professional",
+        "os.installationType": "Client",
+        "hardware.manufacturer": "Micro-Star International Co., Ltd.",
+        "hardware.model": "MS-7E80",
+        "hardware.family": "To be filled by O.E.M.",
+        "firmware.biosVersion": "2.A41",
+        "firmware.biosDate": "03/17/2026",
+        "hardware.baseboardManufacturer": "Micro-Star International Co., Ltd.",
+        "hardware.baseboardProduct": "PRO B850-S WIFI6E (MS-7E80)",
+        "security.secureBoot": "enabled",
+        "security.tpmService": "present",
+        "os.version": "10.0.26200.0",
+        "os.is64Bit": "True",
+        "machine.processorCount": "16",
+        "firmware.type": "uefi",
+        "scan.elevated": "False"
+      },
+      "diagnostics": [
+        "Scan non \u00E9lev\u00E9 : certaines valeurs sont hors de port\u00E9e. Relancer en administrateur pour un inventaire complet."
+      ]
+    }
+  ]
+}

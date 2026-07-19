@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Rempart.Cli</RootNamespace>
+    <AssemblyName>rempart</AssemblyName>
+
+    <!-- Livrable : un binaire unique, sans runtime a installer (ADR-001, D1). -->
+    <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <StackTraceSupport>false</StackTraceSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rempart.Core\Rempart.Core.csproj" />
+    <ProjectReference Include="..\Rempart.Windows\Rempart.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

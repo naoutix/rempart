@@ -1,0 +1,12 @@
+# Normalisation des fins de ligne : le dépôt stocke en LF, la copie de travail
+# Windows reste en CRLF. Sans cela, chaque commit depuis une autre machine
+# réécrirait des fichiers entiers.
+* text=auto eol=lf
+
+*.sln text eol=crlf
+*.slnx text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.exe binary

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Rempart.Cli/Rempart.Cli.csproj" />
+    <Project Path="src/Rempart.Core/Rempart.Core.csproj" />
+    <Project Path="src/Rempart.Windows/Rempart.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Rempart.Tests.Unit/Rempart.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-07-19T23:34:00.7483730Z",
+  "anonymised": true,
+  "registry": {
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||ProductName": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Windows 10 Pro",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||DisplayVersion": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "25H2",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||CurrentBuildNumber": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "26200",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||UBR": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 8875
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||EditionID": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Professional",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||InstallationType": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Client",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||SystemManufacturer": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Micro-Star International Co., Ltd.",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||SystemProductName": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "MS-7E80",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||SystemFamily": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "To be filled by O.E.M.",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BIOSVersion": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "2.A41",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BIOSReleaseDate": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "03/17/2026",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BaseBoardManufacturer": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Micro-Star International Co., Ltd.",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BaseBoardProduct": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "PRO B850-S WIFI6E (MS-7E80)",
+        "number": null
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State||UEFISecureBootEnabled": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
+      "status": "Found",
+      "value": null
+    }
+  },
+  "systemInfo": {
+    "machineName": "anon:b0f0d97447e9",
+    "osVersion": "10.0.26200.0",
+    "is64BitOperatingSystem": true,
+    "isElevated": false,
+    "processorCount": 16,
+    "uptimeSeconds": 1511,
+    "firmwareType": "uefi"
+  }
+}

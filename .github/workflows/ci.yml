@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
+jobs:
+  test:
+    # Les tests ne touchent que Rempart.Core et rejouent des instantanés :
+    # ils n'ont besoin d'aucune machine Windows.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Tests unitaires et sur fixtures
+        run: dotnet test tests/Rempart.Tests.Unit --configuration Release
+
+  publish-aot:
+    # Vérifie le livrable réel : un binaire unique, sans runtime à installer.
+    # Les runners Windows portent déjà le linker MSVC qu'exige Native AOT.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publication Native AOT
+        run: dotnet publish src/Rempart.Cli --configuration Release
+
+      - name: Vérifier que le binaire tourne sans dépendance
+        shell: pwsh
+        run: |
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          if (-not (Test-Path $exe)) { throw "Binaire absent : $exe" }
+          $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+          Write-Host "rempart.exe = $size Mo"
+          & $exe version
+          if ($LASTEXITCODE -ne 0) { throw "rempart version a echoue" }
+
+      - name: Scan réel sur le runner
+        shell: pwsh
+        run: |
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe scan
+          # 0 = succes, 3 = droits insuffisants (acceptable sur un runner).
+          if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan a echoue ($LASTEXITCODE)" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rempart-win-x64
+          path: src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe
+
+  fixtures-anonymised:
+    # Garde-fou dédié : une capture brute versionnée par inadvertance exposerait
+    # l'inventaire d'une machine réelle. Le test existe aussi dans la suite, mais
+    # un job distinct rend l'échec lisible sans ouvrir les logs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Vérifier l'anonymisation des fixtures
+        run: >
+          dotnet test tests/Rempart.Tests.Unit --configuration Release
+          --filter "FullyQualifiedName~Anonymised_fixtures_carry_no_machine_name"

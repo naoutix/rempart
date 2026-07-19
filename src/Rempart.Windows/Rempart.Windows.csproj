@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Seule couche liée à Windows : registre, P/Invoke, WMI à terme. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Rempart.Windows</RootNamespace>
+    <!-- Requis par LibraryImport : le marshalling genere est la voie compatible AOT. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rempart.Core\Rempart.Core.csproj" />
+  </ItemGroup>
+
+</Project>

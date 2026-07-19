@@ -15,9 +15,11 @@ reports/
 captures/
 *.capture.json
 
-# Les fixtures de test SONT versionnées (tests/fixtures/) mais doivent être
-# anonymisées au préalable : hostname, numéros de série, comptes utilisateurs,
-# SSID Wi-Fi, adresses IP. Voir docs/ARCHITECTURE.md.
+# Les fixtures de test SONT versionnées, par exception aux règles ci-dessus.
+# Elles doivent être anonymisées — `rempart capture` le fait par défaut, et un test
+# de la suite échoue si une capture brute se retrouve ici.
+!tests/fixtures/
+!tests/fixtures/*.capture.json
 
 # Secrets
 *.pfx
