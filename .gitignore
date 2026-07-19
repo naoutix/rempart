@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+artifacts/
+publish/
+.vs/
+.idea/
+
+# Données machine — ne jamais commiter par défaut.
+# Un rapport contient l'inventaire logiciel, les ports ouverts et les faiblesses
+# de configuration d'une machine réelle : c'est une cartographie de ses points faibles.
+reports/
+captures/
+*.capture.json
+
+# Les fixtures de test SONT versionnées (tests/fixtures/) mais doivent être
+# anonymisées au préalable : hostname, numéros de série, comptes utilisateurs,
+# SSID Wi-Fi, adresses IP. Voir docs/ARCHITECTURE.md.
+
+# Secrets
+*.pfx
+*.snk
+.env
