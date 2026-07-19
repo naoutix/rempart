@@ -44,4 +44,7 @@ rapport et un score comparables d'une machine à l'autre.
 
 ## Licence
 
-À définir.
+[MIT](LICENSE).
+
+L'outil est fourni sans garantie. Il inspecte et, à terme, modifie la configuration
+d'un système : la responsabilité de son usage revient à celui qui l'exécute.
