@@ -64,7 +64,8 @@ static int Scan(string[] args)
         origin = UtcNow();
     }
 
-    var result = ScanEngine.Default().Run(providers, Version, origin);
+    var result = ScanEngine.Default(OptionValue(args, "--rules"))
+        .Run(providers, Version, origin);
 
     if (asJson)
     {
@@ -95,7 +96,8 @@ static int Capture(string[] args)
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
-    ScanEngine.Default().Run(providers, Version, snapshot.CapturedAtUtc);
+    ScanEngine.Default(OptionValue(args, "--rules"))
+        .Run(providers, Version, snapshot.CapturedAtUtc);
 
     // Anonymisation par défaut : les fixtures finissent versionnées.
     if (!raw)
@@ -219,8 +221,8 @@ static void WritePosture(ScanResult result, ScoreCard score)
 /// </summary>
 static int Explain(string[] args)
 {
-    var id = args.Length > 1 ? args[1] : null;
-    var rules = RuleCatalog.Load();
+    var id = args.Length > 1 && !args[1].StartsWith('-') ? args[1] : null;
+    var rules = RuleCatalog.Load(OptionValue(args, "--rules"));
 
     if (id is null)
     {
@@ -352,16 +354,21 @@ static int Help() => Print(
     """
     Rempart — audit de postes Windows
 
-      rempart scan [--json] [--from <instantané>]
+      rempart scan [--json] [--from <instantané>] [--rules <dossier>]
           Analyse la machine locale, ou rejoue un instantané hors-ligne.
 
       rempart capture [--out <fichier>] [--raw]
           Enregistre l'état brut de la machine, rejouable en test.
           Anonymisé par défaut ; --raw conserve les identifiants.
 
-      rempart explain [<ID>]
+      rempart explain [<ID>] [--rules <dossier>]
           Liste les contrôles, ou détaille une règle : justification,
           références, et ce que coûte sa correction.
+
+      --rules <dossier>
+          Charge des règles YAML supplémentaires, en plus des règles
+          embarquées. Itérer sans recompiler, ou porter des contrôles
+          propres à un parc. Les identifiants doivent rester uniques.
 
       rempart version
 

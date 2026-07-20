@@ -30,7 +30,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     {
     }
 
-    public static ScanEngine Default() => new(DefaultCollectors, RuleCatalog.Load());
+    public static ScanEngine Default(string? externalRules = null) =>
+        new(DefaultCollectors, RuleCatalog.Load(externalRules));
 
     public ScanResult Run(ProviderSet providers, string toolVersion, string startedAtUtc)
     {

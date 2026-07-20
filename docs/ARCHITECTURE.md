@@ -140,6 +140,25 @@ réponses trop courtes, et exige `verifyBefore` dès que la réversibilité n'es
 `rempart explain <ID>` restitue tout cela : sans cette commande, ces informations
 existaient dans les fichiers YAML mais restaient hors de portée à l'usage.
 
+### Règles externes
+
+Les règles livrées sont embarquées dans le binaire — la clé USB doit rester autonome,
+sans dossier compagnon à oublier de copier. `--rules <dossier>` en ajoute d'autres :
+
+```
+rempart scan    --rules ./mes-regles
+rempart explain --rules ./mes-regles
+```
+
+Deux usages : itérer sur une règle sans recompiler, et porter des contrôles propres à un
+parc que le catalogue livré n'a pas à connaître.
+
+Elles **complètent** le catalogue, elles ne le remplacent pas : une collision
+d'identifiant est une erreur, jamais une redéfinition tacite — sinon deux machines
+divergeraient sans que le rapport l'indique. La liste noire des composants protégés
+s'applique aussi à elles, et c'est là qu'elle compte le plus : une règle externe n'a
+pas été relue en pull request.
+
 ### `windowsDefault` — le champ qui décide de la justesse
 
 Obligatoire pour tout opérateur de comparaison ; le chargement échoue sans lui.
