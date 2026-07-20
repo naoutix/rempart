@@ -823,5 +823,6 @@
     }
   },
   "registryLists": {},
-  "signatures": {}
+  "signatures": {},
+  "directories": {}
 }
