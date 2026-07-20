@@ -94,11 +94,36 @@
     expect: "1"
     windowsDefault: "0"
 
-# WIN-FW-006 — fusion des règles locales : retirée du catalogue.
-#
-# Le durcissement (interdire la fusion) n'a de sens que sur une machine pilotée par une
-# stratégie de groupe centrale. Sur un poste autonome, l'appliquer supprimerait toutes
-# les règles créées localement par les applications, sans rien apporter.
-#
-# Le moteur ne sait pas encore conditionner une règle au contexte de la machine. La
-# règle revient avec « appliesWhen » — voir la feuille de route, M2b.
+- id: WIN-FW-006
+  title: Règles de pare-feu locales fusionnées malgré une stratégie de domaine
+  severity: medium
+  domain: firewall
+  rationale: >
+    Sur une machine jointe à un domaine, autoriser la fusion des règles locales permet
+    à un administrateur local — ou à un logiciel installé avec ses droits — d'ouvrir un
+    port que la stratégie centrale interdisait. La politique cesse alors d'être pilotée.
+  references: [CIS-9.1.6]
+  # Le durcissement n'a de sens que sous stratégie de groupe centrale. Sur un poste
+  # autonome, interdire la fusion supprimerait toutes les règles créées par les
+  # applications, sans rien apporter.
+  appliesWhen:
+    domainJoined: true
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile
+    value: AllowLocalPolicyMerge
+    operator: equals
+    expect: "0"
+    # Fusion autorisee par defaut.
+    windowsDefault: "1"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Toute règle de pare-feu créée localement, y compris celles ajoutées
+      automatiquement par les applications lors de leur première exécution.
+    affects: >
+      Les machines jointes à un domaine et pilotées par stratégie de groupe. Les postes
+      autonomes sont hors périmètre de cette règle.
+    verifyBefore: >
+      S'assurer que la stratégie centrale définit bien les règles nécessaires aux
+      applications utilisées, sans quoi elles perdront leur accès réseau entrant.

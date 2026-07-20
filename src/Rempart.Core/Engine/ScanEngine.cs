@@ -33,6 +33,40 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     public static ScanEngine Default(string? externalRules = null) =>
         new(DefaultCollectors, RuleCatalog.Load(externalRules));
 
+    /// <summary>
+    /// Lit toutes les clés que les règles pourraient consulter, sans rien évaluer.
+    ///
+    /// Sans cela, un instantané ne contiendrait que les lectures réellement effectuées
+    /// sur la machine d'origine : une règle hors périmètre là-bas — non jointe à un
+    /// domaine, RDP éteint — n'aurait rien enregistré, et le rejeu échouerait dès qu'on
+    /// change de contexte. Une fixture doit être rejouable partout, pas seulement dans
+    /// les conditions de sa capture.
+    /// </summary>
+    public void Prefetch(ProviderSet providers)
+    {
+        foreach (var rule in rules)
+        {
+            Read(rule.Check);
+
+            if (rule.AppliesWhen?.Registry is { } condition)
+            {
+                Read(condition);
+            }
+        }
+
+        void Read(Rules.CheckSpec check)
+        {
+            if (check.Kind == Rules.CheckKind.RegistryKey)
+            {
+                providers.Registry.KeyExists(check.Path);
+            }
+            else if (check.ValueName is { } value)
+            {
+                providers.Registry.ReadValue(check.Path, value);
+            }
+        }
+    }
+
     public ScanResult Run(ProviderSet providers, string toolVersion, string startedAtUtc)
     {
         var results = new List<CollectorResult>(collectors.Count);
@@ -53,8 +87,12 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             }
         }
 
+        // Les conditions d'applicabilite s'appuient sur des faits machine autant que
+        // sur le registre : l'evaluateur a besoin des deux.
+        var system = providers.SystemInfo.Read();
+
         var verdicts = rules
-            .Select(rule => RuleEvaluator.Evaluate(rule, providers.Registry))
+            .Select(rule => RuleEvaluator.Evaluate(rule, providers.Registry, system))
             .ToList();
 
         return new ScanResult(

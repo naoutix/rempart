@@ -348,6 +348,15 @@
       "expected": "1"
     },
     {
+      "ruleId": "WIN-FW-006",
+      "title": "R\u00E8gles de pare-feu locales fusionn\u00E9es malgr\u00E9 une strat\u00E9gie de domaine",
+      "severity": "Medium",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "0",
+      "expected": "0"
+    },
+    {
       "ruleId": "WIN-LEG-001",
       "title": "SMBv1 activ\u00E9",
       "severity": "Critical",
@@ -550,9 +559,9 @@
       "title": "Authentification au niveau du r\u00E9seau (NLA) non exig\u00E9e",
       "severity": "High",
       "domain": "remote-access",
-      "status": "Pass",
-      "observed": "1",
-      "expected": "1"
+      "status": "NotApplicable",
+      "observed": null,
+      "expected": null
     },
     {
       "ruleId": "WIN-BOOT-001",
@@ -590,6 +599,7 @@
         "passed": 18,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
@@ -597,6 +607,7 @@
         "passed": 2,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
@@ -604,6 +615,7 @@
         "passed": 3,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
@@ -611,13 +623,15 @@
         "passed": 9,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
         "domain": "firewall",
-        "passed": 5,
+        "passed": 6,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
@@ -625,6 +639,7 @@
         "passed": 10,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
@@ -632,6 +647,7 @@
         "passed": 6,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
@@ -639,13 +655,15 @@
         "passed": 5,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       },
       {
         "domain": "remote-access",
-        "passed": 2,
+        "passed": 1,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 1,
         "score": 100
       },
       {
@@ -653,6 +671,7 @@
         "passed": 1,
         "failed": 0,
         "unknown": 0,
+        "notApplicable": 0,
         "score": 100
       }
     ],

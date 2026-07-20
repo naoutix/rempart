@@ -15,6 +15,12 @@ public enum VerdictStatus
     /// qui compterait ces cas comme réussis mentirait par omission.
     /// </summary>
     Unknown,
+
+    /// <summary>
+    /// La règle ne concerne pas cette machine. Distinct de <see cref="Unknown"/> :
+    /// ici on sait, et la réponse est qu'il n'y a rien à vérifier.
+    /// </summary>
+    NotApplicable,
 }
 
 public sealed record Verdict(
@@ -32,8 +38,15 @@ public sealed record Verdict(
 /// </summary>
 public static class RuleEvaluator
 {
-    public static Verdict Evaluate(Rule rule, IRegistryProvider registry)
+    public static Verdict Evaluate(Rule rule, IRegistryProvider registry, SystemInfo? system = null)
     {
+        if (rule.AppliesWhen is { } condition && !Applies(condition, registry, system))
+        {
+            return new Verdict(
+                rule.Id, rule.Title, rule.Severity, rule.Domain,
+                VerdictStatus.NotApplicable, null, null);
+        }
+
         var (status, observed) = rule.Check.Kind switch
         {
             CheckKind.Registry => EvaluateValue(rule.Check, registry),
@@ -43,6 +56,34 @@ public static class RuleEvaluator
 
         return new Verdict(
             rule.Id, rule.Title, rule.Severity, rule.Domain, status, observed, rule.Check.Expected);
+    }
+
+    /// <summary>
+    /// Une condition non vérifiable — accès refusé, information système absente — est
+    /// tenue pour remplie : mieux vaut évaluer la règle et rendre un verdict que la
+    /// masquer sur une incertitude d'applicabilité.
+    /// </summary>
+    private static bool Applies(Applicability condition, IRegistryProvider registry, SystemInfo? system)
+    {
+        if (condition.DomainJoined is { } required && system is { } info
+            && info.IsDomainJoined != required)
+        {
+            return false;
+        }
+
+        if (condition.Registry is { } check)
+        {
+            var (status, _) = check.Kind == CheckKind.RegistryKey
+                ? EvaluateKey(check, registry)
+                : EvaluateValue(check, registry);
+
+            if (status == VerdictStatus.Fail)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static (VerdictStatus, string?) EvaluateValue(CheckSpec check, IRegistryProvider registry)
