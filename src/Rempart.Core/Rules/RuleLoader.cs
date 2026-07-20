@@ -121,7 +121,8 @@ public static class RuleLoader
 
         // Un opérateur de comparaison sans valeur attendue passerait le chargement et
         // produirait un verdict arbitraire à l'exécution. Mieux vaut refuser le fichier.
-        var comparison = op is CheckOperator.Equals or CheckOperator.NotEquals or CheckOperator.AtLeast;
+        var comparison = op is CheckOperator.Equals or CheckOperator.NotEquals
+            or CheckOperator.AtLeast or CheckOperator.AtMost;
         if (comparison && expected is null)
         {
             throw new RuleFormatException(
@@ -133,7 +134,8 @@ public static class RuleLoader
         // un verdict au hasard sur la majorité des machines.
         // Sans objet pour un service : son état est directement observable, il n'y a
         // pas de « valeur qu'applique Windows quand la clé est absente ».
-        if (comparison && windowsDefault is null && kind != CheckKind.Service)
+        if (comparison && windowsDefault is null
+            && kind is not (CheckKind.Service or CheckKind.Policy))
         {
             throw new RuleFormatException(
                 $"{context} : l'opérateur « {op} » exige un champ « windowsDefault » — " +

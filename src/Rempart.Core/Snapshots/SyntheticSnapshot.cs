@@ -42,6 +42,7 @@ public static class SyntheticSnapshot
             Anonymised = true,
             Registry = new Dictionary<string, RegistryRead>(source.Registry),
             Services = new Dictionary<string, ServiceRead>(source.Services),
+            Policy = source.Policy,
             SystemInfo = (source.SystemInfo ?? Fallback) with
             {
                 MachineName = machineName,
@@ -73,6 +74,12 @@ public static class SyntheticSnapshot
         if (check.Kind == CheckKind.Service)
         {
             ApplyService(snapshot, check, profile);
+            return;
+        }
+
+        if (check.Kind == CheckKind.Policy)
+        {
+            ApplyPolicy(snapshot, check, profile);
             return;
         }
 
@@ -113,6 +120,38 @@ public static class SyntheticSnapshot
                 check.Path, SatisfyingState(check), SatisfyingStartMode(check))),
         };
     }
+
+    /// <summary>
+    /// Un fait de politique n'a pas non plus de « défaut Windows » : il est lu ou il
+    /// ne l'est pas. Le profil « defaults » le laisse tel quel plutôt que de le
+    /// supprimer, ce qui rendrait la règle non vérifiable au lieu de non conforme.
+    /// </summary>
+    private static void ApplyPolicy(MachineSnapshot snapshot, CheckSpec check, SyntheticProfile profile)
+    {
+        if (profile == SyntheticProfile.WindowsDefaults || snapshot.Policy is not { } existing)
+        {
+            return;
+        }
+
+        var facts = new Dictionary<string, string>(existing.Values, StringComparer.Ordinal)
+        {
+            [check.Path] = SatisfyingFact(check),
+        };
+
+        snapshot.Policy = existing with { Values = facts };
+    }
+
+    private static string SatisfyingFact(CheckSpec check) => check.Operator switch
+    {
+        // Un plancher se satisfait par la valeur attendue elle-même, un plafond aussi :
+        // les deux comparaisons sont larges.
+        CheckOperator.AtLeast or CheckOperator.AtMost or CheckOperator.Equals =>
+            check.Expected ?? "0",
+
+        CheckOperator.NotEquals => check.Expected == "0" ? "1" : "0",
+
+        _ => check.Expected ?? "0",
+    };
 
     private static ServiceState SatisfyingState(CheckSpec check)
     {
@@ -156,6 +195,10 @@ public static class SyntheticSnapshot
         // c'est précisément 0 qui est refusé.
         CheckOperator.NotEquals => RegistryRead.Found(
             RegistryValue.OfNumber(check.Expected == "0" ? 1 : 0)),
+
+        // Un plafond se satisfait par zéro, sauf si le plafond est lui-même zéro.
+        CheckOperator.AtMost => RegistryRead.Found(RegistryValue.OfNumber(
+            long.TryParse(check.Expected, out var cap) && cap < 0 ? cap : 0)),
 
         _ when check.Kind == CheckKind.RegistryKey => RegistryRead.Found(RegistryValue.OfNumber(1)),
 

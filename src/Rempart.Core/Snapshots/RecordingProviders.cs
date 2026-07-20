@@ -87,6 +87,19 @@ public sealed class SnapshotServiceStateProvider(MachineSnapshot snapshot) : ISe
                 "La fixture a probablement été capturée avec un jeu de règles différent.");
 }
 
+public sealed class RecordingSecurityPolicyProvider(
+    ISecurityPolicyProvider inner, MachineSnapshot snapshot) : ISecurityPolicyProvider
+{
+    public PolicyFacts Read() => snapshot.Policy ??= inner.Read();
+}
+
+public sealed class SnapshotSecurityPolicyProvider(MachineSnapshot snapshot) : ISecurityPolicyProvider
+{
+    // Absent d'une capture ancienne : traité comme un refus, donc « non vérifiable ».
+    // Une fixture d'avant ce lot reste rejouable, elle rend simplement moins de verdicts.
+    public PolicyFacts Read() => snapshot.Policy ?? PolicyFacts.AccessDenied;
+}
+
 public sealed class SnapshotSystemInfoProvider(MachineSnapshot snapshot) : ISystemInfoProvider
 {
     public SystemInfo Read() =>

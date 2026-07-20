@@ -651,5 +651,19 @@
         "startMode": "Disabled"
       }
     }
+  },
+  "policy": {
+    "values": {
+      "password.minLength": "14",
+      "password.historyLength": "24",
+      "password.maxAgeDays": "42",
+      "lockout.threshold": "1",
+      "lockout.durationMinutes": "10",
+      "accounts.withoutPassword": "0",
+      "accounts.passwordNeverExpires": "2",
+      "accounts.guestEnabled": "false",
+      "accounts.localAdminCount": "2"
+    },
+    "denied": false
   }
 }

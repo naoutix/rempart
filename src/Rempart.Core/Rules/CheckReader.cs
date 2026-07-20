@@ -42,10 +42,29 @@ public sealed record CheckReading(string? Found, string? Effective, bool Denied)
 /// </summary>
 public static class CheckReader
 {
-    public static CheckReading Read(CheckSpec check, ProviderSet providers) =>
-        check.Kind == CheckKind.Service
-            ? ReadService(check, providers.Services)
-            : Read(check, providers.Registry);
+    public static CheckReading Read(CheckSpec check, ProviderSet providers) => check.Kind switch
+    {
+        CheckKind.Service => ReadService(check, providers.Services),
+        CheckKind.Policy => ReadPolicy(check, providers.Policy),
+        _ => Read(check, providers.Registry),
+    };
+
+    /// <summary>
+    /// Un fait absent du dictionnaire n'est pas une non-conformité : l'API n'a pas su
+    /// l'établir. Rendre « non vérifiable » plutôt qu'un verdict évite de reprocher à
+    /// une machine ce que l'outil n'a pas su lire.
+    /// </summary>
+    private static CheckReading ReadPolicy(CheckSpec check, ISecurityPolicyProvider policy)
+    {
+        var facts = policy.Read();
+
+        if (facts.Denied || facts.Find(check.Path) is not { } value)
+        {
+            return new CheckReading(null, null, Denied: true);
+        }
+
+        return new CheckReading(value, value, Denied: false);
+    }
 
     /// <summary>
     /// Un service absent n'est pas un refus d'accès : il n'y a rien à lire, et la

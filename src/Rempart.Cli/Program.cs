@@ -57,7 +57,8 @@ static int Scan(string[] args)
         providers = new ProviderSet(
             new SnapshotRegistryProvider(snapshot),
             new SnapshotSystemInfoProvider(snapshot),
-            new SnapshotServiceStateProvider(snapshot));
+            new SnapshotServiceStateProvider(snapshot),
+            new SnapshotSecurityPolicyProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -66,7 +67,8 @@ static int Scan(string[] args)
         providers = new ProviderSet(
             new LiveRegistryProvider(),
             new LiveSystemInfoProvider(),
-            new LiveServiceStateProvider());
+            new LiveServiceStateProvider(),
+            new LiveSecurityPolicyProvider());
         origin = UtcNow();
     }
 
@@ -99,7 +101,8 @@ static int Capture(string[] args)
     var providers = new ProviderSet(
         new RecordingRegistryProvider(new LiveRegistryProvider(), snapshot),
         new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot),
-        new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot));
+        new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot),
+        new RecordingSecurityPolicyProvider(new LiveSecurityPolicyProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.

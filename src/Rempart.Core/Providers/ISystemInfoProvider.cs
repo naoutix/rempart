@@ -32,7 +32,8 @@ public interface ISystemInfoProvider
 public sealed class ProviderSet(
     IRegistryProvider registry,
     ISystemInfoProvider systemInfo,
-    IServiceStateProvider? services = null)
+    IServiceStateProvider? services = null,
+    ISecurityPolicyProvider? policy = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -44,6 +45,16 @@ public sealed class ProviderSet(
     /// manquant est une lacune de couverture, pas une non-conformité de la machine.
     /// </summary>
     public IServiceStateProvider Services { get; } = services ?? UnavailableServices.Instance;
+
+    /// <summary>Même principe : absent, les contrôles de politique restent sans verdict.</summary>
+    public ISecurityPolicyProvider Policy { get; } = policy ?? UnavailablePolicy.Instance;
+}
+
+internal sealed class UnavailablePolicy : ISecurityPolicyProvider
+{
+    public static readonly UnavailablePolicy Instance = new();
+
+    public PolicyFacts Read() => PolicyFacts.AccessDenied;
 }
 
 /// <summary>Répond « accès refusé » à toute question : aucune conclusion n'en sort.</summary>
