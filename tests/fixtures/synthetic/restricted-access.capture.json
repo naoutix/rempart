@@ -782,6 +782,28 @@
         }
       ],
       "diagnostic": null
+    },
+    "root\\subscription:CommandLineEventConsumer||Name,CommandLineTemplate,ExecutablePath": {
+      "status": "NotFound",
+      "instances": [],
+      "diagnostic": null
+    },
+    "root\\subscription:ActiveScriptEventConsumer||Name,ScriptFileName,ScriptText": {
+      "status": "NotFound",
+      "instances": [],
+      "diagnostic": null
+    },
+    "root\\subscription:__EventFilter||Name,Query": {
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "Name": "SCM Event Log Filter",
+            "Query": "select * from MSFT_SCMEventLogEvent"
+          }
+        }
+      ],
+      "diagnostic": null
     }
   },
   "registryLists": {},

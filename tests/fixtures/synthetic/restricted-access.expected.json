@@ -773,7 +773,18 @@
       "expected": "1"
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "kind": "wmi-subscription",
+      "source": "__EventFilter / SCM Event Log Filter",
+      "target": "select * from MSFT_SCMEventLogEvent",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "requ\u00EAte": "select * from MSFT_SCMEventLogEvent"
+      }
+    }
+  ],
   "score": {
     "overall": 100,
     "domains": [
