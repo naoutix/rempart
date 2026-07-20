@@ -366,6 +366,15 @@
       "expected": "1"
     },
     {
+      "ruleId": "WIN-ENC-001",
+      "title": "Volume non protege par BitLocker",
+      "severity": "Critical",
+      "domain": "encryption",
+      "status": "Pass",
+      "observed": "1",
+      "expected": "1"
+    },
+    {
       "ruleId": "WIN-FW-001",
       "title": "Pare-feu d\u00E9sactiv\u00E9 sur le profil Public",
       "severity": "Critical",
@@ -752,6 +761,14 @@
         "score": 100
       },
       {
+        "domain": "encryption",
+        "passed": 1,
+        "failed": 0,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 100
+      },
+      {
         "domain": "firewall",
         "passed": 7,
         "failed": 0,
@@ -803,5 +820,5 @@
     "totalUnknown": 0,
     "isPartial": false
   },
-  "rulesFingerprint": "75:bd19b4c0eb78"
+  "rulesFingerprint": "76:1777c76c72bf"
 }

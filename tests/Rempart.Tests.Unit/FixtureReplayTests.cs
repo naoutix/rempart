@@ -86,7 +86,8 @@ public sealed class FixtureReplayTests
             new ProviderSet(new SnapshotRegistryProvider(snapshot),
                 new SnapshotSystemInfoProvider(snapshot),
                 new SnapshotServiceStateProvider(snapshot),
-                new SnapshotSecurityPolicyProvider(snapshot)),
+                new SnapshotSecurityPolicyProvider(snapshot),
+                new SnapshotWmiProvider(snapshot)),
             "test", snapshot.CapturedAtUtc);
 
         var failing = result.Verdicts
@@ -110,7 +111,8 @@ public sealed class FixtureReplayTests
             new ProviderSet(new SnapshotRegistryProvider(snapshot),
                 new SnapshotSystemInfoProvider(snapshot),
                 new SnapshotServiceStateProvider(snapshot),
-                new SnapshotSecurityPolicyProvider(snapshot)),
+                new SnapshotSecurityPolicyProvider(snapshot),
+                new SnapshotWmiProvider(snapshot)),
             "test", snapshot.CapturedAtUtc);
 
         var notApplicable = result.Verdicts.Count(v => v.Status == VerdictStatus.NotApplicable);
@@ -157,7 +159,8 @@ public sealed class FixtureReplayTests
             new SnapshotRegistryProvider(snapshot),
             new SnapshotSystemInfoProvider(snapshot),
             new SnapshotServiceStateProvider(snapshot),
-            new SnapshotSecurityPolicyProvider(snapshot));
+            new SnapshotSecurityPolicyProvider(snapshot),
+            new SnapshotWmiProvider(snapshot));
 
         // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
         // donnee qu'on veut voir figer, pas seulement les champs collectes.

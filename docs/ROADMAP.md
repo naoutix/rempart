@@ -90,8 +90,9 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
 - [x] **Question WMI/AOT tranchée** : accessible par interop COM générée à la
       compilation. `System.Management` reste hors de portée, mais les interfaces
       COM de WMI passent, sans réflexion ni avertissement de trim.
-- [ ] Câbler le provider WMI au moteur de règles — type de contrôle `wmi`
-- [ ] BitLocker et état effectif de Defender, désormais atteignables
+- [x] Provider WMI câblé au moteur — type de contrôle `wmi`
+- [x] BitLocker : `WIN-ENC-001`, état effectif du chiffrement
+- [ ] État effectif de Defender par WMI — dont `WIN-DEF-009`, retirée en M2a
 - [ ] Credential Guard, exploit protection, TLS
 
 ### M3 · Persistance & processus

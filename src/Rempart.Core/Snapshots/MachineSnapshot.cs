@@ -31,6 +31,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Faits de politique locale, ou null s'ils n'ont pas pu être lus.</summary>
     public PolicyFacts? Policy { get; set; }
+
+    /// <summary>Clé : <c>espaceDeNoms:Classe||propriétés</c>.</summary>
+    public Dictionary<string, WmiRead> Wmi { get; set; } = [];
 }
 
 public static class SnapshotKeys

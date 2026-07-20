@@ -100,6 +100,30 @@ public sealed class SnapshotSecurityPolicyProvider(MachineSnapshot snapshot) : I
     public PolicyFacts Read() => snapshot.Policy ?? PolicyFacts.AccessDenied;
 }
 
+public sealed class RecordingWmiProvider(IWmiProvider inner, MachineSnapshot snapshot) : IWmiProvider
+{
+    public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties)
+    {
+        var read = inner.Query(namespacePath, className, properties);
+        snapshot.Wmi[Key(namespacePath, className, properties)] = read;
+        return read;
+    }
+
+    internal static string Key(string ns, string className, IReadOnlyList<string> properties) =>
+        $"{ns}:{className}||{string.Join(",", properties)}";
+}
+
+public sealed class SnapshotWmiProvider(MachineSnapshot snapshot) : IWmiProvider
+{
+    // Absent d'une capture anterieure : traite comme un refus, donc « non verifiable ».
+    // Une fixture d'avant ce lot reste rejouable, elle rend simplement moins de verdicts.
+    public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties) =>
+        snapshot.Wmi.TryGetValue(
+            RecordingWmiProvider.Key(namespacePath, className, properties), out var read)
+            ? read
+            : WmiRead.AccessDenied;
+}
+
 public sealed class SnapshotSystemInfoProvider(MachineSnapshot snapshot) : ISystemInfoProvider
 {
     public SystemInfo Read() =>

@@ -54,6 +54,14 @@ public enum CheckKind
     /// porte le nom du fait, par exemple « password.minLength ».
     /// </summary>
     Policy,
+
+    /// <summary>
+    /// Propriété WMI. <c>path</c> porte « espaceDeNoms:Classe », <c>value</c> le nom
+    /// de la propriété. Seul moyen d'établir certains états — chiffrement effectif
+    /// d'un volume, état courant de Defender — que ni le registre ni les API Win32
+    /// ne rendent.
+    /// </summary>
+    Wmi,
 }
 
 public sealed record CheckSpec(

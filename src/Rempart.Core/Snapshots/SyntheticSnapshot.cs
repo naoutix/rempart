@@ -43,6 +43,7 @@ public static class SyntheticSnapshot
             Registry = new Dictionary<string, RegistryRead>(source.Registry),
             Services = new Dictionary<string, ServiceRead>(source.Services),
             Policy = source.Policy,
+            Wmi = new Dictionary<string, WmiRead>(source.Wmi),
             SystemInfo = (source.SystemInfo ?? Fallback) with
             {
                 MachineName = machineName,
@@ -80,6 +81,12 @@ public static class SyntheticSnapshot
         if (check.Kind == CheckKind.Policy)
         {
             ApplyPolicy(snapshot, check, profile);
+            return;
+        }
+
+        if (check.Kind == CheckKind.Wmi)
+        {
+            ApplyWmi(snapshot, check, profile);
             return;
         }
 
@@ -152,6 +159,35 @@ public static class SyntheticSnapshot
 
         _ => check.Expected ?? "0",
     };
+
+    /// <summary>
+    /// Une lecture WMI n'a pas de « défaut Windows » non plus. Le profil durci pose
+    /// une instance unique portant la valeur attendue — sans quoi une capture non
+    /// élevée, où WMI a refusé, laisserait le contrôle « non vérifiable » et la
+    /// fixture ne prouverait rien sur lui.
+    /// </summary>
+    private static void ApplyWmi(MachineSnapshot snapshot, CheckSpec check, SyntheticProfile profile)
+    {
+        if (profile == SyntheticProfile.WindowsDefaults || check.ValueName is null)
+        {
+            return;
+        }
+
+        var separator = check.Path.IndexOf(':');
+        if (separator < 0)
+        {
+            return;
+        }
+
+        var key = RecordingWmiProvider.Key(
+            check.Path[..separator], check.Path[(separator + 1)..], [check.ValueName]);
+
+        snapshot.Wmi[key] = WmiRead.Found([new WmiInstance(
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [check.ValueName] = SatisfyingFact(check),
+            })]);
+    }
 
     private static ServiceState SatisfyingState(CheckSpec check)
     {

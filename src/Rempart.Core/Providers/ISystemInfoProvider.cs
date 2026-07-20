@@ -33,7 +33,8 @@ public sealed class ProviderSet(
     IRegistryProvider registry,
     ISystemInfoProvider systemInfo,
     IServiceStateProvider? services = null,
-    ISecurityPolicyProvider? policy = null)
+    ISecurityPolicyProvider? policy = null,
+    IWmiProvider? wmi = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -48,6 +49,17 @@ public sealed class ProviderSet(
 
     /// <summary>Même principe : absent, les contrôles de politique restent sans verdict.</summary>
     public ISecurityPolicyProvider Policy { get; } = policy ?? UnavailablePolicy.Instance;
+
+    /// <summary>Même principe : absent, les contrôles WMI restent sans verdict.</summary>
+    public IWmiProvider Wmi { get; } = wmi ?? UnavailableWmi.Instance;
+}
+
+internal sealed class UnavailableWmi : IWmiProvider
+{
+    public static readonly UnavailableWmi Instance = new();
+
+    public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties) =>
+        WmiRead.AccessDenied;
 }
 
 internal sealed class UnavailablePolicy : ISecurityPolicyProvider
