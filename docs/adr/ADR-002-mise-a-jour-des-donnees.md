@@ -162,9 +162,10 @@ procédure n'est donc pas un accessoire de la décision, elle en fait partie.
 il faut revenir à l'option A.
 
 **Génération et conservation.** La clé privée est générée hors de la machine de
-développement et n'y séjourne jamais. Elle ne figure dans aucun dépôt, aucune sauvegarde
-automatique, aucun gestionnaire de secrets partagé. Une copie hors ligne suffit ; deux
-copies au même endroit n'en font pas une sauvegarde.
+développement — une VM jetable suffit, voir la procédure — et n'y séjourne jamais.
+Elle est chiffrée par une phrase de passe, sans variante en clair. Elle ne figure dans
+aucun dépôt, aucune sauvegarde automatique, aucun gestionnaire de secrets partagé. Une
+copie hors ligne suffit ; deux copies au même endroit n'en font pas une sauvegarde.
 
 **Usage.** La signature est un acte manuel. Aucune automatisation de CI ne détient la
 clé — un canal de publication automatisé redonnerait au dépôt le pouvoir que cette
@@ -262,34 +263,80 @@ pas, dans le seul endroit du projet où toutes comptent.
 
 ## Générer la paire de clés
 
-**À faire sur une machine qui n'est pas celle de développement**, conformément à D16.
-La clé privée ne doit jamais séjourner ici — ni dans le dépôt, ni dans une sauvegarde
-automatique, ni dans un gestionnaire de secrets partagé.
+### Deux risques, à ne pas confondre
 
-```powershell
-# Sur la machine hors ligne, dans une session PowerShell jetable.
-Add-Type -AssemblyName System.Security
+La formulation initiale de D16 — « générée hors de la machine de développement » — les
+mélangeait. Ils appellent des réponses différentes :
 
-$k = [System.Security.Cryptography.ECDsa]::Create(
-        [System.Security.Cryptography.ECCurve+NamedCurves]::nistP256)
+| Risque | Ce qui le traite |
+|---|---|
+| La clé est **fabriquée** sur une machine compromise | L'environnement de génération |
+| La clé **réside** sur une machine compromise, ou sur un support perdu | Le stockage, et le chiffrement |
 
-# La clé privée. Ce fichier est le secret : une copie hors ligne, et c'est tout.
-[Convert]::ToBase64String($k.ExportPkcs8PrivateKey()) | Set-Content cle-privee.txt
+Une clé USB est un support de stockage, pas un environnement d'exécution : y écrire la
+clé traite le second risque, jamais le premier. La génération tourne forcément sur le
+processeur d'une machine, et le matériau passe par sa mémoire.
 
-# La clé publique et son empreinte : à épingler dans le binaire, publiables.
-$spki = $k.ExportSubjectPublicKeyInfo()
-"publique : " + [Convert]::ToBase64String($spki)
-"empreinte : " + [Convert]::ToHexString(
-    [System.Security.Cryptography.SHA256]::HashData($spki)).ToLower().Substring(0,12)
+### Environnement de génération
+
+**Une VM jetable suffit quand on n'a qu'une machine.** Elle isole de ce qui compte
+réellement ici : le navigateur, la chaîne d'outils, les paquets tiers, les assistants
+de développement. Elle ne protège pas d'une compromission au niveau noyau de l'hôte —
+mais à ce stade, la clé de signature n'est plus le problème le plus urgent.
+
+Plus propre encore, pour le même coût : démarrer sur un Linux live sans persistance.
+Le système n'a jamais exécuté l'environnement de développement.
+
+Ni l'une ni l'autre n'exige une seconde machine physique, et l'exigence de D16 est
+donc tenable en pratique.
+
+### La commande
+
+```
+rempart keygen --out cle-privee.txt
 ```
 
-Seules la clé publique et son empreinte reviennent sur la machine de développement,
-pour être épinglées dans `ManifestVerifier`. **Une clé privée qui traverse ce chemin
-est compromise** : il faut en générer une autre.
+`rempart.exe` est autonome : on le copie sur une clé USB, on le lance dans la VM
+jetable, rien à installer.
 
-Rappel de D16 : la signature est un acte manuel, aucune automatisation de CI ne détient
-la clé. Un canal de publication automatisé redonnerait au dépôt le pouvoir que cette
-décision lui retire.
+> **Une procédure PowerShell figurait ici et ne fonctionnait pas.** Elle appelait
+> `ExportPkcs8PrivateKey`, absente de .NET Framework — donc de Windows PowerShell 5.1,
+> le shell par défaut. Elle aurait échoué sur la machine hors ligne, sans accès à quoi
+> que ce soit pour comprendre pourquoi. Écrite de mémoire, jamais exécutée.
+
+La commande impose ce que la procédure précédente laissait au bon vouloir :
+
+- **la clé privée est chiffrée**, par une phrase de passe d'au moins douze caractères.
+  Il n'existe aucune option pour l'écrire en clair : un support amovible se perd, se
+  prête, se laisse branché ;
+- **la phrase de passe ne peut pas venir d'un tube ni d'un argument** — donc ni d'un
+  historique de shell, ni d'un script, ni d'un journal. Sans console interactive, la
+  commande refuse ;
+- **la clé est relue immédiatement après écriture.** Une clé qu'on ne sait pas rouvrir
+  ne doit pas se découvrir le jour de la publication, sur une machine détruite depuis ;
+- **un fichier existant n'est jamais écrasé.** Il n'y a pas de copie ailleurs, c'est
+  tout l'intérêt du dispositif.
+
+### Ce qui revient, ce qui reste
+
+Seules **la clé publique et son empreinte** reviennent sur la machine de développement,
+pour être épinglées dans `ManifestVerifier`. Publiables l'une comme l'autre : la clé
+publique vérifie, elle ne signe pas.
+
+**Une clé privée qui traverse ce chemin est compromise** : il faut en générer une autre.
+
+### Sauvegarde
+
+La clé privée chiffrée tient en une ligne de texte. **Elle s'écrit sur papier**, et
+c'est probablement la meilleure protection contre la perte du support — la panne la
+plus probable, très loin devant le vol. La commande l'affiche à cette fin.
+
+Deux copies au même endroit ne font pas une sauvegarde. La phrase de passe ne voyage
+pas avec le support.
+
+Rappel de D16 : la signature reste un acte manuel, aucune automatisation de CI ne
+détient la clé. Un canal de publication automatisé redonnerait au dépôt le pouvoir que
+cette décision lui retire.
 
 ## Actions
 
@@ -300,8 +347,9 @@ décision lui retire.
 4. [ ] Chargement des données externes avec priorité sur l'embarqué (D12)
 5. [ ] Date et ancienneté dans le rapport (D15)
 6. [x] Procédure de protection et de révocation de la clé — **écrite ci-dessus**
-7. [ ] **Générer la paire de clés, hors de la machine de développement** — procédure
-       ci-dessus. Seul l'auteur du projet peut le faire ; rien ne peut être publié
-       avant. Tant que ce point n'est pas fait, `ManifestVerifier` n'épingle aucune clé
-       et refuse donc tout manifeste, ce qui est le bon comportement par défaut
+7. [ ] **Générer la paire de clés, hors de la machine de développement** —
+       `rempart keygen`, outillage livré. Seul l'auteur du projet peut l'exécuter ;
+       rien ne peut être publié avant. Tant que ce point n'est pas fait,
+       `ManifestVerifier` n'épingle aucune clé et refuse donc tout manifeste, ce qui
+       est le bon comportement par défaut
 8. [x] Trancher le sort d'une donnée refusée — **D17**
