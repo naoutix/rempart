@@ -164,7 +164,8 @@ et c'est le seul endroit où un bug entier était observable.
 
 | | |
 |---|---|
-| [ADR-001](docs/adr/ADR-001-stack-et-perimetre.md) | Les 10 décisions, avec les alternatives écartées |
+| [ADR-001](docs/adr/ADR-001-stack-et-perimetre.md) | Les 10 décisions fondatrices, avec les alternatives écartées |
+| [ADR-002](docs/adr/ADR-002-mise-a-jour-des-donnees.md) | Mise à jour des données qui vieillissent — **décision ouverte** |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Schémas, format des règles, stratégie de test |
 | [ROADMAP.md](docs/ROADMAP.md) | M0 → M12, ce qui est reporté **et pourquoi** |
 | [BUILD.md](docs/BUILD.md) | Prérequis, publication AOT, pièges |
