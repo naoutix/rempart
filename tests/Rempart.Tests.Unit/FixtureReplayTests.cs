@@ -160,7 +160,16 @@ public sealed class FixtureReplayTests
             new SnapshotSystemInfoProvider(snapshot),
             new SnapshotServiceStateProvider(snapshot),
             new SnapshotSecurityPolicyProvider(snapshot),
-            new SnapshotWmiProvider(snapshot));
+            new SnapshotWmiProvider(snapshot),
+
+            // Sans ces trois-là, le rejeu n'exerçait aucun collecteur de constats : les
+            // références figeaient « signature non vérifiable » et « tâches absentes de
+            // l'instantané » sur des captures qui contenaient les unes et les autres.
+            // La référence disait donc vrai sur ce que le test faisait, et faux sur ce
+            // qu'un scan fait — la pire forme de fixture, celle qui rassure.
+            new SnapshotSignatureProvider(snapshot),
+            new SnapshotFileSystemProvider(snapshot),
+            new SnapshotScheduledTaskProvider(snapshot));
 
         // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
         // donnee qu'on veut voir figer, pas seulement les champs collectes.

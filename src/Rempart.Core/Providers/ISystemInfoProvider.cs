@@ -36,7 +36,8 @@ public sealed class ProviderSet(
     ISecurityPolicyProvider? policy = null,
     IWmiProvider? wmi = null,
     ISignatureProvider? signatures = null,
-    IFileSystemProvider? files = null)
+    IFileSystemProvider? files = null,
+    IScheduledTaskProvider? scheduledTasks = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -60,6 +61,21 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, aucun dossier n'est énuméré — pas d'invention de contenu.</summary>
     public IFileSystemProvider Files { get; } = files ?? EmptyFileSystem.Instance;
+
+    /// <summary>
+    /// Absent, l'énumération rend « refusée » et non « aucune tâche ». Rendre une
+    /// liste vide ferait passer une absence de provider pour un planificateur propre.
+    /// </summary>
+    public IScheduledTaskProvider ScheduledTasks { get; } =
+        scheduledTasks ?? UnavailableScheduledTasks.Instance;
+}
+
+internal sealed class UnavailableScheduledTasks : IScheduledTaskProvider
+{
+    public static readonly UnavailableScheduledTasks Instance = new();
+
+    public ScheduledTaskRead Enumerate() =>
+        ScheduledTaskRead.Failed("Aucun énumérateur de tâches planifiées n'est disponible.");
 }
 
 internal sealed class EmptyFileSystem : IFileSystemProvider

@@ -399,7 +399,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "\u0022C:\\Users\\leoar\\AppData\\Local\\Discord\\Update.exe\u0022 --processStart Discord.exe --process-start-args \u0022--start-inactive\u0022",
+        "text": "\u0022C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Discord\\Update.exe\u0022 --processStart Discord.exe --process-start-args \u0022--start-inactive\u0022",
         "number": null
       }
     },
@@ -561,6 +561,3434 @@
     }
   },
   "registryLists": {},
-  "signatures": {},
-  "directories": {}
+  "signatures": {
+    "C:\\WINDOWS\\system32\\SecurityHealthSystray.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "129cc582d72581f1459c7a9ac8b020dcd3642fae6a69acc26c680190494970db"
+    },
+    "C:\\WINDOWS\\system32\\cmd.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "65ec268add3973b6dca64222985da47caeaee44a340b0ec1466782914fd743d9"
+    },
+    "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\150.0.4078.83\\Installer\\setup.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cc7ace132d1903d264633a97b3cbfde5152d61162575b2e730d59edf1f959128"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Discord\\Update.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c98cd35463a1dfc01ad9ab5232694813174d93315f28833bdceaa02a4244fb4a"
+    },
+    "C:\\Program Files (x86)\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5f726d95a9ba1aebe43e8188edddb26556c730e03fb6227745e8afbf07d80c54"
+    },
+    "C:\\Program Files\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "258ad247416f2580cf189cdd263ac635f0a9aea2b77994cb3520519484950454"
+    },
+    "C:\\Program Files\\AMD\\CNext\\CNext\\cpumetricsserver.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "02c45bb32a9c2d89a70a84ea7f24160d20c62ea1ab9276c7db03ca981d8e9644"
+    },
+    "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "30e9f49de4f07e8b3e89b4e3550b749ed7d5174f3f181c75825599be9fc634ea"
+    },
+    "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cc73be352589f3e76ba126c2dcaf57b7518dffc92a0d1e1bf9e2f7e72b75d87e"
+    },
+    "C:\\Program Files\\AMD\\CNext\\CNext\\cncmd.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7cd4cba3e2ecbb623a7116dfc79480bb1cf9389817106fe7fd58153601b3a886"
+    },
+    "C:\\Program Files\\AMD\\CNext\\CNext\\RSServCmd.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7a9ab19e381949b100f0594d969304ea3a31bbc5dba879bbd55be7142c0f4900"
+    },
+    "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7538d02f4caa2e00d9e9a3601b7fc3d8d348ea0439baf4579aee96534fa90010"
+    },
+    "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "47fa259b453d6cc50ef209daee720c05e444d2679134c7729471bc4350d51146"
+    },
+    "C:\\Program Files\\Microsoft Office\\root\\VFS\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\operfmon.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ad0d7d0a9906f52bf60acba99e7fdb47fbf81366f7c0031b5b64d177a3667817"
+    },
+    "C:\\WINDOWS\\system32\\appidpolicyconverter.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9bb061360f5fe625201299a63e698a55e22ab9d2bc6c12a48bcb189bedbf9839"
+    },
+    "C:\\WINDOWS\\system32\\appidcertstorecheck.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "513605bce4c18fee8d117adee1051d23ae57a6f1e735606cd5254444daded088"
+    },
+    "C:\\WINDOWS\\system32\\compattelrunner.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "02d5e7f9defec6b9a56a253d9983414cd69e7ecd0ba114c951ac9b3df04df3e6"
+    },
+    "C:\\WINDOWS\\system32\\rundll32.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+    },
+    "C:\\WINDOWS\\system32\\sdbinst.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "421626f74f11eb323af424d56a7bb27a93d7afe7cb7043b747eb6bf580e409e6"
+    },
+    "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e81cd88c8f8bf4bd6ecd4e0982feb60480121b3369e46ee7e143ee6237dd117f"
+    },
+    "C:\\WINDOWS\\system32\\dstokenclean.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "38e4dbbe77423773545def4fedcad64357ea1db16b2f6617a4aaedae5da3c947"
+    },
+    "C:\\WINDOWS\\system32\\BthUdTask.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "73a5b2c12f246faa1beddc1e0c4c830dab010cf33cac3f0115dd4a13d636a4a6"
+    },
+    "C:\\WINDOWS\\system32\\bcdboot.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7c924ed4f034ffdcb1feb83e684cd7d26ce4a754c30debb4935ef6a20ae62fdd"
+    },
+    "C:\\WINDOWS\\System32\\wsqmcons.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8edba7ad9846ed8a5d09c284e324d1a12e62ad5b28f3d4b6a374671551a417c9"
+    },
+    "C:\\WINDOWS\\system32\\defrag.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cb33deaaba36b887fa13cd2b29cdc1472241f815ece8bd2e78a307622d97e362"
+    },
+    "C:\\WINDOWS\\system32\\devicecensus.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8561e353a22f09136598b81939751052d6a59e4e34e250f79b1f9fe4bf98689e"
+    },
+    "C:\\WINDOWS\\system32\\UCConfigTask.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "83e2efaf90f761b2c43223f44ec243464ec012cf6c1a44620fe6414dbce7f8b9"
+    },
+    "C:\\WINDOWS\\system32\\directxdatabaseupdater.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "caea9716b7a8b7fa4274e0376889828a2b8a4d75a756abab210db40721db8815"
+    },
+    "C:\\WINDOWS\\system32\\dxgiadaptercache.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "6e53d9bddc31f9b83a8ee8477b16b882968f4a961d4607abca143754a5bc3304"
+    },
+    "C:\\WINDOWS\\system32\\cleanmgr.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9700a8d3f6d66c2702f6240ac170859bbe13e4966429a5edb0543509a86afd92"
+    },
+    "C:\\WINDOWS\\system32\\DFDWiz.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "211c577f2902087ad252982e90ac0f00c6712bd536fc99328e3572ae76263805"
+    },
+    "C:\\WINDOWS\\system32\\disksnapshot.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e3efc11f128f6e10eae8e15c9aa100201aa89631377b8c9e4db1314dd46659f0"
+    },
+    "C:\\WINDOWS\\System32\\dusmtask.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a966a0c5c014615c5bbd52648a0e0ce6774b6e70139a3522c9aa89d208ba4a1c"
+    },
+    "C:\\WINDOWS\\system32\\dmclient.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "96c29e56a8e5a60a09d9125683d29c24037fd5d40f4659bc2160b9daed20af6e"
+    },
+    "C:\\WINDOWS\\system32\\la57setup.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0df42e045bca512d9312e0ca7ac248b81e67824773476c6121e8f34e5ab5ee26"
+    },
+    "C:\\WINDOWS\\System32\\WindowsActionDialog.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "af82ae3f11202b226ce178cc15a93fb363aeb156b2b6fffbfd902eacadad91e1"
+    },
+    "C:\\WINDOWS\\system32\\ProvTool.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b4177d714d9de99f2041668ff2c36e1c32b3219da82cb285542ce07f99f93f12"
+    },
+    "C:\\WINDOWS\\system32\\MdmDiagnosticsTool.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9d106ece56d4ca894625b91a32b4b1732eaeedae28093e0bdb36e323f2fa8fd7"
+    },
+    "C:\\WINDOWS\\system32\\lpremove.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "88a27a07f124b8beff83e1f3df2c096c1902a9407021edf664e20dc0ac429a57"
+    },
+    "C:\\WINDOWS\\System32\\WiFiTask.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "828985c661c1120521b210504fa5c6953717a0f841cdb9bce4507c3cde94e4f6"
+    },
+    "C:\\WINDOWS\\System32\\drvinst.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "bc4e1649049f6fe768fe15f45890e3a73e39166bed84082949c91006a3b0a345"
+    },
+    "C:\\WINDOWS\\system32\\eduprintprov.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "60cbfac07f4cedebb8cbff12b56d7126faffe124cc27f8bdee904ee7d7e49d44"
+    },
+    "C:\\WINDOWS\\system32\\OOBEFodSetup.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "47204e404567d0adea48fd2b7821da40bd7456a0e945d709e62f227c4fb590c3"
+    },
+    "C:\\WINDOWS\\System32\\wpcmon.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9bede22e69474e6985ca013e7b45d5fbe939758f5de078c00e1e4034eb5d05dd"
+    },
+    "C:\\WINDOWS\\system32\\SpaceAgent.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0b8b03b0f931b4da61d225d7cdd9df13925e77bafe47c47397e80e569071ef7f"
+    },
+    "C:\\WINDOWS\\system32\\spaceman.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3645fe13a3fbac7c8073f0a0283f4f3b294166191c33aa09794641e075422317"
+    },
+    "C:\\WINDOWS\\system32\\ClipRenew.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "215a6b88797ba198bff02141b13432dbda19df89fc23318f92de2053ae05a1d3"
+    },
+    "C:\\WINDOWS\\system32\\srtasks.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e7e56c2607614a58d4fc0fde58fa32a9057e2ec6501808e666faf1d11af62a0e"
+    },
+    "C:\\WINDOWS\\system32\\sc.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a452bfcb6000d03942ddfaddcda5a7eb121447ed99b1ba090446b4a989f1f7ae"
+    },
+    "C:\\WINDOWS\\system32\\tzsync.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "767f8731a78b9120cac46aac14515d4b56590bdd671a47cf05d4f9bbe36f5bb3"
+    },
+    "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "556d0de327089f436d461486b953a97dbd26c458c2c4f01d59d6d4217025cf26"
+    },
+    "C:\\WINDOWS\\system32\\wermgr.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c26c26d600d63ca6aa7625dea48ff97bcb4fd3a458db16679f1fa47df9a1a75d"
+    },
+    "C:\\Program Files\\Windows Media Player\\wmpnscfg.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7c357ad4a20ed83a2a34d1b7307db2d7636cadcbe1384636e39f198708be9407"
+    },
+    "C:\\WINDOWS\\System32\\dsregcmd.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ac3346176cb1a5dc50c0e9c98f3204718eedff97409adc92dcdb99be652ca113"
+    },
+    "C:\\WINDOWS\\System32\\XblGameSaveTask.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d021acaeebd5b9857fa2f261aff52586c9974a176b98f446183307accd96110d"
+    }
+  },
+  "directories": {},
+  "scheduledTasks": {
+    "status": "Found",
+    "tasks": [
+      {
+        "path": "\\AMDRyzenMasterSDKTask",
+        "name": "AMDRyzenMasterSDKTask",
+        "enabled": true,
+        "state": "running",
+        "author": "Advanced Micro Devices",
+        "userId": "anon:9b7dfa1f0da9",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\AMD\\CNext\\CNext\\cpumetricsserver.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Launch Adobe CCXProcess",
+        "name": "Launch Adobe CCXProcess",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:e4c93a1ab859",
+        "userId": "anon:9b7dfa1f0da9",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+        "name": "NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+        "enabled": true,
+        "state": "ready",
+        "author": "NVIDIA Corporation",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\StartCN",
+        "name": "StartCN",
+        "enabled": true,
+        "state": "ready",
+        "author": "Advanced Micro Devices",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\AMD\\CNext\\CNext\\cncmd.exe",
+            "arguments": "startwithdelay"
+          }
+        ]
+      },
+      {
+        "path": "\\StartDVR",
+        "name": "StartDVR",
+        "enabled": true,
+        "state": "ready",
+        "author": "Advanced Micro Devices",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\AMD\\CNext\\CNext\\RSServCmd.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Office\\Office Automatic Updates 2.0",
+        "name": "Office Automatic Updates 2.0",
+        "enabled": true,
+        "state": "ready",
+        "author": "Microsoft Office",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe",
+            "arguments": "/frequentupdate SCHEDULEDTASK displaylevel=False"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Office\\Office ClickToRun Service Monitor",
+        "name": "Office ClickToRun Service Monitor",
+        "enabled": true,
+        "state": "ready",
+        "author": "Microsoft Office",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe",
+            "arguments": "/WatchService"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Office\\Office Feature Updates",
+        "name": "Office Feature Updates",
+        "enabled": true,
+        "state": "ready",
+        "author": "Microsoft Office",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Office\\Office Feature Updates Logon",
+        "name": "Office Feature Updates Logon",
+        "enabled": true,
+        "state": "ready",
+        "author": "Microsoft Office",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
+            "arguments": "/onlogon"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Office\\Office Performance Monitor",
+        "name": "Office Performance Monitor",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\Microsoft Office\\root\\VFS\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\operfmon.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319",
+        "name": ".NET Framework NGEN v4.0.30319",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 64",
+        "name": ".NET Framework NGEN v4.0.30319 64",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 64 Critical",
+        "name": ".NET Framework NGEN v4.0.30319 64 Critical",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 Critical",
+        "name": ".NET Framework NGEN v4.0.30319 Critical",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\AccountHealth\\RecoverabilityToastTask",
+        "name": "RecoverabilityToastTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:06035dc5eb6d",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\AD RMS Rights Policy Template Management (Automated)",
+        "name": "AD RMS Rights Policy Template Management (Automated)",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:f6d03e4eb3b5",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\AD RMS Rights Policy Template Management (Manual)",
+        "name": "AD RMS Rights Policy Template Management (Manual)",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:f6d03e4eb3b5",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\AppID\\PolicyConverter",
+        "name": "PolicyConverter",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:dccbe27b1bdc",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\appidpolicyconverter.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\AppID\\VerifiedPublisherCertStoreCheck",
+        "name": "VerifiedPublisherCertStoreCheck",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:9aa7cc4f7056",
+        "userId": "S-1-5-19",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\appidcertstorecheck.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Application Experience\\MareBackup",
+        "name": "MareBackup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:fb32d128ef02",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\compattelrunner.exe",
+            "arguments": "-m:aeinv.dll -f:UpdateSoftwareInventoryW invsvc"
+          },
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\compattelrunner.exe",
+            "arguments": "-m:appraiser.dll -f:DoScheduledTelemetryRun"
+          },
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\compattelrunner.exe",
+            "arguments": "-m:aemarebackup.dll -f:BackupMareData"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser Exp",
+        "name": "Microsoft Compatibility Appraiser Exp",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:450b1a506bd8",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\compattelrunner.exe",
+            "arguments": "-m:appraiser.dll -f:DoScheduledTelemetryRun express"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask",
+        "name": "PcaPatchDbTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "Microsoft Corporation",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "%windir%\\system32\\PcaSvc.dll,PcaPatchSdbTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Application Experience\\SdbinstMergeDbTask",
+        "name": "SdbinstMergeDbTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:b76754dd64e8",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\sdbinst.exe",
+            "arguments": "-mm"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Application Experience\\StartupAppTask",
+        "name": "StartupAppTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:fd26fe4e688b",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "Startupscan.dll,SusRunTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\ApplicationData\\appuriverifierdaily",
+        "name": "appuriverifierdaily",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:cef10eb68ff9",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\ApplicationData\\appuriverifierinstall",
+        "name": "appuriverifierinstall",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:cef10eb68ff9",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\ApplicationData\\CleanupTemporaryState",
+        "name": "CleanupTemporaryState",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:8e2b3251cd12",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "Windows.Storage.ApplicationData.dll,CleanupTemporaryState"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\ApplicationData\\DsSvcCleanup",
+        "name": "DsSvcCleanup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:f6d963b2f50f",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\dstokenclean.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\AppListBackup\\Backup",
+        "name": "Backup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:02a12672c059",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\AppListBackup\\BackupNonMaintenance",
+        "name": "BackupNonMaintenance",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:02a12672c059",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\AppxDeploymentClient\\Pre-staged app cleanup",
+        "name": "Pre-staged app cleanup",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "%windir%\\system32\\AppxDeploymentClient.dll,AppxPreStageCleanupRunTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Autochk\\Proxy",
+        "name": "Proxy",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:bb0496e5649c",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "/d acproxy.dll,PerformAutochkOperations"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\BitLocker\\BitLocker Encrypt All Drives",
+        "name": "BitLocker Encrypt All Drives",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\BitLocker\\BitLocker MDM policy Refresh",
+        "name": "BitLocker MDM policy Refresh",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Bluetooth\\UninstallDeviceTask",
+        "name": "UninstallDeviceTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:5ba47dab3a96",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\BthUdTask.exe",
+            "arguments": "$(Arg0)"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\BrokerInfrastructure\\BgTaskRegistrationMaintenanceTask",
+        "name": "BgTaskRegistrationMaintenanceTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:aa2904b64da8",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\capabilityaccessmanager\\maintenancetasks",
+        "name": "maintenancetasks",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:baa4431831b0",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "%windir%\\system32\\CapabilityAccessManager.dll,CapabilityAccessManagerDoStoreMaintenance"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\CertificateServicesClient\\UserTask",
+        "name": "UserTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c4f7de6a0f4c",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\CertificateServicesClient\\UserTask-Roam",
+        "name": "UserTask-Roam",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c4f7de6a0f4c",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Chkdsk\\ProactiveScan",
+        "name": "ProactiveScan",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:14c5fcee7ff8",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Chkdsk\\SyspartRepair",
+        "name": "SyspartRepair",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\bcdboot.exe",
+            "arguments": "%windir% /sysrepair"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\CloudExperienceHost\\CreateObjectTask",
+        "name": "CreateObjectTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\CloudRestore\\Backup",
+        "name": "Backup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:0f77da15ef3a",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\CloudRestore\\Restore",
+        "name": "Restore",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:0f77da15ef3a",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\ConsentUX\\UnifiedConsent\\UnifiedConsentSyncTask",
+        "name": "UnifiedConsentSyncTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a3e0840493ae",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Containers\\CmCleanup",
+        "name": "CmCleanup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:fadbf5bdcf73",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator",
+        "name": "Consolidator",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:b99b43002db4",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\wsqmcons.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip",
+        "name": "UsbCeip",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:048100f06232",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Check And Scan",
+        "name": "Data Integrity Check And Scan",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:96498ec76b74",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Scan",
+        "name": "Data Integrity Scan",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:96498ec76b74",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Scan for Crash Recovery",
+        "name": "Data Integrity Scan for Crash Recovery",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:96498ec76b74",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Defrag\\ScheduledDefrag",
+        "name": "ScheduledDefrag",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a9bc9c4588dc",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\defrag.exe",
+            "arguments": "-c -h -o -$"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Device Information\\Device",
+        "name": "Device",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\devicecensus.exe",
+            "arguments": "SystemCxt"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Device Information\\Device User",
+        "name": "Device User",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\devicecensus.exe",
+            "arguments": "UserCxt"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Device Setup\\Driver Recovery on Reboot",
+        "name": "Driver Recovery on Reboot",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:886e670abecb",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Diagnosis\\RecommendedTroubleshootingScanner",
+        "name": "RecommendedTroubleshootingScanner",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:eb32cbd6af3c",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Diagnosis\\Scheduled",
+        "name": "Scheduled",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a79150d37db4",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Diagnosis\\UnexpectedCodepath",
+        "name": "UnexpectedCodepath",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\UCConfigTask.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DirectX\\DirectXDatabaseUpdater",
+        "name": "DirectXDatabaseUpdater",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\directxdatabaseupdater.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DirectX\\DXGIAdapterCache",
+        "name": "DXGIAdapterCache",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\dxgiadaptercache.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DiskCleanup\\SilentCleanup",
+        "name": "SilentCleanup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:56ab225d4247",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\cleanmgr.exe",
+            "arguments": "/autocleanstoragesense /d %systemdrive%"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector",
+        "name": "Microsoft-Windows-DiskDiagnosticDataCollector",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:bc4fcfc06fa1",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "dfdts.dll,DfdGetDefaultPolicyAndSMART"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticResolver",
+        "name": "Microsoft-Windows-DiskDiagnosticResolver",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:bc4fcfc06fa1",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\DFDWiz.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DiskFootprint\\Diagnostics",
+        "name": "Diagnostics",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\disksnapshot.exe",
+            "arguments": "-z"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DiskFootprint\\StorageSense",
+        "name": "StorageSense",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\DUSM\\dusmtask",
+        "name": "dusmtask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\dusmtask.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\EDP\\EDP App Launch Task",
+        "name": "EDP App Launch Task",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\EDP\\EDP Auth Task",
+        "name": "EDP Auth Task",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\EDP\\EDP Inaccessible Credentials Task",
+        "name": "EDP Inaccessible Credentials Task",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\EDP\\StorageCardEncryption Task",
+        "name": "StorageCardEncryption Task",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh",
+        "name": "ExploitGuard MDM policy Refresh",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:8100bf382ab1",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient",
+        "name": "DmClient",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c2f130e48a82",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\dmclient.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload",
+        "name": "DmClientOnScenarioDownload",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c2f130e48a82",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\dmclient.exe",
+            "arguments": "utcwnf"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\File Classification Infrastructure\\Property Definition Sync",
+        "name": "Property Definition Sync",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:fffaf8986a2e",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\FileHistory\\File History (maintenance mode)",
+        "name": "File History (maintenance mode)",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:946b860d9ce2",
+        "userId": "S-1-5-19",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\BootstrapUsageDataReporting",
+        "name": "BootstrapUsageDataReporting",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:2384315cb096",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\GovernedFeatureUsageProcessing",
+        "name": "GovernedFeatureUsageProcessing",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a8603001142c",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\ReconcileConfigs",
+        "name": "ReconcileConfigs",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a8603001142c",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\ReconcileFeatures",
+        "name": "ReconcileFeatures",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a8603001142c",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\SafeguardsReconciliation",
+        "name": "SafeguardsReconciliation",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a8603001142c",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataFlushing",
+        "name": "UsageDataFlushing",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2384315cb096",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataReceiver",
+        "name": "UsageDataReceiver",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2384315cb096",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataReporting",
+        "name": "UsageDataReporting",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2384315cb096",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Flighting\\OneSettings\\RefreshCache",
+        "name": "RefreshCache",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:e47d9941c5bf",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Hotpatch\\Monitoring",
+        "name": "Monitoring",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\cmd.exe",
+            "arguments": "/d /c %systemroot%\\system32\\hpatchmonTask.cmd"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\InputSettingsRestoreDataAvailable",
+        "name": "InputSettingsRestoreDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\LocalUserSyncDataAvailable",
+        "name": "LocalUserSyncDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\MouseSyncDataAvailable",
+        "name": "MouseSyncDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\PenSyncDataAvailable",
+        "name": "PenSyncDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\RemoteMouseSyncDataAvailable",
+        "name": "RemoteMouseSyncDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\RemotePenSyncDataAvailable",
+        "name": "RemotePenSyncDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\RemoteTouchpadSyncDataAvailable",
+        "name": "RemoteTouchpadSyncDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\syncpensettings",
+        "name": "syncpensettings",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\input\\TouchpadSyncDataAvailable",
+        "name": "TouchpadSyncDataAvailable",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\InstallService\\RestoreDevice",
+        "name": "RestoreDevice",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\InstallService\\ScanForUpdates",
+        "name": "ScanForUpdates",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\InstallService\\ScanForUpdatesAsUser",
+        "name": "ScanForUpdatesAsUser",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\InstallService\\WakeUpAndContinueUpdates",
+        "name": "WakeUpAndContinueUpdates",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\InstallService\\WakeUpAndScanForUpdates",
+        "name": "WakeUpAndScanForUpdates",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\International\\Synchronize Language Settings",
+        "name": "Synchronize Language Settings",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c3ee03ce1ede",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Kernel\\La57Cleanup",
+        "name": "La57Cleanup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:8e26e4e027fd",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\la57setup.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\LanguageComponentsInstaller\\Installation",
+        "name": "Installation",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:fdb3f01cb7d6",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\LanguageComponentsInstaller\\ReconcileLanguageResources",
+        "name": "ReconcileLanguageResources",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:517a4b0c25bf",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Location\\WindowsActionDialog",
+        "name": "WindowsActionDialog",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\WindowsActionDialog.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Maintenance\\WinSAT",
+        "name": "WinSAT",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:401afff53402",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Management\\Autopilot\\DetectHardwareChange",
+        "name": "DetectHardwareChange",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:8e79d50566e2",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Management\\Autopilot\\RemediateHardwareChange",
+        "name": "RemediateHardwareChange",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:8e79d50566e2",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Management\\Provisioning\\Cellular",
+        "name": "Cellular",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
+            "arguments": "/turn 7 /source CellStateChangeTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Management\\Provisioning\\Logon",
+        "name": "Logon",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
+            "arguments": "/turn 5 /source LogonIdleTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Management\\Provisioning\\MdmDiagnosticsCleanup",
+        "name": "MdmDiagnosticsCleanup",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\MdmDiagnosticsTool.exe",
+            "arguments": "/clean"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Management\\Provisioning\\Retry",
+        "name": "Retry",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
+            "arguments": "/turn 5 /source ProvRetryTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Management\\Provisioning\\RunOnReboot",
+        "name": "RunOnReboot",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
+            "arguments": "/turn 5 /source ContinueSessionTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Maps\\MapsToastTask",
+        "name": "MapsToastTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:41fa6c598e5f",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Maps\\MapsUpdateTask",
+        "name": "MapsUpdateTask",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:413731f77137",
+        "userId": "S-1-5-20",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\MemoryDiagnostic\\AutomaticOfflineMemoryDiagnostic",
+        "name": "AutomaticOfflineMemoryDiagnostic",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:480fd03a578d",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\MemoryDiagnostic\\ProcessMemoryDiagnosticEvents",
+        "name": "ProcessMemoryDiagnosticEvents",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:480fd03a578d",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\MemoryDiagnostic\\RunFullMemoryDiagnostic",
+        "name": "RunFullMemoryDiagnostic",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:480fd03a578d",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\MUI\\LPRemove",
+        "name": "LPRemove",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2fb867097841",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\lpremove.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Multimedia\\SystemSoundsService",
+        "name": "SystemSoundsService",
+        "enabled": true,
+        "state": "running",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Network Connectivity Status Indicator\\NcsiIdentifyUserProxies",
+        "name": "NcsiIdentifyUserProxies",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\NlaSvc\\WiFiTask",
+        "name": "WiFiTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:082aa9f5d7b9",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\WiFiTask.exe",
+            "arguments": "nla"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Offline Files\\Background Synchronization",
+        "name": "Background Synchronization",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:27f68e9ed327",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Offline Files\\Logon Synchronization",
+        "name": "Logon Synchronization",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:27f68e9ed327",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\PCRPF\\PCR Prediction Framework Firmware Update Task",
+        "name": "PCR Prediction Framework Firmware Update Task",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "%windir%\\system32\\pcrpf.dll,NotifyFirmwareUpdateStaged"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\PerformanceTrace\\ShowFeedbackToast",
+        "name": "ShowFeedbackToast",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2cbe2e4b0817",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\PerformanceTrace\\WhesvcToast",
+        "name": "WhesvcToast",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2cbe2e4b0817",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Plug and Play\\Device Install Group Policy",
+        "name": "Device Install Group Policy",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c5203e5f4b0b",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Plug and Play\\Device Install Reboot Required",
+        "name": "Device Install Reboot Required",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:eb5f228a4ecc",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Plug and Play\\Sysprep Generalize Drivers",
+        "name": "Sysprep Generalize Drivers",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:528a0a497df4",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\drvinst.exe",
+            "arguments": "6"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Power Efficiency Diagnostics\\AnalyzeSystem",
+        "name": "AnalyzeSystem",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2b439f9dc7b3",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Printing\\EduPrintProv",
+        "name": "EduPrintProv",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\eduprintprov.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Printing\\PrinterCleanupTask",
+        "name": "PrinterCleanupTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Printing\\PrintJobCleanupTask",
+        "name": "PrintJobCleanupTask",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\RecoveryEnvironment\\VerifyWinRE",
+        "name": "VerifyWinRE",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:8b1a697e34bd",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\ReFsDedupSvc\\Initialization",
+        "name": "Initialization",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:e26fc955370f",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Registry\\RegIdleBackup",
+        "name": "RegIdleBackup",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:13d95c0604ac",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Servicing\\OOBEFodSetup",
+        "name": "OOBEFodSetup",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\OOBEFodSetup.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Servicing\\StartComponentCleanup",
+        "name": "StartComponentCleanup",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Setup\\PITRTask",
+        "name": "PITRTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Setup\\SetupRecoveryDataTask",
+        "name": "SetupRecoveryDataTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\SharedPC\\Account Cleanup",
+        "name": "Account Cleanup",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Shell\\CreateObjectTask",
+        "name": "CreateObjectTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:e40249f1998a",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Shell\\FamilySafetyMonitor",
+        "name": "FamilySafetyMonitor",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:ba91214c5f9d",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\wpcmon.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Shell\\FamilySafetyRefreshTask",
+        "name": "FamilySafetyRefreshTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:dee88184f8a8",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Shell\\IndexerAutomaticMaintenance",
+        "name": "IndexerAutomaticMaintenance",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c42ddb33131a",
+        "userId": "S-1-5-19",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Shell\\ThemesSyncedImageDownload",
+        "name": "ThemesSyncedImageDownload",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:9f4cf6b6485c",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\SvcRestartTaskLogon",
+        "name": "SvcRestartTaskLogon",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:4e80e38b2ca9",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\SpacePort\\SpaceAgentTask",
+        "name": "SpaceAgentTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:e5f4277504cd",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\SpaceAgent.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\SpacePort\\SpaceManagerTask",
+        "name": "SpaceManagerTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:c181b73e29e6",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\spaceman.exe",
+            "arguments": "/Work"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\StateRepository\\MaintenanceTasks",
+        "name": "MaintenanceTasks",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:018e80c402c5",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "%windir%\\system32\\Windows.StateRepositoryClient.dll,StateRepositoryDoMaintenanceTasks"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Storage Tiers Management\\Storage Tiers Management Initialization",
+        "name": "Storage Tiers Management Initialization",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:937baa05dae0",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Storage Tiers Management\\Storage Tiers Optimization",
+        "name": "Storage Tiers Optimization",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:937baa05dae0",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\defrag.exe",
+            "arguments": "-c -h -g -# -m 8 -i 13500"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Subscription\\EnableLicenseAcquisition",
+        "name": "EnableLicenseAcquisition",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:9a45a182c513",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\ClipRenew.exe",
+            "arguments": "-e"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Subscription\\LicenseAcquisition",
+        "name": "LicenseAcquisition",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:9a45a182c513",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\ClipRenew.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Sustainability\\PowerGridForecastTask",
+        "name": "PowerGridForecastTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:5f8433b5aafe",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Sustainability\\SustainabilityTelemetry",
+        "name": "SustainabilityTelemetry",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:8cc6af3dd474",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Sysmain\\HybridDriveCachePrepopulate",
+        "name": "HybridDriveCachePrepopulate",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:de173942495f",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Sysmain\\HybridDriveCacheRebalance",
+        "name": "HybridDriveCacheRebalance",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:de173942495f",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Sysmain\\ResPriStaticDbSync",
+        "name": "ResPriStaticDbSync",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:de173942495f",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Sysmain\\WsSwapAssessmentTask",
+        "name": "WsSwapAssessmentTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:de173942495f",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "sysmain.dll,PfSvWsSwapAssessmentTask"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\SystemRestore\\SR",
+        "name": "SR",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:882326de23ba",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\srtasks.exe",
+            "arguments": "ExecuteScheduledSPPCreation"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Task Manager\\Interactive",
+        "name": "Interactive",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:1edf06e746f1",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\TextServicesFramework\\MsCtfMonitor",
+        "name": "MsCtfMonitor",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Time Synchronization\\ForceSynchronizeTime",
+        "name": "ForceSynchronizeTime",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:9669890ceab5",
+        "userId": "S-1-5-19",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Time Synchronization\\SynchronizeTime",
+        "name": "SynchronizeTime",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:a3c5258d7775",
+        "userId": "S-1-5-19",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\sc.exe",
+            "arguments": "start w32time task_started"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Time Zone\\SynchronizeTimeZone",
+        "name": "SynchronizeTimeZone",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:f696d38e042c",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\tzsync.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\UPnP\\UPnPHostConfig",
+        "name": "UPnPHostConfig",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:fde2a66d728f",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\sc.exe",
+            "arguments": "config upnphost start= auto"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\USB\\Usb-Notifications",
+        "name": "Usb-Notifications",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:892bca4d3f24",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WCM\\WiFiTask",
+        "name": "WiFiTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:082aa9f5d7b9",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\WiFiTask.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WDI\\ResolutionHost",
+        "name": "ResolutionHost",
+        "enabled": true,
+        "state": "running",
+        "author": "anon:d38014d52be7",
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance",
+        "name": "Windows Defender Cache Maintenance",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+            "arguments": "-IdleTask -TaskName WdCacheMaintenance"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Cleanup",
+        "name": "Windows Defender Cleanup",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+            "arguments": "-IdleTask -TaskName WdCleanup"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan",
+        "name": "Windows Defender Scheduled Scan",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+            "arguments": "Scan -ScheduleJob -ScanTrigger 55 -IdleScheduledJob"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Verification",
+        "name": "Windows Defender Verification",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+            "arguments": "-IdleTask -TaskName WdVerification"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting",
+        "name": "QueueReporting",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:2127a5b69fb5",
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\wermgr.exe",
+            "arguments": "-upload"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Windows Filtering Platform\\BfeOnServiceStartTypeChange",
+        "name": "BfeOnServiceStartTypeChange",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:f2cefeb1fcfb",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\system32\\rundll32.exe",
+            "arguments": "bfe.dll,BfeOnServiceStartTypeChange"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Windows Media Sharing\\UpdateLibrary",
+        "name": "UpdateLibrary",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:51a374b8da6e",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\Program Files\\Windows Media Player\\wmpnscfg.exe",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WindowsColorSystem\\Calibration Loader",
+        "name": "Calibration Loader",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:abc3e5ef695f",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WindowsUpdate\\Scheduled Start",
+        "name": "Scheduled Start",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:47e144ac41ff",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\sc.exe",
+            "arguments": "start wuauserv"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Wininet\\CacheTask",
+        "name": "CacheTask",
+        "enabled": true,
+        "state": "running",
+        "author": "anon:57c8d61fc38d",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WlanSvc\\CDSSync",
+        "name": "CDSSync",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WlanSvc\\MoProfileManagement",
+        "name": "MoProfileManagement",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Work Folders\\Work Folders Logon Synchronization",
+        "name": "Work Folders Logon Synchronization",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:14283c39c7ea",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Work Folders\\Work Folders Maintenance Work",
+        "name": "Work Folders Maintenance Work",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:43642bf08697",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Workplace Join\\Automatic-Device-Join",
+        "name": "Automatic-Device-Join",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\dsregcmd.exe",
+            "arguments": "$(Arg0) $(Arg1) $(Arg2)"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Workplace Join\\Device-Sync",
+        "name": "Device-Sync",
+        "enabled": false,
+        "state": "disabled",
+        "author": "anon:9245187cbfb8",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\Workplace Join\\Recovery-Check",
+        "name": "Recovery-Check",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": null,
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\dsregcmd.exe",
+            "arguments": "/checkrecovery"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WwanSvc\\NotificationTask",
+        "name": "NotificationTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "anon:082aa9f5d7b9",
+        "userId": null,
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\WiFiTask.exe",
+            "arguments": "wwan"
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\Windows\\WwanSvc\\OobeDiscovery",
+        "name": "OobeDiscovery",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "S-1-5-18",
+        "runLevel": "HighestAvailable",
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\Microsoft\\XblGameSave\\XblGameSaveTask",
+        "name": "XblGameSaveTask",
+        "enabled": true,
+        "state": "ready",
+        "author": "Microsoft",
+        "userId": "S-1-5-18",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "exec",
+            "path": "C:\\WINDOWS\\System32\\XblGameSaveTask.exe",
+            "arguments": "standby"
+          }
+        ]
+      },
+      {
+        "path": "\\SoftLanding\\anon:cca6beabe766\\SoftLandingCreativeManagementTask",
+        "name": "SoftLandingCreativeManagementTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "anon:cca6beabe766",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingCreativeManagementTask",
+        "name": "SoftLandingCreativeManagementTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "anon:9b7dfa1f0da9",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{8f381026-0ad6-488e-8273-a84e6d37c835}",
+        "name": "SoftLandingDeferralTask-{8f381026-0ad6-488e-8273-a84e6d37c835}",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "anon:9b7dfa1f0da9",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{255e53e0-aa7a-48b1-8b58-b08306fe171d}",
+        "name": "SoftLandingTriggerTask-128000000001615609-render-{255e53e0-aa7a-48b1-8b58-b08306fe171d}",
+        "enabled": false,
+        "state": "disabled",
+        "author": null,
+        "userId": "anon:9b7dfa1f0da9",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\SoftLanding\\anon:9ec9fa350c22\\SoftLandingCreativeManagementTask",
+        "name": "SoftLandingCreativeManagementTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "anon:9ec9fa350c22",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      },
+      {
+        "path": "\\SoftLanding\\anon:fe2a3f975474\\SoftLandingCreativeManagementTask",
+        "name": "SoftLandingCreativeManagementTask",
+        "enabled": true,
+        "state": "ready",
+        "author": null,
+        "userId": "anon:fe2a3f975474",
+        "runLevel": null,
+        "actions": [
+          {
+            "kind": "ComHandler",
+            "path": "",
+            "arguments": ""
+          }
+        ]
+      }
+    ],
+    "diagnostic": null
+  }
 }

@@ -46,6 +46,12 @@ public sealed class MachineSnapshot
 
     /// <summary>Contenu des répertoires énumérés.</summary>
     public Dictionary<string, List<string>> Directories { get; set; } = [];
+
+    /// <summary>
+    /// Tâches planifiées, ou null si l'instantané est antérieur à leur collecte. Le
+    /// null compte : il distingue « pas encore capturé » de « planificateur vide ».
+    /// </summary>
+    public ScheduledTaskRead? ScheduledTasks { get; set; }
 }
 
 public static class SnapshotKeys

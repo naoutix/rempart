@@ -120,7 +120,12 @@ lancé au démarrage.
       Windows écartés du bruit
 - [x] Dossiers Startup — machine et utilisateur. Les raccourcis sont énumérés sans
       être jugés : leur cible compte, et la résoudre demande de lire le format .lnk
-- [ ] Tâches planifiées — demande l'API COM du planificateur, quatre interfaces de plus
+- [x] Tâches planifiées — cinq interfaces COM, dérivées d'`IDispatch` donc décalées de
+      quatre emplacements de table virtuelle. Ordre repris de `taskschd.h`, pas de
+      mémoire. La définition est lue en XML via `get_Xml` plutôt qu'en descendant la
+      chaîne `ITaskDefinition` : une occasion de se tromper d'emplacement au lieu de dix.
+      Couvert en CI par `rempart diagnose-tasks` contre le binaire AOT — même garde-fou
+      que WMI, posé avant que le problème ne se pose et non après
 - [ ] Pilotes chargés comparés à LOLDrivers — **attend ADR-002** : la liste fait
       ~1 500 entrées et vieillit chaque semaine, elle n'a de sens qu'avec le canal de
       mise à jour

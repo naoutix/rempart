@@ -36,20 +36,146 @@ public static class Anonymiser
             }
 
             var valueName = key[(key.LastIndexOf("||", StringComparison.Ordinal) + 2)..];
-            if (IsSensitive(valueName))
+
+            // Le nom de compte se glisse aussi dans des valeurs parfaitement anodines :
+            // une entrée Run qui pointe vers %LOCALAPPDATA% s'enregistre en chemin
+            // complet, donc avec le prénom de quelqu'un.
+            var scrubbed = IsSensitive(valueName) ? Hash(text) : ScrubProfile(text);
+
+            if (!string.Equals(scrubbed, text, StringComparison.Ordinal))
             {
-                snapshot.Registry[key] = read with { Value = read.Value with { Text = Hash(text) } };
+                snapshot.Registry[key] = read with { Value = read.Value with { Text = scrubbed } };
             }
         }
+
+        snapshot.Signatures = snapshot.Signatures
+            .ToDictionary(entry => ScrubProfile(entry.Key), entry => entry.Value);
+
+        snapshot.Directories = snapshot.Directories.ToDictionary(
+            entry => ScrubProfile(entry.Key),
+            entry => entry.Value.Select(ScrubProfile).ToList());
 
         if (snapshot.SystemInfo is { } info)
         {
             snapshot.SystemInfo = info with { MachineName = Hash(info.MachineName) };
         }
 
+        if (snapshot.ScheduledTasks is { } tasks && tasks.Tasks.Count > 0)
+        {
+            snapshot.ScheduledTasks = tasks with
+            {
+                Tasks =
+                [
+                    .. tasks.Tasks.Select(task => task with
+                    {
+                        Path = ScrubSegments(task.Path),
+                        Name = ScrubSegments(task.Name),
+                        Author = Depersonalise(task.Author),
+                        UserId = Depersonalise(task.UserId),
+                        Actions =
+                        [
+                            .. task.Actions.Select(action => action with
+                            {
+                                Path = ScrubProfile(action.Path),
+                                Arguments = ScrubProfile(action.Arguments),
+                            }),
+                        ],
+                    }),
+                ],
+            };
+        }
+
         snapshot.Anonymised = true;
         return snapshot;
     }
+
+    /// <summary>
+    /// Hache ce qui désigne une personne, laisse le reste lisible.
+    ///
+    /// Une tâche planifiée nomme son auteur et le compte sous lequel elle tourne. Les
+    /// deux sont tantôt anodins — « Microsoft Corporation », <c>S-1-5-18</c> qui est le
+    /// compte système — tantôt directement identifiants : la forme
+    /// <c>MACHINE\utilisateur</c>, ou un SID de compte local.
+    ///
+    /// Tout hacher protégerait autant et coûterait la lisibilité des fixtures : on ne
+    /// distinguerait plus une tâche du système d'une tâche d'utilisateur, ce qui est
+    /// justement ce qu'on veut pouvoir juger. La distinction est donc explicite.
+    /// </summary>
+    /// <summary>
+    /// Comptes de profil qui ne désignent personne : ils existent à l'identique sur
+    /// toute installation de Windows.
+    /// </summary>
+    private static readonly string[] ImpersonalProfiles =
+        ["public", "default", "default user", "all users"];
+
+    /// <summary>
+    /// Remplace le nom de compte dans un chemin de profil.
+    ///
+    /// <c>C:\Users\prénom\AppData\...</c> nomme quelqu'un. Ces chemins servent de clés
+    /// dans l'instantané — signatures vérifiées, répertoires énumérés — et se
+    /// retrouvent aussi dans les valeurs de registre <c>Run</c>.
+    ///
+    /// Seul le segment du compte est haché : le reste du chemin dit quelle application
+    /// se lance au démarrage, et c'est exactement ce qu'une fixture doit conserver.
+    /// </summary>
+    internal static string ScrubProfile(string path)
+    {
+        var marker = path.IndexOf(@"\Users\", StringComparison.OrdinalIgnoreCase);
+        if (marker < 0)
+        {
+            return path;
+        }
+
+        var start = marker + @"\Users\".Length;
+        var end = path.IndexOf('\\', start);
+        if (end < 0)
+        {
+            end = path.Length;
+        }
+
+        var account = path[start..end];
+        if (account.Length == 0
+            || account.StartsWith(Prefix, StringComparison.Ordinal)
+            || ImpersonalProfiles.Contains(account, StringComparer.OrdinalIgnoreCase))
+        {
+            return path;
+        }
+
+        return string.Concat(path[..start], Hash(account), path[end..]);
+    }
+
+    /// <summary>
+    /// Remplace les SID de compte enfouis dans un chemin, sans toucher au reste.
+    ///
+    /// Certaines applications créent un dossier de tâches par utilisateur et le
+    /// nomment par son SID : <c>\SoftLanding\S-1-5-21-…-1002\…</c>. Hacher le chemin
+    /// entier rendrait la fixture illisible — on ne saurait plus quelle application a
+    /// posé quoi — alors que seul le segment identifiant pose problème.
+    /// </summary>
+    private static string ScrubSegments(string path) =>
+        path.Contains("S-1-5-21-", StringComparison.OrdinalIgnoreCase)
+            ? string.Join('\\', path.Split('\\').Select(segment =>
+                segment.StartsWith("S-1-5-21-", StringComparison.OrdinalIgnoreCase)
+                    ? Hash(segment)
+                    : segment))
+            : path;
+
+    private static string? Depersonalise(string? value) => value switch
+    {
+        null or "" => value,
+
+        // S-1-5-21 précède les SID des comptes créés sur la machine ou le domaine :
+        // derrière chacun il y a quelqu'un. Les autorités bien connues — S-1-5-18
+        // pour le système, S-1-5-19 et S-1-5-20 pour les services — ne désignent
+        // personne et restent lisibles.
+        _ when value.StartsWith("S-1-5-21-", StringComparison.OrdinalIgnoreCase) => Hash(value),
+
+        // Forme DOMAINE\utilisateur : porte à la fois le nom de la machine et celui du
+        // compte.
+        _ when value.Contains('\\') => Hash(value),
+
+        _ => value,
+    };
 
     private static bool IsSensitive(string valueName) =>
         SensitiveValueFragments.Any(fragment =>
