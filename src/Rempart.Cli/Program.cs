@@ -4,13 +4,14 @@ using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
+using System.Reflection;
 using Rempart.Windows;
 
 // Analyse d'arguments écrite à la main. L'ADR-001 prévoit System.CommandLine ; l'ajouter
 // pour deux commandes serait prématuré. À basculer en M1, quand le nombre de commandes
 // le justifiera.
 
-const string Version = "0.2.0-m1";
+
 
 // La console Windows n'est pas en UTF-8 par défaut : sans cela les diagnostics
 // accentués sortent illisibles, et ce sont eux qu'il faut lire en priorité.
@@ -25,7 +26,8 @@ try
         "scan" => Scan(args),
         "capture" => Capture(args),
         "explain" => Explain(args),
-        "version" => Print(Version),
+        "synthesise" => Synthesise(args),
+        "version" => Print(ToolVersion()),
         _ => Help(),
     };
 }
@@ -65,7 +67,7 @@ static int Scan(string[] args)
     }
 
     var result = ScanEngine.Default(OptionValue(args, "--rules"))
-        .Run(providers, Version, origin);
+        .Run(providers, ToolVersion(), origin);
 
     if (asJson)
     {
@@ -97,7 +99,7 @@ static int Capture(string[] args)
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
     var engine = ScanEngine.Default(OptionValue(args, "--rules"));
-    engine.Run(providers, Version, snapshot.CapturedAtUtc);
+    engine.Run(providers, ToolVersion(), snapshot.CapturedAtUtc);
 
     // Puis toutes les cles que les regles pourraient lire dans un autre contexte, afin
     // que l'instantane reste rejouable ailleurs que sur la machine qui l'a produit.
@@ -120,6 +122,54 @@ static int Capture(string[] args)
     Console.WriteLine(raw
         ? "  ATTENTION : capture brute, non anonymisée. Ne pas versionner tel quel."
         : "  anonymisé : hostname, numéros de série et propriétaire remplacés par des empreintes.");
+
+    return 0;
+}
+
+/// <summary>
+/// Fabrique une fixture synthétique à partir d'une capture réelle.
+///
+/// Les fixtures étaient régénérées par un script jetable qui reparsait le YAML en
+/// expressions régulières : une seconde implémentation du chargeur, ni versionnée ni
+/// testée, et que personne d'autre ne pouvait rejouer. Ici ce sont les règles chargées
+/// par le moteur qui pilotent la substitution.
+/// </summary>
+static int Synthesise(string[] args)
+{
+    var sourcePath = OptionValue(args, "--from")
+        ?? throw new ArgumentException("« synthesise » exige --from <capture>.");
+    var outPath = OptionValue(args, "--out")
+        ?? throw new ArgumentException("« synthesise » exige --out <fichier>.");
+
+    var profile = OptionValue(args, "--profile") switch
+    {
+        "hardened" or null => SyntheticProfile.Hardened,
+        "defaults" => SyntheticProfile.WindowsDefaults,
+        var other => throw new ArgumentException(
+            $"Profil inconnu « {other} ». Attendu : hardened, defaults."),
+    };
+
+    var deny = OptionValues(args, "--deny");
+
+    var built = SyntheticSnapshot.Build(
+        RempartJson.DeserialiseSnapshot(File.ReadAllText(sourcePath)),
+        RuleCatalog.Load(OptionValue(args, "--rules")),
+        profile,
+        machineName: OptionValue(args, "--name") ?? "anon:synthetic",
+        domainJoined: HasFlag(args, "--domain-joined"),
+        elevated: !HasFlag(args, "--not-elevated"),
+        denyPathFragments: deny);
+
+    File.WriteAllText(outPath, RempartJson.Serialise(built));
+
+    Console.WriteLine($"Fixture écrite : {outPath}");
+    Console.WriteLine($"  profil               : {profile}");
+    Console.WriteLine($"  lectures             : {built.Registry.Count}");
+    Console.WriteLine($"  jointe à un domaine  : {built.SystemInfo?.IsDomainJoined}");
+    if (deny.Count > 0)
+    {
+        Console.WriteLine($"  accès refusé sur     : {string.Join(", ", deny)}");
+    }
 
     return 0;
 }
@@ -339,6 +389,16 @@ static void RequireWindows()
     }
 }
 
+/// <summary>
+/// Version lue sur l'assembly. Écrite en dur, elle avait déjà divergé deux fois du
+/// lot réellement livré : la source unique est &lt;Version&gt; dans Directory.Build.props.
+/// </summary>
+static string ToolVersion() =>
+    System.Reflection.Assembly.GetEntryAssembly()
+        ?.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+        ?.InformationalVersion.Split('+')[0]
+    ?? "0.0.0";
+
 static string UtcNow() => DateTime.UtcNow.ToString("o");
 
 static string? OptionValue(string[] args, string name)
@@ -348,6 +408,21 @@ static string? OptionValue(string[] args, string name)
 }
 
 static bool HasFlag(string[] args, string name) => Array.IndexOf(args, name) >= 0;
+
+/// <summary>Toutes les occurrences d'une option répétable.</summary>
+static IReadOnlyList<string> OptionValues(string[] args, string name)
+{
+    var values = new List<string>();
+    for (var i = 0; i < args.Length - 1; i++)
+    {
+        if (args[i] == name)
+        {
+            values.Add(args[i + 1]);
+        }
+    }
+
+    return values;
+}
 
 static int Print(string text)
 {
@@ -374,6 +449,11 @@ static int Help() => Print(
           Charge des règles YAML supplémentaires, en plus des règles
           embarquées. Itérer sans recompiler, ou porter des contrôles
           propres à un parc. Les identifiants doivent rester uniques.
+
+      rempart synthesise --from <capture> --out <fichier>
+                         [--profile hardened|defaults] [--name <nom>]
+                         [--domain-joined] [--not-elevated] [--deny <fragment>]
+          Fabrique une fixture de test à partir d'une capture réelle.
 
       rempart version
 

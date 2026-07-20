@@ -117,7 +117,11 @@
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
       "status": "Found",
-      "value": null
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
     },
     "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||56a863a9-875e-4185-98a7-b882c64b5ce5": {
       "status": "Found",
@@ -585,7 +589,7 @@
     "osVersion": "10.0.26200.0",
     "is64BitOperatingSystem": true,
     "isElevated": false,
-    "processorCount": 8,
+    "processorCount": 16,
     "uptimeSeconds": 3600,
     "firmwareType": "uefi",
     "isDomainJoined": true

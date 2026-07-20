@@ -74,28 +74,28 @@ une machine identifiable — d'où l'exclusion, et non la seule anonymisation.
 ```
 rempart/
 ├── src/
-│   ├── Rempart.Cli/              # System.CommandLine, orchestration, sortie
+│   ├── Rempart.Cli/            # CLI : scan, capture, explain, synthesise
 │   ├── Rempart.Core/
-│   │   ├── Collectors/         # ICollector : Collect() → JSON, isolés, parallèles
-│   │   ├── Providers/          # IRegistryProvider, IWmiProvider… + Live / FromSnapshot
-│   │   ├── Rules/              # Chargement YAML, évaluation, scoring
-│   │   └── Report/             # HTML autonome, JSON, Markdown
-│   ├── Rempart.Windows/          # P-Invoke, WMI, registre — implémentations Live
-│   └── Rempart.Hardware/         # Add-on, publié séparément
-├── rules/
-│   ├── security/               # defender.yaml, credentials.yaml, legacy.yaml, network.yaml…
-│   ├── bloatware/              # oem.yaml, microsoft.yaml
-│   ├── baselines/              # cis-win11.yaml, essential8.yaml
-│   └── profiles/               # standard.yaml, durci.yaml, paranoiaque.yaml
-├── image/                      # autounattend.xml versionné — couche A
+│   │   ├── Collectors/         # ICollector : décrit la machine, ne juge pas
+│   │   ├── Engine/             # orchestration, sémantique des champs
+│   │   ├── Json/               # sérialisation par génération de source (AOT)
+│   │   ├── Providers/          # IRegistryProvider, ISystemInfoProvider
+│   │   ├── Rules/              # chargement YAML, évaluation, scoring, liste noire
+│   │   └── Snapshots/          # capture, rejeu, anonymisation, fixtures synthétiques
+│   └── Rempart.Windows/        # P/Invoke et registre — implémentations Live
+├── rules/security/             # les contrôles livrés, embarqués en ressources
 ├── tests/
-│   ├── Rempart.Tests.Unit/     # moteur, scoring, parsing, rejeu de fixtures
+│   ├── Rempart.Tests.Unit/
 │   └── fixtures/
-│       ├── synthetic/          # versionné — valeurs fabriquées
+│       ├── synthetic/          # versionné — produit par « rempart synthesise »
 │       └── local/              # hors dépôt — captures de machines réelles
-├── scripts/                    # cycle de test Hyper-V
+├── scripts/                    # verify.ps1, regenerate-fixtures.ps1
 └── .github/workflows/
 ```
+
+Les répertoires prévus par la feuille de route mais pas encore créés — rapport HTML,
+add-on matériel, catalogues bloatware, profils de remédiation, couche image — sont
+décrits dans [ROADMAP.md](ROADMAP.md) plutôt qu'annoncés ici comme s'ils existaient.
 
 ## Format d'une règle
 
@@ -166,9 +166,23 @@ croire à une condition alors que la règle s'applique partout. Et une condition
 vérifiable est tenue pour remplie : mieux vaut rendre un verdict que masquer un contrôle
 sur une incertitude, car une règle escamotée ne se remarque pas.
 
-**Conséquence sur la capture.** `rempart capture` lit désormais toutes les clés que les
-règles pourraient consulter, y compris celles hors périmètre sur la machine courante.
-Sans cela un instantané ne serait rejouable que dans le contexte de sa capture.
+**Conséquence sur la capture.** `rempart capture` lit toutes les clés que les règles
+pourraient consulter, y compris celles hors périmètre sur la machine courante. Sans
+cela un instantané ne serait rejouable que dans le contexte de sa capture.
+
+### Régénérer les fixtures
+
+```powershell
+./scripts/regenerate-fixtures.ps1
+```
+
+À lancer après tout changement du catalogue : une règle ajoutée lit une clé que les
+fixtures existantes ne contiennent pas, et le rejeu échoue.
+
+Le script s'appuie sur `rempart synthesise`, donc sur les règles chargées par le moteur
+lui-même. Une version antérieure reparsait le YAML en expressions régulières — seconde
+implémentation du chargeur, ni versionnée ni testée, que personne d'autre ne pouvait
+rejouer.
 
 ### Règles externes
 

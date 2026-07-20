@@ -361,7 +361,7 @@
     "osVersion": "10.0.26200.0",
     "is64BitOperatingSystem": true,
     "isElevated": true,
-    "processorCount": 8,
+    "processorCount": 16,
     "uptimeSeconds": 3600,
     "firmwareType": "uefi",
     "isDomainJoined": false

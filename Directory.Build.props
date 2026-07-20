@@ -8,6 +8,10 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <InvariantGlobalization>true</InvariantGlobalization>
 
+    <!-- Source unique de la version : le CLI la lit sur l'assembly plutot que de la
+         redeclarer, apres avoir deja diverge deux fois du lot reellement livre. -->
+    <Version>0.3.0</Version>
+
     <!-- Fait échouer la compilation sur tout usage incompatible Native AOT,
          plutôt que de le découvrir au moment de publier le binaire. -->
     <IsAotCompatible>true</IsAotCompatible>

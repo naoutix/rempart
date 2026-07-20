@@ -19,7 +19,7 @@
         "hardware.family": "To be filled by O.E.M.",
         "hardware.baseboardManufacturer": "Micro-Star International Co., Ltd.",
         "hardware.baseboardProduct": "PRO B850-S WIFI6E (MS-7E80)",
-        "machine.processorCount": "8",
+        "machine.processorCount": "16",
         "firmware.type": "uefi",
         "firmware.biosVersion": "2.A41",
         "firmware.biosDate": "03/17/2026",
