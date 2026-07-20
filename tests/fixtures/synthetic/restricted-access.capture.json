@@ -555,20 +555,28 @@
         "number": 1
       }
     },
-    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp||UserAuthentication": {
-      "status": "Found",
-      "value": {
-        "kind": "DWord",
-        "text": null,
-        "number": 1
-      }
-    },
     "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU||NoAutoUpdate": {
       "status": "Found",
       "value": {
         "kind": "DWord",
         "text": null,
         "number": 0
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp||UserAuthentication": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
       }
     }
   },
@@ -579,6 +587,7 @@
     "isElevated": false,
     "processorCount": 8,
     "uptimeSeconds": 3600,
-    "firmwareType": "uefi"
+    "firmwareType": "uefi",
+    "isDomainJoined": true
   }
 }

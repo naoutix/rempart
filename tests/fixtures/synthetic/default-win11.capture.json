@@ -343,11 +343,15 @@
       "status": "NotFound",
       "value": null
     },
-    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp||UserAuthentication": {
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU||NoAutoUpdate": {
       "status": "NotFound",
       "value": null
     },
-    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU||NoAutoUpdate": {
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp||UserAuthentication": {
       "status": "NotFound",
       "value": null
     }
@@ -359,6 +363,7 @@
     "isElevated": true,
     "processorCount": 8,
     "uptimeSeconds": 3600,
-    "firmwareType": "uefi"
+    "firmwareType": "uefi",
+    "isDomainJoined": false
   }
 }

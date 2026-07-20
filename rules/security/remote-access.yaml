@@ -39,6 +39,16 @@
     toute authentification, ce qui expose la pile RDP à un attaquant non authentifié et
     facilite le déni de service. Ce contrôle ne vaut que si RDP est activé.
   references: [CIS-18.9.65.3.9, ASD-E8]
+  # RDP desactive : la configuration de NLA ne change rien a l'exposition reelle.
+  # Signaler ce controle sur une machine sans RDP produirait du bruit.
+  appliesWhen:
+    registry:
+      type: registry
+      path: HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server
+      value: fDenyTSConnections
+      operator: equals
+      expect: "0"
+      windowsDefault: "1"
   check:
     type: registry
     path: HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp

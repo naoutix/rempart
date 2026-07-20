@@ -98,6 +98,30 @@ public sealed record Remediation(
     /// <summary>Comment vérifier avant d'appliquer. Optionnel.</summary>
     string? VerifyBefore);
 
+/// <summary>
+/// Conditions sous lesquelles une règle a un sens.
+///
+/// Sans elles, un contrôle qui ne vaut que dans un contexte précis produit du bruit
+/// partout ailleurs — et le bruit disqualifie un outil d'audit plus sûrement qu'un
+/// contrôle manquant. Interdire la fusion des règles de pare-feu locales protège une
+/// machine sous stratégie de groupe ; sur un poste autonome, la même action supprime
+/// les règles créées par les applications sans rien apporter.
+///
+/// Toutes les conditions renseignées doivent être vraies.
+/// </summary>
+public sealed record Applicability(
+    /// <summary>Exige (ou exclut) une machine jointe à un domaine.</summary>
+    bool? DomainJoined = null,
+
+    /// <summary>
+    /// Condition portant sur le registre — typiquement l'activation d'une
+    /// fonctionnalité dont dépend le contrôle. NLA n'a de sens que si RDP est actif.
+    /// </summary>
+    CheckSpec? Registry = null)
+{
+    public bool IsUnconditional => DomainJoined is null && Registry is null;
+}
+
 public sealed record Rule(
     string Id,
     string Title,
@@ -106,4 +130,5 @@ public sealed record Rule(
     string Rationale,
     IReadOnlyList<string> References,
     CheckSpec Check,
-    Remediation? Remediation);
+    Remediation? Remediation,
+    Applicability? AppliesWhen = null);

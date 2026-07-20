@@ -78,7 +78,36 @@ public static class RuleLoader
             Check: check,
             Remediation: TryGet(map, "remediation") is YamlMappingNode remediation
                 ? ReadRemediation(remediation, context)
+                : null,
+            AppliesWhen: TryGet(map, "appliesWhen") is YamlMappingNode applicability
+                ? ReadApplicability(applicability, context)
                 : null);
+    }
+
+    private static Applicability ReadApplicability(YamlMappingNode map, string context)
+    {
+        var domainJoined = OptionalText(map, "domainJoined") is { } raw
+            ? bool.TryParse(raw, out var parsed)
+                ? parsed
+                : throw new RuleFormatException(
+                    $"{context} : « domainJoined » attend true ou false, reçu « {raw} ».")
+            : (bool?)null;
+
+        var registry = TryGet(map, "registry") is YamlMappingNode nested
+            ? ReadCheck(nested, $"{context}, appliesWhen")
+            : null;
+
+        // Un bloc vide laisse croire à une condition alors que la règle s'applique
+        // partout. Mieux vaut refuser le fichier que livrer une intention perdue.
+        var applicability = new Applicability(domainJoined, registry);
+        if (applicability.IsUnconditional)
+        {
+            throw new RuleFormatException(
+                $"{context} : « appliesWhen » ne pose aucune condition. " +
+                "Renseigner « domainJoined » ou « registry », ou retirer le bloc.");
+        }
+
+        return applicability;
     }
 
     private static CheckSpec ReadCheck(YamlMappingNode map, string context)

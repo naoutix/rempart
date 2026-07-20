@@ -140,6 +140,36 @@ réponses trop courtes, et exige `verifyBefore` dès que la réversibilité n'es
 `rempart explain <ID>` restitue tout cela : sans cette commande, ces informations
 existaient dans les fichiers YAML mais restaient hors de portée à l'usage.
 
+### `appliesWhen` — quand une règle a un sens
+
+Certains contrôles ne valent que dans un contexte. Sans condition, ils produisent du
+bruit ailleurs — et le bruit disqualifie un outil d'audit plus sûrement qu'un contrôle
+manquant : on cesse de lire des alertes dont la moitié ne s'applique pas.
+
+```yaml
+appliesWhen:
+  domainJoined: true        # fait machine, via NetGetJoinInformation
+  registry:                 # ou condition registre — même format qu'un check
+    path: HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server
+    value: fDenyTSConnections
+    operator: equals
+    expect: "0"
+    windowsDefault: "1"
+```
+
+Une règle écartée rend le verdict `NotApplicable`, distinct de `Unknown` : ici on sait,
+et la réponse est qu'il n'y avait rien à vérifier. Il sort du score sans marquer le
+rapport comme partiel.
+
+Deux garde-fous. Un bloc `appliesWhen` vide est refusé au chargement — il laisserait
+croire à une condition alors que la règle s'applique partout. Et une condition non
+vérifiable est tenue pour remplie : mieux vaut rendre un verdict que masquer un contrôle
+sur une incertitude, car une règle escamotée ne se remarque pas.
+
+**Conséquence sur la capture.** `rempart capture` lit désormais toutes les clés que les
+règles pourraient consulter, y compris celles hors périmètre sur la machine courante.
+Sans cela un instantané ne serait rejouable que dans le contexte de sa capture.
+
 ### Règles externes
 
 Les règles livrées sont embarquées dans le binaire — la clé USB doit rester autonome,

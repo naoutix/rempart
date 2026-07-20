@@ -67,14 +67,18 @@ public sealed class FixtureReplayTests
     }
 
     [Fact]
-    public void Every_shipped_rule_can_be_satisfied()
+    public void No_shipped_rule_fails_on_a_hardened_machine()
     {
         // Une règle qui ne peut jamais passer est un bug : attendu contradictoire,
         // chemin erroné, opérateur mal choisi. Elle produirait un échec permanent sur
         // toutes les machines, que personne ne pourrait corriger.
         //
         // La fixture « hardened » pose sur chaque clé la valeur que sa règle attend.
-        // Un score inférieur à 100 signale une règle inatteignable.
+        //
+        // NotApplicable reste une réponse recevable, et l'exiger absent serait une
+        // erreur : certaines règles s'excluent mutuellement par construction. RDP
+        // désactivé satisfait WIN-RDP-001 et rend WIN-RDP-002 (NLA) sans objet —
+        // aucune machine ne peut satisfaire les deux à la fois.
         var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
             Path.Combine(FixtureDirectory, "synthetic", "hardened-win11.capture.json")));
 
@@ -83,12 +87,33 @@ public sealed class FixtureReplayTests
                 new SnapshotSystemInfoProvider(snapshot)),
             "test", snapshot.CapturedAtUtc);
 
-        var unsatisfiable = result.Verdicts
-            .Where(v => v.Status != VerdictStatus.Pass)
+        var failing = result.Verdicts
+            .Where(v => v.Status is VerdictStatus.Fail or VerdictStatus.Unknown)
             .Select(v => $"{v.RuleId} (observé {v.Observed ?? "—"}, attendu {v.Expected ?? "—"})");
 
-        Assert.Empty(unsatisfiable);
+        Assert.Empty(failing);
         Assert.Equal(100, result.Score?.Overall);
+    }
+
+    [Fact]
+    public void The_hardened_fixture_leaves_almost_no_rule_unevaluated()
+    {
+        // Garde-fou contre la dérive inverse : une fixture qui rendrait la plupart des
+        // règles « hors périmètre » atteindrait 100 % sans rien prouver. Les exclusions
+        // doivent rester rares et intentionnelles.
+        var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
+            Path.Combine(FixtureDirectory, "synthetic", "hardened-win11.capture.json")));
+
+        var result = ScanEngine.Default().Run(
+            new ProviderSet(new SnapshotRegistryProvider(snapshot),
+                new SnapshotSystemInfoProvider(snapshot)),
+            "test", snapshot.CapturedAtUtc);
+
+        var notApplicable = result.Verdicts.Count(v => v.Status == VerdictStatus.NotApplicable);
+
+        Assert.True(notApplicable <= 2,
+            $"{notApplicable} règles hors périmètre sur la fixture durcie : le 100 % " +
+            "ne prouverait plus grand-chose.");
     }
 
     [Fact]

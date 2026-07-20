@@ -7,7 +7,16 @@ public sealed record SystemInfo(
     bool IsElevated,
     int ProcessorCount,
     long UptimeSeconds,
-    string FirmwareType);
+    string FirmwareType,
+
+    /// <summary>
+    /// Machine jointe à un domaine Active Directory.
+    ///
+    /// Sert de condition d'applicabilité : plusieurs durcissements n'ont de sens que
+    /// sous stratégie de groupe centrale, et les appliquer sur un poste autonome
+    /// retire des fonctionnalités sans rien apporter.
+    /// </summary>
+    bool IsDomainJoined = false);
 
 /// <summary>
 /// Informations système qui ne viennent pas du registre. Abstrait pour la même raison

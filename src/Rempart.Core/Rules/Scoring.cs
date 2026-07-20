@@ -5,6 +5,7 @@ public sealed record DomainScore(
     int Passed,
     int Failed,
     int Unknown,
+    int NotApplicable,
     /// <summary>Null quand rien n'a pu être évalué — un score de 0 laisserait croire à un échec.</summary>
     int? Score);
 
@@ -53,6 +54,7 @@ public static class Scoring
                 Passed: group.Count(v => v.Status == VerdictStatus.Pass),
                 Failed: group.Count(v => v.Status == VerdictStatus.Fail),
                 Unknown: group.Count(v => v.Status == VerdictStatus.Unknown),
+                NotApplicable: group.Count(v => v.Status == VerdictStatus.NotApplicable),
                 Score: Percentage(group)))
             .ToList();
 
@@ -64,7 +66,12 @@ public static class Scoring
 
     private static int? Percentage(IEnumerable<Verdict> verdicts)
     {
-        var evaluated = verdicts.Where(v => v.Status != VerdictStatus.Unknown).ToList();
+        // Unknown sort du calcul faute de savoir ; NotApplicable en sort parce qu'il
+        // n'y avait rien à vérifier. Compter ce dernier comme un échec pénaliserait une
+        // machine pour ne pas être ce qu'elle n'a jamais eu à être.
+        var evaluated = verdicts
+            .Where(v => v.Status is VerdictStatus.Pass or VerdictStatus.Fail)
+            .ToList();
 
         var possible = evaluated.Sum(v => Weight(v.Severity));
         if (possible == 0)

@@ -96,8 +96,12 @@ static int Capture(string[] args)
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
-    ScanEngine.Default(OptionValue(args, "--rules"))
-        .Run(providers, Version, snapshot.CapturedAtUtc);
+    var engine = ScanEngine.Default(OptionValue(args, "--rules"));
+    engine.Run(providers, Version, snapshot.CapturedAtUtc);
+
+    // Puis toutes les cles que les regles pourraient lire dans un autre contexte, afin
+    // que l'instantane reste rejouable ailleurs que sur la machine qui l'a produit.
+    engine.Prefetch(providers);
 
     // Anonymisation par défaut : les fixtures finissent versionnées.
     if (!raw)
@@ -192,7 +196,8 @@ static void WritePosture(ScanResult result, ScoreCard score)
         var value = domain.Score is { } s ? $"{s,3} %" : "  n/d";
         Console.WriteLine(
             $"  {domain.Domain,-18} {value}   " +
-            $"conformes {domain.Passed}, échecs {domain.Failed}, non vérifiés {domain.Unknown}");
+            $"conformes {domain.Passed}, échecs {domain.Failed}, non vérifiés {domain.Unknown}" +
+            (domain.NotApplicable > 0 ? $", hors périmètre {domain.NotApplicable}" : string.Empty));
     }
 
     Console.WriteLine();

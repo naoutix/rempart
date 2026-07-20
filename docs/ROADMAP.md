@@ -15,7 +15,8 @@ Pas de lot qui ne produise que de l'infrastructure invisible.
 - [x] `rempart capture` produit un instantané rejouable, anonymisé par défaut
 - [x] Fixtures synthétiques versionnées + captures réelles hors dépôt
 - [x] 34 tests, sans machine Windows ni VM
-- [x] CI écrite — *non vérifiée : incident GitHub Actions au moment du lot*
+- [x] CI écrite et **vérifiée** — les 4 jobs passent, `publish-aot` produit 4,1 Mo
+      sur runner Windows, identique au build local
 - [ ] `IWmiProvider` — **reporté en M2**, System.Management ne survit pas à Native AOT
 
 **Critère de sortie reformulé.** Le critère initial — « scan live identique au rejeu » —
@@ -82,7 +83,8 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
 
 ### M2b · Nouveaux providers et applicabilité
 
-- [ ] `appliesWhen` : conditionner une règle au contexte de la machine
+- [x] `appliesWhen` : conditionner une règle au contexte de la machine
+- [x] `WIN-FW-006` et `WIN-RDP-002` rétablies, désormais conditionnées
 - [ ] Check `service` — état et mode de démarrage, via `advapi32`, sans WMI
 - [ ] Trancher la question WMI/AOT, restée ouverte depuis M0
 - [ ] BitLocker, comptes locaux, politique de mot de passe, état Defender par API
