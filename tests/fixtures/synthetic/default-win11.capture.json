@@ -444,20 +444,42 @@
   },
   "wmi": {
     "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||IsTamperProtected": {
-      "status": "AccessDenied",
-      "instances": []
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "IsTamperProtected": "true"
+          }
+        }
+      ],
+      "diagnostic": null
     },
     "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||RealTimeProtectionEnabled": {
-      "status": "AccessDenied",
-      "instances": []
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "RealTimeProtectionEnabled": "true"
+          }
+        }
+      ],
+      "diagnostic": null
     },
     "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||AntivirusSignatureAge": {
-      "status": "AccessDenied",
-      "instances": []
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "AntivirusSignatureAge": "0"
+          }
+        }
+      ],
+      "diagnostic": null
     },
     "root\\CIMV2\\Security\\MicrosoftVolumeEncryption:Win32_EncryptableVolume||ProtectionStatus": {
       "status": "AccessDenied",
-      "instances": []
+      "instances": [],
+      "diagnostic": null
     }
   }
 }

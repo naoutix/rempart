@@ -12,13 +12,27 @@ public sealed record WmiInstance(IReadOnlyDictionary<string, string> Properties)
         Properties.TryGetValue(property, out var value) ? value : null;
 }
 
-public sealed record WmiRead(ReadStatus Status, IReadOnlyList<WmiInstance> Instances)
+public sealed record WmiRead(
+    ReadStatus Status,
+    IReadOnlyList<WmiInstance> Instances,
+
+    /// <summary>
+    /// Raison de l'échec, quand il ne s'agit pas d'un refus d'accès légitime.
+    ///
+    /// Une première version rendait « accès refusé » pour toute défaillance, ce qui
+    /// rendait un bug indiscernable d'un manque de droits — et a effectivement conduit
+    /// à un mauvais diagnostic. Une défaillance interne doit se voir.
+    /// </summary>
+    string? Diagnostic = null)
 {
     public static readonly WmiRead AccessDenied = new(ReadStatus.AccessDenied, []);
     public static readonly WmiRead NotFound = new(ReadStatus.NotFound, []);
 
     public static WmiRead Found(IReadOnlyList<WmiInstance> instances) =>
         new(ReadStatus.Found, instances);
+
+    public static WmiRead Failed(string reason) =>
+        new(ReadStatus.AccessDenied, [], reason);
 }
 
 /// <summary>

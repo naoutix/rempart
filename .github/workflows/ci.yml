@@ -83,6 +83,17 @@ jobs:
           # 0 = succes, 3 = droits insuffisants (acceptable sur un runner).
           if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan a echoue ($LASTEXITCODE)" }
 
+      - name: WMI repond depuis le binaire AOT
+        shell: pwsh
+        run: |
+          # Les tests Windows s'executent en JIT, ou l'interop COM se comporte
+          # differemment. Un bug d'interop a deja rendu WMI inoperant dans le binaire
+          # publie sans que rien ne le signale : le scan sortait en 0 et tous les
+          # controles WMI rendaient « non verifiable ».
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe diagnose-wmi
+          if ($LASTEXITCODE -ne 0) { throw "WMI ne repond pas depuis le binaire AOT" }
+
       - uses: actions/upload-artifact@v4
         with:
           name: rempart-win-x64

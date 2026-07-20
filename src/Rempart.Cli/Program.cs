@@ -27,6 +27,7 @@ try
         "capture" => Capture(args),
         "explain" => Explain(args),
         "synthesise" => Synthesise(args),
+        "diagnose-wmi" => DiagnoseWmi(),
         "version" => Print(ToolVersion()),
         _ => Help(),
     };
@@ -135,6 +136,47 @@ static int Capture(string[] args)
         ? "  ATTENTION : capture brute, non anonymisée. Ne pas versionner tel quel."
         : "  anonymisé : hostname, numéros de série et propriétaire remplacés par des empreintes.");
 
+    return 0;
+}
+
+/// <summary>
+/// Vérifie que WMI répond réellement — destiné à la CI, exécuté contre le binaire
+/// Native AOT.
+///
+/// Existe parce qu'un bug d'interop COM a rendu WMI inopérant dans le binaire publié
+/// sans que rien ne le signale : les contrôles rendaient « non vérifiable », le scan
+/// sortait en 0, et le job de publication le déclarait sain. Les tests, eux, ne
+/// s'exécutaient qu'en JIT, où le bug n'apparaît pas.
+///
+/// Interroge un espace de noms présent sur toute machine Windows et disponible sans
+/// élévation : un échec ici dénonce l'interop, pas l'environnement.
+/// </summary>
+static int DiagnoseWmi()
+{
+    RequireWindows();
+
+    const string Namespace = @"root\CIMV2";
+    const string Class = "Win32_OperatingSystem";
+    const string Property = "Caption";
+
+    var read = new Rempart.Windows.Wmi.LiveWmiProvider().Query(Namespace, Class, [Property]);
+    var value = read.Instances.Count > 0 ? read.Instances[0].Find(Property) : null;
+
+    Console.WriteLine($"{Namespace}:{Class} -> {read.Status}, {read.Instances.Count} instance(s)");
+    if (read.Diagnostic is { } diagnostic)
+    {
+        Console.WriteLine($"  défaillance : {diagnostic}");
+    }
+
+    if (read.Status != ReadStatus.Found || string.IsNullOrWhiteSpace(value))
+    {
+        Console.Error.WriteLine(
+            "WMI ne répond pas. Sur un espace de noms accessible sans élévation, " +
+            "c'est l'interop COM qui est en cause, pas l'environnement.");
+        return 1;
+    }
+
+    Console.WriteLine($"  {Property} = {value}");
     return 0;
 }
 
@@ -467,6 +509,9 @@ static int Help() => Print(
                          [--profile hardened|defaults] [--name <nom>]
                          [--domain-joined] [--not-elevated] [--deny <fragment>]
           Fabrique une fixture de test à partir d'une capture réelle.
+
+      rempart diagnose-wmi
+          Vérifie que WMI répond. Destiné à la CI, contre le binaire AOT.
 
       rempart version
 

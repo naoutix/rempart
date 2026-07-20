@@ -81,11 +81,12 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
                 _ => WmiRead.AccessDenied,
             };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ne jamais laisser une défaillance WMI interrompre le scan : les autres
-            // domaines doivent continuer de rendre leurs verdicts.
-            return WmiRead.AccessDenied;
+            // Une défaillance ne doit pas interrompre le scan, mais elle ne doit pas
+            // non plus se déguiser en refus d'accès : c'est cette confusion qui avait
+            // fait conclure à tort qu'une élévation suffirait.
+            return WmiRead.Failed($"{ex.GetType().Name} : {ex.Message}");
         }
     }
 
@@ -100,8 +101,10 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
             throw new COMException($"ConnectServer({namespacePath})", connect);
         }
 
-        // Sans blanket, l'appel part sans identité et WMI refuse.
-        SetBlanket(services);
+        // Le blanket précise l'identité de l'appelant. Il n'est indispensable qu'aux
+        // connexions distantes : en local, CoInitializeSecurity suffit. Son échec ne
+        // doit donc pas condamner la requête.
+        TrySetBlanket(services);
 
         var query = $"SELECT * FROM {className}";
         if (services.ExecQuery("WQL", query, WbemFlagForwardOnly | WbemFlagReturnImmediately,
@@ -110,7 +113,7 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
             throw new COMException(query, exec);
         }
 
-        SetBlanket(enumerator);
+        TrySetBlanket(enumerator);
 
         var instances = new List<WmiInstance>();
         var buffer = new IntPtr[1];
@@ -185,17 +188,35 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
         _ => null,
     };
 
-    private static void SetBlanket(object proxy)
+    /// <summary>
+    /// <c>Marshal.GetIUnknownForObject</c> exige le support COM intégré du runtime,
+    /// absent sous Native AOT : il y lève systématiquement.
+    ///
+    /// C'est le bug qui a rendu WMI inopérant dans le binaire publié. L'exception
+    /// remontait au catch général, traduite en « accès refusé » — donc tous les
+    /// contrôles WMI rendaient « non vérifiable », y compris élevé, sans que rien ne
+    /// distingue ce bug d'un manque de droits.
+    ///
+    /// La requête fonctionne sans blanket en local : l'échec est ignoré.
+    /// </summary>
+    private static void TrySetBlanket(object proxy)
     {
-        var pointer = Marshal.GetIUnknownForObject(proxy);
         try
         {
-            CoSetProxyBlanket(pointer, 10 /* RPC_C_AUTHN_WINNT */, 0, IntPtr.Zero,
-                RpcCAuthnLevelDefault, RpcCImpLevelImpersonate, IntPtr.Zero, EoacNone);
+            var pointer = Marshal.GetIUnknownForObject(proxy);
+            try
+            {
+                CoSetProxyBlanket(pointer, 10 /* RPC_C_AUTHN_WINNT */, 0, IntPtr.Zero,
+                    RpcCAuthnLevelDefault, RpcCImpLevelImpersonate, IntPtr.Zero, EoacNone);
+            }
+            finally
+            {
+                Marshal.Release(pointer);
+            }
         }
-        finally
+        catch (Exception)
         {
-            Marshal.Release(pointer);
+            // Sans effet en local : la connexion garde l'identité du processus.
         }
     }
 

@@ -18,7 +18,9 @@ public sealed record CheckReading(string? Found, string? Effective, bool Denied)
     {
         if (Denied)
         {
-            return null;
+            // Renseignée quand une défaillance interne a été diagnostiquée ; null pour
+            // un refus d'accès légitime, où il n'y a rien à expliquer.
+            return Found;
         }
 
         if (Found is not null)
@@ -118,7 +120,9 @@ public static class CheckReader
         // Famille n'est pas une non-conformité, c'est une absence de sujet.
         if (read.Status != ReadStatus.Found || read.Instances.Count == 0)
         {
-            return new CheckReading(null, null, Denied: true);
+            // La raison d'un échec interne accompagne le verdict : sans elle, un bug
+            // du provider ressemble à un manque de droits.
+            return new CheckReading(read.Diagnostic, null, Denied: true);
         }
 
         var values = read.Instances
