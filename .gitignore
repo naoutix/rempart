@@ -15,11 +15,12 @@ reports/
 captures/
 *.capture.json
 
-# Les fixtures de test SONT versionnées, par exception aux règles ci-dessus.
-# Elles doivent être anonymisées — `rempart capture` le fait par défaut, et un test
-# de la suite échoue si une capture brute se retrouve ici.
-!tests/fixtures/
-!tests/fixtures/*.capture.json
+# Fixtures : le dépôt est public, seules les synthétiques sont versionnées.
+# Les captures de machines réelles restent dans tests/fixtures/local/, hors dépôt.
+!tests/fixtures/synthetic/
+!tests/fixtures/synthetic/*.capture.json
+tests/fixtures/local/*
+!tests/fixtures/local/README.md
 
 # Secrets
 *.pfx

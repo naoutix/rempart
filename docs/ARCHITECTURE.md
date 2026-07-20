@@ -58,6 +58,17 @@ flowchart LR
 fixture permanente. Une VM vierge n'a aucun bloatware OEM — les machines réelles sont
 le seul banc de test valable pour le catalogue logiciels.
 
+**Le dépôt est public**, ce qui impose une séparation stricte :
+
+| Répertoire | Régime | Contenu |
+|---|---|---|
+| `tests/fixtures/synthetic/` | Versionné | Valeurs fabriquées, aucune machine réelle |
+| `tests/fixtures/local/` | Hors dépôt | Captures de machines réelles, rejouées si présentes |
+
+L'anonymisation masque hostname et numéros de série, pas la posture de sécurité. À partir
+de M2, une capture réelle révélerait quels contrôles de durcissement sont désactivés sur
+une machine identifiable — d'où l'exclusion, et non la seule anonymisation.
+
 ## Arborescence
 
 ```
@@ -78,9 +89,10 @@ rempart/
 │   └── profiles/               # standard.yaml, durci.yaml, paranoiaque.yaml
 ├── image/                      # autounattend.xml versionné — couche A
 ├── tests/
-│   ├── Rempart.Tests.Unit/       # moteur, scoring, parsing
-│   ├── Rempart.Tests.Fixtures/   # rejeu de snapshots, sorties golden
-│   └── fixtures/               # snapshots JSON de machines réelles
+│   ├── Rempart.Tests.Unit/     # moteur, scoring, parsing, rejeu de fixtures
+│   └── fixtures/
+│       ├── synthetic/          # versionné — valeurs fabriquées
+│       └── local/              # hors dépôt — captures de machines réelles
 ├── scripts/                    # cycle de test Hyper-V
 └── .github/workflows/
 ```

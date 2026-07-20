@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-01-01T00:00:00.0000000Z",
+  "anonymised": true,
+  "registry": {
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||ProductName": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Windows 10 Pro",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||DisplayVersion": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "22H2",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||CurrentBuildNumber": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "19045",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||UBR": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 4046
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||EditionID": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Professional",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||InstallationType": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Client",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||SystemManufacturer": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Synthetic Systems",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||SystemProductName": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "SYN-LEGACY",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||SystemFamily": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "To be filled by O.E.M.",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BIOSVersion": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "0.99",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BIOSReleaseDate": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "06/15/2016",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BaseBoardManufacturer": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Synthetic Systems",
+        "number": null
+      }
+    },
+    "HKLM\\HARDWARE\\DESCRIPTION\\System\\BIOS||BaseBoardProduct": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "SYN-BOARD-LEGACY",
+        "number": null
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State||UEFISecureBootEnabled": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
+      "status": "NotFound",
+      "value": null
+    }
+  },
+  "systemInfo": {
+    "machineName": "anon:000000000002",
+    "osVersion": "10.0.19045.0",
+    "is64BitOperatingSystem": true,
+    "isElevated": true,
+    "processorCount": 8,
+    "uptimeSeconds": 3600,
+    "firmwareType": "bios"
+  }
+}

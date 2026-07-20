@@ -1,0 +1,34 @@
+{
+  "toolVersion": "test",
+  "startedAtUtc": "2026-01-01T00:00:00.0000000Z",
+  "collectors": [
+    {
+      "name": "inventory",
+      "status": "Ok",
+      "fields": {
+        "os.product": "Windows 10 Pro",
+        "os.displayVersion": "25H2",
+        "os.build": "26200",
+        "os.name": "Windows 11 Pro",
+        "os.updateBuildRevision": "1000",
+        "os.edition": "Professional",
+        "os.installationType": "Client",
+        "hardware.manufacturer": "Synthetic Systems",
+        "hardware.model": "SYN-1000",
+        "hardware.family": "Synthetic Family",
+        "firmware.biosVersion": "1.00",
+        "firmware.biosDate": "01/01/2026",
+        "hardware.baseboardManufacturer": "Synthetic Systems",
+        "hardware.baseboardProduct": "SYN-BOARD-1000",
+        "security.secureBoot": "enabled",
+        "security.tpmService": "present",
+        "os.version": "10.0.26200.0",
+        "os.is64Bit": "True",
+        "machine.processorCount": "8",
+        "firmware.type": "uefi",
+        "scan.elevated": "True"
+      },
+      "diagnostics": []
+    }
+  ]
+}

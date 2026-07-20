@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAtUtc": "2026-07-19T23:34:00.7483730Z",
+  "capturedAtUtc": "2026-01-01T00:00:00.0000000Z",
   "anonymised": true,
   "registry": {
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||ProductName": {
@@ -32,7 +32,7 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 8875
+        "number": 1000
       }
     },
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||EditionID": {
@@ -55,7 +55,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Micro-Star International Co., Ltd.",
+        "text": "Synthetic Systems",
         "number": null
       }
     },
@@ -63,7 +63,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "MS-7E80",
+        "text": "SYN-1000",
         "number": null
       }
     },
@@ -71,7 +71,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "To be filled by O.E.M.",
+        "text": "Synthetic Family",
         "number": null
       }
     },
@@ -79,7 +79,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "2.A41",
+        "text": "1.00",
         "number": null
       }
     },
@@ -87,7 +87,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "03/17/2026",
+        "text": "01/01/2026",
         "number": null
       }
     },
@@ -95,7 +95,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Micro-Star International Co., Ltd.",
+        "text": "Synthetic Systems",
         "number": null
       }
     },
@@ -103,7 +103,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "PRO B850-S WIFI6E (MS-7E80)",
+        "text": "SYN-BOARD-1000",
         "number": null
       }
     },
@@ -117,16 +117,20 @@
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
       "status": "Found",
-      "value": null
+      "value": {
+        "kind": "String",
+        "text": "present",
+        "number": null
+      }
     }
   },
   "systemInfo": {
-    "machineName": "anon:b0f0d97447e9",
+    "machineName": "anon:000000000001",
     "osVersion": "10.0.26200.0",
     "is64BitOperatingSystem": true,
-    "isElevated": false,
-    "processorCount": 16,
-    "uptimeSeconds": 1511,
+    "isElevated": true,
+    "processorCount": 8,
+    "uptimeSeconds": 3600,
     "firmwareType": "uefi"
   }
 }
