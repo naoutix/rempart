@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Snapshots;
+using Rempart.Core.Updates;
 
 namespace Rempart.Core.Json;
 
@@ -17,6 +18,8 @@ namespace Rempart.Core.Json;
     DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
 [JsonSerializable(typeof(ScanResult))]
 [JsonSerializable(typeof(MachineSnapshot))]
+[JsonSerializable(typeof(SignedManifest))]
+[JsonSerializable(typeof(ManifestPayload))]
 public sealed partial class RempartJsonContext : JsonSerializerContext;
 
 public static class RempartJson
@@ -26,6 +29,9 @@ public static class RempartJson
 
     public static string Serialise(MachineSnapshot snapshot) =>
         JsonSerializer.Serialize(snapshot, RempartJsonContext.Default.MachineSnapshot);
+
+    public static string Serialise(SignedManifest manifest) =>
+        JsonSerializer.Serialize(manifest, RempartJsonContext.Default.SignedManifest);
 
     public static MachineSnapshot DeserialiseSnapshot(string json) =>
         JsonSerializer.Deserialize(json, RempartJsonContext.Default.MachineSnapshot)

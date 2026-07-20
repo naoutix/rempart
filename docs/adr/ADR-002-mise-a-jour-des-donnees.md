@@ -197,21 +197,111 @@ donc à tester autant que le reste.
 lesquels bougent vraiment. Et le seuil d'ancienneté au-delà duquel le rapport avertit :
 arbitraire tant qu'on n'a pas observé la cadence réelle.
 
-## Point ouvert
+## D17 — Une donnée refusée produit un constat, jamais un silence ni un arrêt
 
-Que faire d'une donnée refusée à la vérification. Ignorer en silence est exclu —
-c'est exactement le défaut qui a rendu WMI inopérant deux lots durant. Interrompre le
-scan l'est aussi : les autres domaines doivent continuer de rendre leurs verdicts.
+Ce point était laissé ouvert, à trancher sur du code réel plutôt que par anticipation.
+Le code existe désormais (`ManifestVerifier`), et la décision est prise.
 
-La réponse sera probablement un constat visible, comme pour l'énumération WMI refusée,
-mais elle mérite d'être tranchée sur du code réel plutôt que par anticipation.
+**Une donnée refusée n'est pas chargée, le socle embarqué sert, et le refus est visible
+dans le rapport** — constat de type `update`, sévérité `Notable`, portant le motif
+exact. `rempart update` sort en code non nul ; `rempart scan` continue et rend tous ses
+verdicts.
+
+Les trois comportements écartés le sont pour des raisons distinctes. **Se taire** est
+exclu : c'est le défaut qui a rendu WMI inopérant deux lots durant. **Interrompre le
+scan** l'est aussi — les autres domaines doivent rendre leurs verdicts, et un outil
+d'audit qui refuse de fonctionner parce qu'une mise à jour a échoué ne sera pas relancé.
+**Charger quand même en avertissant** est le pire des trois : il transforme la
+vérification en formalité.
+
+### Quatre motifs de refus, jamais confondus
+
+L'implémentation les distingue parce qu'ils appellent des réactions opposées, et qu'un
+diagnostic qui les mélange ne vaut rien le jour où il compte :
+
+| Statut | Ce que ça veut dire | Ce qu'il faut faire |
+|---|---|---|
+| `Malformed` | Le fichier n'est pas un manifeste lisible | Vérifier le téléchargement |
+| `UnknownKey` | Signé, mais par une clé que ce binaire ignore | Mettre à jour le binaire — probablement une rotation |
+| `BadSignature` | Une clé connue est revendiquée, la signature ne suit pas | **Ne rien charger.** Contenu modifié après signature |
+| empreinte de fichier | Manifeste authentique, fichier reçu différent | Retéléchargement ; distinct d'une falsification du manifeste |
+
+Rendre un booléen aurait fait passer « ton binaire est trop vieux » pour « on t'attaque ».
+
+## Choix de la primitive de signature — ECDSA P-256
+
+Ed25519 aurait été le choix naturel : clés courtes, signatures déterministes, pas de
+paramètre de courbe à se tromper. **.NET 10 ne l'expose pas comme type public.**
+
+ML-DSA et SLH-DSA, post-quantiques, existent bien dans .NET 10 mais portent le
+diagnostic `SYSLIB5006` : *« utilisé à des fins d'évaluation uniquement et susceptible
+d'être modifié ou supprimé »*. Bâtir le canal de confiance sur une API que Microsoft se
+réserve de retirer serait un mauvais échange pour un outil dont l'intérêt est de ne pas
+casser.
+
+**ECDSA P-256** est stable, disponible sur toute plateforme visée, compatible Native
+AOT. Signature de 64 octets fixes (IEEE P1363, pas de DER à taille variable), clé
+publique de 91 octets en SPKI. Vérifié à l'exécution avant d'être retenu, pas supposé
+d'après la documentation.
+
+À revoir si Ed25519 devient public, ou quand le post-quantique sortira d'évaluation.
+
+## Ce qui est signé, exactement
+
+La charge utile voyage **encodée en base64** dans le manifeste, et non comme un objet
+JSON imbriqué. Ce n'est pas une commodité, c'est le cœur du dispositif : la signature
+porte sur ces octets-là.
+
+Un objet imbriqué obligerait à ré-sérialiser avant de vérifier, et la moindre
+différence — un espace, l'ordre des champs, la façon d'échapper un accent — invaliderait
+une signature parfaitement valide. Pire, cela inviterait à « normaliser » avant
+comparaison, c'est-à-dire à écrire du code qui décide quelles différences ne comptent
+pas, dans le seul endroit du projet où toutes comptent.
+
+**On vérifie les octets, puis on les analyse. Jamais l'inverse.**
+
+## Générer la paire de clés
+
+**À faire sur une machine qui n'est pas celle de développement**, conformément à D16.
+La clé privée ne doit jamais séjourner ici — ni dans le dépôt, ni dans une sauvegarde
+automatique, ni dans un gestionnaire de secrets partagé.
+
+```powershell
+# Sur la machine hors ligne, dans une session PowerShell jetable.
+Add-Type -AssemblyName System.Security
+
+$k = [System.Security.Cryptography.ECDsa]::Create(
+        [System.Security.Cryptography.ECCurve+NamedCurves]::nistP256)
+
+# La clé privée. Ce fichier est le secret : une copie hors ligne, et c'est tout.
+[Convert]::ToBase64String($k.ExportPkcs8PrivateKey()) | Set-Content cle-privee.txt
+
+# La clé publique et son empreinte : à épingler dans le binaire, publiables.
+$spki = $k.ExportSubjectPublicKeyInfo()
+"publique : " + [Convert]::ToBase64String($spki)
+"empreinte : " + [Convert]::ToHexString(
+    [System.Security.Cryptography.SHA256]::HashData($spki)).ToLower().Substring(0,12)
+```
+
+Seules la clé publique et son empreinte reviennent sur la machine de développement,
+pour être épinglées dans `ManifestVerifier`. **Une clé privée qui traverse ce chemin
+est compromise** : il faut en générer une autre.
+
+Rappel de D16 : la signature est un acte manuel, aucune automatisation de CI ne détient
+la clé. Un canal de publication automatisé redonnerait au dépôt le pouvoir que cette
+décision lui retire.
 
 ## Actions
 
 1. [x] Trancher le niveau de confiance — **manifeste signé (D16)**
-2. [ ] Format du manifeste : jeux de données, versions, empreintes, date
+2. [x] Format du manifeste — charge utile base64 signée, empreintes SHA-256, date de
+       publication, plusieurs signatures pour la rotation
 3. [ ] `rempart update` : téléchargement, vérification, différentiel, confirmation
 4. [ ] Chargement des données externes avec priorité sur l'embarqué (D12)
 5. [ ] Date et ancienneté dans le rapport (D15)
 6. [x] Procédure de protection et de révocation de la clé — **écrite ci-dessus**
-7. [ ] Générer la paire de clés, hors de la machine de développement
+7. [ ] **Générer la paire de clés, hors de la machine de développement** — procédure
+       ci-dessus. Seul l'auteur du projet peut le faire ; rien ne peut être publié
+       avant. Tant que ce point n'est pas fait, `ManifestVerifier` n'épingle aucune clé
+       et refuse donc tout manifeste, ce qui est le bon comportement par défaut
+8. [x] Trancher le sort d'une donnée refusée — **D17**
