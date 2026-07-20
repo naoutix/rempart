@@ -11,6 +11,17 @@ env:
   DOTNET_NOLOGO: 1
 
 jobs:
+  lint-workflows:
+    # Un workflow invalide echoue au demarrage, sans job et sans log lisible.
+    # Le valider ici evite de diagnostiquer a l'aveugle. Meme controle en local
+    # via scripts/verify.ps1.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
+
   test:
     # Les tests ne touchent que Rempart.Core et rejouent des instantanés :
     # ils n'ont besoin d'aucune machine Windows.

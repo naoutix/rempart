@@ -44,6 +44,31 @@ $env:PATH += ";${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 
 Ou de façon permanente, via les variables d'environnement utilisateur.
 
+## Rejouer la CI en local
+
+```powershell
+./scripts/verify.ps1              # tout
+./scripts/verify.ps1 -SkipPublish # sans l'etape AOT, pour une boucle rapide
+```
+
+Le script valide la syntaxe des workflows, lance les tests, publie en AOT et vérifie
+que le binaire fonctionne **seul** dans un répertoire temporaire. Il applique de lui-même
+le correctif `PATH` pour `vswhere.exe`.
+
+`act` rejouerait les workflows plus fidèlement, en conteneur, mais exige Docker — lourd
+sur une machine qu'on cherche à garder propre. Ce script exécute les mêmes commandes
+directement, ce qui couvre l'essentiel du risque.
+
+La validation de syntaxe demande [`actionlint`](https://github.com/rhysd/actionlint),
+optionnel — le script le signale et poursuit sans lui :
+
+```powershell
+winget install rhysd.actionlint
+```
+
+Il vaut le détour : un workflow invalide échoue au démarrage, **sans job et sans log
+consultable**. Diagnostiquer à l'aveugle coûte cher.
+
 ## Vérifier le livrable
 
 Le binaire doit fonctionner **seul**, sorti de son dossier de build — c'est la promesse
