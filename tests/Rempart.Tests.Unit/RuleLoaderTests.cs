@@ -158,13 +158,37 @@ public sealed class RuleLoaderTests
 
               remediation:
                 reversibility: restorePointOnly
-                impact: Peut casser des choses.
+                breaks: Le partage de fichiers avec les périphériques anciens.
+                affects: Les postes reliés à un NAS d'avant 2010.
+                verifyBefore: Activer l'audit et observer pendant une semaine.
             """;
 
         var remediation = RuleLoader.Load(yaml)[0].Remediation;
 
         Assert.NotNull(remediation);
         Assert.Equal(Reversibility.RestorePointOnly, remediation.Reversibility);
+        Assert.StartsWith("Le partage", remediation.Breaks, StringComparison.Ordinal);
+        Assert.StartsWith("Les postes", remediation.Affects, StringComparison.Ordinal);
+        Assert.NotNull(remediation.VerifyBefore);
+    }
+
+    [Fact]
+    public void Rejects_the_old_free_text_impact_field()
+    {
+        // Le champ unique attirait les generalites -- « peut avoir des effets de bord »
+        // -- sur lesquelles aucune decision ne se prend. Echouer explicitement vaut
+        // mieux que d'ignorer en silence une remediation redigee a l'ancienne.
+        var yaml = Valid + """
+
+              remediation:
+                reversibility: trivial
+                impact: Peut casser des choses.
+            """;
+
+        var ex = Assert.Throws<RuleFormatException>(() => RuleLoader.Load(yaml));
+
+        Assert.Contains("breaks", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("affects", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

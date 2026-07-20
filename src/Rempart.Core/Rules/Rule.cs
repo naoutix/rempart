@@ -75,7 +75,28 @@ public enum Reversibility
     Irreversible,
 }
 
-public sealed record Remediation(Reversibility Reversibility, string Impact);
+/// <summary>
+/// Ce que coûte l'application d'une règle, décomposé plutôt que laissé en texte libre.
+///
+/// Un champ unique « impact » se remplit vite de généralités — « peut avoir des effets
+/// de bord » — qui ne permettent aucune décision. Les trois questions ci-dessous sont
+/// celles qu'on se pose réellement avant d'appliquer un durcissement sur un parc :
+/// qu'est-ce qui cesse de marcher, qui est concerné, comment le savoir à l'avance.
+///
+/// Les deux premières sont obligatoires. « Rien » est une réponse recevable — mais
+/// elle doit être écrite, pas déduite d'un champ vide.
+/// </summary>
+public sealed record Remediation(
+    Reversibility Reversibility,
+
+    /// <summary>Ce qui cesse de fonctionner après application.</summary>
+    string Breaks,
+
+    /// <summary>Dans quels cas, et sur quel type de machine.</summary>
+    string Affects,
+
+    /// <summary>Comment vérifier avant d'appliquer. Optionnel.</summary>
+    string? VerifyBefore);
 
 public sealed record Rule(
     string Id,

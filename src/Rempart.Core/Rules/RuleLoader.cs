@@ -122,10 +122,24 @@ public static class RuleLoader
             kind, RequiredText(map, "path", context), valueName, op, expected, windowsDefault);
     }
 
-    private static Remediation ReadRemediation(YamlMappingNode map, string context) => new(
-        ParseEnum<Reversibility>(
-            RequiredText(map, "reversibility", context), "reversibility", context),
-        RequiredText(map, "impact", context));
+    private static Remediation ReadRemediation(YamlMappingNode map, string context)
+    {
+        // « impact » était un champ libre unique. Il attirait les généralités du type
+        // « peut avoir des effets de bord », sur lesquelles aucune décision ne se prend.
+        if (TryGet(map, "impact") is not null)
+        {
+            throw new RuleFormatException(
+                $"{context} : le champ « impact » est remplacé par « breaks », " +
+                "« affects » et, facultativement, « verifyBefore ».");
+        }
+
+        return new Remediation(
+            ParseEnum<Reversibility>(
+                RequiredText(map, "reversibility", context), "reversibility", context),
+            Breaks: RequiredText(map, "breaks", context),
+            Affects: RequiredText(map, "affects", context),
+            VerifyBefore: OptionalText(map, "verifyBefore"));
+    }
 
     // ─ Accès typés ────────────────────────────────────────────────────────────────
 

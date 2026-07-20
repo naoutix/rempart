@@ -119,9 +119,26 @@ Une règle est une donnée. Elle est lisible et relisible sans compétence C#.
     windowsDefault: "0"           # ★ voir ci-dessous
   remediation:                    # inerte en v1
     reversibility: trivial        # trivial | reinstallable | restorePointOnly | irreversible
-    impact: >
-      Peut empêcher le chargement de pilotes de sécurité tiers non signés.
+    breaks: >                     # ce qui cesse de fonctionner
+      Le chargement des pilotes de sécurité non signés par Microsoft.
+    affects: >                    # qui est concerné, et qui ne l'est pas
+      Les machines équipées d'un antivirus tiers ancien. Sans antivirus tiers, aucun effet.
+    verifyBefore: >               # optionnel, exigé dès que la réversibilité n'est pas triviale
+      Relever les pilotes non signés chargés et confirmer la compatibilité.
 ```
+
+### Remédiation en trois champs, pas un texte libre
+
+Un champ `impact` unique attire les généralités — « peut avoir des effets de bord » —
+sur lesquelles aucune décision ne se prend. Les trois questions posées sont celles qu'on
+se pose réellement avant d'appliquer un durcissement sur un parc : **qu'est-ce qui cesse
+de marcher, qui est concerné, comment le savoir à l'avance.**
+
+« Rien » est une réponse recevable, mais elle doit être écrite. Un test refuse les
+réponses trop courtes, et exige `verifyBefore` dès que la réversibilité n'est pas triviale.
+
+`rempart explain <ID>` restitue tout cela : sans cette commande, ces informations
+existaient dans les fichiers YAML mais restaient hors de portée à l'usage.
 
 ### `windowsDefault` — le champ qui décide de la justesse
 

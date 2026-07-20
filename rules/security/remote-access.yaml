@@ -20,7 +20,15 @@
     windowsDefault: "1"
   remediation:
     reversibility: trivial
-    impact: Coupe tout accès Bureau à distance entrant. À ne pas appliquer sur une machine administrée à distance.
+    breaks: >
+      Tout accès Bureau à distance entrant, y compris les sessions d'assistance et
+      d'administration.
+    affects: >
+      Les machines administrées à distance ou servant d'hôte de rebond. Sur un poste de
+      travail utilisé en local, aucun effet.
+    verifyBefore: >
+      S'assurer qu'un accès physique ou un autre canal d'administration reste disponible
+      avant de couper RDP -- particulierement sur une machine distante.
 
 - id: WIN-RDP-002
   title: Authentification au niveau du réseau (NLA) non exigée

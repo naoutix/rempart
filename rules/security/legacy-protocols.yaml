@@ -23,9 +23,15 @@
     windowsDefault: "0"
   remediation:
     reversibility: trivial
-    impact: >
-      Rompt l'accès aux partages de périphériques très anciens — NAS d'avant 2010,
-      imprimantes multifonctions, scanners réseau. À vérifier avant application.
+    breaks: >
+      L'accès aux partages de fichiers ne parlant que SMBv1 : NAS d'avant 2010,
+      imprimantes multifonctions, scanners réseau avec dossier de numérisation.
+    affects: >
+      Les postes utilisant encore de tels périphériques. Un parc entièrement moderne
+      n'est pas concerné : SMBv2 et v3 couvrent tous les usages depuis Windows Vista.
+    verifyBefore: >
+      Activer l'audit SMBv1 et laisser tourner quelques jours : le journal signale
+      tout client se connectant encore en SMBv1.
 
 - id: WIN-LEG-002
   title: Signature SMB non exigée côté serveur
@@ -65,9 +71,15 @@
     windowsDefault: "1"
   remediation:
     reversibility: trivial
-    impact: >
-      Aucun sur un réseau doté d'un DNS fonctionnel. Peut gêner la découverte de noms
-      sur un réseau domestique sans serveur DNS.
+    breaks: >
+      La résolution des noms de machines locales non déclarés au DNS. Un partage joint
+      par son nom court peut devenir injoignable.
+    affects: >
+      Les réseaux domestiques ou de très petite taille sans serveur DNS interne. Sur un
+      réseau doté d'un DNS fonctionnel, aucun effet.
+    verifyBefore: >
+      Vérifier que les machines à joindre par leur nom sont bien résolues par le DNS,
+      ou déclarées dans le fichier hosts.
 
 - id: WIN-LEG-004
   title: PowerShell v2 encore installé

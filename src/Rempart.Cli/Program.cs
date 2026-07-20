@@ -10,7 +10,7 @@ using Rempart.Windows;
 // pour deux commandes serait prématuré. À basculer en M1, quand le nombre de commandes
 // le justifiera.
 
-const string Version = "0.1.0-m0";
+const string Version = "0.2.0-m1";
 
 // La console Windows n'est pas en UTF-8 par défaut : sans cela les diagnostics
 // accentués sortent illisibles, et ce sont eux qu'il faut lire en priorité.
@@ -24,6 +24,7 @@ try
     {
         "scan" => Scan(args),
         "capture" => Capture(args),
+        "explain" => Explain(args),
         "version" => Print(Version),
         _ => Help(),
     };
@@ -117,13 +118,23 @@ static int Capture(string[] args)
     return 0;
 }
 
+/// <summary>
+/// Ce qu'on vient chercher d'abord : les problèmes. L'inventaire ferme le rapport —
+/// c'est du contexte, et vingt-trois lignes de contexte avant le premier constat
+/// font qu'on ne lit plus le constat.
+/// </summary>
 static void WriteHumanReadable(ScanResult result)
 {
     Console.WriteLine($"Rempart {result.ToolVersion} — scan du {result.StartedAtUtc}");
 
+    if (result.Score is { } score)
+    {
+        WritePosture(result, score);
+    }
+
+    Console.WriteLine();
     foreach (var collector in result.Collectors)
     {
-        Console.WriteLine();
         Console.WriteLine($"[{collector.Name}] {collector.Status}");
 
         foreach (var (key, value) in collector.Fields)
@@ -136,15 +147,12 @@ static void WriteHumanReadable(ScanResult result)
             Console.WriteLine($"  ! {diagnostic}");
         }
     }
+}
 
-    if (result.Score is not { } score)
-    {
-        return;
-    }
-
-    // Les échecs d'abord, par sévérité décroissante : c'est ce qu'on vient chercher.
-    // Les règles satisfaites ne sont pas listées, seulement comptées — un rapport
-    // qui noie trois problèmes dans cent lignes vertes ne sera pas lu.
+static void WritePosture(ScanResult result, ScoreCard score)
+{
+    // Les règles satisfaites ne sont pas listées, seulement comptées : un rapport qui
+    // noie trois problèmes dans cent lignes vertes ne sera pas lu.
     var failures = result.Verdicts
         .Where(v => v.Status == VerdictStatus.Fail)
         .OrderByDescending(v => v.Severity)
@@ -156,7 +164,9 @@ static void WriteHumanReadable(ScanResult result)
         Console.WriteLine("[posture] à corriger");
         foreach (var verdict in failures)
         {
-            Console.WriteLine($"  {verdict.Severity.ToString().ToUpperInvariant(),-8} {verdict.RuleId}  {verdict.Title}");
+            Console.WriteLine(
+                $"  {verdict.Severity.ToString().ToUpperInvariant(),-8} " +
+                $"{verdict.RuleId}  {verdict.Title}");
             Console.WriteLine($"           observé : {verdict.Observed ?? "absent"}" +
                               (verdict.Expected is null ? "" : $"   attendu : {verdict.Expected}"));
         }
@@ -169,7 +179,7 @@ static void WriteHumanReadable(ScanResult result)
         Console.WriteLine("[posture] non vérifiable — accès refusé");
         foreach (var verdict in unknown)
         {
-            Console.WriteLine($"  {verdict.RuleId} {verdict.Title}");
+            Console.WriteLine($"  {verdict.RuleId}  {verdict.Title}");
         }
     }
 
@@ -193,6 +203,123 @@ static void WriteHumanReadable(ScanResult result)
             $"  Score partiel : {score.TotalUnknown} contrôle(s) non vérifiable(s) sans élévation.");
         Console.WriteLine(
             "  Les contrôles non vérifiés sont exclus du calcul, jamais comptés comme conformes.");
+    }
+
+    if (failures.Count > 0 || unknown.Count > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine("  « rempart explain <ID> » détaille une règle et ce que coûte sa correction.");
+    }
+}
+
+/// <summary>
+/// Rend accessible ce que le scan ne peut pas afficher : la justification, les
+/// références, et le coût réel d'une correction. Sans cette commande, ces informations
+/// n'existaient que dans les fichiers YAML — écrites, mais hors de portée à l'usage.
+/// </summary>
+static int Explain(string[] args)
+{
+    var id = args.Length > 1 ? args[1] : null;
+    var rules = RuleCatalog.Load();
+
+    if (id is null)
+    {
+        Console.WriteLine($"{rules.Count} contrôles :");
+        foreach (var group in rules.GroupBy(r => r.Domain).OrderBy(g => g.Key, StringComparer.Ordinal))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"  {group.Key}");
+            foreach (var rule in group)
+            {
+                Console.WriteLine($"    {rule.Id,-14} {rule.Severity,-8} {rule.Title}");
+            }
+        }
+
+        return 0;
+    }
+
+    var found = rules.FirstOrDefault(r => string.Equals(r.Id, id, StringComparison.OrdinalIgnoreCase));
+    if (found is null)
+    {
+        Console.Error.WriteLine($"Règle inconnue : {id}. « rempart explain » liste les contrôles.");
+        return 1;
+    }
+
+    Console.WriteLine($"{found.Id} — {found.Title}");
+    Console.WriteLine($"  sévérité   {found.Severity}");
+    Console.WriteLine($"  domaine    {found.Domain}");
+    if (found.References.Count > 0)
+    {
+        Console.WriteLine($"  références {string.Join(", ", found.References)}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("Pourquoi");
+    WriteWrapped(found.Rationale);
+
+    Console.WriteLine();
+    Console.WriteLine("Ce qui est vérifié");
+    Console.WriteLine($"  {found.Check.Path}");
+    if (found.Check.ValueName is { } value)
+    {
+        Console.WriteLine($"  valeur « {value} » {found.Check.Operator} {found.Check.Expected}");
+    }
+    else
+    {
+        Console.WriteLine($"  la clé doit être {found.Check.Operator}");
+    }
+
+    if (found.Check.WindowsDefault is { } fallback)
+    {
+        Console.WriteLine($"  si la valeur est absente, Windows applique : {fallback}");
+    }
+
+    if (found.Remediation is not { } remediation)
+    {
+        Console.WriteLine();
+        Console.WriteLine("Correction");
+        Console.WriteLine("  Aucune remédiation décrite pour cette règle.");
+        return 0;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"Correction — réversibilité : {remediation.Reversibility}");
+    Console.WriteLine("  Ce qui cesse de fonctionner");
+    WriteWrapped(remediation.Breaks, "    ");
+    Console.WriteLine("  Qui est concerné");
+    WriteWrapped(remediation.Affects, "    ");
+
+    if (remediation.VerifyBefore is { } verify)
+    {
+        Console.WriteLine("  À vérifier avant d'appliquer");
+        WriteWrapped(verify, "    ");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("  La v1 n'applique aucune correction : elle constate et documente.");
+
+    return 0;
+}
+
+static void WriteWrapped(string text, string indent = "  ")
+{
+    var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+    var line = new System.Text.StringBuilder(indent);
+
+    foreach (var word in words)
+    {
+        if (line.Length + word.Length + 1 > 88)
+        {
+            Console.WriteLine(line.ToString());
+            line.Clear().Append(indent);
+        }
+
+        line.Append(word).Append(' ');
+    }
+
+    if (line.Length > indent.Length)
+    {
+        Console.WriteLine(line.ToString().TrimEnd());
     }
 }
 
@@ -231,6 +358,10 @@ static int Help() => Print(
       rempart capture [--out <fichier>] [--raw]
           Enregistre l'état brut de la machine, rejouable en test.
           Anonymisé par défaut ; --raw conserve les identifiants.
+
+      rempart explain [<ID>]
+          Liste les contrôles, ou détaille une règle : justification,
+          références, et ce que coûte sa correction.
 
       rempart version
 

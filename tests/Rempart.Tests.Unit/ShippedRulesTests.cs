@@ -74,13 +74,32 @@ public sealed class ShippedRulesTests
     }
 
     [Fact]
-    public void Every_remediation_states_its_impact_and_reversibility()
+    public void Every_remediation_says_what_breaks_and_who_is_affected()
     {
+        // Ces deux champs décideront, en M9, si une action est sûre à appliquer.
+        // Un texte libre unique s'y remplirait de généralités ; la longueur minimale
+        // écarte les « aucun impact connu » posés sans vérification.
         var rules = Rules.Where(r => r.Remediation is not null).ToList();
 
         Assert.NotEmpty(rules);
         Assert.All(rules, rule =>
-            Assert.False(string.IsNullOrWhiteSpace(rule.Remediation!.Impact), rule.Id));
+        {
+            Assert.True(rule.Remediation!.Breaks.Length > 40, $"{rule.Id} : « breaks » trop vague");
+            Assert.True(rule.Remediation.Affects.Length > 40, $"{rule.Id} : « affects » trop vague");
+        });
+    }
+
+    [Fact]
+    public void Risky_remediations_explain_how_to_check_beforehand()
+    {
+        // Au-delà du trivialement réversible, on ne peut pas demander à quelqu'un
+        // d'appliquer un changement sans lui dire comment en mesurer le risque avant.
+        var unchecked_ = Rules
+            .Where(r => r.Remediation is { Reversibility: not Reversibility.Trivial })
+            .Where(r => string.IsNullOrWhiteSpace(r.Remediation!.VerifyBefore))
+            .Select(r => r.Id);
+
+        Assert.Empty(unchecked_);
     }
 
     [Fact]
