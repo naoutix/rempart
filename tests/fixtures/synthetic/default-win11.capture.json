@@ -443,7 +443,7 @@
       "status": "Found",
       "info": {
         "name": "wuauserv",
-        "state": "Running",
+        "state": "Stopped",
         "startMode": "Manual"
       }
     },
@@ -561,5 +561,6 @@
     }
   },
   "registryLists": {},
-  "signatures": {}
+  "signatures": {},
+  "directories": {}
 }

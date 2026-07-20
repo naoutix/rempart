@@ -807,5 +807,6 @@
     }
   },
   "registryLists": {},
-  "signatures": {}
+  "signatures": {},
+  "directories": {}
 }

@@ -69,7 +69,69 @@ public sealed class AutorunsCollector : IFindingCollector
             }
         }
 
+        foreach (var folder in StartupFolders())
+        {
+            foreach (var file in providers.Files.ListFiles(folder))
+            {
+                if (IsIgnored(file))
+                {
+                    continue;
+                }
+
+                findings.Add(ExamineStartupFile(folder, file, providers.Signatures));
+            }
+        }
+
         return findings;
+    }
+
+    /// <summary>
+    /// Dossiers de démarrage, machine puis utilisateur. Leur contenu s'exécute à
+    /// l'ouverture de session sans qu'aucune clé de registre ne le mentionne — un
+    /// audit qui n'inspecterait que le registre les manquerait entièrement.
+    /// </summary>
+    private static IEnumerable<string> StartupFolders()
+    {
+        yield return Environment.ExpandEnvironmentVariables(
+            @"%ProgramData%\Microsoft\Windows\Start Menu\Programs\StartUp");
+
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        if (!string.IsNullOrEmpty(appData))
+        {
+            yield return Path.Combine(appData, @"Microsoft\Windows\Start Menu\Programs\Startup");
+        }
+    }
+
+    /// <summary>
+    /// <c>desktop.ini</c> décrit l'apparence du dossier ; il ne s'exécute pas. Le
+    /// signaler ajouterait du bruit sur toute machine, ce qui est la manière la plus
+    /// sûre de faire cesser la lecture d'un rapport.
+    /// </summary>
+    private static bool IsIgnored(string path) =>
+        Path.GetFileName(path).Equals("desktop.ini", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Un raccourci ne s'exécute pas lui-même : il désigne autre chose. Le juger sur
+    /// sa propre signature serait faux — c'est sa cible qui compte, et la résoudre
+    /// demande de lire le format .lnk. Il est donc énuméré sans être jugé, et le
+    /// rapport dit pourquoi plutôt que de laisser croire à une vérification.
+    /// </summary>
+    private static Finding ExamineStartupFile(
+        string folder, string path, ISignatureProvider signatures)
+    {
+        if (path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Finding("autorun", folder, path, FindingSeverity.Benign, [],
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["type"] = "raccourci",
+                    ["note"] = "Cible non résolue : le format .lnk n'est pas encore lu, "
+                               + "la signature porte donc sur le raccourci et non sur ce "
+                               + "qu'il lance.",
+                });
+        }
+
+        return Examine(folder, path, signatures);
     }
 
     private static Finding Examine(string source, string command, ISignatureProvider signatures)

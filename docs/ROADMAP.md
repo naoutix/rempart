@@ -118,8 +118,8 @@ lancé au démarrage.
       plus la vue 32 bits. Signature vérifiée par certificat embarqué **et par catalogue**.
 - [x] Abonnements WMI permanents — consommateurs et filtres, filtres livrés avec
       Windows écartés du bruit
-- [ ] Dossiers Startup — la plomberie est en place (`IFileSystemProvider`, capture et
-      rejeu des répertoires), le collecteur reste à écrire
+- [x] Dossiers Startup — machine et utilisateur. Les raccourcis sont énumérés sans
+      être jugés : leur cible compte, et la résoudre demande de lire le format .lnk
 - [ ] Tâches planifiées — demande l'API COM du planificateur, quatre interfaces de plus
 - [ ] Pilotes chargés comparés à LOLDrivers — **attend ADR-002** : la liste fait
       ~1 500 entrées et vieillit chaque semaine, elle n'a de sens qu'avec le canal de
