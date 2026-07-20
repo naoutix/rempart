@@ -43,6 +43,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Signatures vérifiées, indexées par chemin de fichier.</summary>
     public Dictionary<string, FileSignature> Signatures { get; set; } = [];
+
+    /// <summary>Contenu des répertoires énumérés.</summary>
+    public Dictionary<string, List<string>> Directories { get; set; } = [];
 }
 
 public static class SnapshotKeys

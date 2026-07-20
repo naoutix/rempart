@@ -62,7 +62,8 @@ static int Scan(string[] args)
             new SnapshotServiceStateProvider(snapshot),
             new SnapshotSecurityPolicyProvider(snapshot),
             new SnapshotWmiProvider(snapshot),
-            new SnapshotSignatureProvider(snapshot));
+            new SnapshotSignatureProvider(snapshot),
+            new SnapshotFileSystemProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -74,7 +75,8 @@ static int Scan(string[] args)
             new LiveServiceStateProvider(),
             new LiveSecurityPolicyProvider(),
             new Rempart.Windows.Wmi.LiveWmiProvider(),
-            new LiveSignatureProvider());
+            new LiveSignatureProvider(),
+            new LiveFileSystemProvider());
         origin = UtcNow();
     }
 
@@ -110,7 +112,8 @@ static int Capture(string[] args)
         new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot),
         new RecordingSecurityPolicyProvider(new LiveSecurityPolicyProvider(), snapshot),
         new RecordingWmiProvider(new Rempart.Windows.Wmi.LiveWmiProvider(), snapshot),
-        new RecordingSignatureProvider(new LiveSignatureProvider(), snapshot));
+        new RecordingSignatureProvider(new LiveSignatureProvider(), snapshot),
+        new RecordingFileSystemProvider(new LiveFileSystemProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
