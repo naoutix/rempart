@@ -15,7 +15,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "25H2",
+        "text": "22H2",
         "number": null
       }
     },
@@ -23,7 +23,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "26200",
+        "text": "19045",
         "number": null
       }
     },
@@ -32,7 +32,7 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 1000
+        "number": 4046
       }
     },
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||EditionID": {
@@ -108,26 +108,30 @@
       }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State||UEFISecureBootEnabled": {
-      "status": "AccessDenied",
+      "status": "NotFound",
       "value": null
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
-      "status": "Found",
+      "status": "NotFound",
       "value": null
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||RunAsPPL": {
-      "status": "AccessDenied",
+      "status": "NotFound",
       "value": null
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest||UseLogonCredential": {
-      "status": "AccessDenied",
-      "value": null
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
     },
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon||CachedLogonsCount": {
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "4",
+        "text": "25",
         "number": null
       }
     },
@@ -136,7 +140,7 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 0
+        "number": 1
       }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters||RequireSecuritySignature": {
@@ -144,19 +148,15 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 1
-      }
-    },
-    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient||EnableMulticast": {
-      "status": "Found",
-      "value": {
-        "kind": "DWord",
-        "text": null,
         "number": 0
       }
     },
-    "HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine||#exists": {
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient||EnableMulticast": {
       "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine||#exists": {
+      "status": "Found",
       "value": null
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server||fDenyTSConnections": {
@@ -164,7 +164,7 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 1
+        "number": 0
       }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp||UserAuthentication": {
@@ -172,7 +172,7 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 1
+        "number": 0
       }
     },
     "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU||NoAutoUpdate": {
@@ -180,17 +180,17 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 0
+        "number": 1
       }
     }
   },
   "systemInfo": {
-    "machineName": "anon:000000000004",
-    "osVersion": "10.0.26200.0",
+    "machineName": "anon:000000000003",
+    "osVersion": "10.0.19045.0",
     "is64BitOperatingSystem": true,
-    "isElevated": false,
+    "isElevated": true,
     "processorCount": 8,
     "uptimeSeconds": 3600,
-    "firmwareType": "uefi"
+    "firmwareType": "bios"
   }
 }

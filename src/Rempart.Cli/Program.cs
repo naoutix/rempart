@@ -2,6 +2,7 @@ using Rempart.Core.Collectors;
 using Rempart.Core.Engine;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
+using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
 using Rempart.Windows;
 
@@ -62,7 +63,7 @@ static int Scan(string[] args)
         origin = UtcNow();
     }
 
-    var result = new ScanEngine(ScanEngine.DefaultCollectors).Run(providers, Version, origin);
+    var result = ScanEngine.Default().Run(providers, Version, origin);
 
     if (asJson)
     {
@@ -91,7 +92,9 @@ static int Capture(string[] args)
         new RecordingRegistryProvider(new LiveRegistryProvider(), snapshot),
         new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot));
 
-    new ScanEngine(ScanEngine.DefaultCollectors).Run(providers, Version, snapshot.CapturedAtUtc);
+    // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
+    // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
+    ScanEngine.Default().Run(providers, Version, snapshot.CapturedAtUtc);
 
     // Anonymisation par défaut : les fixtures finissent versionnées.
     if (!raw)
@@ -132,6 +135,64 @@ static void WriteHumanReadable(ScanResult result)
         {
             Console.WriteLine($"  ! {diagnostic}");
         }
+    }
+
+    if (result.Score is not { } score)
+    {
+        return;
+    }
+
+    // Les échecs d'abord, par sévérité décroissante : c'est ce qu'on vient chercher.
+    // Les règles satisfaites ne sont pas listées, seulement comptées — un rapport
+    // qui noie trois problèmes dans cent lignes vertes ne sera pas lu.
+    var failures = result.Verdicts
+        .Where(v => v.Status == VerdictStatus.Fail)
+        .OrderByDescending(v => v.Severity)
+        .ToList();
+
+    if (failures.Count > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine("[posture] à corriger");
+        foreach (var verdict in failures)
+        {
+            Console.WriteLine($"  {verdict.Severity.ToString().ToUpperInvariant(),-8} {verdict.RuleId}  {verdict.Title}");
+            Console.WriteLine($"           observé : {verdict.Observed ?? "absent"}" +
+                              (verdict.Expected is null ? "" : $"   attendu : {verdict.Expected}"));
+        }
+    }
+
+    var unknown = result.Verdicts.Where(v => v.Status == VerdictStatus.Unknown).ToList();
+    if (unknown.Count > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine("[posture] non vérifiable — accès refusé");
+        foreach (var verdict in unknown)
+        {
+            Console.WriteLine($"  {verdict.RuleId} {verdict.Title}");
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("[score] par domaine");
+    foreach (var domain in score.Domains)
+    {
+        var value = domain.Score is { } s ? $"{s,3} %" : "  n/d";
+        Console.WriteLine(
+            $"  {domain.Domain,-18} {value}   " +
+            $"conformes {domain.Passed}, échecs {domain.Failed}, non vérifiés {domain.Unknown}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"  {"GLOBAL",-18} {(score.Overall is { } o ? $"{o,3} %" : "  n/d")}");
+
+    if (score.IsPartial)
+    {
+        Console.WriteLine();
+        Console.WriteLine(
+            $"  Score partiel : {score.TotalUnknown} contrôle(s) non vérifiable(s) sans élévation.");
+        Console.WriteLine(
+            "  Les contrôles non vérifiés sont exclus du calcul, jamais comptés comme conformes.");
     }
 }
 

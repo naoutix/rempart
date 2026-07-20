@@ -102,24 +102,55 @@ rempart/
 Une règle est une donnée. Elle est lisible et relisible sans compétence C#.
 
 ```yaml
-- id: WIN-LSA-001
+- id: WIN-CRED-001
   title: LSA Protection (RunAsPPL) désactivée
-  severity: high
-  domain: credentials
+  severity: high                  # info | low | medium | high | critical
+  domain: credentials             # regroupe le score ; petit ensemble stable
   rationale: >
     Permet à un attaquant disposant de droits locaux d'extraire les credentials
     depuis la mémoire du processus LSASS.
-  references: [CIS-2.3.10.x, ASD-E8]
+  references: [CIS-2.3.10, ASD-E8]
   check:
-    type: registry
+    type: registry                # registry | registryKey
     path: HKLM\SYSTEM\CurrentControlSet\Control\Lsa
     value: RunAsPPL
-    expect: 1
+    operator: atLeast             # equals | notEquals | atLeast | exists | absent
+    expect: "1"
+    windowsDefault: "0"           # ★ voir ci-dessous
   remediation:                    # inerte en v1
-    reversibility: trivial
+    reversibility: trivial        # trivial | reinstallable | restorePointOnly | irreversible
     impact: >
       Peut empêcher le chargement de pilotes de sécurité tiers non signés.
 ```
+
+### `windowsDefault` — le champ qui décide de la justesse
+
+Obligatoire pour tout opérateur de comparaison ; le chargement échoue sans lui.
+
+Sur le registre Windows, **une clé absente est le cas courant, pas l'anomalie**. Le
+comportement effectif dépend alors d'un défaut documenté, qui est souvent l'état
+souhaité : `UseLogonCredential` absent signifie « pas de mot de passe en clair »,
+`NoAutoUpdate` absent signifie « mises à jour actives ».
+
+Une première version traitait toute absence comme un échec. Sur une machine saine, elle
+remontait trois alertes `CRITICAL` fausses — de quoi rendre l'outil inutilisable, puisque
+plus personne ne lit un rapport qui crie au loup.
+
+Exiger ce champ oblige l'auteur de la règle à connaître le défaut Windows applicable,
+ce qui est précisément la connaissance qui rend la règle juste.
+
+### Verdicts et score
+
+| Verdict | Signification |
+|---|---|
+| `Pass` | Conforme |
+| `Fail` | Non conforme |
+| `Unknown` | Accès refusé — **jamais** compté comme conforme |
+
+Les verdicts `Unknown` sortent du calcul du score, et un domaine entièrement illisible
+vaut `null`, pas zéro : « je ne sais pas » appelle une élévation, « c'est mauvais » appelle
+une correction. La pondération par sévérité est non linéaire — dix réglages mineurs ne
+compensent pas une faiblesse critique.
 
 Format d'une action de nettoyage :
 

@@ -2,9 +2,10 @@
 
 Audit et durcissement de postes Windows, en un binaire unique exécutable depuis une clé USB.
 
-> **État : M0 terminé.** Le socle tourne — `rempart scan` et `rempart capture` sur un
-> binaire unique de 2,6 Mo, sans installation. L'évaluation des règles arrive en M1 ;
-> aucune remédiation avant M9.
+> **État : M1 terminé.** `rempart scan` évalue 12 contrôles de sécurité et rend un score
+> par domaine, depuis un binaire unique de 4 Mo sans installation. Les contrôles sont des
+> fichiers YAML : en ajouter un ne demande pas de recompiler.
+> Aucune remédiation avant M9 — la v1 n'écrit rien.
 
 ## Ce que c'est
 
@@ -37,6 +38,7 @@ rapport et un score comparables d'une machine à l'autre.
 - [Architecture](docs/ARCHITECTURE.md) — schémas, arborescence, format des règles, stratégie de test
 - [Plan d'attaque](docs/ROADMAP.md) — M0 à M12, avec critères de sortie
 - [Compiler](docs/BUILD.md) — prérequis, publication AOT, pièges
+- [Règles](rules/) — les contrôles livrés, en YAML
 
 ## Prérequis de développement
 

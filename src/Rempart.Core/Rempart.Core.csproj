@@ -6,8 +6,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Les helpers internes (derivation du nom d'OS, etc.) sont testes directement
-         plutot que via la surface publique : ce sont eux qui portent les regles metier. -->
+    <!-- Seule l'API bas niveau (YamlStream) est utilisee : elle parcourt l'arbre sans
+         reflexion sur nos types, donc compatible Native AOT sans generateur de source.
+         Le mapping est ecrit a la main dans RuleLoader, ce qui permet des messages
+         d'erreur exploitables sur un fichier destine a etre edite souvent. -->
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Les regles YAML sont embarquees : le binaire doit rester autonome sur cle USB. -->
+    <EmbeddedResource Include="..\..\rules\**\*.yaml" LinkBase="rules" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Rempart.Tests.Unit" />
   </ItemGroup>
 

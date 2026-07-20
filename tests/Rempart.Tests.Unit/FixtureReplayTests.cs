@@ -102,8 +102,9 @@ public sealed class FixtureReplayTests
             new SnapshotRegistryProvider(snapshot),
             new SnapshotSystemInfoProvider(snapshot));
 
-        var result = new ScanEngine(ScanEngine.DefaultCollectors)
-            .Run(providers, "test", snapshot.CapturedAtUtc);
+        // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
+        // donnee qu'on veut voir figer, pas seulement les champs collectes.
+        var result = ScanEngine.Default().Run(providers, "test", snapshot.CapturedAtUtc);
 
         // Les champs volatils sont retirés : une référence ne peut pas figer un uptime.
         var comparable = result with

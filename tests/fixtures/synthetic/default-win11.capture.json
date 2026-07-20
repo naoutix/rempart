@@ -117,15 +117,51 @@
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
       "status": "Found",
-      "value": {
-        "kind": "String",
-        "text": "present",
-        "number": null
-      }
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||RunAsPPL": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest||UseLogonCredential": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon||CachedLogonsCount": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters||SMB1": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters||RequireSecuritySignature": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient||EnableMulticast": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine||#exists": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server||fDenyTSConnections": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp||UserAuthentication": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU||NoAutoUpdate": {
+      "status": "NotFound",
+      "value": null
     }
   },
   "systemInfo": {
-    "machineName": "anon:000000000001",
+    "machineName": "anon:000000000002",
     "osVersion": "10.0.26200.0",
     "is64BitOperatingSystem": true,
     "isElevated": true,

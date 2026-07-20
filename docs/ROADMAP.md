@@ -28,16 +28,31 @@ identifiants ; `rempart diff` (M7) s'appuiera sur la même distinction.
 Microsoft ne l'a jamais corrigé. `os.name` dérive du numéro de build, faute de quoi
 toute règle conditionnée à la version porterait sur une valeur fausse.
 
-### M1 · Moteur de règles
-Chargement YAML, évaluation, sévérités, scoring par domaine et global.
+### M1 · Moteur de règles — ✅ terminé
 
-- [ ] Schéma de règle + chargeur, avec validation au démarrage
-- [ ] Types de check : `registry`, `service`, `policy`, `wmi`
-- [ ] Scoring par domaine, mappé CIS / Essential Eight
-- [ ] **Test de propriété (D7)** : aucun profil ne cible la liste noire
-- [ ] 10 contrôles réels de bout en bout
+- [x] Schéma de règle + chargeur strict, validation au chargement
+- [x] Types de check : `registry`, `registryKey` — `service` et `policy` en M2
+- [x] Scoring par domaine et global, mappé CIS / Essential Eight
+- [x] **Test de propriété (D7)** : aucune règle ne cible la liste noire
+- [x] 12 contrôles réels de bout en bout
+- [x] 4 fixtures synthétiques : durcie, défaut Windows, ancienne, accès restreint
+- [x] 85 tests
 
-**Fait quand** ajouter un contrôle ne demande que d'éditer un YAML.
+**Fait :** ajouter un contrôle ne demande que d'éditer un YAML.
+
+**La décision de conception du lot.** Le champ `windowsDefault` est obligatoire pour
+tout opérateur de comparaison. Sur le registre Windows une clé absente est le cas
+courant, et le comportement effectif dépend d'un défaut documenté — souvent l'état
+souhaité. La première version traitait toute absence comme un échec et remontait trois
+alertes `CRITICAL` fausses sur une machine saine. Un outil qui crie au loup cesse d'être lu.
+
+**Trouvé en chemin.** `RunAsPPL` vaut `1` (avec verrou UEFI) ou `2` (sans) ; exiger
+l'égalité rejetait une machine correctement configurée. D'où l'opérateur `atLeast`.
+
+**Écart à l'ADR-001.** YamlDotNet est utilisé par son API bas niveau (`YamlStream`),
+sans réflexion donc compatible AOT, avec un mapping écrit à la main. Le générateur de
+source officiel n'est pas publié sur NuGet — seul un paquet tiers existe, écarté sur un
+outil de sécurité. Bénéfice collatéral : des erreurs situées, avec fichier et règle.
 
 ### M2 · Posture de sécurité — le gros morceau
 Les ~120 contrôles : BitLocker, Defender et règles ASR, Credential Guard, LSA,

@@ -1,0 +1,84 @@
+# Protocoles hérités.
+#
+# Ils restent présents pour la compatibilité avec du matériel et des logiciels anciens.
+# Sur un poste moderne, ils n'offrent aucun service que leur remplaçant n'assure — et
+# constituent des vecteurs d'attaque documentés depuis des années.
+
+- id: WIN-LEG-001
+  title: SMBv1 activé
+  severity: critical
+  domain: legacy
+  rationale: >
+    SMBv1 n'a ni signature moderne ni chiffrement, et porte les vulnérabilités
+    exploitées par WannaCry et NotPetya. Microsoft le désactive par défaut depuis 2017
+    et recommande sa suppression. SMBv2 et v3 couvrent tous les usages actuels.
+  references: [CIS-18.4.3, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters
+    value: SMB1
+    operator: notEquals
+    expect: "1"
+    # La fonctionnalité SMB1 n'est plus installée par défaut depuis Windows 10 1709.
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    impact: >
+      Rompt l'accès aux partages de périphériques très anciens — NAS d'avant 2010,
+      imprimantes multifonctions, scanners réseau. À vérifier avant application.
+
+- id: WIN-LEG-002
+  title: Signature SMB non exigée côté serveur
+  severity: high
+  domain: legacy
+  rationale: >
+    Sans signature obligatoire, une attaque de relais SMB permet de rejouer une
+    authentification vers un autre hôte. La signature rend le relais inopérant, au prix
+    d'un surcoût CPU négligeable sur du matériel moderne.
+  references: [CIS-2.3.9.2, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters
+    value: RequireSecuritySignature
+    operator: equals
+    expect: "1"
+    # Non exigée par défaut sur une édition poste de travail.
+    windowsDefault: "0"
+
+- id: WIN-LEG-003
+  title: LLMNR activé
+  severity: high
+  domain: legacy
+  rationale: >
+    LLMNR diffuse les résolutions de noms échouées sur tout le réseau local. N'importe
+    quelle machine peut y répondre et capturer une authentification NTLM — c'est la
+    première manœuvre de la plupart des tests d'intrusion en interne. Le DNS couvre
+    tous les usages légitimes.
+  references: [CIS-18.5.4.2, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient
+    value: EnableMulticast
+    operator: equals
+    expect: "0"
+    # Clé de stratégie : absente signifie stratégie non configurée, donc LLMNR actif.
+    windowsDefault: "1"
+  remediation:
+    reversibility: trivial
+    impact: >
+      Aucun sur un réseau doté d'un DNS fonctionnel. Peut gêner la découverte de noms
+      sur un réseau domestique sans serveur DNS.
+
+- id: WIN-LEG-004
+  title: PowerShell v2 encore installé
+  severity: medium
+  domain: legacy
+  rationale: >
+    PowerShell v2 ignore la journalisation des blocs de script et AMSI. Le laisser en
+    place offre un contournement direct des mécanismes de détection de PowerShell 5
+    et suivants, sans apporter de fonctionnalité.
+  references: [CIS-18.9.100, ASD-E8]
+  check:
+    type: registryKey
+    path: HKLM\SOFTWARE\Microsoft\PowerShell\1\PowerShellEngine
+    operator: absent

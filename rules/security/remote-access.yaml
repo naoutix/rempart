@@ -1,0 +1,92 @@
+# Accès distant et intégrité de l'amorçage.
+
+- id: WIN-RDP-001
+  title: Bureau à distance activé
+  severity: medium
+  domain: remote-access
+  rationale: >
+    RDP exposé est l'un des vecteurs d'accès initial les plus fréquents, par force brute
+    ou identifiants dérobés. Sur un poste de travail qui n'en a pas l'usage, le service
+    ne devrait pas écouter du tout. Ce contrôle signale l'état sans le juger : RDP
+    volontairement actif reste un choix légitime.
+  references: [CIS-18.9.65, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server
+    value: fDenyTSConnections
+    operator: equals
+    expect: "1"
+    # Bureau à distance désactivé à l'installation.
+    windowsDefault: "1"
+  remediation:
+    reversibility: trivial
+    impact: Coupe tout accès Bureau à distance entrant. À ne pas appliquer sur une machine administrée à distance.
+
+- id: WIN-RDP-002
+  title: Authentification au niveau du réseau (NLA) non exigée
+  severity: high
+  domain: remote-access
+  rationale: >
+    Sans NLA, la session RDP alloue des ressources et présente l'écran d'ouverture avant
+    toute authentification, ce qui expose la pile RDP à un attaquant non authentifié et
+    facilite le déni de service. Ce contrôle ne vaut que si RDP est activé.
+  references: [CIS-18.9.65.3.9, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+    value: UserAuthentication
+    operator: equals
+    expect: "1"
+    windowsDefault: "1"
+
+- id: WIN-BOOT-001
+  title: Secure Boot désactivé ou indisponible
+  severity: high
+  domain: boot-integrity
+  rationale: >
+    Secure Boot vérifie la signature des composants chargés avant le système
+    d'exploitation. Sans lui, un bootkit s'installe sous Windows et devient invisible
+    à toute protection s'exécutant dans le système. Absent en démarrage Legacy/CSM,
+    ce qui appelle une migration UEFI plutôt qu'un simple réglage.
+  references: [CIS-18.9.4, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\SecureBoot\State
+    value: UEFISecureBootEnabled
+    operator: equals
+    expect: "1"
+    # Clé absente en démarrage Legacy/CSM : Secure Boot n'est alors pas disponible.
+    windowsDefault: "0"
+
+- id: WIN-BOOT-002
+  title: Service TPM absent
+  severity: medium
+  domain: boot-integrity
+  rationale: >
+    Le TPM ancre les clés de BitLocker, Credential Guard et l'attestation de santé.
+    Sans lui, le chiffrement du disque repose sur un secret utilisateur seul, sans
+    liaison au matériel.
+  references: [ASD-E8]
+  check:
+    type: registryKey
+    path: HKLM\SYSTEM\CurrentControlSet\Services\TPM
+    operator: exists
+
+- id: WIN-UPD-001
+  title: Mises à jour automatiques désactivées par stratégie
+  severity: critical
+  domain: updates
+  rationale: >
+    Le délai entre publication d'un correctif et son application est la fenêtre pendant
+    laquelle une vulnérabilité connue reste exploitable. Désactiver Windows Update pour
+    « alléger » le système est le contresens le plus courant du dé-bloatware — il retire
+    la mesure de sécurité la plus rentable qui soit.
+  references: [CIS-18.9.108, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+    value: NoAutoUpdate
+    operator: notEquals
+    expect: "1"
+    # Clé de stratégie : absente signifie mises à jour automatiques actives.
+    windowsDefault: "0"

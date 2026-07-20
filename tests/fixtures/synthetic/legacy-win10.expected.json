@@ -4,15 +4,15 @@
   "collectors": [
     {
       "name": "inventory",
-      "status": "InsufficientPrivileges",
+      "status": "Ok",
       "fields": {
-        "os.name": "Windows 11 Pro",
-        "os.displayVersion": "25H2",
-        "os.build": "26200",
-        "os.updateBuildRevision": "1000",
+        "os.name": "Windows 10 Pro",
+        "os.displayVersion": "22H2",
+        "os.build": "19045",
+        "os.updateBuildRevision": "4046",
         "os.edition": "Professional",
         "os.installationType": "Client",
-        "os.version": "10.0.26200.0",
+        "os.version": "10.0.19045.0",
         "os.is64Bit": "True",
         "hardware.manufacturer": "Synthetic Systems",
         "hardware.model": "SYN-1000",
@@ -20,18 +20,15 @@
         "hardware.baseboardManufacturer": "Synthetic Systems",
         "hardware.baseboardProduct": "SYN-BOARD-1000",
         "machine.processorCount": "8",
-        "firmware.type": "uefi",
+        "firmware.type": "bios",
         "firmware.biosVersion": "1.00",
         "firmware.biosDate": "01/01/2026",
-        "security.secureBoot": null,
-        "security.tpmService": "present",
-        "scan.elevated": "False",
+        "security.secureBoot": "unsupported",
+        "security.tpmService": "absent",
+        "scan.elevated": "True",
         "os.registryProductName": "Windows 10 Pro"
       },
-      "diagnostics": [
-        "Acc\u00E8s refus\u00E9 : HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State",
-        "Scan non \u00E9lev\u00E9 : certaines valeurs sont hors de port\u00E9e. Relancer en administrateur pour un inventaire complet."
-      ]
+      "diagnostics": []
     }
   ],
   "verdicts": [
@@ -40,8 +37,8 @@
       "title": "LSA Protection (RunAsPPL) d\u00E9sactiv\u00E9e",
       "severity": "High",
       "domain": "credentials",
-      "status": "Unknown",
-      "observed": null,
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
       "expected": "1"
     },
     {
@@ -49,8 +46,8 @@
       "title": "WDigest conserve les mots de passe en clair en m\u00E9moire",
       "severity": "Critical",
       "domain": "credentials",
-      "status": "Unknown",
-      "observed": null,
+      "status": "Fail",
+      "observed": "1",
       "expected": "1"
     },
     {
@@ -58,8 +55,8 @@
       "title": "Nombre de connexions mises en cache trop \u00E9lev\u00E9",
       "severity": "Medium",
       "domain": "credentials",
-      "status": "Pass",
-      "observed": "4",
+      "status": "Fail",
+      "observed": "25",
       "expected": "4"
     },
     {
@@ -67,8 +64,8 @@
       "title": "SMBv1 activ\u00E9",
       "severity": "Critical",
       "domain": "legacy",
-      "status": "Pass",
-      "observed": "0",
+      "status": "Fail",
+      "observed": "1",
       "expected": "1"
     },
     {
@@ -76,8 +73,8 @@
       "title": "Signature SMB non exig\u00E9e c\u00F4t\u00E9 serveur",
       "severity": "High",
       "domain": "legacy",
-      "status": "Pass",
-      "observed": "1",
+      "status": "Fail",
+      "observed": "0",
       "expected": "1"
     },
     {
@@ -85,8 +82,8 @@
       "title": "LLMNR activ\u00E9",
       "severity": "High",
       "domain": "legacy",
-      "status": "Pass",
-      "observed": "0",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 1)",
       "expected": "0"
     },
     {
@@ -94,8 +91,8 @@
       "title": "PowerShell v2 encore install\u00E9",
       "severity": "Medium",
       "domain": "legacy",
-      "status": "Pass",
-      "observed": "absent",
+      "status": "Fail",
+      "observed": "present",
       "expected": null
     },
     {
@@ -103,8 +100,8 @@
       "title": "Bureau \u00E0 distance activ\u00E9",
       "severity": "Medium",
       "domain": "remote-access",
-      "status": "Pass",
-      "observed": "1",
+      "status": "Fail",
+      "observed": "0",
       "expected": "1"
     },
     {
@@ -112,8 +109,8 @@
       "title": "Authentification au niveau du r\u00E9seau (NLA) non exig\u00E9e",
       "severity": "High",
       "domain": "remote-access",
-      "status": "Pass",
-      "observed": "1",
+      "status": "Fail",
+      "observed": "0",
       "expected": "1"
     },
     {
@@ -121,8 +118,8 @@
       "title": "Secure Boot d\u00E9sactiv\u00E9 ou indisponible",
       "severity": "High",
       "domain": "boot-integrity",
-      "status": "Unknown",
-      "observed": null,
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
       "expected": "1"
     },
     {
@@ -130,8 +127,8 @@
       "title": "Service TPM absent",
       "severity": "Medium",
       "domain": "boot-integrity",
-      "status": "Pass",
-      "observed": "present",
+      "status": "Fail",
+      "observed": "absent",
       "expected": null
     },
     {
@@ -139,51 +136,51 @@
       "title": "Mises \u00E0 jour automatiques d\u00E9sactiv\u00E9es par strat\u00E9gie",
       "severity": "Critical",
       "domain": "updates",
-      "status": "Pass",
-      "observed": "0",
+      "status": "Fail",
+      "observed": "1",
       "expected": "1"
     }
   ],
   "score": {
-    "overall": 100,
+    "overall": 0,
     "domains": [
       {
         "domain": "boot-integrity",
-        "passed": 1,
-        "failed": 0,
-        "unknown": 1,
-        "score": 100
+        "passed": 0,
+        "failed": 2,
+        "unknown": 0,
+        "score": 0
       },
       {
         "domain": "credentials",
-        "passed": 1,
-        "failed": 0,
-        "unknown": 2,
-        "score": 100
+        "passed": 0,
+        "failed": 3,
+        "unknown": 0,
+        "score": 0
       },
       {
         "domain": "legacy",
-        "passed": 4,
-        "failed": 0,
+        "passed": 0,
+        "failed": 4,
         "unknown": 0,
-        "score": 100
+        "score": 0
       },
       {
         "domain": "remote-access",
-        "passed": 2,
-        "failed": 0,
+        "passed": 0,
+        "failed": 2,
         "unknown": 0,
-        "score": 100
+        "score": 0
       },
       {
         "domain": "updates",
-        "passed": 1,
-        "failed": 0,
+        "passed": 0,
+        "failed": 1,
         "unknown": 0,
-        "score": 100
+        "score": 0
       }
     ],
-    "totalUnknown": 3,
-    "isPartial": true
+    "totalUnknown": 0,
+    "isPartial": false
   }
 }

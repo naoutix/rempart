@@ -4,7 +4,7 @@
   "collectors": [
     {
       "name": "inventory",
-      "status": "InsufficientPrivileges",
+      "status": "Ok",
       "fields": {
         "os.name": "Windows 11 Pro",
         "os.displayVersion": "25H2",
@@ -23,15 +23,12 @@
         "firmware.type": "uefi",
         "firmware.biosVersion": "1.00",
         "firmware.biosDate": "01/01/2026",
-        "security.secureBoot": null,
+        "security.secureBoot": "enabled",
         "security.tpmService": "present",
-        "scan.elevated": "False",
+        "scan.elevated": "True",
         "os.registryProductName": "Windows 10 Pro"
       },
-      "diagnostics": [
-        "Acc\u00E8s refus\u00E9 : HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State",
-        "Scan non \u00E9lev\u00E9 : certaines valeurs sont hors de port\u00E9e. Relancer en administrateur pour un inventaire complet."
-      ]
+      "diagnostics": []
     }
   ],
   "verdicts": [
@@ -40,8 +37,8 @@
       "title": "LSA Protection (RunAsPPL) d\u00E9sactiv\u00E9e",
       "severity": "High",
       "domain": "credentials",
-      "status": "Unknown",
-      "observed": null,
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
       "expected": "1"
     },
     {
@@ -49,8 +46,8 @@
       "title": "WDigest conserve les mots de passe en clair en m\u00E9moire",
       "severity": "Critical",
       "domain": "credentials",
-      "status": "Unknown",
-      "observed": null,
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
       "expected": "1"
     },
     {
@@ -58,8 +55,8 @@
       "title": "Nombre de connexions mises en cache trop \u00E9lev\u00E9",
       "severity": "Medium",
       "domain": "credentials",
-      "status": "Pass",
-      "observed": "4",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 10)",
       "expected": "4"
     },
     {
@@ -68,7 +65,7 @@
       "severity": "Critical",
       "domain": "legacy",
       "status": "Pass",
-      "observed": "0",
+      "observed": "absent (d\u00E9faut Windows : 0)",
       "expected": "1"
     },
     {
@@ -76,8 +73,8 @@
       "title": "Signature SMB non exig\u00E9e c\u00F4t\u00E9 serveur",
       "severity": "High",
       "domain": "legacy",
-      "status": "Pass",
-      "observed": "1",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
       "expected": "1"
     },
     {
@@ -85,8 +82,8 @@
       "title": "LLMNR activ\u00E9",
       "severity": "High",
       "domain": "legacy",
-      "status": "Pass",
-      "observed": "0",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 1)",
       "expected": "0"
     },
     {
@@ -104,7 +101,7 @@
       "severity": "Medium",
       "domain": "remote-access",
       "status": "Pass",
-      "observed": "1",
+      "observed": "absent (d\u00E9faut Windows : 1)",
       "expected": "1"
     },
     {
@@ -113,7 +110,7 @@
       "severity": "High",
       "domain": "remote-access",
       "status": "Pass",
-      "observed": "1",
+      "observed": "absent (d\u00E9faut Windows : 1)",
       "expected": "1"
     },
     {
@@ -121,8 +118,8 @@
       "title": "Secure Boot d\u00E9sactiv\u00E9 ou indisponible",
       "severity": "High",
       "domain": "boot-integrity",
-      "status": "Unknown",
-      "observed": null,
+      "status": "Pass",
+      "observed": "1",
       "expected": "1"
     },
     {
@@ -140,33 +137,33 @@
       "severity": "Critical",
       "domain": "updates",
       "status": "Pass",
-      "observed": "0",
+      "observed": "absent (d\u00E9faut Windows : 0)",
       "expected": "1"
     }
   ],
   "score": {
-    "overall": 100,
+    "overall": 74,
     "domains": [
       {
         "domain": "boot-integrity",
-        "passed": 1,
+        "passed": 2,
         "failed": 0,
-        "unknown": 1,
+        "unknown": 0,
         "score": 100
       },
       {
         "domain": "credentials",
         "passed": 1,
-        "failed": 0,
-        "unknown": 2,
-        "score": 100
+        "failed": 2,
+        "unknown": 0,
+        "score": 60
       },
       {
         "domain": "legacy",
-        "passed": 4,
-        "failed": 0,
+        "passed": 2,
+        "failed": 2,
         "unknown": 0,
-        "score": 100
+        "score": 56
       },
       {
         "domain": "remote-access",
@@ -183,7 +180,7 @@
         "score": 100
       }
     ],
-    "totalUnknown": 3,
-    "isPartial": true
+    "totalUnknown": 0,
+    "isPartial": false
   }
 }

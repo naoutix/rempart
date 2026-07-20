@@ -15,7 +15,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "22H2",
+        "text": "25H2",
         "number": null
       }
     },
@@ -23,7 +23,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "19045",
+        "text": "26200",
         "number": null
       }
     },
@@ -32,7 +32,7 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 4046
+        "number": 1000
       }
     },
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||EditionID": {
@@ -63,7 +63,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "SYN-LEGACY",
+        "text": "SYN-1000",
         "number": null
       }
     },
@@ -71,7 +71,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "To be filled by O.E.M.",
+        "text": "Synthetic Family",
         "number": null
       }
     },
@@ -79,7 +79,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "0.99",
+        "text": "1.00",
         "number": null
       }
     },
@@ -87,7 +87,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "06/15/2016",
+        "text": "01/01/2026",
         "number": null
       }
     },
@@ -103,26 +103,106 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "SYN-BOARD-LEGACY",
+        "text": "SYN-BOARD-1000",
         "number": null
       }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State||UEFISecureBootEnabled": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
+      "status": "Found",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||RunAsPPL": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest||UseLogonCredential": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon||CachedLogonsCount": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "4",
+        "number": null
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters||SMB1": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters||RequireSecuritySignature": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient||EnableMulticast": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine||#exists": {
       "status": "NotFound",
       "value": null
     },
-    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
-      "status": "NotFound",
-      "value": null
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server||fDenyTSConnections": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp||UserAuthentication": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU||NoAutoUpdate": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
     }
   },
   "systemInfo": {
-    "machineName": "anon:000000000002",
-    "osVersion": "10.0.19045.0",
+    "machineName": "anon:000000000001",
+    "osVersion": "10.0.26200.0",
     "is64BitOperatingSystem": true,
     "isElevated": true,
     "processorCount": 8,
     "uptimeSeconds": 3600,
-    "firmwareType": "bios"
+    "firmwareType": "uefi"
   }
 }
