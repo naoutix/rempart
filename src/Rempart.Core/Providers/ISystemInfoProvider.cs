@@ -28,10 +28,28 @@ public interface ISystemInfoProvider
     SystemInfo Read();
 }
 
-/// <summary>Les providers dont dispose un collecteur.</summary>
-public sealed class ProviderSet(IRegistryProvider registry, ISystemInfoProvider systemInfo)
+/// <summary>Les providers dont disposent collecteurs et règles.</summary>
+public sealed class ProviderSet(
+    IRegistryProvider registry,
+    ISystemInfoProvider systemInfo,
+    IServiceStateProvider? services = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
     public ISystemInfoProvider SystemInfo { get; } = systemInfo;
+
+    /// <summary>
+    /// Absent tant qu'aucun appelant n'en fournit : les contrôles portant sur les
+    /// services rendent alors « non vérifiable » plutôt que d'échouer. Un provider
+    /// manquant est une lacune de couverture, pas une non-conformité de la machine.
+    /// </summary>
+    public IServiceStateProvider Services { get; } = services ?? UnavailableServices.Instance;
+}
+
+/// <summary>Répond « accès refusé » à toute question : aucune conclusion n'en sort.</summary>
+internal sealed class UnavailableServices : IServiceStateProvider
+{
+    public static readonly UnavailableServices Instance = new();
+
+    public ServiceRead Read(string serviceName) => ServiceRead.AccessDenied;
 }

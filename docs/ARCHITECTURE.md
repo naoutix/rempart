@@ -111,7 +111,7 @@ Une règle est une donnée. Elle est lisible et relisible sans compétence C#.
     depuis la mémoire du processus LSASS.
   references: [CIS-2.3.10, ASD-E8]
   check:
-    type: registry                # registry | registryKey
+    type: registry                # registry | registryKey | service
     path: HKLM\SYSTEM\CurrentControlSet\Control\Lsa
     value: RunAsPPL
     operator: atLeast             # equals | notEquals | atLeast | exists | absent
@@ -139,6 +139,30 @@ réponses trop courtes, et exige `verifyBefore` dès que la réversibilité n'es
 
 `rempart explain <ID>` restitue tout cela : sans cette commande, ces informations
 existaient dans les fichiers YAML mais restaient hors de portée à l'usage.
+
+### Contrôles de service
+
+```yaml
+check:
+  type: service
+  path: mpssvc                  # nom du service
+  value: state                  # state | startMode
+  operator: equals
+  expect: running               # running | stopped | paused
+                                # automatic | manual | disabled | absent
+```
+
+Ce que le registre ne dit pas. Un service peut être configuré en démarrage automatique
+et se trouver **arrêté** — parce qu'il a échoué, ou qu'on l'a stoppé. Pour Windows
+Update, le pare-feu ou Defender, la différence entre « censé tourner » et « tourne »
+est exactement ce qu'un audit doit établir : la configuration peut être irréprochable
+pendant que la protection ne s'exécute pas.
+
+`windowsDefault` n'a pas de sens ici et n'est pas exigé : l'état d'un service est
+directement observable, il n'existe pas de valeur implicite en cas d'absence.
+
+Un service absent rend `absent`, distinct d'un refus d'accès. Désinstaller un service
+qui n'existe pas n'a pas de sens ; un refus appelle une relance en administrateur.
 
 ### `appliesWhen` — quand une règle a un sens
 

@@ -1,0 +1,106 @@
+# Services Windows.
+#
+# Ce que le registre ne dit pas. Un service peut etre configure en demarrage
+# automatique et se trouver arrete -- parce qu'il a echoue, ou qu'on l'a stoppe. Pour
+# Windows Update ou le pare-feu, la difference entre « cense tourner » et « tourne »
+# est exactement ce qu'un audit doit etablir.
+#
+# Aucun de ces controles ne porte de remediation : desactiver un service critique est
+# precisement ce que la liste noire interdit, et les rallumer se fait par les outils
+# Windows, pas par une modification de registre.
+
+- id: WIN-SVC-001
+  title: Service Windows Update arrete
+  severity: critical
+  domain: updates
+  rationale: >
+    Le service peut etre configure en demarrage automatique et se trouver arrete, par
+    echec ou par action deliberee. Un audit qui ne lirait que le registre conclurait a
+    tort que les mises a jour fonctionnent, alors que plus aucun correctif n'arrive.
+  references: [ASD-E8, CIS-18.9.108]
+  check:
+    type: service
+    path: wuauserv
+    value: startMode
+    operator: notEquals
+    expect: disabled
+
+- id: WIN-SVC-002
+  title: Service du pare-feu Windows non demarre
+  severity: critical
+  domain: firewall
+  rationale: >
+    Le pare-feu peut etre annonce actif dans le registre alors que le service qui
+    l'applique ne tourne pas. Aucun filtrage n'a lieu, et rien dans la configuration
+    ne le laisse voir.
+  references: [ASD-E8, CIS-9.1.1]
+  check:
+    type: service
+    path: mpssvc
+    value: state
+    operator: equals
+    expect: running
+
+- id: WIN-SVC-003
+  title: Service Defender non demarre
+  severity: critical
+  domain: defender
+  rationale: >
+    Meme raisonnement que pour le pare-feu : les reglages de Defender peuvent tous
+    etre corrects pendant que le service est arrete. C'est l'etat effectif qui protege,
+    pas la configuration.
+  references: [ASD-E8, CIS-18.9.47]
+  check:
+    type: service
+    path: WinDefend
+    value: state
+    operator: equals
+    expect: running
+
+- id: WIN-SVC-010
+  title: Service Telnet installe
+  severity: high
+  domain: legacy
+  rationale: >
+    Telnet transmet identifiants et donnees en clair. Le service n'est pas installe par
+    defaut sur Windows moderne : sa presence signale une installation deliberee, dont
+    la justification merite d'etre verifiee.
+  references: [CIS-5.1, ASD-E8]
+  check:
+    type: service
+    path: TlntSvr
+    value: startMode
+    operator: equals
+    expect: absent
+
+- id: WIN-SVC-011
+  title: Service de partage de connexion Internet actif
+  severity: medium
+  domain: legacy
+  rationale: >
+    Le partage de connexion transforme le poste en routeur et en serveur DHCP pour le
+    reseau local. Sur une machine de travail, c'est rarement voulu et cela peut
+    perturber le reseau ou exposer des interfaces.
+  references: [CIS-5.8]
+  check:
+    type: service
+    path: SharedAccess
+    value: state
+    operator: notEquals
+    expect: running
+
+- id: WIN-SVC-012
+  title: Service d'assistance a distance (Remote Registry) actif
+  severity: high
+  domain: remote-access
+  rationale: >
+    Le registre distant permet a un compte disposant des droits de lire et modifier la
+    configuration de la machine a travers le reseau. Il est desactive par defaut et n'a
+    pas d'usage sur un poste de travail.
+  references: [CIS-5.24, ASD-E8]
+  check:
+    type: service
+    path: RemoteRegistry
+    value: startMode
+    operator: notEquals
+    expect: automatic

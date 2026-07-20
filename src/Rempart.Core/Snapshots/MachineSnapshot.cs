@@ -25,6 +25,9 @@ public sealed class MachineSnapshot
     public Dictionary<string, RegistryRead> Registry { get; set; } = [];
 
     public SystemInfo? SystemInfo { get; set; }
+
+    /// <summary>Clé : nom du service.</summary>
+    public Dictionary<string, ServiceRead> Services { get; set; } = [];
 }
 
 public static class SnapshotKeys

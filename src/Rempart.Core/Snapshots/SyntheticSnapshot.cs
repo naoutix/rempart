@@ -41,6 +41,7 @@ public static class SyntheticSnapshot
             CapturedAtUtc = "2026-01-01T00:00:00.0000000Z",
             Anonymised = true,
             Registry = new Dictionary<string, RegistryRead>(source.Registry),
+            Services = new Dictionary<string, ServiceRead>(source.Services),
             SystemInfo = (source.SystemInfo ?? Fallback) with
             {
                 MachineName = machineName,
@@ -69,6 +70,12 @@ public static class SyntheticSnapshot
 
     private static void Apply(MachineSnapshot snapshot, CheckSpec check, SyntheticProfile profile)
     {
+        if (check.Kind == CheckKind.Service)
+        {
+            ApplyService(snapshot, check, profile);
+            return;
+        }
+
         var key = check.Kind == CheckKind.RegistryKey
             ? SnapshotKeys.Existence(check.Path)
             : SnapshotKeys.Value(check.Path, check.ValueName!);
@@ -86,6 +93,58 @@ public static class SyntheticSnapshot
             _ => Satisfying(check),
         };
     }
+
+    /// <summary>
+    /// Un service n'a pas de « défaut Windows » : son état est directement observable.
+    /// Le profil « defaults » le laisse donc tel que la capture l'a vu, au lieu de le
+    /// déclarer absent — ce qui décrirait une machine qui n'existe pas.
+    /// </summary>
+    private static void ApplyService(MachineSnapshot snapshot, CheckSpec check, SyntheticProfile profile)
+    {
+        if (profile == SyntheticProfile.WindowsDefaults || !snapshot.Services.ContainsKey(check.Path))
+        {
+            return;
+        }
+
+        snapshot.Services[check.Path] = check.Expected?.ToLowerInvariant() switch
+        {
+            "absent" when check.Operator == CheckOperator.Equals => ServiceRead.NotInstalled,
+            _ => ServiceRead.Found(new ServiceInfo(
+                check.Path, SatisfyingState(check), SatisfyingStartMode(check))),
+        };
+    }
+
+    private static ServiceState SatisfyingState(CheckSpec check)
+    {
+        if (!string.Equals(check.ValueName, "state", StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceState.Running;
+        }
+
+        return check.Operator == CheckOperator.NotEquals
+            ? Opposite(Parse(check.Expected, ServiceState.Running))
+            : Parse(check.Expected, ServiceState.Running);
+    }
+
+    private static ServiceStartMode SatisfyingStartMode(CheckSpec check)
+    {
+        if (string.Equals(check.ValueName, "state", StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceStartMode.Automatic;
+        }
+
+        var expected = Parse(check.Expected, ServiceStartMode.Automatic);
+
+        return check.Operator == CheckOperator.NotEquals
+            ? expected == ServiceStartMode.Disabled ? ServiceStartMode.Automatic : ServiceStartMode.Disabled
+            : expected;
+    }
+
+    private static ServiceState Opposite(ServiceState state) =>
+        state == ServiceState.Running ? ServiceState.Stopped : ServiceState.Running;
+
+    private static T Parse<T>(string? raw, T fallback) where T : struct, Enum =>
+        Enum.TryParse<T>(raw, ignoreCase: true, out var parsed) ? parsed : fallback;
 
     /// <summary>Valeur qui fait passer le contrôle.</summary>
     private static RegistryRead Satisfying(CheckSpec check) => check.Operator switch

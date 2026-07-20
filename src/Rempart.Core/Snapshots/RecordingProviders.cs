@@ -66,6 +66,27 @@ public sealed class SnapshotRegistryProvider(MachineSnapshot snapshot) : IRegist
     }
 }
 
+public sealed class RecordingServiceStateProvider(
+    IServiceStateProvider inner, MachineSnapshot snapshot) : IServiceStateProvider
+{
+    public ServiceRead Read(string serviceName)
+    {
+        var read = inner.Read(serviceName);
+        snapshot.Services[serviceName] = read;
+        return read;
+    }
+}
+
+public sealed class SnapshotServiceStateProvider(MachineSnapshot snapshot) : IServiceStateProvider
+{
+    public ServiceRead Read(string serviceName) =>
+        snapshot.Services.TryGetValue(serviceName, out var read)
+            ? read
+            : throw new SnapshotIncompleteException(
+                $"Service non enregistré dans l'instantané : {serviceName}. " +
+                "La fixture a probablement été capturée avec un jeu de règles différent.");
+}
+
 public sealed class SnapshotSystemInfoProvider(MachineSnapshot snapshot) : ISystemInfoProvider
 {
     public SystemInfo Read() =>

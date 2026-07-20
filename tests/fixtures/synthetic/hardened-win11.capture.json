@@ -605,5 +605,51 @@
     "uptimeSeconds": 3600,
     "firmwareType": "uefi",
     "isDomainJoined": true
+  },
+  "services": {
+    "wuauserv": {
+      "status": "Found",
+      "info": {
+        "name": "wuauserv",
+        "state": "Running",
+        "startMode": "Automatic"
+      }
+    },
+    "mpssvc": {
+      "status": "Found",
+      "info": {
+        "name": "mpssvc",
+        "state": "Running",
+        "startMode": "Automatic"
+      }
+    },
+    "WinDefend": {
+      "status": "Found",
+      "info": {
+        "name": "WinDefend",
+        "state": "Running",
+        "startMode": "Automatic"
+      }
+    },
+    "TlntSvr": {
+      "status": "NotFound",
+      "info": null
+    },
+    "SharedAccess": {
+      "status": "Found",
+      "info": {
+        "name": "SharedAccess",
+        "state": "Stopped",
+        "startMode": "Automatic"
+      }
+    },
+    "RemoteRegistry": {
+      "status": "Found",
+      "info": {
+        "name": "RemoteRegistry",
+        "state": "Running",
+        "startMode": "Disabled"
+      }
+    }
   }
 }

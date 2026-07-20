@@ -589,6 +589,60 @@
       "status": "Pass",
       "observed": "0",
       "expected": "1"
+    },
+    {
+      "ruleId": "WIN-SVC-001",
+      "title": "Service Windows Update arrete",
+      "severity": "Critical",
+      "domain": "updates",
+      "status": "Pass",
+      "observed": "automatic",
+      "expected": "disabled"
+    },
+    {
+      "ruleId": "WIN-SVC-002",
+      "title": "Service du pare-feu Windows non demarre",
+      "severity": "Critical",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "running",
+      "expected": "running"
+    },
+    {
+      "ruleId": "WIN-SVC-003",
+      "title": "Service Defender non demarre",
+      "severity": "Critical",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "running",
+      "expected": "running"
+    },
+    {
+      "ruleId": "WIN-SVC-010",
+      "title": "Service Telnet installe",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Pass",
+      "observed": "absent",
+      "expected": "absent"
+    },
+    {
+      "ruleId": "WIN-SVC-011",
+      "title": "Service de partage de connexion Internet actif",
+      "severity": "Medium",
+      "domain": "legacy",
+      "status": "Pass",
+      "observed": "stopped",
+      "expected": "running"
+    },
+    {
+      "ruleId": "WIN-SVC-012",
+      "title": "Service d\u0027assistance a distance (Remote Registry) actif",
+      "severity": "High",
+      "domain": "remote-access",
+      "status": "Pass",
+      "observed": "disabled",
+      "expected": "automatic"
     }
   ],
   "score": {
@@ -620,7 +674,7 @@
       },
       {
         "domain": "defender",
-        "passed": 9,
+        "passed": 10,
         "failed": 0,
         "unknown": 0,
         "notApplicable": 0,
@@ -628,7 +682,7 @@
       },
       {
         "domain": "firewall",
-        "passed": 6,
+        "passed": 7,
         "failed": 0,
         "unknown": 0,
         "notApplicable": 0,
@@ -636,7 +690,7 @@
       },
       {
         "domain": "legacy",
-        "passed": 10,
+        "passed": 12,
         "failed": 0,
         "unknown": 0,
         "notApplicable": 0,
@@ -660,7 +714,7 @@
       },
       {
         "domain": "remote-access",
-        "passed": 1,
+        "passed": 2,
         "failed": 0,
         "unknown": 0,
         "notApplicable": 1,
@@ -668,7 +722,7 @@
       },
       {
         "domain": "updates",
-        "passed": 1,
+        "passed": 2,
         "failed": 0,
         "unknown": 0,
         "notApplicable": 0,
@@ -678,5 +732,5 @@
     "totalUnknown": 0,
     "isPartial": false
   },
-  "rulesFingerprint": "62:4abe01299a66"
+  "rulesFingerprint": "68:83670c963690"
 }

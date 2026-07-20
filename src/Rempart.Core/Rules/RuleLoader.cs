@@ -131,7 +131,9 @@ public static class RuleLoader
         // Exigence délibérément stricte. Sur le registre Windows, une clé absente est
         // le cas courant, pas l'exception : sans défaut déclaré, la règle produirait
         // un verdict au hasard sur la majorité des machines.
-        if (comparison && windowsDefault is null)
+        // Sans objet pour un service : son état est directement observable, il n'y a
+        // pas de « valeur qu'applique Windows quand la clé est absente ».
+        if (comparison && windowsDefault is null && kind != CheckKind.Service)
         {
             throw new RuleFormatException(
                 $"{context} : l'opérateur « {op} » exige un champ « windowsDefault » — " +
@@ -140,6 +142,14 @@ public static class RuleLoader
         }
 
         var valueName = OptionalText(map, "value");
+
+        if (kind == CheckKind.Service && valueName is not null
+            && valueName is not ("state" or "startMode"))
+        {
+            throw new RuleFormatException(
+                $"{context} : « value » vaut « state » ou « startMode », reçu « {valueName} ».");
+        }
+
         if (kind == CheckKind.Registry && valueName is null)
         {
             throw new RuleFormatException(

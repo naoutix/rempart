@@ -84,7 +84,8 @@ public sealed class FixtureReplayTests
 
         var result = ScanEngine.Default().Run(
             new ProviderSet(new SnapshotRegistryProvider(snapshot),
-                new SnapshotSystemInfoProvider(snapshot)),
+                new SnapshotSystemInfoProvider(snapshot),
+                new SnapshotServiceStateProvider(snapshot)),
             "test", snapshot.CapturedAtUtc);
 
         var failing = result.Verdicts
@@ -106,7 +107,8 @@ public sealed class FixtureReplayTests
 
         var result = ScanEngine.Default().Run(
             new ProviderSet(new SnapshotRegistryProvider(snapshot),
-                new SnapshotSystemInfoProvider(snapshot)),
+                new SnapshotSystemInfoProvider(snapshot),
+                new SnapshotServiceStateProvider(snapshot)),
             "test", snapshot.CapturedAtUtc);
 
         var notApplicable = result.Verdicts.Count(v => v.Status == VerdictStatus.NotApplicable);
@@ -151,7 +153,8 @@ public sealed class FixtureReplayTests
 
         var providers = new ProviderSet(
             new SnapshotRegistryProvider(snapshot),
-            new SnapshotSystemInfoProvider(snapshot));
+            new SnapshotSystemInfoProvider(snapshot),
+            new SnapshotServiceStateProvider(snapshot));
 
         // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
         // donnee qu'on veut voir figer, pas seulement les champs collectes.
