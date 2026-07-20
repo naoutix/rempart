@@ -1,0 +1,107 @@
+# Confidentialité et collecte de données.
+#
+# Ces réglages ne relèvent pas de la sécurité au sens strict : ils réduisent ce que la
+# machine transmet. Ils sont volontairement classés en sévérité basse ou moyenne — les
+# confondre avec des mesures de sécurité fausserait le score.
+
+- id: WIN-PRIV-001
+  title: Télémétrie de diagnostic au niveau maximal
+  severity: medium
+  domain: privacy
+  rationale: >
+    Le niveau « Full » transmet le contenu de diagnostics détaillés, dont des extraits
+    de mémoire pouvant contenir des données de travail. Le niveau « Basic » suffit au
+    fonctionnement des mises à jour et de Defender sur un parc maîtrisé.
+  references: [CIS-18.9.17.1]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection
+    value: AllowTelemetry
+    operator: equals
+    expect: "1"
+    # 0 Security (Entreprise uniquement), 1 Basic, 2 Enhanced, 3 Full — defaut.
+    windowsDefault: "3"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Rien de fonctionnel. Microsoft signale toutefois que les données de diagnostic
+      alimentent le ciblage des mises à jour de fonctionnalité.
+    affects: >
+      Toutes les machines, de façon marginale : les correctifs de sécurité continuent
+      d'être livrés normalement quel que soit le niveau retenu.
+
+- id: WIN-PRIV-002
+  title: Identifiant de publicité actif
+  severity: low
+  domain: privacy
+  rationale: >
+    L'identifiant de publicité permet aux applications du Store de corréler l'activité
+    d'un même utilisateur entre plusieurs applications. Le désactiver n'a aucun effet
+    sur le fonctionnement du système.
+  references: [CIS-18.9.14.1]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo
+    value: DisabledByGroupPolicy
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-PRIV-003
+  title: Recall (analyse des captures d'écran) non désactivé
+  severity: medium
+  domain: privacy
+  rationale: >
+    Recall capture périodiquement l'écran et en indexe le contenu localement. La base
+    ainsi constituée concentre mots de passe affichés, documents et messages : elle
+    devient une cible de choix pour quiconque obtient un accès à la machine.
+  references: [CIS-18.9.16]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI
+    value: DisableAIDataAnalysis
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      La fonctionnalité Recall et la recherche dans l'historique des activités
+      capturées, sur les machines Copilot+ qui en disposent.
+    affects: >
+      Uniquement les machines Copilot+ équipées d'un NPU. Sur tout autre matériel, la
+      fonctionnalité n'existe pas et le réglage est sans effet.
+
+- id: WIN-PRIV-004
+  title: Copilot Windows non désactivé
+  severity: low
+  domain: privacy
+  rationale: >
+    Copilot transmet à un service distant le contexte des requêtes formulées. Sur une
+    machine traitant des informations sensibles, ce transfert mérite d'être un choix
+    explicite plutôt qu'un réglage par défaut.
+  references: [CIS-18.9.15]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot
+    value: TurnOffWindowsCopilot
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-PRIV-005
+  title: Contenu suggéré et publicités dans l'interface
+  severity: low
+  domain: privacy
+  rationale: >
+    Les suggestions de contenu installent des applications promues et affichent des
+    publicités dans le menu Démarrer et l'écran de verrouillage. C'est la source
+    principale du bloatware qui réapparaît après une réinstallation.
+  references: [CIS-18.9.14]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent
+    value: DisableWindowsConsumerFeatures
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"

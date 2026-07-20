@@ -1,0 +1,181 @@
+# Microsoft Defender Antivirus.
+#
+# Deux emplacements coexistent et ne disent pas la même chose :
+#   HKLM\SOFTWARE\Policies\Microsoft\Windows Defender   — stratégie, prioritaire
+#   HKLM\SOFTWARE\Microsoft\Windows Defender            — état effectif
+#
+# Les règles ci-dessous visent la stratégie quand une désactivation par stratégie est
+# le risque réel, et l'état effectif quand c'est l'état qui compte. Le champ
+# windowsDefault reflète le comportement de Windows 11 lorsque la clé est absente.
+
+- id: WIN-DEF-001
+  title: Defender désactivé par stratégie
+  severity: critical
+  domain: defender
+  rationale: >
+    DisableAntiSpyware coupe l'antivirus intégré par stratégie. C'est le réglage que
+    posent les scripts de « débloatage » agressifs et les logiciels malveillants qui
+    cherchent à neutraliser la protection avant d'agir.
+  references: [CIS-18.9.47, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender
+    value: DisableAntiSpyware
+    operator: notEquals
+    expect: "1"
+    # Absent : Defender est actif. Microsoft ignore d'ailleurs ce réglage lorsque la
+    # protection contre les altérations est en place.
+    windowsDefault: "0"
+
+- id: WIN-DEF-002
+  title: Protection en temps réel désactivée
+  severity: critical
+  domain: defender
+  rationale: >
+    Sans analyse en temps réel, un fichier malveillant n'est examiné qu'à l'analyse
+    planifiée suivante — c'est-à-dire après son exécution. La protection ne joue plus
+    aucun rôle préventif.
+  references: [CIS-18.9.47.9, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection
+    value: DisableRealtimeMonitoring
+    operator: notEquals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-DEF-003
+  title: Analyse comportementale désactivée
+  severity: high
+  domain: defender
+  rationale: >
+    Le moteur comportemental détecte les actions caractéristiques d'une attaque plutôt
+    que des signatures connues. C'est ce qui reste efficace face à un binaire jamais
+    observé auparavant.
+  references: [CIS-18.9.47.9, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection
+    value: DisableBehaviorMonitoring
+    operator: notEquals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-DEF-004
+  title: Analyse des scripts désactivée
+  severity: high
+  domain: defender
+  rationale: >
+    L'analyse des scripts s'appuie sur AMSI pour inspecter le code au moment où il est
+    interprété, après désobfuscation. Sans elle, un script chiffré ou encodé passe sans
+    examen, quel que soit son contenu réel.
+  references: [CIS-18.9.47.9, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection
+    value: DisableScriptScanning
+    operator: notEquals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-DEF-005
+  title: Analyse des fichiers téléchargés désactivée
+  severity: high
+  domain: defender
+  rationale: >
+    Cible spécifiquement les fichiers portant la marque du web, c'est-à-dire ceux
+    provenant d'Internet ou d'une pièce jointe. Ce sont ceux dont l'origine est la
+    moins maîtrisée.
+  references: [CIS-18.9.47.9]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection
+    value: DisableIOAVProtection
+    operator: notEquals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-DEF-006
+  title: Protection contre les applications indésirables (PUA) inactive
+  severity: medium
+  domain: defender
+  rationale: >
+    Bloque adwares, barres d'outils et installeurs à offres groupées. Ce ne sont pas
+    des logiciels malveillants au sens strict, mais ils dégradent la machine et
+    ouvrent souvent la voie à des installations non voulues.
+  references: [CIS-18.9.47.4]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender
+    value: PUAProtection
+    operator: equals
+    expect: "1"
+    # Windows 11 active le blocage PUA par défaut depuis 2021.
+    windowsDefault: "1"
+
+- id: WIN-DEF-007
+  title: Protection cloud (MAPS) désactivée
+  severity: high
+  domain: defender
+  rationale: >
+    La protection cloud fournit un verdict en quelques secondes sur un fichier inconnu,
+    sans attendre une mise à jour de signatures. Plusieurs règles ASR en dépendent
+    directement et deviennent inopérantes sans elle.
+  references: [CIS-18.9.47.5, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet
+    value: SpynetReporting
+    operator: atLeast
+    expect: "1"
+    # 0 désactivé, 1 adhésion simple, 2 adhésion avancée — valeur par défaut.
+    windowsDefault: "2"
+
+- id: WIN-DEF-008
+  title: Protection réseau inactive
+  severity: high
+  domain: defender
+  rationale: >
+    Bloque les connexions vers des domaines et adresses de mauvaise réputation, au
+    niveau du système et non du navigateur. Elle couvre donc aussi les connexions
+    sortantes d'un logiciel malveillant vers son serveur de commande.
+  references: [CIS-18.9.47.6, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection
+    value: EnableNetworkProtection
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      L'accès aux domaines classés de mauvaise réputation, y compris les faux positifs
+      sur des sites internes peu connus ou récemment enregistrés.
+    affects: >
+      Les postes accédant à des services web internes hébergés sur des domaines
+      obscurs. Le mode audit permet de mesurer avant de bloquer.
+
+# WIN-DEF-009 — protection contre les altérations : retirée du catalogue.
+#
+# La valeur HKLM\SOFTWARE\Microsoft\Windows Defender\Features\TamperProtection vaut 1
+# sur une machine où la protection est active, là où la documentation laisse attendre 5.
+# Sa sémantique n'est pas fiablement documentée, et un attendu deviné produirait soit un
+# faux positif permanent, soit une règle qui valide n'importe quel état.
+#
+# Cet état se lit correctement via l'API Defender (Get-MpComputerStatus). À reprendre
+# en M2b, avec le provider correspondant.
+
+- id: WIN-DEF-010
+  title: Exclusions Defender définies par stratégie
+  severity: medium
+  domain: defender
+  rationale: >
+    Une exclusion crée un angle mort permanent : rien n'y est analysé. C'est un moyen
+    classique de persistance — déposer la charge utile dans un chemin exclu la rend
+    invisible. Cette règle signale la présence même de la clé, à relire manuellement.
+  references: [CIS-18.9.47.1]
+  check:
+    type: registryKey
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Exclusions\Paths
+    operator: absent

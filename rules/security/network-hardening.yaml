@@ -1,0 +1,128 @@
+# Durcissement réseau, au-delà des protocoles hérités déjà couverts.
+
+- id: WIN-NET-001
+  title: NetBIOS sur TCP/IP non restreint
+  severity: medium
+  domain: legacy
+  rationale: >
+    NetBIOS diffuse les résolutions de noms sur le réseau local, comme LLMNR, et se
+    prête aux mêmes attaques de capture d'authentification NTLM. Il ne sert plus à rien
+    sur un réseau doté d'un DNS fonctionnel.
+  references: [CIS-18.5.4, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\NetBT\Parameters
+    value: NodeType
+    operator: equals
+    expect: "2"
+    # 2 = P-node : resolution par serveur uniquement, sans diffusion.
+    windowsDefault: "1"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      La résolution de noms de machines très anciennes ne répondant qu'en NetBIOS,
+      ainsi que la découverte de partages sur des équipements d'un autre âge.
+    affects: >
+      Les réseaux comportant encore des systèmes antérieurs à Windows 2000 ou des NAS
+      anciens. Un parc moderne n'est pas concerné.
+
+- id: WIN-NET-002
+  title: mDNS actif
+  severity: low
+  domain: legacy
+  rationale: >
+    mDNS est le troisième protocole de résolution par diffusion, après LLMNR et
+    NetBIOS. Désactiver les deux premiers en le laissant actif laisse la même surface
+    d'attaque ouverte par une autre porte.
+  references: [ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters
+    value: EnableMDNS
+    operator: equals
+    expect: "0"
+    windowsDefault: "1"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      La découverte automatique des imprimantes et périphériques réseau annoncés en
+      Bonjour, ainsi que la diffusion vers certains appareils multimédias.
+    affects: >
+      Les postes utilisant des imprimantes découvertes automatiquement ou des services
+      de diffusion locale. Une imprimante déclarée par son adresse continue de marcher.
+
+- id: WIN-NET-003
+  title: Signature SMB non exigée côté client
+  severity: high
+  domain: legacy
+  rationale: >
+    Le pendant client de la signature SMB. Sans elle, le poste accepte de dialoguer
+    avec un serveur qui ne signe pas, ce qui rend possible l'interception et le relais
+    de son authentification vers une autre machine.
+  references: [CIS-2.3.8.1, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters
+    value: RequireSecuritySignature
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-NET-004
+  title: Envoi de mots de passe non chiffrés à des serveurs SMB tiers
+  severity: high
+  domain: legacy
+  rationale: >
+    Autorise le client SMB à transmettre le mot de passe en clair lorsqu'un serveur
+    n'accepte pas le chiffrement. Un serveur hostile n'a alors qu'à annoncer cette
+    limitation pour obtenir le mot de passe en clair.
+  references: [CIS-2.3.8.3]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters
+    value: EnablePlainTextPassword
+    operator: equals
+    expect: "0"
+    windowsDefault: "0"
+
+- id: WIN-NET-005
+  title: Niveau d'authentification LAN Manager trop permissif
+  severity: high
+  domain: legacy
+  rationale: >
+    Les niveaux inférieurs à 5 autorisent LM et NTLMv1, dont les empreintes se cassent
+    en quelques heures avec du matériel courant. Le niveau 5 n'accepte que NTLMv2 et
+    refuse toute négociation à la baisse.
+  references: [CIS-2.3.11.7, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\Lsa
+    value: LmCompatibilityLevel
+    operator: atLeast
+    expect: "5"
+    windowsDefault: "3"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      L'authentification vers les serveurs et périphériques ne gérant que LM ou NTLMv1,
+      typiquement des NAS et systèmes embarqués anciens.
+    affects: >
+      Les réseaux comportant des équipements antérieurs à Windows Vista. Un parc
+      moderne négocie déjà NTLMv2 dans tous les cas.
+
+- id: WIN-NET-006
+  title: Énumération anonyme des comptes et partages autorisée
+  severity: high
+  domain: legacy
+  rationale: >
+    Permet à une session nulle, donc non authentifiée, d'énumérer comptes et partages
+    de la machine. C'est un point de départ classique de reconnaissance : la liste des
+    comptes obtenue oriente ensuite les tentatives d'authentification.
+  references: [CIS-2.3.10.5, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\Lsa
+    value: RestrictAnonymous
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"

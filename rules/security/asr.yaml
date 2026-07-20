@@ -1,0 +1,385 @@
+# Règles de réduction de la surface d'attaque (ASR).
+#
+# Chaque règle est une valeur de registre nommée d'après le GUID de la règle ASR,
+# sous la clé de stratégie Exploit Guard. La valeur 1 signifie « bloquer », 2
+# « auditer », 6 « avertir », 0 ou absent « désactivée ».
+#
+# GUID vérifiés sur la référence Microsoft Defender for Endpoint (2026-07-02).
+# Un GUID erroné produirait une clé jamais trouvée, donc un échec permanent et faux :
+# c'est le champ à ne pas recopier de mémoire.
+#
+# « Block Webshell creation for Servers » n'est pas repris : Exchange uniquement.
+#
+# Toutes ces règles sont réversibles trivialement — remettre la valeur à 0. Les blocs
+# « remediation » ne sont renseignés que là où le blocage casse réellement des usages
+# légitimes connus ; ailleurs, mieux vaut ne rien affirmer.
+
+# ── Protection standard : recommandées par Microsoft pour tout parc ──────────────
+
+- id: WIN-ASR-001
+  title: ASR — abus de pilotes signés vulnérables non bloqué
+  severity: high
+  domain: asr
+  rationale: >
+    Un pilote signé mais vulnérable permet à un programme disposant de droits
+    d'atteindre le noyau, donc de désactiver les protections en place. C'est la
+    technique « bring your own vulnerable driver », utilisée par les rançongiciels
+    pour neutraliser l'antivirus avant chiffrement.
+  references: [ASD-E8, MS-ASR-56a863a9]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 56a863a9-875e-4185-98a7-b882c64b5ce5
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-002
+  title: ASR — vol d'identifiants depuis LSASS non bloqué
+  severity: high
+  domain: asr
+  rationale: >
+    Bloque l'accès à la mémoire de LSASS, d'où les outils type Mimikatz extraient
+    identifiants et hachages. Microsoft précise que cette règle devient superflue
+    si LSA Protection ou Credential Guard sont actifs : elle sert de filet pour les
+    machines qui ne peuvent pas les activer.
+  references: [ASD-E8, MS-ASR-9e6c4e1f]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-003
+  title: ASR — persistance par abonnement WMI non bloquée
+  severity: high
+  domain: asr
+  rationale: >
+    Les abonnements WMI permanents survivent au redémarrage sans rien écrire dans les
+    emplacements de démarrage habituels. C'est une persistance sans fichier, invisible
+    des outils qui n'inspectent que les clés Run et les tâches planifiées.
+  references: [ASD-E8, MS-ASR-e6db77e5]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: e6db77e5-3df2-4cf1-b95a-636979351e5b
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Les agents d'administration s'appuyant massivement sur WMI, au premier rang
+      desquels le client Microsoft Configuration Manager.
+    affects: >
+      Les parcs administrés par Configuration Manager. Un poste autonome ou géré par
+      Intune n'est pas concerné.
+
+# ── Bureautique : le vecteur d'entrée le plus courant ────────────────────────────
+
+- id: WIN-ASR-010
+  title: ASR — création de processus enfants par Office non bloquée
+  severity: high
+  domain: asr
+  rationale: >
+    Une macro malveillante lance presque toujours un processus enfant — cmd, PowerShell,
+    mshta — pour télécharger la charge utile. Bloquer cette filiation coupe la chaîne
+    d'attaque à son premier maillon, avant tout accès réseau.
+  references: [ASD-E8, MS-ASR-d4f940ab]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: d4f940ab-401b-4efc-aadc-ad5f3c50688a
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Les macros métier qui lancent légitimement un programme externe : export vers un
+      outil tiers, appel d'un script de consolidation, pilotage d'une application.
+    affects: >
+      Les postes utilisant des classeurs Excel ou documents Word à macros développés en
+      interne. Une bureautique sans macro n'est pas concernée.
+    verifyBefore: >
+      Activer la règle en mode audit et relever les blocages pendant une période
+      couvrant les traitements périodiques, clôtures mensuelles comprises.
+
+- id: WIN-ASR-011
+  title: ASR — création de contenu exécutable par Office non bloquée
+  severity: high
+  domain: asr
+  rationale: >
+    Empêche Office d'écrire sur disque un exécutable ou un script, technique employée
+    pour déposer une charge utile qui survivra au redémarrage. Bloque à la fois
+    l'écriture et l'exécution ultérieure du fichier déposé.
+  references: [ASD-E8, MS-ASR-3b576869]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 3b576869-a4ec-4529-8536-b80a7769e899
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-012
+  title: ASR — injection de code par Office non bloquée
+  severity: high
+  domain: asr
+  rationale: >
+    Injecter du code depuis Word ou Excel vers un autre processus permet à un
+    attaquant de se dissimuler dans un programme légitime. Microsoft indique qu'aucun
+    usage métier connu ne justifie cette technique.
+  references: [ASD-E8, MS-ASR-75668c1f]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 75668c1f-73b5-4cf0-bb93-3ecf5cb7cc84
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-013
+  title: ASR — appels d'API Win32 depuis les macros Office non bloqués
+  severity: high
+  domain: asr
+  rationale: >
+    VBA peut appeler directement l'API Win32, ce qui permet d'exécuter du shellcode
+    sans jamais écrire de fichier sur disque — donc sans laisser prise à l'analyse
+    de fichiers. Très peu de macros métier en ont besoin.
+  references: [ASD-E8, MS-ASR-92e97fa1]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 92e97fa1-2edf-4476-bdd6-9dd0b4dddc7b
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-014
+  title: ASR — processus enfants d'Outlook non bloqués
+  severity: medium
+  domain: asr
+  rationale: >
+    Couvre les attaques par règles et formulaires Outlook, qui permettent à un
+    attaquant disposant des identifiants d'obtenir une exécution de code persistante
+    sans déposer le moindre fichier sur le poste.
+  references: [MS-ASR-26190899]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 26190899-1602-49e8-8b27-eb1d0a1ce869
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-015
+  title: ASR — processus enfants d'Adobe Reader non bloqués
+  severity: medium
+  domain: asr
+  rationale: >
+    Un PDF piégé exploite une vulnérabilité de Reader ou l'ingénierie sociale pour
+    lancer un programme. Couper la filiation neutralise cette voie sans toucher à la
+    lecture des documents.
+  references: [MS-ASR-7674ba52]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+# ── Scripts et exécutables ───────────────────────────────────────────────────────
+
+- id: WIN-ASR-020
+  title: ASR — contenu exécutable issu de la messagerie non bloqué
+  severity: high
+  domain: asr
+  rationale: >
+    Bloque l'exécution des fichiers exécutables, scripts et archives ouverts depuis
+    un client de messagerie ou un webmail. La pièce jointe reste de très loin le
+    premier vecteur d'accès initial en entreprise.
+  references: [ASD-E8, MS-ASR-be9ba2d9]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: be9ba2d9-53ea-4cdc-84e5-9b1eeee46550
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      L'ouverture directe depuis la messagerie des archives et installeurs légitimes,
+      qu'il faudra enregistrer sur disque avant de les exécuter.
+    affects: >
+      Les utilisateurs recevant régulièrement des logiciels ou archives par courriel,
+      typiquement les équipes techniques et les services informatiques.
+
+- id: WIN-ASR-021
+  title: ASR — scripts potentiellement obfusqués non bloqués
+  severity: high
+  domain: asr
+  rationale: >
+    L'obfuscation sert à échapper à l'analyse statique et à la lecture humaine. Cette
+    règle s'appuie sur AMSI et la protection cloud pour détecter les caractéristiques
+    d'un script délibérément illisible, notamment en PowerShell.
+  references: [ASD-E8, MS-ASR-5beb7efe]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 5beb7efe-fd9a-4556-801d-275e5ffc04cc
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-022
+  title: ASR — exécutables lancés par JavaScript ou VBScript non bloqués
+  severity: high
+  domain: asr
+  rationale: >
+    Un script JS ou VBS téléchargé sert couramment de téléchargeur de premier étage :
+    léger, peu détecté, il récupère ensuite la charge réelle. Cette règle coupe le
+    lancement du contenu téléchargé.
+  references: [ASD-E8, MS-ASR-d3e037e1]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: d3e037e1-3eb8-44c8-a917-57927947596d
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-023
+  title: ASR — exécutables sans réputation non bloqués
+  severity: medium
+  domain: asr
+  rationale: >
+    N'autorise que les exécutables suffisamment répandus, anciens ou explicitement
+    approuvés. C'est la règle ASR la plus stricte : elle bloque par défaut ce qui est
+    seulement inconnu, pas uniquement ce qui est reconnu malveillant.
+  references: [MS-ASR-01443614]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 01443614-cd74-433a-b99e-2ecdc07bfc25
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Le lancement de tout exécutable récent ou peu diffusé : outils internes, binaires
+      compilés localement, utilitaires de niche, versions fraîchement publiées.
+    affects: >
+      Les postes de développement et d'administration, qui exécutent en permanence des
+      binaires que personne d'autre n'a jamais vus. Exige la protection cloud active.
+    verifyBefore: >
+      Passer plusieurs semaines en mode audit : c'est la règle ASR qui produit le plus
+      de faux blocages, et ils ne se révèlent qu'à l'usage réel.
+
+- id: WIN-ASR-024
+  title: ASR — processus issus de PsExec et WMI non bloqués
+  severity: medium
+  domain: asr
+  rationale: >
+    PsExec et WMI permettent l'exécution de code à distance et servent au déplacement
+    latéral comme à la propagation. Peu de postes de travail en ont un usage légitime
+    en tant que cible.
+  references: [MS-ASR-d1e49aac]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: d1e49aac-8f56-4280-b9ba-993a6d77406c
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Le déploiement logiciel et l'administration à distance passant par PsExec ou WMI,
+      dont le client Configuration Manager qui en dépend fortement.
+    affects: >
+      Les parcs administrés par Configuration Manager ou par des scripts s'appuyant sur
+      WMI distant. Un poste autonome n'est pas concerné.
+
+- id: WIN-ASR-025
+  title: ASR — exécution depuis un support USB non signé non bloquée
+  severity: medium
+  domain: asr
+  rationale: >
+    Empêche l'exécution de binaires non signés depuis une clé USB ou une carte SD.
+    Réponse directe au dépôt de support piégé, et cohérente avec un outil que l'on
+    transporte soi-même sur clé.
+  references: [MS-ASR-b2b3f03d]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      L'exécution directe depuis une clé USB de tout binaire non signé, y compris les
+      utilitaires portables légitimes que l'on transporte volontairement.
+    affects: >
+      Les techniciens travaillant depuis une clé d'intervention. Copier le binaire sur
+      le disque local reste possible et suffit à contourner le blocage.
+
+# ── Manipulation du système ──────────────────────────────────────────────────────
+
+- id: WIN-ASR-030
+  title: ASR — redémarrage en mode sans échec non bloqué
+  severity: medium
+  domain: asr
+  rationale: >
+    En mode sans échec, la plupart des protections sont inactives. Les rançongiciels
+    y redémarrent la machine avant de chiffrer, précisément pour opérer sans antivirus.
+    Le mode sans échec reste accessible manuellement par l'environnement de récupération.
+  references: [MS-ASR-33ddedf1]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: 33ddedf1-c6e0-47cb-833e-de6133960387
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-031
+  title: ASR — usage d'outils système copiés ou usurpés non bloqué
+  severity: medium
+  domain: asr
+  rationale: >
+    Copier un binaire système sous un autre nom, ou renommer un outil en cmd.exe, sert
+    à contourner les détections fondées sur le nom du processus et à profiter de la
+    confiance accordée aux outils Windows.
+  references: [MS-ASR-c0033c00]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-ASR-032
+  title: ASR — protection avancée contre les rançongiciels inactive
+  severity: high
+  domain: asr
+  rationale: >
+    Combine heuristiques locales et cloud pour reconnaître un comportement de
+    chiffrement de masse. Bloque aussi les fichiers sans réputation établie, et non
+    seulement ceux déjà connus comme malveillants.
+  references: [ASD-E8, MS-ASR-c1db55ab]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR\Rules
+    value: c1db55ab-c21a-4637-bb3f-a12568109d35
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"

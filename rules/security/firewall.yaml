@@ -1,0 +1,104 @@
+# Pare-feu Windows Defender.
+#
+# L'état réel se lit sous SharedAccess, pas sous Policies : c'est ce que le système
+# applique effectivement, indépendamment de la présence d'une stratégie. Le pare-feu
+# est actif à l'installation, d'où un défaut à 1 — un échec ici signale donc une
+# désactivation délibérée.
+#
+# Le profil Public est le plus important des trois : c'est celui qui s'applique sur
+# un réseau non maîtrisé, hôtel, gare ou café.
+
+- id: WIN-FW-001
+  title: Pare-feu désactivé sur le profil Public
+  severity: critical
+  domain: firewall
+  rationale: >
+    Le profil Public s'applique aux réseaux non maîtrisés, ceux où d'autres machines
+    inconnues partagent le segment. C'est exactement la situation où le filtrage
+    entrant est indispensable, et celle où le désactiver expose le plus.
+  references: [CIS-9.3.1, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile
+    value: EnableFirewall
+    operator: equals
+    expect: "1"
+    windowsDefault: "1"
+
+- id: WIN-FW-002
+  title: Pare-feu désactivé sur le profil Privé
+  severity: high
+  domain: firewall
+  rationale: >
+    Le profil Privé couvre le réseau domestique ou de bureau. Un réseau de confiance
+    n'est pas un réseau sûr : il suffit d'une machine compromise sur le même segment
+    pour que le filtrage entrant redevienne la seule barrière.
+  references: [CIS-9.2.1, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile
+    value: EnableFirewall
+    operator: equals
+    expect: "1"
+    windowsDefault: "1"
+
+- id: WIN-FW-003
+  title: Pare-feu désactivé sur le profil Domaine
+  severity: high
+  domain: firewall
+  rationale: >
+    Le profil Domaine s'applique lorsque la machine joint son contrôleur de domaine.
+    Le désactiver revient à supposer le réseau interne entièrement sain, hypothèse
+    que tout mouvement latéral invalide.
+  references: [CIS-9.1.1, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile
+    value: EnableFirewall
+    operator: equals
+    expect: "1"
+    windowsDefault: "1"
+
+- id: WIN-FW-004
+  title: Connexions entrantes non bloquées par défaut sur le profil Public
+  severity: high
+  domain: firewall
+  rationale: >
+    Un pare-feu actif dont l'action par défaut est « autoriser » ne filtre rien de ce
+    qui n'est pas explicitement refusé. Sur un réseau public, la politique doit être
+    l'inverse : tout bloquer sauf exception.
+  references: [CIS-9.3.2, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile
+    value: DefaultInboundAction
+    operator: equals
+    expect: "1"
+    # 1 = bloquer, 0 = autoriser. Blocage par defaut a l'installation.
+    windowsDefault: "1"
+
+- id: WIN-FW-005
+  title: Notifications du pare-feu désactivées sur le profil Public
+  severity: low
+  domain: firewall
+  rationale: >
+    Sans notification, un programme qui tente d'ouvrir un port en écoute est bloqué
+    silencieusement. L'utilisateur n'apprend jamais qu'un logiciel cherche à exposer
+    un service sur un réseau public.
+  references: [CIS-9.3.4]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile
+    value: DisableNotifications
+    operator: notEquals
+    expect: "1"
+    windowsDefault: "0"
+
+# WIN-FW-006 — fusion des règles locales : retirée du catalogue.
+#
+# Le durcissement (interdire la fusion) n'a de sens que sur une machine pilotée par une
+# stratégie de groupe centrale. Sur un poste autonome, l'appliquer supprimerait toutes
+# les règles créées localement par les applications, sans rien apporter.
+#
+# Le moteur ne sait pas encore conditionner une règle au contexte de la machine. La
+# règle revient avec « appliesWhen » — voir la feuille de route, M2b.

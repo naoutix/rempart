@@ -2,8 +2,8 @@
 
 Audit et durcissement de postes Windows, en un binaire unique exécutable depuis une clé USB.
 
-> **État : M1 terminé.** `rempart scan` évalue 12 contrôles de sécurité et rend un score
-> par domaine, depuis un binaire unique de 4 Mo sans installation. Les contrôles sont des
+> **État : M2a terminé.** `rempart scan` évalue 48 contrôles de sécurité et rend un score
+> par domaine sur 8 domaines, depuis un binaire unique de 4 Mo sans installation. Les contrôles sont des
 > fichiers YAML : en ajouter un ne demande pas de recompiler.
 > Aucune remédiation avant M9 — la v1 n'écrit rien.
 

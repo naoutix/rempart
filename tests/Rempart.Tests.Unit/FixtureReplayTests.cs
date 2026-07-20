@@ -1,4 +1,5 @@
 using Rempart.Core.Engine;
+using Rempart.Core.Rules;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Snapshots;
@@ -63,6 +64,31 @@ public sealed class FixtureReplayTests
         // Un rejeu qui varierait d'une exécution à l'autre rendrait toute référence
         // inutilisable — y compris pour rempart diff (M7).
         Assert.Equal(Replay(fixture), Replay(fixture));
+    }
+
+    [Fact]
+    public void Every_shipped_rule_can_be_satisfied()
+    {
+        // Une règle qui ne peut jamais passer est un bug : attendu contradictoire,
+        // chemin erroné, opérateur mal choisi. Elle produirait un échec permanent sur
+        // toutes les machines, que personne ne pourrait corriger.
+        //
+        // La fixture « hardened » pose sur chaque clé la valeur que sa règle attend.
+        // Un score inférieur à 100 signale une règle inatteignable.
+        var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
+            Path.Combine(FixtureDirectory, "synthetic", "hardened-win11.capture.json")));
+
+        var result = ScanEngine.Default().Run(
+            new ProviderSet(new SnapshotRegistryProvider(snapshot),
+                new SnapshotSystemInfoProvider(snapshot)),
+            "test", snapshot.CapturedAtUtc);
+
+        var unsatisfiable = result.Verdicts
+            .Where(v => v.Status != VerdictStatus.Pass)
+            .Select(v => $"{v.RuleId} (observé {v.Observed ?? "—"}, attendu {v.Expected ?? "—"})");
+
+        Assert.Empty(unsatisfiable);
+        Assert.Equal(100, result.Score?.Overall);
     }
 
     [Fact]

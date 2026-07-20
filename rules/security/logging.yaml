@@ -1,0 +1,132 @@
+# Journalisation et traçabilité.
+#
+# Ces réglages n'empêchent aucune attaque. Ils déterminent si l'on pourra reconstituer
+# ce qui s'est passé après coup — et une machine sans traces exploitables ne se
+# distingue pas d'une machine saine.
+
+- id: WIN-LOG-001
+  title: Journalisation des blocs de script PowerShell inactive
+  severity: high
+  domain: logging
+  rationale: >
+    Enregistre le code PowerShell tel qu'il est exécuté, après désobfuscation. C'est
+    la seule source qui montre ce qu'un script chiffré ou encodé faisait réellement,
+    et de loin la plus utile en investigation.
+  references: [CIS-18.9.100.1, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging
+    value: EnableScriptBlockLogging
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Rien fonctionnellement. Le journal PowerShell opérationnel se remplit en revanche
+      beaucoup plus vite et peut faire tourner les événements plus anciens.
+    affects: >
+      Les machines exécutant beaucoup de scripts, où il faudra augmenter la taille du
+      journal pour conserver un historique exploitable.
+
+- id: WIN-LOG-002
+  title: Journalisation des modules PowerShell inactive
+  severity: medium
+  domain: logging
+  rationale: >
+    Complète la journalisation des blocs de script en enregistrant les appels de
+    cmdlets et leurs paramètres. Utile pour reconstituer un enchaînement d'actions
+    plutôt que le seul contenu des scripts.
+  references: [CIS-18.9.100.2]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ModuleLogging
+    value: EnableModuleLogging
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+
+- id: WIN-LOG-003
+  title: Ligne de commande absente des événements de création de processus
+  severity: high
+  domain: logging
+  rationale: >
+    Sans ce réglage, l'événement 4688 indique quel exécutable a démarré mais pas avec
+    quels arguments. Or c'est la ligne de commande qui distingue un powershell.exe
+    ordinaire d'un powershell.exe lançant une charge encodée.
+  references: [CIS-18.9.3.1, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit
+    value: ProcessCreationIncludeCmdLine_Enabled
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Rien fonctionnellement. Les lignes de commande peuvent en revanche contenir des
+      mots de passe passés en paramètre, qui se retrouveront alors dans les journaux.
+    affects: >
+      Les environnements où des scripts reçoivent des secrets en argument. Le journal
+      de sécurité devient dès lors une donnée sensible à protéger.
+
+- id: WIN-LOG-004
+  title: Journal de sécurité trop petit
+  severity: medium
+  domain: logging
+  rationale: >
+    Le journal par défaut fait 20 Mo et se remplit en quelques heures sur une machine
+    active. Les événements les plus anciens sont écrasés, souvent avant même qu'on
+    ait constaté l'incident. 196 Mo couvrent plusieurs semaines.
+  references: [CIS-18.9.27.2]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security
+    value: MaxSize
+    operator: atLeast
+    expect: "201326592"
+    # 20 Mo par defaut, exprime en octets.
+    windowsDefault: "20971520"
+
+- id: WIN-LOG-005
+  title: Journal PowerShell opérationnel trop petit
+  severity: low
+  domain: logging
+  rationale: >
+    La journalisation des blocs de script produit un volume important. Sans
+    augmentation de la taille du journal, les traces disparaissent en quelques heures
+    et le réglage précédent devient inopérant en pratique.
+  references: [CIS-18.9.100.1]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\EventLog\Microsoft-Windows-PowerShell/Operational
+    value: MaxSize
+    operator: atLeast
+    expect: "104857600"
+    windowsDefault: "15728640"
+
+- id: WIN-LOG-006
+  title: Transcription PowerShell inactive
+  severity: low
+  domain: logging
+  rationale: >
+    Enregistre l'intégralité des sessions PowerShell, entrées et sorties comprises,
+    dans des fichiers texte. Plus verbeux que la journalisation par événements, mais
+    conserve ce que l'opérateur a réellement vu à l'écran.
+  references: [CIS-18.9.100.3]
+  check:
+    type: registry
+    path: HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription
+    value: EnableTranscripting
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      Rien fonctionnellement, mais des fichiers de transcription s'accumulent sur
+      disque et peuvent contenir des données sensibles affichées en session.
+    affects: >
+      Toutes les machines : prévoir un répertoire de destination protégé et une
+      politique de purge, sans quoi le remède crée un nouveau risque.

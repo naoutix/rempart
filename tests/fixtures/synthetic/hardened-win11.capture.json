@@ -32,7 +32,7 @@
       "value": {
         "kind": "DWord",
         "text": null,
-        "number": 1000
+        "number": 8875
       }
     },
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion||EditionID": {
@@ -55,7 +55,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Synthetic Systems",
+        "text": "Micro-Star International Co., Ltd.",
         "number": null
       }
     },
@@ -63,7 +63,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "SYN-1000",
+        "text": "MS-7E80",
         "number": null
       }
     },
@@ -71,7 +71,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Synthetic Family",
+        "text": "To be filled by O.E.M.",
         "number": null
       }
     },
@@ -79,7 +79,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "1.00",
+        "text": "2.A41",
         "number": null
       }
     },
@@ -87,7 +87,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "01/01/2026",
+        "text": "03/17/2026",
         "number": null
       }
     },
@@ -95,7 +95,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Synthetic Systems",
+        "text": "Micro-Star International Co., Ltd.",
         "number": null
       }
     },
@@ -103,7 +103,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "SYN-BOARD-1000",
+        "text": "PRO B850-S WIFI6E (MS-7E80)",
         "number": null
       }
     },
@@ -118,6 +118,150 @@
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TPM||#exists": {
       "status": "Found",
       "value": null
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||56a863a9-875e-4185-98a7-b882c64b5ce5": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||e6db77e5-3df2-4cf1-b95a-636979351e5b": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||d4f940ab-401b-4efc-aadc-ad5f3c50688a": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||3b576869-a4ec-4529-8536-b80a7769e899": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||75668c1f-73b5-4cf0-bb93-3ecf5cb7cc84": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||92e97fa1-2edf-4476-bdd6-9dd0b4dddc7b": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||26190899-1602-49e8-8b27-eb1d0a1ce869": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||be9ba2d9-53ea-4cdc-84e5-9b1eeee46550": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||5beb7efe-fd9a-4556-801d-275e5ffc04cc": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||d3e037e1-3eb8-44c8-a917-57927947596d": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||01443614-cd74-433a-b99e-2ecdc07bfc25": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||d1e49aac-8f56-4280-b9ba-993a6d77406c": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||33ddedf1-c6e0-47cb-833e-de6133960387": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\ASR\\Rules||c1db55ab-c21a-4637-bb3f-a12568109d35": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||RunAsPPL": {
       "status": "Found",
@@ -138,9 +282,117 @@
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon||CachedLogonsCount": {
       "status": "Found",
       "value": {
-        "kind": "String",
-        "text": "4",
-        "number": null
+        "kind": "DWord",
+        "text": null,
+        "number": 4
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender||DisableAntiSpyware": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection||DisableRealtimeMonitoring": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection||DisableBehaviorMonitoring": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection||DisableScriptScanning": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection||DisableIOAVProtection": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender||PUAProtection": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Spynet||SpynetReporting": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\Network Protection||EnableNetworkProtection": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Exclusions\\Paths||#exists": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||EnableFirewall": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\StandardProfile||EnableFirewall": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\DomainProfile||EnableFirewall": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||DefaultInboundAction": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||DisableNotifications": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
       }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters||SMB1": {
@@ -170,6 +422,142 @@
     "HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine||#exists": {
       "status": "NotFound",
       "value": null
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\ScriptBlockLogging||EnableScriptBlockLogging": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\ModuleLogging||EnableModuleLogging": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\\Audit||ProcessCreationIncludeCmdLine_Enabled": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\Security||MaxSize": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 201326592
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\EventLog\\Microsoft-Windows-PowerShell/Operational||MaxSize": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 104857600
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\PowerShell\\Transcription||EnableTranscripting": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\NetBT\\Parameters||NodeType": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 2
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters||EnableMDNS": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanWorkstation\\Parameters||RequireSecuritySignature": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanWorkstation\\Parameters||EnablePlainTextPassword": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 0
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||LmCompatibilityLevel": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 5
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||RestrictAnonymous": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection||AllowTelemetry": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo||DisabledByGroupPolicy": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI||DisableAIDataAnalysis": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot||TurnOffWindowsCopilot": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent||DisableWindowsConsumerFeatures": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server||fDenyTSConnections": {
       "status": "Found",
