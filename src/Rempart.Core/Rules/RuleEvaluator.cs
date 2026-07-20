@@ -47,21 +47,21 @@ public static class RuleEvaluator
                 VerdictStatus.NotApplicable, null, null);
         }
 
-        var (status, observed) = rule.Check.Kind switch
-        {
-            CheckKind.Registry => EvaluateValue(rule.Check, registry),
-            CheckKind.RegistryKey => EvaluateKey(rule.Check, registry),
-            _ => (VerdictStatus.Unknown, null),
-        };
+        var reading = CheckReader.Read(rule.Check, registry);
+
+        var status = reading.Denied
+            ? VerdictStatus.Unknown
+            : Compare(rule.Check, reading);
 
         return new Verdict(
-            rule.Id, rule.Title, rule.Severity, rule.Domain, status, observed, rule.Check.Expected);
+            rule.Id, rule.Title, rule.Severity, rule.Domain,
+            status, reading.Describe(rule.Check), rule.Check.Expected);
     }
 
     /// <summary>
     /// Une condition non vérifiable — accès refusé, information système absente — est
     /// tenue pour remplie : mieux vaut évaluer la règle et rendre un verdict que la
-    /// masquer sur une incertitude d'applicabilité.
+    /// masquer sur une incertitude d'applicabilité. Une règle escamotée ne se remarque pas.
     /// </summary>
     private static bool Applies(Applicability condition, IRegistryProvider registry, SystemInfo? system)
     {
@@ -73,11 +73,8 @@ public static class RuleEvaluator
 
         if (condition.Registry is { } check)
         {
-            var (status, _) = check.Kind == CheckKind.RegistryKey
-                ? EvaluateKey(check, registry)
-                : EvaluateValue(check, registry);
-
-            if (status == VerdictStatus.Fail)
+            var reading = CheckReader.Read(check, registry);
+            if (!reading.Denied && Compare(check, reading) == VerdictStatus.Fail)
             {
                 return false;
             }
@@ -86,67 +83,19 @@ public static class RuleEvaluator
         return true;
     }
 
-    private static (VerdictStatus, string?) EvaluateValue(CheckSpec check, IRegistryProvider registry)
-    {
-        var read = registry.ReadValue(check.Path, check.ValueName!);
-
-        if (read.Status == ReadStatus.AccessDenied)
-        {
-            return (VerdictStatus.Unknown, null);
-        }
-
-        var found = read.Status == ReadStatus.Found ? read.Value?.ToString() : null;
-
-        // Clé absente : le comportement effectif est celui du défaut Windows déclaré
-        // par la règle. Le verdict porte donc sur ce que fait réellement la machine,
-        // pas sur la présence d'une entrée de registre.
-        var effective = found ?? check.WindowsDefault;
-
-        var observed = found is not null
-            ? found
-            : check.WindowsDefault is { } fallback
-                ? $"absent (défaut Windows : {fallback})"
-                : "absent";
-
-        return (Compare(check, found, effective), observed);
-    }
-
-    private static (VerdictStatus, string?) EvaluateKey(CheckSpec check, IRegistryProvider registry)
-    {
-        var status = registry.KeyExists(check.Path);
-
-        if (status == ReadStatus.AccessDenied)
-        {
-            return (VerdictStatus.Unknown, null);
-        }
-
-        var present = status == ReadStatus.Found;
-        var observed = present ? "present" : "absent";
-
-        var expected = check.Operator switch
-        {
-            CheckOperator.Absent => !present,
-            _ => present,
-        };
-
-        return (expected ? VerdictStatus.Pass : VerdictStatus.Fail, observed);
-    }
-
-    /// <param name="found">Valeur réellement présente dans le registre, ou null.</param>
-    /// <param name="effective">Valeur qui régit le comportement — <paramref name="found"/>
-    /// ou, à défaut, le défaut Windows déclaré par la règle.</param>
-    private static VerdictStatus Compare(CheckSpec check, string? found, string? effective)
+    private static VerdictStatus Compare(CheckSpec check, CheckReading reading)
     {
         var pass = check.Operator switch
         {
             // Ces deux opérateurs portent sur la présence même de la valeur : le défaut
             // Windows n'a pas de sens ici.
-            CheckOperator.Exists => found is not null,
-            CheckOperator.Absent => found is null,
+            CheckOperator.Exists => reading.Found is not null,
+            CheckOperator.Absent => reading.Found is null,
 
-            CheckOperator.Equals => effective is not null && Matches(effective, check.Expected),
-            CheckOperator.NotEquals => effective is not null && !Matches(effective, check.Expected),
-            CheckOperator.AtLeast => AtLeast(effective, check.Expected),
+            CheckOperator.Equals => Matches(reading.Effective, check.Expected),
+            CheckOperator.NotEquals => reading.Effective is not null
+                && !Matches(reading.Effective, check.Expected),
+            CheckOperator.AtLeast => AtLeast(reading.Effective, check.Expected),
 
             _ => false,
         };
@@ -154,8 +103,8 @@ public static class RuleEvaluator
         return pass ? VerdictStatus.Pass : VerdictStatus.Fail;
     }
 
-    private static bool Matches(string observed, string? expected) =>
-        string.Equals(observed, expected, StringComparison.OrdinalIgnoreCase);
+    private static bool Matches(string? observed, string? expected) =>
+        observed is not null && string.Equals(observed, expected, StringComparison.OrdinalIgnoreCase);
 
     private static bool AtLeast(string? observed, string? expected) =>
         long.TryParse(observed, out var actual)

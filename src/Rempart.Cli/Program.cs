@@ -182,6 +182,7 @@ static int Synthesise(string[] args)
 static void WriteHumanReadable(ScanResult result)
 {
     Console.WriteLine($"Rempart {result.ToolVersion} — scan du {result.StartedAtUtc}");
+    Console.WriteLine($"règles : {result.RulesFingerprint}");
 
     if (result.Score is { } score)
     {

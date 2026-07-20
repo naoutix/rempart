@@ -9,7 +9,10 @@ public sealed record ScanResult(
     string StartedAtUtc,
     List<CollectorResult> Collectors,
     List<Verdict> Verdicts,
-    ScoreCard? Score);
+    ScoreCard? Score,
+    /// <summary>Identifie le catalogue evalue : deux rapports ne sont comparables
+    /// que s'ils partagent la meme empreinte.</summary>
+    string RulesFingerprint);
 
 /// <summary>
 /// Exécute les collecteurs, puis évalue les règles.
@@ -46,23 +49,11 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     {
         foreach (var rule in rules)
         {
-            Read(rule.Check);
+            Rules.CheckReader.Touch(rule.Check, providers.Registry);
 
             if (rule.AppliesWhen?.Registry is { } condition)
             {
-                Read(condition);
-            }
-        }
-
-        void Read(Rules.CheckSpec check)
-        {
-            if (check.Kind == Rules.CheckKind.RegistryKey)
-            {
-                providers.Registry.KeyExists(check.Path);
-            }
-            else if (check.ValueName is { } value)
-            {
-                providers.Registry.ReadValue(check.Path, value);
+                Rules.CheckReader.Touch(condition, providers.Registry);
             }
         }
     }
@@ -100,6 +91,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             startedAtUtc,
             results,
             verdicts,
-            verdicts.Count > 0 ? Scoring.Compute(verdicts) : null);
+            verdicts.Count > 0 ? Scoring.Compute(verdicts) : null,
+            RuleCatalog.Fingerprint(rules));
     }
 }
