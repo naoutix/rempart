@@ -26,6 +26,23 @@ public sealed class RecordingRegistryProvider(IRegistryProvider inner, MachineSn
         snapshot.Registry[SnapshotKeys.Existence(keyPath)] = new RegistryRead(status, null);
         return status;
     }
+
+    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    {
+        var values = inner.ListValues(keyPath);
+
+        // La liste des noms est enregistree a part : sans elle, le rejeu ne saurait
+        // pas quoi enumerer, et decouvrirait un emplacement vide au lieu du contenu
+        // qu'avait la machine.
+        snapshot.RegistryLists[keyPath] = [.. values.Keys];
+
+        foreach (var (name, value) in values)
+        {
+            snapshot.Registry[SnapshotKeys.Value(keyPath, name)] = RegistryRead.Found(value);
+        }
+
+        return values;
+    }
 }
 
 public sealed class RecordingSystemInfoProvider(ISystemInfoProvider inner, MachineSnapshot snapshot)
@@ -64,6 +81,30 @@ public sealed class SnapshotRegistryProvider(MachineSnapshot snapshot) : IRegist
             ? read.Status
             : throw new SnapshotIncompleteException($"Test d'existence non enregistré : {key}.");
     }
+
+    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    {
+        var values = new Dictionary<string, RegistryValue>(StringComparer.OrdinalIgnoreCase);
+
+        // Emplacement jamais enumere a la capture : rendre une liste vide plutot que
+        // lever. Une fixture anterieure a ce lot reste rejouable, elle produit
+        // simplement moins de constats.
+        if (!snapshot.RegistryLists.TryGetValue(keyPath, out var names))
+        {
+            return values;
+        }
+
+        foreach (var name in names)
+        {
+            if (snapshot.Registry.TryGetValue(SnapshotKeys.Value(keyPath, name), out var read)
+                && read.Value is { } value)
+            {
+                values[name] = value;
+            }
+        }
+
+        return values;
+    }
 }
 
 public sealed class RecordingServiceStateProvider(
@@ -98,6 +139,25 @@ public sealed class SnapshotSecurityPolicyProvider(MachineSnapshot snapshot) : I
     // Absent d'une capture ancienne : traité comme un refus, donc « non vérifiable ».
     // Une fixture d'avant ce lot reste rejouable, elle rend simplement moins de verdicts.
     public PolicyFacts Read() => snapshot.Policy ?? PolicyFacts.AccessDenied;
+}
+
+public sealed class RecordingSignatureProvider(
+    ISignatureProvider inner, MachineSnapshot snapshot) : ISignatureProvider
+{
+    public FileSignature Verify(string path)
+    {
+        var signature = inner.Verify(path);
+        snapshot.Signatures[path] = signature;
+        return signature;
+    }
+}
+
+public sealed class SnapshotSignatureProvider(MachineSnapshot snapshot) : ISignatureProvider
+{
+    public FileSignature Verify(string path) =>
+        snapshot.Signatures.TryGetValue(path, out var signature)
+            ? signature
+            : new FileSignature(SignatureStatus.Unknown);
 }
 
 public sealed class RecordingWmiProvider(IWmiProvider inner, MachineSnapshot snapshot) : IWmiProvider

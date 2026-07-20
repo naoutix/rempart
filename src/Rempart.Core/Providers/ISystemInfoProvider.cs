@@ -34,7 +34,8 @@ public sealed class ProviderSet(
     ISystemInfoProvider systemInfo,
     IServiceStateProvider? services = null,
     ISecurityPolicyProvider? policy = null,
-    IWmiProvider? wmi = null)
+    IWmiProvider? wmi = null,
+    ISignatureProvider? signatures = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -52,6 +53,16 @@ public sealed class ProviderSet(
 
     /// <summary>Même principe : absent, les contrôles WMI restent sans verdict.</summary>
     public IWmiProvider Wmi { get; } = wmi ?? UnavailableWmi.Instance;
+
+    /// <summary>Absent, toute signature reste indéterminée — jamais « non signé ».</summary>
+    public ISignatureProvider Signatures { get; } = signatures ?? UnavailableSignatures.Instance;
+}
+
+internal sealed class UnavailableSignatures : ISignatureProvider
+{
+    public static readonly UnavailableSignatures Instance = new();
+
+    public FileSignature Verify(string path) => new(SignatureStatus.Unknown);
 }
 
 internal sealed class UnavailableWmi : IWmiProvider

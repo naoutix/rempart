@@ -773,6 +773,7 @@
       "expected": "1"
     }
   ],
+  "findings": [],
   "score": {
     "overall": 100,
     "domains": [

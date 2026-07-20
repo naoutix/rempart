@@ -40,4 +40,13 @@ public interface IRegistryProvider
 
     /// <summary>Existence d'une clé — utile quand la présence seule est le signal.</summary>
     ReadStatus KeyExists(string keyPath);
+
+    /// <summary>
+    /// Toutes les valeurs d'une clé, nom par nom.
+    ///
+    /// Les règles interrogent une valeur qu'elles connaissent ; l'énumération des
+    /// démarrages automatiques, elle, découvre ce qui s'y trouve. On ne peut pas
+    /// chercher par nom ce dont on ignore l'existence.
+    /// </summary>
+    IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath);
 }

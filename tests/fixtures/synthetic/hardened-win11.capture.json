@@ -611,6 +611,62 @@
         "number": 1
       }
     },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run||SecurityHealth": {
+      "status": "Found",
+      "value": {
+        "kind": "ExpandString",
+        "text": "C:\\WINDOWS\\system32\\SecurityHealthSystray.exe",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce||Delete Cached Update Binary": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\WINDOWS\\system32\\cmd.exe /q /c del /q \u0022C:\\Program Files\\Microsoft OneDrive\\Update\\OneDriveSetup.exe\u0022",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce||Delete Cached Standalone Update Binary": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\WINDOWS\\system32\\cmd.exe /q /c del /q \u0022C:\\Program Files\\Microsoft OneDrive\\StandaloneUpdater\\OneDriveSetup.exe\u0022",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce||msedge_cleanup_{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "\u0022C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\150.0.4078.83\\Installer\\setup.exe\u0022 --msedgewebview --delete-old-versions --system-level --verbose-logging --on-logon",
+        "number": null
+      }
+    },
+    "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run||Discord": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "\u0022C:\\Users\\leoar\\AppData\\Local\\Discord\\Update.exe\u0022 --processStart Discord.exe --process-start-args \u0022--start-inactive\u0022",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run||Adobe CCXProcess": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Program Files (x86)\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run||Adobe Creative Cloud": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "\u0022C:\\Program Files\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud.exe\u0022 --showwindow=false --onOSstartup=true",
+        "number": null
+      }
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
       "status": "Found",
       "value": {
@@ -743,5 +799,7 @@
       ],
       "diagnostic": null
     }
-  }
+  },
+  "registryLists": {},
+  "signatures": {}
 }

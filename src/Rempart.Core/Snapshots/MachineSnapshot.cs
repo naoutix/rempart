@@ -34,6 +34,15 @@ public sealed class MachineSnapshot
 
     /// <summary>Clé : <c>espaceDeNoms:Classe||propriétés</c>.</summary>
     public Dictionary<string, WmiRead> Wmi { get; set; } = [];
+
+    /// <summary>
+    /// Noms des valeurs présentes dans une clé énumérée. Distinct de
+    /// <see cref="Registry"/>, qui ne dit rien de ce qu'on n'a pas cherché.
+    /// </summary>
+    public Dictionary<string, List<string>> RegistryLists { get; set; } = [];
+
+    /// <summary>Signatures vérifiées, indexées par chemin de fichier.</summary>
+    public Dictionary<string, FileSignature> Signatures { get; set; } = [];
 }
 
 public static class SnapshotKeys

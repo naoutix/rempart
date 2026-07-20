@@ -22,6 +22,29 @@ public sealed class LiveSignatureProviderTests
         Assert.NotNull(result.Sha256);
     }
 
+    [Theory]
+    [InlineData("cmd.exe")]
+    [InlineData("notepad.exe")]
+    [InlineData("SecurityHealthSystray.exe")]
+    public void A_catalog_signed_binary_verifies_as_valid(string name)
+    {
+        // Le test qui compte. Ces binaires ne portent aucune signature embarquee :
+        // la leur vit dans un catalogue .cat separe. Une verification qui n'examine
+        // que le fichier les declare non signes -- et classe alors la quasi-totalite
+        // des demarrages automatiques d'un Windows sain comme suspects.
+        //
+        // C'est exactement ce qu'a produit la premiere version, et ce qui a empeche
+        // de la livrer.
+        var path = Path.Combine(Environment.SystemDirectory, name);
+
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        Assert.Equal(SignatureStatus.Valid, signatures.Verify(path).Status);
+    }
+
     [Fact]
     public void A_catalog_signed_binary_has_no_embedded_publisher()
     {

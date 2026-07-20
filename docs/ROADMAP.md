@@ -114,7 +114,8 @@ lancé au démarrage.
 
 - [x] Modèle `Finding` — famille, source, cible, gravité, raisons, détails
 - [x] `ISignatureProvider` — Authenticode par `WinVerifyTrust`, SHA-256
-- [ ] Collecteur des démarrages automatiques : clés Run, dossiers Startup, services
+- [x] Collecteur des démarrages automatiques — clés Run et RunOnce, HKLM et HKCU,
+      plus la vue 32 bits. Signature vérifiée par certificat embarqué **et par catalogue**.
 - [ ] Tâches planifiées, abonnements WMI permanents, pilotes chargés
 
 Processus (chemin, signature Authenticode, parent, ligne de commande), services,
