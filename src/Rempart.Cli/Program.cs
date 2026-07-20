@@ -1,5 +1,6 @@
 using Rempart.Core.Collectors;
 using Rempart.Core.Engine;
+using Rempart.Core.Findings;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Rules;
@@ -60,7 +61,8 @@ static int Scan(string[] args)
             new SnapshotSystemInfoProvider(snapshot),
             new SnapshotServiceStateProvider(snapshot),
             new SnapshotSecurityPolicyProvider(snapshot),
-            new SnapshotWmiProvider(snapshot));
+            new SnapshotWmiProvider(snapshot),
+            new SnapshotSignatureProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -71,7 +73,8 @@ static int Scan(string[] args)
             new LiveSystemInfoProvider(),
             new LiveServiceStateProvider(),
             new LiveSecurityPolicyProvider(),
-            new Rempart.Windows.Wmi.LiveWmiProvider());
+            new Rempart.Windows.Wmi.LiveWmiProvider(),
+            new LiveSignatureProvider());
         origin = UtcNow();
     }
 
@@ -106,7 +109,8 @@ static int Capture(string[] args)
         new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot),
         new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot),
         new RecordingSecurityPolicyProvider(new LiveSecurityPolicyProvider(), snapshot),
-        new RecordingWmiProvider(new Rempart.Windows.Wmi.LiveWmiProvider(), snapshot));
+        new RecordingWmiProvider(new Rempart.Windows.Wmi.LiveWmiProvider(), snapshot),
+        new RecordingSignatureProvider(new LiveSignatureProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
@@ -243,6 +247,8 @@ static void WriteHumanReadable(ScanResult result)
         WritePosture(result, score);
     }
 
+    WriteFindings(result.Findings);
+
     Console.WriteLine();
     foreach (var collector in result.Collectors)
     {
@@ -256,6 +262,41 @@ static void WriteHumanReadable(ScanResult result)
         foreach (var diagnostic in collector.Diagnostics)
         {
             Console.WriteLine($"  ! {diagnostic}");
+        }
+    }
+}
+
+/// <summary>
+/// Les constats ne se melangent pas au score : une configuration a 94 % ne doit pas
+/// masquer un binaire non signe lance au demarrage.
+/// </summary>
+static void WriteFindings(IReadOnlyList<Finding> findings)
+{
+    if (findings.Count == 0)
+    {
+        return;
+    }
+
+    var flagged = findings.Where(f => f.Severity != FindingSeverity.Benign).ToList();
+
+    Console.WriteLine();
+    Console.WriteLine($"[constats] {findings.Count} démarrage(s) automatique(s), " +
+                      $"{flagged.Count} à examiner");
+
+    foreach (var finding in flagged.OrderByDescending(f => f.Severity))
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  {finding.Severity.ToString().ToUpperInvariant(),-11} {finding.Source}");
+        Console.WriteLine($"              {finding.Target}");
+
+        foreach (var reason in finding.Reasons)
+        {
+            Console.WriteLine($"              → {reason}");
+        }
+
+        if (finding.Details.TryGetValue("éditeur", out var publisher))
+        {
+            Console.WriteLine($"              éditeur : {publisher}");
         }
     }
 }

@@ -1,4 +1,5 @@
 using Rempart.Core.Collectors;
+using Rempart.Core.Findings;
 using Rempart.Core.Providers;
 using Rempart.Core.Rules;
 
@@ -9,6 +10,7 @@ public sealed record ScanResult(
     string StartedAtUtc,
     List<CollectorResult> Collectors,
     List<Verdict> Verdicts,
+    List<Finding> Findings,
     ScoreCard? Score,
     /// <summary>Identifie le catalogue evalue : deux rapports ne sont comparables
     /// que s'ils partagent la meme empreinte.</summary>
@@ -27,6 +29,13 @@ public sealed record ScanResult(
 public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyList<Rule> rules)
 {
     public static IReadOnlyList<ICollector> DefaultCollectors => [new InventoryCollector()];
+
+    /// <summary>
+    /// Collecteurs de constats. Separes des collecteurs de champs : ils enumerent ce
+    /// qui est present au lieu de decrire des valeurs connues d'avance.
+    /// </summary>
+    public static IReadOnlyList<IFindingCollector> DefaultFindingCollectors =>
+        [new AutorunsCollector()];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
         : this(collectors, [])
@@ -86,11 +95,27 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             .Select(rule => RuleEvaluator.Evaluate(rule, providers, system))
             .ToList();
 
+        var findings = new List<Finding>();
+        foreach (var collector in DefaultFindingCollectors)
+        {
+            try
+            {
+                findings.AddRange(collector.Collect(providers));
+            }
+            catch (Exception ex)
+            {
+                // Un collecteur de constats qui echoue ne doit pas emporter le scan.
+                findings.Add(new Finding(collector.Name, "collecteur", collector.Name,
+                    FindingSeverity.Notable, [$"Enumeration interrompue : {ex.Message}"], new Dictionary<string, string>()));
+            }
+        }
+
         return new ScanResult(
             toolVersion,
             startedAtUtc,
             results,
             verdicts,
+            findings,
             verdicts.Count > 0 ? Scoring.Compute(verdicts) : null,
             RuleCatalog.Fingerprint(rules));
     }

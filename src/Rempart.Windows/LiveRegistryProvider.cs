@@ -56,6 +56,36 @@ public sealed class LiveRegistryProvider : IRegistryProvider
         }
     }
 
+    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    {
+        var values = new Dictionary<string, RegistryValue>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            using var key = OpenKey(keyPath);
+            if (key is null)
+            {
+                return values;
+            }
+
+            foreach (var name in key.GetValueNames())
+            {
+                var raw = key.GetValue(name);
+                if (raw is not null)
+                {
+                    values[name] = Convert(key.GetValueKind(name), raw);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException)
+        {
+            // Un refus rend une liste vide plutôt qu'une exception : l'énumération
+            // des autres emplacements doit se poursuivre.
+        }
+
+        return values;
+    }
+
     private static RegistryValue Convert(RegistryValueKind kind, object raw) => kind switch
     {
         RegistryValueKind.DWord or RegistryValueKind.QWord =>

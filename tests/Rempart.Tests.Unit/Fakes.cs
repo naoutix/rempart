@@ -42,6 +42,17 @@ internal sealed class FakeRegistryProvider : IRegistryProvider
     public ReadStatus KeyExists(string keyPath) =>
         keys.TryGetValue(keyPath, out var status) ? status : ReadStatus.NotFound;
 
+    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    {
+        var prefix = keyPath + "||";
+
+        return values
+            .Where(v => v.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Where(v => v.Value.Value is not null)
+            .ToDictionary(v => v.Key[prefix.Length..], v => v.Value.Value!,
+                StringComparer.OrdinalIgnoreCase);
+    }
+
     private static string Key(string keyPath, string valueName) => $"{keyPath}||{valueName}";
 }
 

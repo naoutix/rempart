@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Rempart.Core.Engine;
+using Rempart.Core.Findings;
 using Rempart.Core.Snapshots;
 
 namespace Rempart.Core.Json;

@@ -75,16 +75,33 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
 
         try
         {
-            return Check(path) switch
+            var embedded = Check(path);
+
+            if (embedded == 0)
             {
-                0 => new FileSignature(SignatureStatus.Valid, ReadPublisher(path), hash),
+                return new FileSignature(SignatureStatus.Valid, ReadPublisher(path), hash);
+            }
 
-                TrustNoSignature or TrustSubjectFormUnknown or TrustProviderUnknown =>
-                    new FileSignature(SignatureStatus.Unsigned, null, hash),
+            // Pas de signature embarquée : la plupart des binaires Windows sont signés
+            // par catalogue. S'arrêter ici classerait cmd.exe comme non signé, et avec
+            // lui la quasi-totalité des démarrages automatiques d'un système sain.
+            if (embedded is TrustNoSignature or TrustSubjectFormUnknown or TrustProviderUnknown)
+            {
+                return CatalogSignature.Verify(path) switch
+                {
+                    0 => new FileSignature(SignatureStatus.Valid, ReadPublisher(path), hash),
 
-                // Signée, mais la chaîne ne tient pas : expirée, révoquée, altérée.
-                _ => new FileSignature(SignatureStatus.Invalid, ReadPublisher(path), hash),
-            };
+                    // Aucun catalogue ne référence ce fichier : il n'est signé
+                    // d'aucune manière.
+                    null => new FileSignature(SignatureStatus.Unsigned, null, hash),
+
+                    // Un catalogue le couvre, mais ne valide pas.
+                    _ => new FileSignature(SignatureStatus.Invalid, null, hash),
+                };
+            }
+
+            // Signée, mais la chaîne ne tient pas : expirée, révoquée, altérée.
+            return new FileSignature(SignatureStatus.Invalid, ReadPublisher(path), hash);
         }
         catch (Exception)
         {
