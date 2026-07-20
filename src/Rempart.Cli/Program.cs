@@ -5,6 +5,7 @@ using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
+using Rempart.Core.Updates;
 using System.Reflection;
 using Rempart.Windows;
 
@@ -30,6 +31,7 @@ try
         "synthesise" => Synthesise(args),
         "diagnose-wmi" => DiagnoseWmi(),
         "diagnose-tasks" => DiagnoseTasks(),
+        "keygen" => Keygen(args),
         "version" => Print(ToolVersion()),
         _ => Help(),
     };
@@ -190,6 +192,126 @@ static int DiagnoseWmi()
 
     Console.WriteLine($"  {Property} = {value}");
     return 0;
+}
+
+/// <summary>
+/// Génère la paire de clés qui signera les manifestes de mise à jour.
+///
+/// <para>
+/// À lancer sur une machine hors ligne — une VM jetable suffit quand on n'en a
+/// qu'une (ADR-002, D16). C'est précisément pour ce genre d'usage que le livrable est
+/// un exécutable autonome : on copie <c>rempart.exe</c> sur une clé, on génère
+/// là-bas, rien à installer.
+/// </para>
+///
+/// <para>
+/// La clé privée n'est jamais écrite en clair et il n'existe pas d'option pour le
+/// faire. Un support amovible se perd ; la phrase de passe est ce qui sépare alors
+/// une clé perdue d'une clé compromise.
+/// </para>
+/// </summary>
+static int Keygen(string[] args)
+{
+    var path = OptionValue(args, "--out") ?? "cle-privee-rempart.txt";
+
+    if (File.Exists(path))
+    {
+        // Écraser une clé privée existante la détruit sans recours : il n'y a pas de
+        // copie ailleurs, c'est tout l'intérêt du dispositif.
+        Console.Error.WriteLine($"{path} existe déjà. Refus d'écraser une clé privée.");
+        return 1;
+    }
+
+    if (Console.IsInputRedirected)
+    {
+        // Sans console, la phrase de passe viendrait d'un tube — donc d'un historique,
+        // d'un script ou d'un journal. Refuser plutôt que produire une clé dont la
+        // protection est déjà connue de quelqu'un d'autre.
+        Console.Error.WriteLine(
+            "Cette commande exige une console interactive : la phrase de passe ne doit " +
+            "pas transiter par un tube ni par un argument.");
+        return 1;
+    }
+
+    Console.WriteLine("Phrase de passe (12 caractères minimum, non affichée) :");
+    var passphrase = ReadHidden();
+
+    Console.WriteLine("Confirmer :");
+    if (!string.Equals(passphrase, ReadHidden(), StringComparison.Ordinal))
+    {
+        Console.Error.WriteLine("Les deux saisies diffèrent. Rien n'a été écrit.");
+        return 1;
+    }
+
+    PublisherKeyPair pair;
+    try
+    {
+        pair = PublisherKey.Generate(passphrase);
+    }
+    catch (ArgumentException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+
+    // Relecture immédiate : une clé qu'on ne sait pas rouvrir ne doit pas se
+    // découvrir le jour où l'on doit publier, sur une machine qu'on aura détruite.
+    if (PublisherKey.ReadPublicKeyOf(pair.EncryptedPrivateKey, passphrase) != pair.PublicKey)
+    {
+        Console.Error.WriteLine("La clé générée ne se relit pas. Rien n'a été écrit.");
+        return 1;
+    }
+
+    File.WriteAllText(path, pair.EncryptedPrivateKey);
+
+    Console.WriteLine();
+    Console.WriteLine($"Clé privée chiffrée écrite dans {path}.");
+    Console.WriteLine("  Elle ne doit pas revenir sur la machine de développement.");
+    Console.WriteLine("  La phrase de passe ne voyage pas sur le même support.");
+    Console.WriteLine();
+    Console.WriteLine("À reporter dans ManifestVerifier, publiables l'une comme l'autre :");
+    Console.WriteLine();
+    Console.WriteLine($"  empreinte     {pair.KeyId}");
+    Console.WriteLine($"  clé publique  {pair.PublicKey}");
+    Console.WriteLine();
+    Console.WriteLine("Sauvegarde papier de la clé privée chiffrée — elle tient en une ligne,");
+    Console.WriteLine("et c'est la meilleure protection contre la perte du support :");
+    Console.WriteLine();
+    Console.WriteLine($"  {pair.EncryptedPrivateKey}");
+
+    return 0;
+}
+
+/// <summary>Lit sans écho. La phrase de passe ne doit pas rester à l'écran.</summary>
+static string ReadHidden()
+{
+    var buffer = new System.Text.StringBuilder();
+
+    while (true)
+    {
+        var pressed = Console.ReadKey(intercept: true);
+
+        if (pressed.Key == ConsoleKey.Enter)
+        {
+            Console.WriteLine();
+            return buffer.ToString();
+        }
+
+        if (pressed.Key == ConsoleKey.Backspace)
+        {
+            if (buffer.Length > 0)
+            {
+                buffer.Length--;
+            }
+
+            continue;
+        }
+
+        if (!char.IsControl(pressed.KeyChar))
+        {
+            buffer.Append(pressed.KeyChar);
+        }
+    }
 }
 
 /// <summary>
@@ -623,6 +745,11 @@ static int Help() => Print(
 
       rempart diagnose-tasks
           Vérifie que le planificateur de tâches répond. Même usage.
+
+      rempart keygen [--out <fichier>]
+          Génère la paire de clés d'éditeur, pour signer les manifestes.
+          À lancer sur une machine hors ligne — voir ADR-002. La clé privée
+          est chiffrée par une phrase de passe, sans option contraire.
 
       rempart version
 
