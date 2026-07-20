@@ -1,0 +1,96 @@
+# Securite fondee sur la virtualisation (VBS) et Credential Guard.
+#
+# Ces protections isolent des secrets et du code critique dans un environnement que
+# le noyau Windows lui-meme ne peut pas lire. Un attaquant disposant du noyau ne les
+# contourne donc pas -- ce qui les distingue de tous les reglages precedents.
+#
+# Toutes se lisent au registre : aucun blocage, aucune elevation requise.
+
+- id: WIN-VBS-001
+  title: Securite fondee sur la virtualisation inactive
+  severity: high
+  domain: virtualization
+  rationale: >
+    VBS cree un environnement isole par l'hyperviseur, hors d'atteinte du noyau
+    Windows. C'est le socle dont dependent Credential Guard et l'integrite du code
+    protegee par hyperviseur : sans lui, les deux sont inoperants.
+  references: [CIS-18.9.5, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard
+    value: EnableVirtualizationBasedSecurity
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: restorePointOnly
+    breaks: >
+      Les hyperviseurs tiers qui reclament un acces exclusif au processeur, notamment
+      d'anciennes versions de VirtualBox et VMware Workstation.
+    affects: >
+      Les postes faisant tourner des machines virtuelles avec un hyperviseur autre que
+      Hyper-V. Les versions recentes cohabitent, les anciennes refusent de demarrer.
+    verifyBefore: >
+      Verifier la version des hyperviseurs installes et l'existence d'un chemin de
+      retour : VBS s'active au demarrage suivant et un poste sans virtualisation
+      materielle disponible refusera silencieusement.
+
+- id: WIN-VBS-002
+  title: Credential Guard inactif
+  severity: high
+  domain: virtualization
+  rationale: >
+    Credential Guard place les secrets d'authentification dans l'environnement isole
+    par l'hyperviseur. Un attaquant ayant obtenu le noyau ne peut plus les extraire de
+    LSASS : c'est ce qui rend inoperantes les techniques de vol d'identifiants les
+    plus courantes, la ou LSA Protection ne fait que compliquer la tache.
+  references: [CIS-18.9.5.2, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\Lsa
+    value: LsaCfgFlags
+    operator: atLeast
+    expect: "1"
+    # 0 desactive, 1 actif avec verrou UEFI, 2 actif sans. Comme RunAsPPL, les deux
+    # valeurs non nulles protegent : exiger l'egalite rejetterait une machine
+    # correctement configuree.
+    windowsDefault: "0"
+  remediation:
+    reversibility: restorePointOnly
+    breaks: >
+      L'authentification par protocoles anciens exigeant la delegation non contrainte,
+      ainsi que certains pilotes de carte a puce charges dans LSA.
+    affects: >
+      Les parcs utilisant NTLMv1, l'authentification Kerberos non contrainte, ou des
+      lecteurs de carte a puce anciens. Un poste moderne autonome n'est pas concerne.
+    verifyBefore: >
+      Recenser les applications s'appuyant sur la delegation d'identifiants, et
+      s'assurer que VBS est actif -- sans lui le reglage reste sans effet.
+
+- id: WIN-VBS-003
+  title: Integrite du code protegee par hyperviseur inactive
+  severity: high
+  domain: virtualization
+  rationale: >
+    HVCI verifie la signature du code noyau depuis l'environnement isole, avant son
+    execution. Un pilote malveillant ou vulnerable ne peut plus s'y charger, ce qui
+    ferme la technique du pilote signe detourne.
+  references: [CIS-18.9.5.3, ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity
+    value: Enabled
+    operator: equals
+    expect: "1"
+    windowsDefault: "0"
+  remediation:
+    reversibility: restorePointOnly
+    breaks: >
+      Le chargement des pilotes incompatibles, qui doivent respecter des contraintes
+      de memoire plus strictes. Le peripherique concerne cesse alors de fonctionner.
+    affects: >
+      Les postes equipes de materiel ancien ou de peripheriques specialises dont les
+      pilotes n'ont pas ete mis a jour depuis plusieurs annees.
+    verifyBefore: >
+      Passer l'outil de compatibilite HVCI de Microsoft sur les pilotes installes.
+      Un pilote incompatible se traduit par un peripherique muet, pas par un message.

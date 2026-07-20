@@ -587,6 +587,30 @@
         "number": 0
       }
     },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard||EnableVirtualizationBasedSecurity": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||LsaCfgFlags": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity||Enabled": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
       "status": "Found",
       "value": {

@@ -715,10 +715,37 @@
       "status": "Pass",
       "observed": "disabled",
       "expected": "automatic"
+    },
+    {
+      "ruleId": "WIN-VBS-001",
+      "title": "Securite fondee sur la virtualisation inactive",
+      "severity": "High",
+      "domain": "virtualization",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-VBS-002",
+      "title": "Credential Guard inactif",
+      "severity": "High",
+      "domain": "virtualization",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-VBS-003",
+      "title": "Integrite du code protegee par hyperviseur inactive",
+      "severity": "High",
+      "domain": "virtualization",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
     }
   ],
   "score": {
-    "overall": 52,
+    "overall": 49,
     "domains": [
       {
         "domain": "accounts",
@@ -815,10 +842,18 @@
         "unknown": 0,
         "notApplicable": 0,
         "score": 100
+      },
+      {
+        "domain": "virtualization",
+        "passed": 0,
+        "failed": 3,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 0
       }
     ],
     "totalUnknown": 1,
     "isPartial": true
   },
-  "rulesFingerprint": "76:1777c76c72bf"
+  "rulesFingerprint": "79:f74cb7fde9c1"
 }
