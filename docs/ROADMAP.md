@@ -86,8 +86,12 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
 - [x] `appliesWhen` : conditionner une règle au contexte de la machine
 - [x] `WIN-FW-006` et `WIN-RDP-002` rétablies, désormais conditionnées
 - [x] Check `service` — état et mode de démarrage, via `advapi32`, sans WMI
-- [ ] Trancher la question WMI/AOT, restée ouverte depuis M0
-- [ ] BitLocker, comptes locaux, politique de mot de passe, état Defender par API
+- [x] Comptes locaux et politique de mot de passe — via `netapi32`, sans WMI
+- [x] **Question WMI/AOT tranchée** : accessible par interop COM générée à la
+      compilation. `System.Management` reste hors de portée, mais les interfaces
+      COM de WMI passent, sans réflexion ni avertissement de trim.
+- [ ] Câbler le provider WMI au moteur de règles — type de contrôle `wmi`
+- [ ] BitLocker et état effectif de Defender, désormais atteignables
 - [ ] Credential Guard, exploit protection, TLS
 
 ### M3 · Persistance & processus
