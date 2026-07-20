@@ -46,6 +46,7 @@ public static class CheckReader
     {
         CheckKind.Service => ReadService(check, providers.Services),
         CheckKind.Policy => ReadPolicy(check, providers.Policy),
+        CheckKind.Wmi => ReadWmi(check, providers.Wmi),
         _ => Read(check, providers.Registry),
     };
 
@@ -91,6 +92,47 @@ public static class CheckReader
             _ => info.StartMode.ToString().ToLowerInvariant(),
         };
 
+        return new CheckReading(observed, observed, Denied: false);
+    }
+
+    /// <summary>
+    /// Un contrôle WMI porte sur toutes les instances rendues : chaque volume, chaque
+    /// adaptateur. Il n'est satisfait que si toutes le sont — un seul disque non
+    /// chiffré suffit à exposer les données qu'il porte.
+    ///
+    /// Quand les instances divergent, la valeur observée les énumère et la comparaison
+    /// échoue d'elle-même : aucune valeur unique ne peut correspondre à plusieurs.
+    /// </summary>
+    private static CheckReading ReadWmi(CheckSpec check, IWmiProvider wmi)
+    {
+        var separator = check.Path.IndexOf(':');
+        if (separator < 0 || check.ValueName is null)
+        {
+            return new CheckReading(null, null, Denied: true);
+        }
+
+        var read = wmi.Query(
+            check.Path[..separator], check.Path[(separator + 1)..], [check.ValueName]);
+
+        // Aucune instance : il n'y a rien à juger. BitLocker absent d'une édition
+        // Famille n'est pas une non-conformité, c'est une absence de sujet.
+        if (read.Status != ReadStatus.Found || read.Instances.Count == 0)
+        {
+            return new CheckReading(null, null, Denied: true);
+        }
+
+        var values = read.Instances
+            .Select(i => i.Find(check.ValueName))
+            .OfType<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (values.Count == 0)
+        {
+            return new CheckReading(null, null, Denied: true);
+        }
+
+        var observed = values.Count == 1 ? values[0] : string.Join(", ", values);
         return new CheckReading(observed, observed, Denied: false);
     }
 

@@ -25,7 +25,8 @@ public sealed class SyntheticSnapshotTests
                 new SnapshotRegistryProvider(built),
                 new SnapshotSystemInfoProvider(built),
                 new SnapshotServiceStateProvider(built),
-                new SnapshotSecurityPolicyProvider(built)), built.SystemInfo))
+                new SnapshotSecurityPolicyProvider(built),
+                new SnapshotWmiProvider(built)), built.SystemInfo))
             .ToList();
 
         Assert.DoesNotContain(verdicts, v => v.Status is VerdictStatus.Fail or VerdictStatus.Unknown);

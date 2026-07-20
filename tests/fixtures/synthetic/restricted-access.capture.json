@@ -661,5 +661,17 @@
       "accounts.localAdminCount": "2"
     },
     "denied": false
+  },
+  "wmi": {
+    "root\\CIMV2\\Security\\MicrosoftVolumeEncryption:Win32_EncryptableVolume||ProtectionStatus": {
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "ProtectionStatus": "1"
+          }
+        }
+      ]
+    }
   }
 }

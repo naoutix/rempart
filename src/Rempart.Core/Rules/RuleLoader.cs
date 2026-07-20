@@ -135,7 +135,7 @@ public static class RuleLoader
         // Sans objet pour un service : son état est directement observable, il n'y a
         // pas de « valeur qu'applique Windows quand la clé est absente ».
         if (comparison && windowsDefault is null
-            && kind is not (CheckKind.Service or CheckKind.Policy))
+            && kind is not (CheckKind.Service or CheckKind.Policy or CheckKind.Wmi))
         {
             throw new RuleFormatException(
                 $"{context} : l'opérateur « {op} » exige un champ « windowsDefault » — " +
@@ -150,6 +150,23 @@ public static class RuleLoader
         {
             throw new RuleFormatException(
                 $"{context} : « value » vaut « state » ou « startMode », reçu « {valueName} ».");
+        }
+
+        if (kind == CheckKind.Wmi)
+        {
+            if (!RequiredText(map, "path", context).Contains(':'))
+            {
+                throw new RuleFormatException(
+                    $"{context} : un contrôle « wmi » attend « path » sous la forme " +
+                    "« espaceDeNoms:Classe ».");
+            }
+
+            if (valueName is null)
+            {
+                throw new RuleFormatException(
+                    $"{context} : un contrôle « wmi » exige « value », le nom de la propriété. " +
+                    "Les énumérer demanderait un SAFEARRAY, hors de portée de l'interop AOT.");
+            }
         }
 
         if (kind == CheckKind.Registry && valueName is null)

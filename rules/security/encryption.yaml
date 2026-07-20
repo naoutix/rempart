@@ -1,0 +1,41 @@
+# Chiffrement des volumes.
+#
+# L'etat effectif ne se lit ni au registre -- qui ne porte que la strategie -- ni par
+# une API Win32. WMI reste le seul moyen de savoir si un disque est reellement chiffre.
+#
+# L'espace de noms exige l'elevation : sans droits administrateur ces controles rendent
+# « non verifiable », jamais une non-conformite.
+#
+# Un controle WMI porte sur toutes les instances rendues, donc sur tous les volumes
+# chiffrables. C'est voulu : un seul disque en clair suffit a exposer ce qu'il porte.
+# En contrepartie, un disque externe branche au moment du scan compte aussi.
+
+- id: WIN-ENC-001
+  title: Volume non protege par BitLocker
+  severity: critical
+  domain: encryption
+  rationale: >
+    Sans chiffrement, quiconque dispose d'un acces physique lit le disque en demarrant
+    sur un autre systeme. Aucun mot de passe Windows n'y change rien. C'est la seule
+    mesure qui protege les donnees d'une machine perdue ou volee, et elle ne s'active
+    pas seule sur les editions Professionnel.
+  references: [CIS-18.10.9, ASD-E8]
+  check:
+    type: wmi
+    path: root\CIMV2\Security\MicrosoftVolumeEncryption:Win32_EncryptableVolume
+    value: ProtectionStatus
+    operator: equals
+    # 0 desactive, 1 actif, 2 inconnu.
+    expect: "1"
+  remediation:
+    reversibility: restorePointOnly
+    breaks: >
+      Rien fonctionnellement. Le chiffrement initial occupe le disque plusieurs heures,
+      et la machine devient inaccessible si la cle de recuperation est perdue.
+    affects: >
+      Toutes les machines. Sur un poste sans TPM, le demarrage exigera en plus un code
+      confidentiel ou une cle sur support amovible a chaque allumage.
+    verifyBefore: >
+      Sauvegarder la cle de recuperation ailleurs que sur la machine chiffree, et
+      verifier qu'elle est lisible. Sans elle, une mise a jour du firmware suffit a
+      rendre les donnees definitivement inaccessibles.
