@@ -7,11 +7,16 @@
 | .NET SDK 10 | `winget install Microsoft.DotNet.SDK.10` |
 | Build Tools C++ | Requis **uniquement** pour la publication Native AOT (voir plus bas) |
 
-Les tests ne demandent que le SDK : ils ne touchent que `Rempart.Core` et rejouent des
-instantanés, sans Windows ni linker.
+Deux suites, deux régimes :
+
+| Projet | Portée | Où |
+|---|---|---|
+| `Rempart.Tests.Unit` | `Rempart.Core` seul, rejeu d'instantanés | Partout, sans Windows |
+| `Rempart.Tests.Windows` | Vrai registre, API systèmes, scan de bout en bout | Windows uniquement |
 
 ```bash
-dotnet test
+dotnet test                              # les deux
+dotnet test tests/Rempart.Tests.Unit     # la partie portable
 ```
 
 ## Publication du binaire

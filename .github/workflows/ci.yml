@@ -36,6 +36,21 @@ jobs:
       - name: Tests unitaires et sur fixtures
         run: dotnet test tests/Rempart.Tests.Unit --configuration Release
 
+  test-windows:
+    # La couche Rempart.Windows -- P/Invoke, registre -- ne peut se tester que sur
+    # Windows. Une signature P/Invoke fausse ne se voit pas a la compilation : elle
+    # rend une valeur plausible et silencieusement erronee.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Tests contre le vrai registre et les API systeme
+        run: dotnet test tests/Rempart.Tests.Windows --configuration Release
+
   publish-aot:
     # Vérifie le livrable réel : un binaire unique, sans runtime à installer.
     # Les runners Windows portent déjà le linker MSVC qu'exige Native AOT.
