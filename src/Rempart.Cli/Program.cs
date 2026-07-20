@@ -56,13 +56,17 @@ static int Scan(string[] args)
         var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(snapshotPath));
         providers = new ProviderSet(
             new SnapshotRegistryProvider(snapshot),
-            new SnapshotSystemInfoProvider(snapshot));
+            new SnapshotSystemInfoProvider(snapshot),
+            new SnapshotServiceStateProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
     {
         RequireWindows();
-        providers = new ProviderSet(new LiveRegistryProvider(), new LiveSystemInfoProvider());
+        providers = new ProviderSet(
+            new LiveRegistryProvider(),
+            new LiveSystemInfoProvider(),
+            new LiveServiceStateProvider());
         origin = UtcNow();
     }
 
@@ -94,7 +98,8 @@ static int Capture(string[] args)
 
     var providers = new ProviderSet(
         new RecordingRegistryProvider(new LiveRegistryProvider(), snapshot),
-        new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot));
+        new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot),
+        new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
@@ -118,7 +123,8 @@ static int Capture(string[] args)
     File.WriteAllText(path, RempartJson.Serialise(snapshot));
 
     Console.WriteLine($"Instantané écrit : {path}");
-    Console.WriteLine($"  lectures enregistrées : {snapshot.Registry.Count}");
+    Console.WriteLine($"  lectures enregistrées : {snapshot.Registry.Count} registre, " +
+                      $"{snapshot.Services.Count} services");
     Console.WriteLine(raw
         ? "  ATTENTION : capture brute, non anonymisée. Ne pas versionner tel quel."
         : "  anonymisé : hostname, numéros de série et propriétaire remplacés par des empreintes.");

@@ -49,11 +49,11 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     {
         foreach (var rule in rules)
         {
-            Rules.CheckReader.Touch(rule.Check, providers.Registry);
+            Rules.CheckReader.Touch(rule.Check, providers);
 
             if (rule.AppliesWhen?.Registry is { } condition)
             {
-                Rules.CheckReader.Touch(condition, providers.Registry);
+                Rules.CheckReader.Touch(condition, providers);
             }
         }
     }
@@ -83,7 +83,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         var system = providers.SystemInfo.Read();
 
         var verdicts = rules
-            .Select(rule => RuleEvaluator.Evaluate(rule, providers.Registry, system))
+            .Select(rule => RuleEvaluator.Evaluate(rule, providers, system))
             .ToList();
 
         return new ScanResult(

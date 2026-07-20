@@ -42,6 +42,39 @@ public sealed record CheckReading(string? Found, string? Effective, bool Denied)
 /// </summary>
 public static class CheckReader
 {
+    public static CheckReading Read(CheckSpec check, ProviderSet providers) =>
+        check.Kind == CheckKind.Service
+            ? ReadService(check, providers.Services)
+            : Read(check, providers.Registry);
+
+    /// <summary>
+    /// Un service absent n'est pas un refus d'accès : il n'y a rien à lire, et la
+    /// comparaison portera sur « absent ». Distinguer les deux évite de conclure à
+    /// une non-conformité là où le scan n'a simplement pas pu regarder.
+    /// </summary>
+    private static CheckReading ReadService(CheckSpec check, IServiceStateProvider services)
+    {
+        var read = services.Read(check.Path);
+
+        if (read.Status == ReadStatus.AccessDenied)
+        {
+            return new CheckReading(null, null, Denied: true);
+        }
+
+        if (read.Info is not { } info)
+        {
+            return new CheckReading(null, "absent", Denied: false);
+        }
+
+        var observed = check.ValueName?.ToLowerInvariant() switch
+        {
+            "state" => info.State.ToString().ToLowerInvariant(),
+            _ => info.StartMode.ToString().ToLowerInvariant(),
+        };
+
+        return new CheckReading(observed, observed, Denied: false);
+    }
+
     public static CheckReading Read(CheckSpec check, IRegistryProvider registry)
     {
         if (check.Kind == CheckKind.RegistryKey)
@@ -76,6 +109,6 @@ public static class CheckReader
     /// d'enregistrement la consigne. Passe par <see cref="Read"/> : c'est ce qui
     /// garantit que capture et évaluation touchent exactement les mêmes clés.
     /// </summary>
-    public static void Touch(CheckSpec check, IRegistryProvider registry) =>
-        _ = Read(check, registry);
+    public static void Touch(CheckSpec check, ProviderSet providers) =>
+        _ = Read(check, providers);
 }

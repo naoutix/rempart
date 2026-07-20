@@ -21,7 +21,10 @@ public sealed class SyntheticSnapshotTests
             Base(rules), rules, SyntheticProfile.Hardened, "anon:test", domainJoined: true);
 
         var verdicts = rules
-            .Select(r => RuleEvaluator.Evaluate(r, new SnapshotRegistryProvider(built), built.SystemInfo))
+            .Select(r => RuleEvaluator.Evaluate(r, new ProviderSet(
+                new SnapshotRegistryProvider(built),
+                new SnapshotSystemInfoProvider(built),
+                new SnapshotServiceStateProvider(built)), built.SystemInfo))
             .ToList();
 
         Assert.DoesNotContain(verdicts, v => v.Status is VerdictStatus.Fail or VerdictStatus.Unknown);
@@ -36,7 +39,7 @@ public sealed class SyntheticSnapshotTests
 
         // Le profil doit exercer la sémantique des défauts Windows : si des clés
         // subsistaient, la fixture testerait autre chose que ce qu'elle annonce.
-        Assert.All(rules, rule =>
+        Assert.All(rules.Where(r => r.Check.Kind != CheckKind.Service), rule =>
         {
             var key = rule.Check.Kind == CheckKind.RegistryKey
                 ? SnapshotKeys.Existence(rule.Check.Path)
@@ -116,6 +119,12 @@ public sealed class SyntheticSnapshotTests
 
         foreach (var rule in rules)
         {
+            if (rule.Check.Kind == CheckKind.Service)
+            {
+                snapshot.Services[rule.Check.Path] = ServiceRead.NotInstalled;
+                continue;
+            }
+
             var key = rule.Check.Kind == CheckKind.RegistryKey
                 ? SnapshotKeys.Existence(rule.Check.Path)
                 : SnapshotKeys.Value(rule.Check.Path, rule.Check.ValueName!);

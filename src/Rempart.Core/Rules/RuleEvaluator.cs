@@ -32,22 +32,35 @@ public sealed record Verdict(
     string? Observed,
     string? Expected);
 
+internal sealed class FixedSystemInfo(SystemInfo? info) : ISystemInfoProvider
+{
+    public SystemInfo Read() => info
+        ?? new SystemInfo("inconnue", "0.0", true, false, 1, 0, "unknown");
+}
+
 /// <summary>
 /// Applique une règle à l'état de la machine. Ne juge pas au-delà de la règle :
 /// la sévérité, la formulation et la remédiation appartiennent au YAML.
 /// </summary>
 public static class RuleEvaluator
 {
-    public static Verdict Evaluate(Rule rule, IRegistryProvider registry, SystemInfo? system = null)
+    /// <summary>
+    /// Évalue une règle qui ne porte que sur le registre. Les contrôles de service
+    /// rendent alors « non vérifiable » — aucun provider ne peut y répondre.
+    /// </summary>
+    public static Verdict Evaluate(Rule rule, IRegistryProvider registry, SystemInfo? system = null) =>
+        Evaluate(rule, new ProviderSet(registry, new FixedSystemInfo(system)), system);
+
+    public static Verdict Evaluate(Rule rule, ProviderSet providers, SystemInfo? system = null)
     {
-        if (rule.AppliesWhen is { } condition && !Applies(condition, registry, system))
+        if (rule.AppliesWhen is { } condition && !Applies(condition, providers, system))
         {
             return new Verdict(
                 rule.Id, rule.Title, rule.Severity, rule.Domain,
                 VerdictStatus.NotApplicable, null, null);
         }
 
-        var reading = CheckReader.Read(rule.Check, registry);
+        var reading = CheckReader.Read(rule.Check, providers);
 
         var status = reading.Denied
             ? VerdictStatus.Unknown
@@ -63,7 +76,7 @@ public static class RuleEvaluator
     /// tenue pour remplie : mieux vaut évaluer la règle et rendre un verdict que la
     /// masquer sur une incertitude d'applicabilité. Une règle escamotée ne se remarque pas.
     /// </summary>
-    private static bool Applies(Applicability condition, IRegistryProvider registry, SystemInfo? system)
+    private static bool Applies(Applicability condition, ProviderSet providers, SystemInfo? system)
     {
         if (condition.DomainJoined is { } required && system is { } info
             && info.IsDomainJoined != required)
@@ -73,7 +86,7 @@ public static class RuleEvaluator
 
         if (condition.Registry is { } check)
         {
-            var reading = CheckReader.Read(check, registry);
+            var reading = CheckReader.Read(check, providers);
             if (!reading.Denied && Compare(check, reading) == VerdictStatus.Fail)
             {
                 return false;

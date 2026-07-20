@@ -38,6 +38,12 @@ public enum CheckKind
 
     /// <summary>Existence d'une clé de registre.</summary>
     RegistryKey,
+
+    /// <summary>
+    /// État ou mode de démarrage d'un service Windows. <c>path</c> porte le nom du
+    /// service, <c>value</c> vaut « state » ou « startMode ».
+    /// </summary>
+    Service,
 }
 
 public sealed record CheckSpec(

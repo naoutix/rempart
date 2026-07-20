@@ -85,7 +85,7 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
 
 - [x] `appliesWhen` : conditionner une règle au contexte de la machine
 - [x] `WIN-FW-006` et `WIN-RDP-002` rétablies, désormais conditionnées
-- [ ] Check `service` — état et mode de démarrage, via `advapi32`, sans WMI
+- [x] Check `service` — état et mode de démarrage, via `advapi32`, sans WMI
 - [ ] Trancher la question WMI/AOT, restée ouverte depuis M0
 - [ ] BitLocker, comptes locaux, politique de mot de passe, état Defender par API
 - [ ] Credential Guard, exploit protection, TLS
