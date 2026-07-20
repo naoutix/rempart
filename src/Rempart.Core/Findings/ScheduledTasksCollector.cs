@@ -173,9 +173,13 @@ public sealed class ScheduledTasksCollector : IFindingCollector
     /// <summary>
     /// Un chemin sans dossier n'a pas été résolu : le provider rend le nom tel quel
     /// quand ni System32 ni le PATH ne le contiennent.
+    ///
+    /// Les séparateurs sont écrits en dur plutôt que pris de <c>Path</c> : ces chemins
+    /// viennent d'une machine Windows et le restent, y compris quand l'instantané est
+    /// rejoué sur Linux — ce que fait la CI, et qui a effectivement fait passer tout
+    /// chemin Windows pour non résolu.
     /// </summary>
-    private static bool IsResolved(string path) =>
-        path.Contains(Path.DirectorySeparatorChar) || path.Contains(Path.AltDirectorySeparatorChar);
+    private static bool IsResolved(string path) => path.Contains('\\') || path.Contains('/');
 
     private static void Set(IDictionary<string, string> details, string key, string? value)
     {
