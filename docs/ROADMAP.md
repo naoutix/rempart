@@ -81,7 +81,7 @@ contrôles ne valent que dans un contexte donné — machine jointe à un domain
 activé, matériel Copilot+. Sans `appliesWhen`, ils produisent du bruit ailleurs.
 C'est le premier chantier de M2b, avant même les nouveaux providers.
 
-### M2b · Nouveaux providers et applicabilité
+### M2b · Nouveaux providers et applicabilité — ✅ terminé
 
 - [x] `appliesWhen` : conditionner une règle au contexte de la machine
 - [x] `WIN-FW-006` et `WIN-RDP-002` rétablies, désormais conditionnées
@@ -93,12 +93,10 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
 - [x] Provider WMI câblé au moteur — type de contrôle `wmi`
 - [x] BitLocker : `WIN-ENC-001`, état effectif du chiffrement
 - [x] Credential Guard, VBS, HVCI — au registre, aucun blocage
-- [ ] **État effectif de Defender par WMI — bloqué faute de vérification.** L'espace
-      de noms `root\Microsoft\Windows\Defender` exige l'élévation, indisponible sur la
-      machine de développement. Livrer une règle dont on devine le nom de classe la
-      rendrait `Unknown` pour toujours, silencieusement : c'est précisément ce qui
-      avait fait retirer `WIN-DEF-009` en M2a. À reprendre après vérification par une
-      sonde élevée.
+- [x] **État effectif de Defender par WMI** — `WIN-DEF-009` rétablie, plus la
+      protection en temps réel effective et l'âge des signatures. Noms de propriétés
+      relevés sur une machine élevée, pas déduits de la documentation : c'est ce qui
+      avait manqué à la première tentative.
 - [ ] TLS — reporté : les valeurs par défaut de SCHANNEL varient selon la build de
       Windows, et un `windowsDefault` deviné produirait de faux constats. Demande une
       vérification sur plusieurs machines.

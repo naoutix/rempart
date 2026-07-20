@@ -366,6 +366,33 @@
       "expected": "1"
     },
     {
+      "ruleId": "WIN-DEF-009",
+      "title": "Protection contre les alterations inactive",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Unknown",
+      "observed": null,
+      "expected": "true"
+    },
+    {
+      "ruleId": "WIN-DEF-012",
+      "title": "Protection en temps reel effectivement arretee",
+      "severity": "Critical",
+      "domain": "defender",
+      "status": "Unknown",
+      "observed": null,
+      "expected": "true"
+    },
+    {
+      "ruleId": "WIN-DEF-013",
+      "title": "Signatures antivirus trop anciennes",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Unknown",
+      "observed": null,
+      "expected": "7"
+    },
+    {
       "ruleId": "WIN-ENC-001",
       "title": "Volume non protege par BitLocker",
       "severity": "Critical",
@@ -783,7 +810,7 @@
         "domain": "defender",
         "passed": 9,
         "failed": 2,
-        "unknown": 0,
+        "unknown": 3,
         "notApplicable": 0,
         "score": 89
       },
@@ -852,8 +879,8 @@
         "score": 0
       }
     ],
-    "totalUnknown": 1,
+    "totalUnknown": 4,
     "isPartial": true
   },
-  "rulesFingerprint": "79:f74cb7fde9c1"
+  "rulesFingerprint": "82:c3e6e3029b12"
 }

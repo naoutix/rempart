@@ -216,3 +216,75 @@
       se réactive qu'en réinstallant Windows : ce réglage se décide à l'installation.
       Ne jamais le désactiver pour contourner un refus, qui est presque toujours
       une attente d'évaluation.
+
+# ── Etat effectif, par WMI ───────────────────────────────────────────────────────
+#
+# Les regles ci-dessus portent sur la strategie : ce que la configuration demande.
+# Celles qui suivent portent sur l'etat courant : ce que Defender fait reellement.
+# La distinction est la meme qu'entre un service configure en automatique et un
+# service qui tourne -- et c'est la seconde qui protege.
+#
+# L'espace de noms exige l'elevation. Sans droits, ces controles rendent « non
+# verifiable », jamais une non-conformite.
+#
+# Noms de proprietes releves sur une machine reelle, pas deduits de la
+# documentation : c'est ce qui avait manque a la premiere tentative de WIN-DEF-009.
+
+- id: WIN-DEF-009
+  title: Protection contre les alterations inactive
+  severity: high
+  domain: defender
+  rationale: >
+    La protection contre les alterations empeche la desactivation de Defender par le
+    registre, y compris par un administrateur local ou un logiciel malveillant
+    disposant de ses droits. C'est elle qui rend fiables tous les autres reglages de
+    ce domaine : sans elle, ils sont modifiables par ce qu'ils sont censes arreter.
+  references: [ASD-E8]
+  check:
+    type: wmi
+    path: root\Microsoft\Windows\Defender:MSFT_MpComputerStatus
+    value: IsTamperProtected
+    operator: equals
+    expect: "true"
+  remediation:
+    reversibility: trivial
+    breaks: >
+      La modification des reglages de Defender par script ou par le registre, y
+      compris les outils de deploiement qui les configurent de cette maniere.
+    affects: >
+      Les parcs dont les scripts de post-installation ajustent Defender. Le reglage
+      se pilote alors par Intune ou par strategie de groupe, plus par le registre.
+
+- id: WIN-DEF-012
+  title: Protection en temps reel effectivement arretee
+  severity: critical
+  domain: defender
+  rationale: >
+    Le pendant effectif de WIN-DEF-002, qui ne verifie que la strategie. La protection
+    peut etre arretee sans qu'aucune strategie ne le demande -- par un logiciel tiers,
+    par un incident, ou par une manipulation. Seul l'etat courant le revele.
+  references: [ASD-E8, CIS-18.9.47.9]
+  check:
+    type: wmi
+    path: root\Microsoft\Windows\Defender:MSFT_MpComputerStatus
+    value: RealTimeProtectionEnabled
+    operator: equals
+    expect: "true"
+
+- id: WIN-DEF-013
+  title: Signatures antivirus trop anciennes
+  severity: high
+  domain: defender
+  rationale: >
+    Des signatures vieilles de plus d'une semaine signalent une machine coupee des
+    mises a jour, souvent sans que rien d'autre ne l'indique. L'antivirus parait
+    actif et ne reconnait plus les menaces recentes.
+  references: [ASD-E8]
+  check:
+    type: wmi
+    path: root\Microsoft\Windows\Defender:MSFT_MpComputerStatus
+    value: AntivirusSignatureAge
+    operator: atMost
+    # En jours. Microsoft publie plusieurs fois par jour ; au-dela d'une semaine,
+    # c'est le canal de mise a jour qui est en cause, pas le rythme de publication.
+    expect: "7"

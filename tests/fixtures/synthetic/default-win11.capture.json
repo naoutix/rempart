@@ -443,6 +443,18 @@
     "denied": false
   },
   "wmi": {
+    "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||IsTamperProtected": {
+      "status": "AccessDenied",
+      "instances": []
+    },
+    "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||RealTimeProtectionEnabled": {
+      "status": "AccessDenied",
+      "instances": []
+    },
+    "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||AntivirusSignatureAge": {
+      "status": "AccessDenied",
+      "instances": []
+    },
     "root\\CIMV2\\Security\\MicrosoftVolumeEncryption:Win32_EncryptableVolume||ProtectionStatus": {
       "status": "AccessDenied",
       "instances": []
