@@ -1,54 +1,180 @@
 # Rempart
 
-Audit et durcissement de postes Windows, en un binaire unique exécutable depuis une clé USB.
+Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 
-> **État : M2a terminé.** `rempart scan` évalue 48 contrôles de sécurité et rend un score
-> par domaine sur 8 domaines, depuis un binaire unique de 4 Mo sans installation. Les contrôles sont des
-> fichiers YAML : en ajouter un ne demande pas de recompiler.
-> Aucune remédiation avant M9 — la v1 n'écrit rien.
+> **État : M2b terminé.** 82 contrôles sur 13 domaines, 178 tests, binaire de 4,3 Mo
+> sans installation. Les contrôles sont des fichiers YAML.
+> **La v1 n'écrit rien** — aucune remédiation avant M9.
 
-## Ce que c'est
+```
+rempart scan          82 contrôles, score par domaine
+rempart explain <ID>  pourquoi une règle existe et ce que coûte sa correction
+rempart capture       instantané rejouable hors-ligne, anonymisé
+```
 
-Un outil d'audit pour préparer plusieurs machines Windows 11 en configuration durcie,
-de façon reproductible et traçable. Il inspecte la posture de sécurité, la surface
-d'exécution, le réseau, les logiciels installés et l'hygiène système, puis produit un
-rapport et un score comparables d'une machine à l'autre.
+## Ce que c'est, ce que ce n'est pas
 
-## Ce que ce n'est pas
+Un outil pour préparer plusieurs machines Windows en configuration durcie, de façon
+reproductible et traçable. Il inspecte la posture de sécurité et produit un rapport
+comparable d'une machine à l'autre.
 
-- **Pas un « PC optimizer ».** Pas de nettoyage de registre : Microsoft ne le supporte pas,
-  le gain est nul et le risque réel.
-- **Pas un antivirus ni un outil de défense temps réel.** Il constate, il ne protège pas.
-- **Pas un scanner réseau.** Il audite la machine sur laquelle il tourne, rien d'autre.
+**Ce n'est pas** un « PC optimizer » — pas de nettoyage de registre, Microsoft ne le
+supporte pas et le gain est nul. Ni un antivirus : il constate, il ne protège pas.
+Ni un scanner réseau : il audite la machine sur laquelle il tourne, rien d'autre.
 
-## Principes
+---
 
-| Principe | Conséquence concrète |
+# Pour développer
+
+## Démarrer
+
+```bash
+dotnet test                                   # 178 tests, ~10 s
+dotnet run --project src/Rempart.Cli -- scan  # sur la machine locale
+```
+
+Prérequis : [.NET SDK 10](docs/BUILD.md). Les Build Tools C++ ne servent qu'à la
+publication AOT.
+
+## Les six choses qui font perdre du temps
+
+Toutes rencontrées pendant le développement, toutes documentées dans
+[BUILD.md](docs/BUILD.md).
+
+| Symptôme | Cause |
 |---|---|
-| Audit et remédiation séparés | La v1 n'implémente aucun provider en écriture — l'impossibilité d'écrire est structurelle |
-| Hors-ligne par défaut | Tout enrichissement externe est opt-in par exécution ; aucune donnée machine ne sort sans demande |
-| Les règles sont des données | Contrôles et catalogues en YAML — un ajout ne demande pas de recompilation |
-| Composants critiques intouchables | Edge/WebView2, Store, App Installer et Windows Update sont protégés par une liste codée en dur, vérifiée en CI |
-| Jamais d'échec silencieux | Sans les droits nécessaires, un collecteur le signale plutôt que d'omettre |
-| Réversibilité explicite | Chaque action de remédiation portera sa classe de réversibilité ; les actions irréversibles n'entrent dans aucun profil |
+| `MSB3073 ... code 123` après plusieurs minutes de publication | `vswhere.exe` absent du `PATH` — le message accuse `link.exe` à tort |
+| `winget` échoue en `0x8a15000f` | Terminal élevé : cache de sources distinct. Lancer depuis un PowerShell normal |
+| `Une stratégie de contrôle d'application a bloqué ce fichier` | Smart App Control. Voir plus bas |
+| Un test échoue sur une fixture après ajout d'une règle | `./scripts/regenerate-fixtures.ps1` |
+| `verify.ps1` s'interrompt sans diagnostic | PowerShell 5.1 : la sortie d'erreur d'un exe natif devient terminante sous `$ErrorActionPreference = 'Stop'` |
+| Le code compile mais échoue à la publication AOT | Le garde-fou `IsAotCompatible` les attrape à la compilation — s'il ne l'a pas fait, c'est du COM |
 
-## Documentation
+### Smart App Control
 
-- [ADR-001](docs/adr/ADR-001-stack-et-perimetre.md) — stack, périmètre v1, principes de sécurité
-- [Architecture](docs/ARCHITECTURE.md) — schémas, arborescence, format des règles, stratégie de test
-- [Plan d'attaque](docs/ROADMAP.md) — M0 à M12, avec critères de sortie
-- [Compiler](docs/BUILD.md) — prérequis, publication AOT, pièges
-- [Règles](rules/) — les contrôles livrés, en YAML
+Sur une machine où il est actif, les assemblys fraîchement compilées peuvent être
+**refusées au chargement** (`0x800711C7`). Le refus se lit dans le journal
+`Microsoft-Windows-CodeIntegrity/Operational`, événement 3077.
 
-## Prérequis de développement
+**Ce comportement n'est pas prévisible localement** : chaque empreinte est soumise au
+service de réputation Microsoft. Ni recompiler ni attendre n'est une méthode fiable.
 
-- .NET SDK 10
-- Windows 11 (l'outil cible Windows ; le développement aussi)
-- Hyper-V pour les tests de remédiation (post-v1)
+**Ne pas désactiver la protection pour contourner un refus** — elle ne se réactive
+qu'en réinstallant Windows. Sur une machine concernée, **la CI fait foi** : ses
+runners n'appliquent pas cette stratégie.
+
+## Ajouter un contrôle
+
+Éditer un YAML dans [`rules/security/`](rules/security/), puis :
+
+```powershell
+./scripts/regenerate-fixtures.ps1   # une règle lit des clés absentes des fixtures
+dotnet test                         # échoue une fois, pour relire les références
+```
+
+Sans recompiler, pour itérer :
+
+```powershell
+rempart scan --rules ./mes-regles
+```
+
+Le format complet est dans [ARCHITECTURE.md](docs/ARCHITECTURE.md). Trois champs
+méritent l'attention.
+
+**`windowsDefault` — obligatoire, et c'est lui qui décide de la justesse.** Sur le
+registre Windows, une clé absente est le cas *courant* : le comportement suit alors un
+défaut documenté, souvent l'état souhaité. Une version antérieure traitait toute
+absence comme un échec et remontait trois alertes `CRITICAL` fausses sur une machine
+saine. Un outil qui crie au loup cesse d'être lu.
+
+**`appliesWhen` — quand une règle a un sens.** Plusieurs contrôles ne valent que sur
+une machine jointe à un domaine, ou avec RDP actif. Ailleurs, ils font du bruit — et
+le bruit disqualifie un outil d'audit plus sûrement qu'un contrôle manquant.
+
+**`breaks` / `affects` / `verifyBefore` — pas un texte libre.** Les trois questions
+qu'on se pose avant d'appliquer un durcissement : qu'est-ce qui cesse de marcher, qui
+est concerné, comment le savoir à l'avance. « Rien » est recevable, mais doit être
+écrit.
+
+## Les principes qui tiennent le projet
+
+Ils ont chacun coûté une erreur. Les enfreindre casse quelque chose qui ne se verra
+pas tout de suite.
+
+**Aucun collecteur n'appelle Windows directement.** Tout passe par les providers
+(`IRegistryProvider`, `IServiceStateProvider`, `IWmiProvider`…). C'est ce qui permet
+de rejouer un scan hors-ligne, et donc de tester sans machine ni VM.
+
+**`Unknown` n'est jamais `Fail`.** Un contrôle qu'on n'a pas pu lire n'est pas un
+contrôle échoué. Il sort du score, et un domaine entièrement illisible vaut `n/d`, pas
+zéro. « Je ne sais pas » et « c'est mauvais » appellent des actions différentes.
+
+**Ne jamais masquer une défaillance en refus d'accès.** Un `catch` généraliste
+traduisant tout en « accès refusé » a rendu WMI inopérant dans le binaire publié
+pendant deux lots, sans que rien ne le signale — le bug ressemblait à un manque de
+droits. Une panne doit se voir.
+
+**Une seule traduction d'un `CheckSpec` en lectures** — [`CheckReader`](src/Rempart.Core/Rules/CheckReader.cs).
+L'évaluation et la capture y passent toutes deux ; un test verrouille l'invariant.
+Sans lui, un nouveau type de contrôle oublié côté capture produirait des instantanés
+silencieusement incomplets.
+
+**Ne pas livrer une règle qu'on n'a pas pu vérifier.** Un nom de propriété deviné rend
+`Unknown` pour toujours, sans que rien ne le distingue d'un manque de droits. Deux
+règles ont été retirées pour cette raison, avec leur motif consigné à l'emplacement
+exact où elles se trouvaient.
+
+## Tests
+
+| Projet | Portée | Où |
+|---|---|---|
+| `Rempart.Tests.Unit` | Moteur, règles, rejeu de fixtures | Partout, sans Windows |
+| `Rempart.Tests.Windows` | Vrai registre, services, WMI, scan complet | Windows uniquement |
+
+Les fixtures de `tests/fixtures/synthetic/` sont **versionnées et fabriquées**. Les
+captures de machines réelles vont dans `tests/fixtures/local/`, **hors dépôt** : le
+dépôt est public, et une capture réelle cartographie les faiblesses d'une machine
+identifiable. Elles sont rejouées si présentes — les machines réelles portent les cas
+que personne n'aurait pensé à fabriquer.
+
+Quelques tests méritent d'être connus avant de toucher au moteur :
+
+- *Aucune règle n'échoue sur une machine durcie* — attrape une règle inatteignable
+- *L'évaluation ne lit jamais une clé que la capture n'enregistre pas*
+- *Aucune règle ne cible un composant protégé* — Edge, Store, Windows Update
+- *Les fixtures versionnées sont anonymisées*
+
+## Workflow
+
+`main` est protégé : pull request obligatoire, **les cinq checks verts**, historique
+linéaire, et la règle s'applique aux administrateurs — sans quoi elle n'enforcerait rien.
+
+```bash
+git checkout -b feat/…
+./scripts/verify.ps1        # workflows, tests, publication AOT, binaire isolé
+gh pr create
+gh pr merge --squash --delete-branch
+```
+
+Cinq jobs. Le contrôle le moins évident est l'étape `diagnose-wmi` de `publish-aot`,
+exécutée **contre le binaire natif** : l'interop COM s'y comporte autrement qu'en JIT,
+et c'est le seul endroit où un bug entier était observable.
+
+## Où trouver quoi
+
+| | |
+|---|---|
+| [ADR-001](docs/adr/ADR-001-stack-et-perimetre.md) | Les 10 décisions, avec les alternatives écartées |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Schémas, format des règles, stratégie de test |
+| [ROADMAP.md](docs/ROADMAP.md) | M0 → M12, ce qui est reporté **et pourquoi** |
+| [BUILD.md](docs/BUILD.md) | Prérequis, publication AOT, pièges |
+| [rules/security/](rules/security/) | Les 82 contrôles |
+
+La feuille de route consigne aussi ce qui a été **écarté**, avec le motif. C'est là
+qu'il faut regarder avant de réimplémenter quelque chose qui a déjà été essayé.
 
 ## Licence
 
-[MIT](LICENSE).
-
-L'outil est fourni sans garantie. Il inspecte et, à terme, modifie la configuration
-d'un système : la responsabilité de son usage revient à celui qui l'exécute.
+[MIT](LICENSE). Fourni sans garantie : l'outil inspecte et, à terme, modifiera la
+configuration d'un système. La responsabilité de son usage revient à celui qui
+l'exécute.
