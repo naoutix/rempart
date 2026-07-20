@@ -185,10 +185,11 @@
   severity: medium
   domain: defender
   rationale: >
-    Smart App Control bloque l'exécution des binaires non signés ou sans réputation
-    établie, y compris ceux qu'un utilisateur télécharge et lance volontairement.
-    C'est l'une des rares protections qui arrête un exécutable jamais vu auparavant,
-    là où les signatures ne peuvent rien.
+    Smart App Control soumet chaque exécutable inconnu au service de réputation
+    Microsoft et en refuse l'exécution tant qu'aucun verdict favorable n'est rendu.
+    C'est l'une des rares protections qui arrête un binaire jamais vu auparavant,
+    là où les signatures ne peuvent rien — y compris un exécutable que l'utilisateur
+    télécharge et lance volontairement.
   references: [ASD-E8]
   check:
     type: registry
@@ -202,12 +203,16 @@
   remediation:
     reversibility: irreversible
     breaks: >
-      L'exécution de tout binaire non signé ou sans réputation : outils internes,
-      utilitaires de niche, binaires compilés localement.
+      L'exécution des binaires non signés dépourvus d'un verdict de réputation
+      favorable : outils internes, utilitaires de niche, binaires compilés
+      localement. Le refus se lit dans le journal Microsoft-Windows-CodeIntegrity.
     affects: >
-      Les postes de développement et d'administration en premier lieu. Un poste
-      bureautique n'exécutant que des logiciels courants n'est pas concerné.
+      Les postes de développement au premier chef, où chaque compilation produit
+      une empreinte inédite. Un poste bureautique n'exécutant que des logiciels
+      établis et signés n'est pas concerné.
     verifyBefore: >
-      Smart App Control ne peut être réactivé qu'en réinstallant Windows une fois
-      désactivé, et ne peut être activé que sur une installation propre. Ce réglage
-      se décide au moment de l'installation, pas après.
+      Le sens de la remédiation est ici d'activer, non de désactiver. Smart App
+      Control ne s'active que sur une installation propre, et une fois désactivé ne
+      se réactive qu'en réinstallant Windows : ce réglage se décide à l'installation.
+      Ne jamais le désactiver pour contourner un refus, qui est presque toujours
+      une attente d'évaluation.

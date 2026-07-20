@@ -49,6 +49,40 @@ $env:PATH += ";${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 
 Ou de façon permanente, via les variables d'environnement utilisateur.
 
+## Smart App Control
+
+Sur une machine où Smart App Control est actif, les assemblys fraîchement compilées
+peuvent être **refusées au chargement** :
+
+```
+System.IO.FileLoadException: Une stratégie de contrôle d'application a bloqué ce
+fichier. (0x800711C7)
+```
+
+Le refus se lit dans le journal `Microsoft-Windows-CodeIntegrity/Operational`,
+événement 3077 : *did not meet the Enterprise signing level requirements*.
+
+Vérifier l'état de la protection :
+
+```powershell
+Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' `
+    -Name VerifiedAndReputablePolicyState   # 0 inactif · 1 actif · 2 évaluation
+```
+
+**Ce comportement n'est pas prévisible localement.** Smart App Control soumet chaque
+empreinte au service de réputation Microsoft ; certains fichiers passent, d'autres non,
+et ni recompiler ni attendre ne constitue une méthode fiable. Ne pas désactiver la
+protection pour contourner le refus : elle ne se réactive qu'en réinstallant Windows.
+
+Conséquences pratiques :
+
+- **La CI fait foi** sur une machine protégée par Smart App Control. Ses runners
+  n'appliquent pas cette stratégie.
+- `verify.ps1` consulte le journal d'intégrité et distingue ce refus d'un échec de
+  test — le message de xUnit, lui, ressemble à une régression.
+- La signature de code est le seul correctif durable. Point resté ouvert dans
+  l'ADR-001, à trancher le jour d'une distribution.
+
 ## Rejouer la CI en local
 
 ```powershell

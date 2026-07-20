@@ -69,8 +69,38 @@ Step 'Workflows' {
 }
 
 Step 'Tests' {
-    dotnet test --configuration Release --nologo --verbosity quiet
-    if ($LASTEXITCODE -ne 0) { throw "des tests ont echoue" }
+    # Windows PowerShell 5.1 transforme la sortie d'erreur d'un executable natif en
+    # erreur terminante des lors que ErrorActionPreference vaut Stop. Sans cette
+    # parenthese, le script s'interrompt sur la premiere ligne ecrite par xUnit et
+    # n'atteint jamais le diagnostic ci-dessous.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        dotnet test --configuration Release --nologo --verbosity quiet
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+
+    if ($LASTEXITCODE -eq 0) { return }
+
+    # Smart App Control refuse les assemblys non signees selon un verdict de
+    # reputation rendu par Microsoft pour chaque empreinte. Rien ne permet de le
+    # prevoir ni de le forcer localement : certains fichiers passent, d'autres non.
+    # Le journal d'integrite du code le dit sans ambiguite, la ou le message de xUnit
+    # ressemble a une regression.
+    $blocked = Get-WinEvent -LogName 'Microsoft-Windows-CodeIntegrity/Operational' `
+        -MaxEvents 40 -ErrorAction SilentlyContinue |
+        Where-Object { $_.Id -eq 3077 -and $_.Message -like '*Rempart*' } |
+        Select-Object -First 1
+
+    if ($blocked) {
+        throw "Smart App Control a bloque une assembly Rempart non signee ($($blocked.TimeCreated)). " +
+              "Ce n'est pas une regression du code : la verification revient a la CI, " +
+              "dont les runners n'appliquent pas cette strategie. Voir docs/BUILD.md."
+    }
+
+    throw "des tests ont echoue"
 }
 
 if (-not $SkipPublish) {
@@ -86,17 +116,6 @@ if (-not $SkipPublish) {
     }
 
     Step 'Binaire isole' {
-        # Smart App Control bloque les binaires non signes sans reputation etablie.
-        # C'est une condition d'environnement, pas un defaut du code : la CI publie
-        # et execute sur des runners qui n'en ont pas. Le distinguer d'un vrai echec
-        # evite de faire croire a une regression.
-        $appControl = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' `
-            -Name VerifiedAndReputablePolicyState -ErrorAction SilentlyContinue
-        if ($appControl -and $appControl.VerifiedAndReputablePolicyState -eq 1) {
-            Write-Host 'Smart App Control actif : execution du binaire non signe bloquee.' -ForegroundColor Yellow
-            Write-Host 'Verification deleguee au job publish-aot de la CI.'
-            return
-        }
 
         # Le coeur de la promesse : un exe seul, sans runtime ni fichier voisin.
         $exe = Join-Path $root 'src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe'
