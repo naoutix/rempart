@@ -28,6 +28,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Clé : nom du service.</summary>
     public Dictionary<string, ServiceRead> Services { get; set; } = [];
+
+    /// <summary>Faits de politique locale, ou null s'ils n'ont pas pu être lus.</summary>
+    public PolicyFacts? Policy { get; set; }
 }
 
 public static class SnapshotKeys

@@ -108,7 +108,8 @@ public static class RuleEvaluator
             CheckOperator.Equals => Matches(reading.Effective, check.Expected),
             CheckOperator.NotEquals => reading.Effective is not null
                 && !Matches(reading.Effective, check.Expected),
-            CheckOperator.AtLeast => AtLeast(reading.Effective, check.Expected),
+            CheckOperator.AtLeast => Compare(reading.Effective, check.Expected, (a, b) => a >= b),
+            CheckOperator.AtMost => Compare(reading.Effective, check.Expected, (a, b) => a <= b),
 
             _ => false,
         };
@@ -119,8 +120,12 @@ public static class RuleEvaluator
     private static bool Matches(string? observed, string? expected) =>
         observed is not null && string.Equals(observed, expected, StringComparison.OrdinalIgnoreCase);
 
-    private static bool AtLeast(string? observed, string? expected) =>
+    /// <summary>
+    /// Une valeur non numérique ne satisfait aucune comparaison d'ordre. Rendre faux
+    /// plutôt que lever : la règle échoue visiblement au lieu d'interrompre le scan.
+    /// </summary>
+    private static bool Compare(string? observed, string? expected, Func<long, long, bool> compare) =>
         long.TryParse(observed, out var actual)
         && long.TryParse(expected, out var threshold)
-        && actual >= threshold;
+        && compare(actual, threshold);
 }

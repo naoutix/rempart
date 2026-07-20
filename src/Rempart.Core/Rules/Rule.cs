@@ -21,8 +21,12 @@ public enum CheckOperator
     /// <summary>Différence stricte.</summary>
     NotEquals,
 
-    /// <summary>Valeur numérique supérieure ou égale — seuils de configuration.</summary>
+    /// <summary>Valeur numérique supérieure ou égale — planchers de configuration.</summary>
     AtLeast,
+
+    /// <summary>Valeur numérique inférieure ou égale — plafonds, comme un nombre
+    /// d'administrateurs locaux.</summary>
+    AtMost,
 
     /// <summary>La valeur existe, quelle qu'elle soit.</summary>
     Exists,
@@ -44,6 +48,12 @@ public enum CheckKind
     /// service, <c>value</c> vaut « state » ou « startMode ».
     /// </summary>
     Service,
+
+    /// <summary>
+    /// Fait de politique locale — mot de passe, verrouillage, comptes. <c>path</c>
+    /// porte le nom du fait, par exemple « password.minLength ».
+    /// </summary>
+    Policy,
 }
 
 public sealed record CheckSpec(

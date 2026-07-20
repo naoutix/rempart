@@ -235,6 +235,10 @@
       "status": "NotFound",
       "value": null
     },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy||VerifiedAndReputablePolicyState": {
+      "status": "NotFound",
+      "value": null
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||EnableFirewall": {
       "status": "NotFound",
       "value": null
@@ -411,5 +415,19 @@
         "startMode": "Disabled"
       }
     }
+  },
+  "policy": {
+    "values": {
+      "password.minLength": "0",
+      "password.historyLength": "0",
+      "password.maxAgeDays": "42",
+      "lockout.threshold": "10",
+      "lockout.durationMinutes": "10",
+      "accounts.withoutPassword": "1",
+      "accounts.passwordNeverExpires": "2",
+      "accounts.guestEnabled": "false",
+      "accounts.localAdminCount": "2"
+    },
+    "denied": false
   }
 }

@@ -86,6 +86,18 @@ if (-not $SkipPublish) {
     }
 
     Step 'Binaire isole' {
+        # Smart App Control bloque les binaires non signes sans reputation etablie.
+        # C'est une condition d'environnement, pas un defaut du code : la CI publie
+        # et execute sur des runners qui n'en ont pas. Le distinguer d'un vrai echec
+        # evite de faire croire a une regression.
+        $appControl = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' `
+            -Name VerifiedAndReputablePolicyState -ErrorAction SilentlyContinue
+        if ($appControl -and $appControl.VerifiedAndReputablePolicyState -eq 1) {
+            Write-Host 'Smart App Control actif : execution du binaire non signe bloquee.' -ForegroundColor Yellow
+            Write-Host 'Verification deleguee au job publish-aot de la CI.'
+            return
+        }
+
         # Le coeur de la promesse : un exe seul, sans runtime ni fichier voisin.
         $exe = Join-Path $root 'src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe'
         $sandbox = Join-Path $env:TEMP "rempart-verify-$PID"

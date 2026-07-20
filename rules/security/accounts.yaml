@@ -1,0 +1,103 @@
+# Comptes locaux et politique de mot de passe.
+#
+# Faits lus par netapi32, ni au registre ni au gestionnaire de services. Les contrôles
+# portent sur des agrégats — nombre d'administrateurs, comptes sans mot de passe —
+# plutôt que sur des comptes nommés : un audit demande « combien », pas « lesquels »,
+# et énumérer des noms d'utilisateurs dans un rapport les exposerait sans nécessité.
+#
+# Aucune remédiation décrite : créer, désactiver ou reconfigurer un compte n'est pas
+# une modification de registre, et se fait par les outils Windows.
+
+- id: WIN-ACC-001
+  title: Aucune longueur minimale de mot de passe
+  severity: high
+  domain: accounts
+  rationale: >
+    Sans longueur minimale, un compte local peut porter un mot de passe d'un caractère,
+    voire vide. C'est le premier obstacle à toute attaque par force brute hors ligne
+    sur les empreintes extraites de la machine.
+  references: [CIS-1.1.4, ASD-E8]
+  check:
+    type: policy
+    path: password.minLength
+    operator: atLeast
+    expect: "14"
+
+- id: WIN-ACC-002
+  title: Comptes actifs dispensés de mot de passe
+  severity: critical
+  domain: accounts
+  rationale: >
+    Un compte marqué « mot de passe non requis » peut ouvrir une session sans en
+    fournir. Sur une machine accessible physiquement, ou via un partage réseau, cela
+    revient à laisser une porte sans serrure.
+  references: [CIS-1.1, ASD-E8]
+  check:
+    type: policy
+    path: accounts.withoutPassword
+    operator: equals
+    expect: "0"
+
+- id: WIN-ACC-003
+  title: Compte invité actif
+  severity: high
+  domain: accounts
+  rationale: >
+    Le compte invité permet une ouverture de session sans identifiant nominatif, donc
+    sans traçabilité. Il est désactivé par défaut ; le trouver actif signale une
+    activation délibérée dont la justification mérite vérification.
+  references: [CIS-2.3.1.3, ASD-E8]
+  check:
+    type: policy
+    path: accounts.guestEnabled
+    operator: equals
+    expect: "false"
+
+- id: WIN-ACC-004
+  title: Trop d'administrateurs locaux
+  severity: medium
+  domain: accounts
+  rationale: >
+    Chaque administrateur local est un compte dont la compromission donne le contrôle
+    complet de la machine. Un poste de travail en justifie rarement plus de deux :
+    l'administrateur intégré et le compte de son utilisateur.
+  references: [CIS-1.1, ASD-E8]
+  check:
+    type: policy
+    path: accounts.localAdminCount
+    operator: atMost
+    expect: "2"
+
+- id: WIN-ACC-005
+  title: Historique des mots de passe non conservé
+  severity: medium
+  domain: accounts
+  rationale: >
+    Sans historique, un utilisateur contraint de changer de mot de passe peut
+    reprendre immédiatement le précédent. L'obligation de renouvellement perd alors
+    tout effet.
+  references: [CIS-1.1.1]
+  check:
+    type: policy
+    path: password.historyLength
+    operator: atLeast
+    expect: "24"
+
+- id: WIN-ACC-006
+  title: Verrouillage de compte non configuré
+  severity: high
+  domain: accounts
+  rationale: >
+    Sans seuil de verrouillage, rien ne limite les tentatives d'authentification
+    successives : une attaque par dictionnaire peut s'exécuter indéfiniment contre un
+    compte local. Windows 11 pose un seuil par défaut depuis 2022, mais il reste
+    modifiable et absent des installations plus anciennes.
+  references: [CIS-1.2.2, ASD-E8]
+  check:
+    type: policy
+    path: lockout.threshold
+    # Le cas dangereux est zéro — aucun verrouillage, donc des tentatives illimitées.
+    # Le moteur ne sait pas exprimer un intervalle ; le plancher est ce qui compte,
+    # et un seuil trop généreux reste un moindre mal comparé à son absence.
+    operator: notEquals
+    expect: "0"

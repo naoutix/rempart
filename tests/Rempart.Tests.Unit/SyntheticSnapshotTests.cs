@@ -24,7 +24,8 @@ public sealed class SyntheticSnapshotTests
             .Select(r => RuleEvaluator.Evaluate(r, new ProviderSet(
                 new SnapshotRegistryProvider(built),
                 new SnapshotSystemInfoProvider(built),
-                new SnapshotServiceStateProvider(built)), built.SystemInfo))
+                new SnapshotServiceStateProvider(built),
+                new SnapshotSecurityPolicyProvider(built)), built.SystemInfo))
             .ToList();
 
         Assert.DoesNotContain(verdicts, v => v.Status is VerdictStatus.Fail or VerdictStatus.Unknown);
@@ -39,7 +40,13 @@ public sealed class SyntheticSnapshotTests
 
         // Le profil doit exercer la sémantique des défauts Windows : si des clés
         // subsistaient, la fixture testerait autre chose que ce qu'elle annonce.
-        Assert.All(rules.Where(r => r.Check.Kind != CheckKind.Service), rule =>
+        // Services et faits de politique en sont exclus : leur état est directement
+        // observable, il n'existe pas de « défaut Windows » à révéler en retirant
+        // une clé. Le profil les laisse donc tels que la capture les a vus.
+        var registryRules = rules.Where(r =>
+            r.Check.Kind is CheckKind.Registry or CheckKind.RegistryKey);
+
+        Assert.All(registryRules, rule =>
         {
             var key = rule.Check.Kind == CheckKind.RegistryKey
                 ? SnapshotKeys.Existence(rule.Check.Path)
@@ -115,6 +122,7 @@ public sealed class SyntheticSnapshotTests
 
     private static MachineSnapshot Base(IReadOnlyList<Rule> rules)
     {
+        var facts = new Dictionary<string, string>(StringComparer.Ordinal);
         var snapshot = new MachineSnapshot { SystemInfo = FakeSystemInfoProvider.Default };
 
         foreach (var rule in rules)
@@ -125,6 +133,14 @@ public sealed class SyntheticSnapshotTests
                 continue;
             }
 
+            if (rule.Check.Kind == CheckKind.Policy)
+            {
+                // Un fait présent mais vide : la fabrique doit le remplacer par une
+                // valeur satisfaisante, pas se contenter d'un dictionnaire absent.
+                facts[rule.Check.Path] = "0";
+                continue;
+            }
+
             var key = rule.Check.Kind == CheckKind.RegistryKey
                 ? SnapshotKeys.Existence(rule.Check.Path)
                 : SnapshotKeys.Value(rule.Check.Path, rule.Check.ValueName!);
@@ -132,6 +148,7 @@ public sealed class SyntheticSnapshotTests
             snapshot.Registry[key] = RegistryRead.NotFound;
         }
 
+        snapshot.Policy = new PolicyFacts(facts);
         return snapshot;
     }
 

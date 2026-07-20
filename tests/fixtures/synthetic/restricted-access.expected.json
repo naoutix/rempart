@@ -35,6 +35,60 @@
   ],
   "verdicts": [
     {
+      "ruleId": "WIN-ACC-001",
+      "title": "Aucune longueur minimale de mot de passe",
+      "severity": "High",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "14",
+      "expected": "14"
+    },
+    {
+      "ruleId": "WIN-ACC-002",
+      "title": "Comptes actifs dispens\u00E9s de mot de passe",
+      "severity": "Critical",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "0",
+      "expected": "0"
+    },
+    {
+      "ruleId": "WIN-ACC-003",
+      "title": "Compte invit\u00E9 actif",
+      "severity": "High",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "false",
+      "expected": "false"
+    },
+    {
+      "ruleId": "WIN-ACC-004",
+      "title": "Trop d\u0027administrateurs locaux",
+      "severity": "Medium",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "2",
+      "expected": "2"
+    },
+    {
+      "ruleId": "WIN-ACC-005",
+      "title": "Historique des mots de passe non conserv\u00E9",
+      "severity": "Medium",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "24",
+      "expected": "24"
+    },
+    {
+      "ruleId": "WIN-ACC-006",
+      "title": "Verrouillage de compte non configur\u00E9",
+      "severity": "High",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "1",
+      "expected": "0"
+    },
+    {
       "ruleId": "WIN-ASR-001",
       "title": "ASR \u2014 abus de pilotes sign\u00E9s vuln\u00E9rables non bloqu\u00E9",
       "severity": "High",
@@ -303,6 +357,15 @@
       "status": "Pass",
       "observed": "absent",
       "expected": null
+    },
+    {
+      "ruleId": "WIN-DEF-011",
+      "title": "Smart App Control inactif",
+      "severity": "Medium",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "1",
+      "expected": "1"
     },
     {
       "ruleId": "WIN-FW-001",
@@ -651,6 +714,14 @@
     "overall": 100,
     "domains": [
       {
+        "domain": "accounts",
+        "passed": 6,
+        "failed": 0,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 100
+      },
+      {
         "domain": "asr",
         "passed": 18,
         "failed": 0,
@@ -676,7 +747,7 @@
       },
       {
         "domain": "defender",
-        "passed": 10,
+        "passed": 11,
         "failed": 0,
         "unknown": 0,
         "notApplicable": 0,
@@ -734,5 +805,5 @@
     "totalUnknown": 3,
     "isPartial": true
   },
-  "rulesFingerprint": "68:83670c963690"
+  "rulesFingerprint": "75:bd19b4c0eb78"
 }

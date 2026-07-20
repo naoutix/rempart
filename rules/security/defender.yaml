@@ -179,3 +179,35 @@
     type: registryKey
     path: HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Exclusions\Paths
     operator: absent
+
+- id: WIN-DEF-011
+  title: Smart App Control inactif
+  severity: medium
+  domain: defender
+  rationale: >
+    Smart App Control bloque l'exécution des binaires non signés ou sans réputation
+    établie, y compris ceux qu'un utilisateur télécharge et lance volontairement.
+    C'est l'une des rares protections qui arrête un exécutable jamais vu auparavant,
+    là où les signatures ne peuvent rien.
+  references: [ASD-E8]
+  check:
+    type: registry
+    path: HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy
+    value: VerifiedAndReputablePolicyState
+    operator: atLeast
+    expect: "1"
+    # 0 desactive, 1 actif, 2 en evaluation. Absent sur les installations
+    # anterieures a Windows 11 22H2 ou mises a niveau depuis Windows 10.
+    windowsDefault: "0"
+  remediation:
+    reversibility: irreversible
+    breaks: >
+      L'exécution de tout binaire non signé ou sans réputation : outils internes,
+      utilitaires de niche, binaires compilés localement.
+    affects: >
+      Les postes de développement et d'administration en premier lieu. Un poste
+      bureautique n'exécutant que des logiciels courants n'est pas concerné.
+    verifyBefore: >
+      Smart App Control ne peut être réactivé qu'en réinstallant Windows une fois
+      désactivé, et ne peut être activé que sur une installation propre. Ce réglage
+      se décide au moment de l'installation, pas après.

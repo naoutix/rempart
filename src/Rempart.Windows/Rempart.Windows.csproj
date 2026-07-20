@@ -6,6 +6,8 @@
     <RootNamespace>Rempart.Windows</RootNamespace>
     <!-- Requis par LibraryImport : le marshalling genere est la voie compatible AOT. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Structures natives parcourues par pointeur : le compilateur calcule tailles
+         et decalages, la ou un calcul manuel s.etait deja trompe. -->
   </PropertyGroup>
 
   <ItemGroup>
