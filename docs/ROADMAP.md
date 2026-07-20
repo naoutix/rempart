@@ -92,8 +92,16 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
       COM de WMI passent, sans réflexion ni avertissement de trim.
 - [x] Provider WMI câblé au moteur — type de contrôle `wmi`
 - [x] BitLocker : `WIN-ENC-001`, état effectif du chiffrement
-- [ ] État effectif de Defender par WMI — dont `WIN-DEF-009`, retirée en M2a
-- [ ] Credential Guard, exploit protection, TLS
+- [x] Credential Guard, VBS, HVCI — au registre, aucun blocage
+- [ ] **État effectif de Defender par WMI — bloqué faute de vérification.** L'espace
+      de noms `root\Microsoft\Windows\Defender` exige l'élévation, indisponible sur la
+      machine de développement. Livrer une règle dont on devine le nom de classe la
+      rendrait `Unknown` pour toujours, silencieusement : c'est précisément ce qui
+      avait fait retirer `WIN-DEF-009` en M2a. À reprendre après vérification par une
+      sonde élevée.
+- [ ] TLS — reporté : les valeurs par défaut de SCHANNEL varient selon la build de
+      Windows, et un `windowsDefault` deviné produirait de faux constats. Demande une
+      vérification sur plusieurs machines.
 
 ### M3 · Persistance & processus
 Processus (chemin, signature Authenticode, parent, ligne de commande), services,

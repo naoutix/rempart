@@ -351,6 +351,18 @@
       "status": "NotFound",
       "value": null
     },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard||EnableVirtualizationBasedSecurity": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||LsaCfgFlags": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity||Enabled": {
+      "status": "NotFound",
+      "value": null
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
       "status": "NotFound",
       "value": null
