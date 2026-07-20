@@ -1,6 +1,6 @@
 # ADR-002 : Mise à jour des données qui vieillissent
 
-**Statut :** Proposé — une décision reste ouverte, voir « Trancher »
+**Statut :** Accepté — 2026-07-20
 **Date :** 2026-07-20
 **Complète :** [ADR-001](ADR-001-stack-et-perimetre.md), décisions D9 (hors-ligne) et D3 (règles en données)
 
@@ -79,7 +79,7 @@ L'empreinte du catalogue y figure déjà (`règles : 82:c3e6e3029b12`). S'y ajou
 date des données et un avertissement au-delà d'un seuil. Des règles de six mois se
 voient dans le rapport, pas dans un coin de la documentation.
 
-## Trancher : le niveau de confiance du canal
+## Le niveau de confiance du canal — décidé
 
 ### Option A — Empreintes épinglées dans le binaire
 
@@ -148,7 +148,40 @@ la machine de développement, hors du dépôt, avec une procédure de révocatio
 avant la première signature. Sans cet engagement, A reste préférable à un B mal tenu —
 une signature qu'on croit sûre est pire qu'une empreinte qu'on sait rigide.
 
-**Recommandation : option B**, sous réserve de cet engagement.
+### D16 — Manifeste signé, avec engagement sur la clé
+
+**Option B retenue.** L'engagement qui la conditionne est pris, et sa procédure est
+écrite ci-dessous — avant toute signature, comme l'exigeait la formulation de cet ADR.
+
+Une signature qu'on croit sûre est pire qu'une empreinte qu'on sait rigide : la
+procédure n'est donc pas un accessoire de la décision, elle en fait partie.
+
+## Protection et révocation de la clé
+
+Écrit avant la première signature. Sans ces règles tenues, D16 n'est pas respectée et
+il faut revenir à l'option A.
+
+**Génération et conservation.** La clé privée est générée hors de la machine de
+développement et n'y séjourne jamais. Elle ne figure dans aucun dépôt, aucune sauvegarde
+automatique, aucun gestionnaire de secrets partagé. Une copie hors ligne suffit ; deux
+copies au même endroit n'en font pas une sauvegarde.
+
+**Usage.** La signature est un acte manuel. Aucune automatisation de CI ne détient la
+clé — un canal de publication automatisé redonnerait au dépôt le pouvoir que cette
+décision lui retire.
+
+**Rotation.** Le binaire accepte **deux clés publiques simultanément**. Une rotation se
+fait donc sans coupure : publier avec la nouvelle, laisser l'ancienne valide le temps
+que les binaires en circulation soient remplacés, puis la retirer. Sans ce
+chevauchement, toute rotation casserait les installations existantes.
+
+**Révocation.** Une clé compromise se révoque en publiant un binaire qui ne l'accepte
+plus. C'est lent — c'est le prix de l'absence d'infrastructure — et cela suppose que le
+compromis soit détecté. D12 limite les dégâts entre-temps : une mise à jour falsifiée ne
+peut pas retirer de contrôle embarqué, seulement en ajouter de faux. Le socle tient.
+
+**Perte.** Une clé perdue interrompt les mises à jour sans casser aucune installation,
+toujours grâce à D12. La reprise passe par un nouveau binaire portant une nouvelle clé.
 
 ## Conséquences
 
@@ -164,18 +197,21 @@ donc à tester autant que le reste.
 lesquels bougent vraiment. Et le seuil d'ancienneté au-delà duquel le rapport avertit :
 arbitraire tant qu'on n'a pas observé la cadence réelle.
 
-## Points ouverts
+## Point ouvert
 
-- Rotation de la clé : prévoir deux clés valides simultanément, ou accepter une coupure.
-- Que faire d'une donnée refusée à la vérification : ignorer en silence est exclu, mais
-  interrompre le scan l'est aussi. Probablement un constat visible, comme pour WMI.
+Que faire d'une donnée refusée à la vérification. Ignorer en silence est exclu —
+c'est exactement le défaut qui a rendu WMI inopérant deux lots durant. Interrompre le
+scan l'est aussi : les autres domaines doivent continuer de rendre leurs verdicts.
+
+La réponse sera probablement un constat visible, comme pour l'énumération WMI refusée,
+mais elle mérite d'être tranchée sur du code réel plutôt que par anticipation.
 
 ## Actions
 
-1. [ ] Trancher le niveau de confiance — **décision ouverte**
+1. [x] Trancher le niveau de confiance — **manifeste signé (D16)**
 2. [ ] Format du manifeste : jeux de données, versions, empreintes, date
 3. [ ] `rempart update` : téléchargement, vérification, différentiel, confirmation
 4. [ ] Chargement des données externes avec priorité sur l'embarqué (D12)
 5. [ ] Date et ancienneté dans le rapport (D15)
-6. [ ] Procédure de protection et de révocation de la clé, **écrite avant la première
-   signature**
+6. [x] Procédure de protection et de révocation de la clé — **écrite ci-dessus**
+7. [ ] Générer la paire de clés, hors de la machine de développement

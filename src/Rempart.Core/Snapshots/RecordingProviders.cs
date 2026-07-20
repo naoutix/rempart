@@ -160,6 +160,23 @@ public sealed class SnapshotSignatureProvider(MachineSnapshot snapshot) : ISigna
             : new FileSignature(SignatureStatus.Unknown);
 }
 
+public sealed class RecordingFileSystemProvider(
+    IFileSystemProvider inner, MachineSnapshot snapshot) : IFileSystemProvider
+{
+    public IReadOnlyList<string> ListFiles(string directory)
+    {
+        var files = inner.ListFiles(directory);
+        snapshot.Directories[directory] = [.. files];
+        return files;
+    }
+}
+
+public sealed class SnapshotFileSystemProvider(MachineSnapshot snapshot) : IFileSystemProvider
+{
+    public IReadOnlyList<string> ListFiles(string directory) =>
+        snapshot.Directories.TryGetValue(directory, out var files) ? files : [];
+}
+
 public sealed class RecordingWmiProvider(IWmiProvider inner, MachineSnapshot snapshot) : IWmiProvider
 {
     public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties)

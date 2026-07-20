@@ -35,7 +35,8 @@ public sealed class ProviderSet(
     IServiceStateProvider? services = null,
     ISecurityPolicyProvider? policy = null,
     IWmiProvider? wmi = null,
-    ISignatureProvider? signatures = null)
+    ISignatureProvider? signatures = null,
+    IFileSystemProvider? files = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -56,6 +57,16 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, toute signature reste indéterminée — jamais « non signé ».</summary>
     public ISignatureProvider Signatures { get; } = signatures ?? UnavailableSignatures.Instance;
+
+    /// <summary>Absent, aucun dossier n'est énuméré — pas d'invention de contenu.</summary>
+    public IFileSystemProvider Files { get; } = files ?? EmptyFileSystem.Instance;
+}
+
+internal sealed class EmptyFileSystem : IFileSystemProvider
+{
+    public static readonly EmptyFileSystem Instance = new();
+
+    public IReadOnlyList<string> ListFiles(string directory) => [];
 }
 
 internal sealed class UnavailableSignatures : ISignatureProvider
