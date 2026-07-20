@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Rempart.Core.Rules;
 
@@ -49,6 +51,36 @@ public static class RuleCatalog
         }
 
         return rules;
+    }
+
+    /// <summary>
+    /// Empreinte du jeu de règles évalué.
+    ///
+    /// Deux rapports au même score ne sont comparables que s'ils ont été produits par
+    /// le même catalogue. Sans cette empreinte, un écart entre deux machines pourrait
+    /// venir d'un changement de règles plutôt que d'un changement de configuration —
+    /// et rien ne permettrait de le savoir. Indispensable à « rempart diff » (M7).
+    /// </summary>
+    public static string Fingerprint(IReadOnlyList<Rule> rules)
+    {
+        var builder = new StringBuilder();
+
+        // Identifiant, opérateur, attendu et défaut : tout ce qui change un verdict.
+        // Le titre et la justification n'en font pas partie, une reformulation ne
+        // devant pas rendre deux rapports incomparables.
+        foreach (var rule in rules.OrderBy(r => r.Id, StringComparer.Ordinal))
+        {
+            builder.Append(rule.Id).Append('|')
+                .Append(rule.Severity).Append('|')
+                .Append(rule.Check.Path).Append('|')
+                .Append(rule.Check.ValueName).Append('|')
+                .Append(rule.Check.Operator).Append('|')
+                .Append(rule.Check.Expected).Append('|')
+                .Append(rule.Check.WindowsDefault).Append('\n');
+        }
+
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
+        return $"{rules.Count}:{Convert.ToHexStringLower(digest)[..12]}";
     }
 
     private static IReadOnlyList<Rule> LoadEmbedded()
