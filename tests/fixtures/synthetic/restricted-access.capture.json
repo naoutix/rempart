@@ -683,6 +683,36 @@
     "denied": false
   },
   "wmi": {
+    "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||IsTamperProtected": {
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "IsTamperProtected": "true"
+          }
+        }
+      ]
+    },
+    "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||RealTimeProtectionEnabled": {
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "RealTimeProtectionEnabled": "true"
+          }
+        }
+      ]
+    },
+    "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||AntivirusSignatureAge": {
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "AntivirusSignatureAge": "7"
+          }
+        }
+      ]
+    },
     "root\\CIMV2\\Security\\MicrosoftVolumeEncryption:Win32_EncryptableVolume||ProtectionStatus": {
       "status": "Found",
       "instances": [
