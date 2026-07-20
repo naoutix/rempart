@@ -707,7 +707,8 @@
             "IsTamperProtected": "true"
           }
         }
-      ]
+      ],
+      "diagnostic": null
     },
     "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||RealTimeProtectionEnabled": {
       "status": "Found",
@@ -717,7 +718,8 @@
             "RealTimeProtectionEnabled": "true"
           }
         }
-      ]
+      ],
+      "diagnostic": null
     },
     "root\\Microsoft\\Windows\\Defender:MSFT_MpComputerStatus||AntivirusSignatureAge": {
       "status": "Found",
@@ -727,7 +729,8 @@
             "AntivirusSignatureAge": "7"
           }
         }
-      ]
+      ],
+      "diagnostic": null
     },
     "root\\CIMV2\\Security\\MicrosoftVolumeEncryption:Win32_EncryptableVolume||ProtectionStatus": {
       "status": "Found",
@@ -737,7 +740,8 @@
             "ProtectionStatus": "1"
           }
         }
-      ]
+      ],
+      "diagnostic": null
     }
   }
 }
