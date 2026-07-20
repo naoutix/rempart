@@ -71,13 +71,36 @@ Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' `
 
 **Ce comportement n'est pas prévisible localement.** Smart App Control soumet chaque
 empreinte au service de réputation Microsoft ; certains fichiers passent, d'autres non,
-et ni recompiler ni attendre ne constitue une méthode fiable. Ne pas désactiver la
-protection pour contourner le refus : elle ne se réactive qu'en réinstallant Windows.
+et ni recompiler ni attendre ne constitue une méthode fiable.
+
+### La désactiver : ce qu'on gagne et ce qu'on perd
+
+Ce document affirmait qu'elle **ne se réactive qu'en réinstallant Windows**. C'est
+faux, et la correction vaut d'être notée : la
+[FAQ Microsoft](https://support.microsoft.com/en-us/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003)
+indique que les mises à jour récentes permettent de la réactiver sans installation
+propre. L'affirmation venait de l'ancien comportement, longtemps exact, écrit ici de
+mémoire au lieu d'être vérifiée.
+
+Observé sur une machine de développement : la désactivation prend effet **sans
+redémarrage**, et `VerifiedAndReputablePolicyState` passe à `0` en conservant
+`SAC_PreviousState` — Windows garde trace de l'état antérieur.
+
+L'arbitrage reste réel, mais il n'est pas irréversible :
+
+- **la garder active** — les binaires fraîchement compilés seront bloqués de façon
+  imprévisible ; la CI valide à votre place ;
+- **la désactiver** — le poste de développement devient moins protégé que les postes
+  qu'on prépare avec cet outil ;
+- **signer le code** — seul correctif qui vaut pour les deux. Un certificat EV a de la
+  réputation immédiatement. Point resté ouvert dans l'ADR-001.
 
 Conséquences pratiques :
 
 - **La CI fait foi** sur une machine protégée par Smart App Control. Ses runners
-  n'appliquent pas cette stratégie.
+  n'appliquent pas cette stratégie, et y exécutent `rempart diagnose-wmi` et
+  `rempart diagnose-tasks` contre le binaire publié : un bug d'interop COM ne se voit
+  pas en JIT.
 - `verify.ps1` consulte le journal d'intégrité et distingue ce refus d'un échec de
   test — le message de xUnit, lui, ressemble à une régression.
 - La signature de code est le seul correctif durable. Point resté ouvert dans

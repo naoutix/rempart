@@ -59,9 +59,13 @@ Sur une machine où il est actif, les assemblys fraîchement compilées peuvent 
 **Ce comportement n'est pas prévisible localement** : chaque empreinte est soumise au
 service de réputation Microsoft. Ni recompiler ni attendre n'est une méthode fiable.
 
-**Ne pas désactiver la protection pour contourner un refus** — elle ne se réactive
-qu'en réinstallant Windows. Sur une machine concernée, **la CI fait foi** : ses
-runners n'appliquent pas cette stratégie.
+Sur une machine concernée, **la CI fait foi** : ses runners n'appliquent pas cette
+stratégie. `rempart diagnose-wmi` et `rempart diagnose-tasks` y sont exécutés contre
+le binaire publié, parce qu'un bug d'interop COM ne se voit pas en JIT.
+
+La désactiver reste un arbitrage à faire en connaissance de cause — voir
+[BUILD.md](docs/BUILD.md#smart-app-control) : elle se réactive sans réinstaller
+Windows, contrairement à ce que ce fichier a affirmé jusqu'ici.
 
 ## Ajouter un contrôle
 
