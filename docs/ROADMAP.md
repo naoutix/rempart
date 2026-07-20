@@ -7,22 +7,26 @@ Pas de lot qui ne produise que de l'infrastructure invisible.
 
 ## v1 — Audit en lecture seule
 
-### M0 · Socle
-Squelette de solution, CLI, contrat `ICollector`, **abstraction providers (D5)**,
-`rempart capture`, sortie JSON, CI GitHub Actions.
+### M0 · Socle — ✅ terminé
 
-Inclut un premier collecteur d'inventaire réel — pour juger l'ergonomie tout de suite
-plutôt qu'après trente collecteurs.
+- [x] `git init`, solution .NET 10, publication AOT vérifiée — **2,6 Mo**, testé isolé
+- [x] `IRegistryProvider` / `ISystemInfoProvider` + implémentations Live et Snapshot
+- [x] Collecteur `Inventory` (modèle, OS, build, TPM, Secure Boot, UEFI, uptime)
+- [x] `rempart capture` produit un instantané rejouable, anonymisé par défaut
+- [x] Fixtures synthétiques versionnées + captures réelles hors dépôt
+- [x] 34 tests, sans machine Windows ni VM
+- [x] CI écrite — *non vérifiée : incident GitHub Actions au moment du lot*
+- [ ] `IWmiProvider` — **reporté en M2**, System.Management ne survit pas à Native AOT
 
-- [ ] `git init`, solution .NET 10, publication AOT vérifiée
-- [ ] `IRegistryProvider` / `IWmiProvider` + implémentations Live et FromSnapshot
-- [ ] Collecteur `Inventory` (modèle, OS, build, TPM, Secure Boot, UEFI, uptime)
-- [ ] `rempart capture` produit un snapshot rejouable
-- [ ] Première fixture : snapshot de la machine de développement
-- [ ] CI : build AOT + tests unitaires
+**Critère de sortie reformulé.** Le critère initial — « scan live identique au rejeu » —
+est intenable : l'uptime change entre les deux et l'anonymisation modifie le hostname
+par conception. L'invariant retenu est *rejouer une fixture donne toujours la même sortie
+qu'une référence versionnée*. `FieldSemantics` distingue les champs volatils et
+identifiants ; `rempart diff` (M7) s'appuiera sur la même distinction.
 
-**Fait quand** `rempart scan --json` affiche l'inventaire réel, et le même scan rejoué
-depuis la fixture donne une sortie identique.
+**Trouvé en chemin.** `ProductName` annonce « Windows 10 » sur tout Windows 11 —
+Microsoft ne l'a jamais corrigé. `os.name` dérive du numéro de build, faute de quoi
+toute règle conditionnée à la version porterait sur une valeur fausse.
 
 ### M1 · Moteur de règles
 Chargement YAML, évaluation, sévérités, scoring par domaine et global.

@@ -2,8 +2,9 @@
 
 Audit et durcissement de postes Windows, en un binaire unique exécutable depuis une clé USB.
 
-> **État : conception.** Aucun code pour l'instant — seulement les documents de cadrage.
-> Le premier lot (M0) n'est pas démarré.
+> **État : M0 terminé.** Le socle tourne — `rempart scan` et `rempart capture` sur un
+> binaire unique de 2,6 Mo, sans installation. L'évaluation des règles arrive en M1 ;
+> aucune remédiation avant M9.
 
 ## Ce que c'est
 
@@ -35,6 +36,7 @@ rapport et un score comparables d'une machine à l'autre.
 - [ADR-001](docs/adr/ADR-001-stack-et-perimetre.md) — stack, périmètre v1, principes de sécurité
 - [Architecture](docs/ARCHITECTURE.md) — schémas, arborescence, format des règles, stratégie de test
 - [Plan d'attaque](docs/ROADMAP.md) — M0 à M12, avec critères de sortie
+- [Compiler](docs/BUILD.md) — prérequis, publication AOT, pièges
 
 ## Prérequis de développement
 
