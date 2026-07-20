@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Rempart.Tests.Unit</RootNamespace>
+    <!-- Cible Windows : ces tests touchent le vrai registre et les vraies API.
+         Ils ne tournent que sur le runner Windows de la CI, ou en local. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Rempart.Tests.Windows</RootNamespace>
     <IsPackable>false</IsPackable>
-    <!-- Les tests tournent hors Windows : ils ne touchent que Rempart.Core. -->
     <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
@@ -16,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rempart.Core\Rempart.Core.csproj" />
+    <ProjectReference Include="..\..\src\Rempart.Windows\Rempart.Windows.csproj" />
   </ItemGroup>
 
   <ItemGroup>
