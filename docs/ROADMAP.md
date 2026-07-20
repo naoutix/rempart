@@ -118,7 +118,17 @@ lancé au démarrage.
       plus la vue 32 bits. Signature vérifiée par certificat embarqué **et par catalogue**.
 - [x] Abonnements WMI permanents — consommateurs et filtres, filtres livrés avec
       Windows écartés du bruit
-- [ ] Dossiers Startup, tâches planifiées, pilotes chargés
+- [ ] Dossiers Startup — la plomberie est en place (`IFileSystemProvider`, capture et
+      rejeu des répertoires), le collecteur reste à écrire
+- [ ] Tâches planifiées — demande l'API COM du planificateur, quatre interfaces de plus
+- [ ] Pilotes chargés comparés à LOLDrivers — **attend ADR-002** : la liste fait
+      ~1 500 entrées et vieillit chaque semaine, elle n'a de sens qu'avec le canal de
+      mise à jour
+
+**Deux transitoires à traiter avant `rempart diff` (M7).** Les entrées `RunOnce` sont
+consommées puis supprimées par Windows : deux scans successifs montrent un écart sans
+qu'il se soit rien passé. Même question pour les tâches planifiées à déclenchement
+unique.
 
 Processus (chemin, signature Authenticode, parent, ligne de commande), services,
 tâches planifiées, clés Run, dossiers Startup, **abonnements WMI permanents**,

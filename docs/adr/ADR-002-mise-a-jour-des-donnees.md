@@ -65,7 +65,7 @@ seulement en corriger ou en ajouter. Le socle est un plancher.
 Un manifeste liste chaque jeu de données avec son empreinte. Une donnée dont
 l'empreinte ne correspond pas est **refusée**, jamais chargée « au mieux ».
 
-Le niveau de confiance du manifeste lui-même reste à trancher — voir plus bas.
+Le manifeste lui-même est signé — voir D16.
 
 ### D14 — Aucune application silencieuse
 
