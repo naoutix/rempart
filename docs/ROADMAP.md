@@ -102,6 +102,21 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
       vérification sur plusieurs machines.
 
 ### M3 · Persistance & processus
+
+**Le modèle a dû s'étendre.** Une règle compare une valeur à une attente ; la
+persistance ne s'exprime pas ainsi. Dix-sept programmes au démarrage dont trois non
+signés ne se résument pas à « 3, attendu 0 » — ce qui compte, ce sont lesquels.
+
+D'où un troisième concept à côté des collecteurs et des verdicts : les **constats**,
+éléments énumérés portant chacun son propre jugement. Les deux ne se mélangent pas
+dans le score : une configuration à 94 % ne doit pas masquer un binaire non signé
+lancé au démarrage.
+
+- [x] Modèle `Finding` — famille, source, cible, gravité, raisons, détails
+- [x] `ISignatureProvider` — Authenticode par `WinVerifyTrust`, SHA-256
+- [ ] Collecteur des démarrages automatiques : clés Run, dossiers Startup, services
+- [ ] Tâches planifiées, abonnements WMI permanents, pilotes chargés
+
 Processus (chemin, signature Authenticode, parent, ligne de commande), services,
 tâches planifiées, clés Run, dossiers Startup, **abonnements WMI permanents**,
 COM hijacking, Winlogon/LSA providers, AppInit_DLLs, pilotes chargés.
