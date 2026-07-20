@@ -39,19 +39,6 @@ public sealed class AutorunsCollector : IFindingCollector
         @"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run",
     ];
 
-    /// <summary>
-    /// Emplacements d'où un binaire légitime se lance rarement. Un exécutable qui
-    /// démarre depuis un dossier temporaire ou un profil utilisateur mérite un
-    /// regard — sans être coupable pour autant, beaucoup d'outils s'y installent.
-    /// </summary>
-    private static readonly string[] UnusualLocations =
-    [
-        @"\appdata\local\temp\",
-        @"\windows\temp\",
-        @"\downloads\",
-        @"\public\",
-    ];
-
     public string Name => "autoruns";
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
@@ -137,62 +124,17 @@ public sealed class AutorunsCollector : IFindingCollector
     private static Finding Examine(string source, string command, ISignatureProvider signatures)
     {
         var path = ExtractExecutablePath(command);
-        var signature = signatures.Verify(path);
+        var judgement = SignatureLadder.Judge(path, signatures);
 
-        var reasons = new List<string>();
         var details = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["commande"] = command,
-            ["signature"] = signature.Status.ToString(),
         };
 
-        if (signature.Publisher is { } publisher)
-        {
-            details["éditeur"] = publisher;
-        }
+        SignatureLadder.Describe(judgement.Signature, details);
 
-        if (signature.Sha256 is { } hash)
-        {
-            details["sha256"] = hash;
-        }
-
-        var severity = signature.Status switch
-        {
-            SignatureStatus.Valid => FindingSeverity.Benign,
-
-            SignatureStatus.Unsigned => Add(reasons,
-                "Binaire non signé : rien n'atteste de son origine ni de son intégrité.",
-                FindingSeverity.Suspicious),
-
-            SignatureStatus.Invalid => Add(reasons,
-                "Signature présente mais invalide — expirée, révoquée, ou fichier altéré.",
-                FindingSeverity.Suspicious),
-
-            SignatureStatus.FileNotFound => Add(reasons,
-                "Le fichier visé n'existe pas : reste d'une désinstallation, ou emplacement " +
-                "qu'un tiers pourrait occuper pour être lancé au démarrage.",
-                FindingSeverity.Notable),
-
-            // Ni valide ni invalide : ne pas transformer une lacune en accusation.
-            _ => Add(reasons,
-                "Signature non vérifiable. Ce n'est pas un défaut du binaire.",
-                FindingSeverity.Notable),
-        };
-
-        if (UnusualLocations.Any(l => path.Contains(l, StringComparison.OrdinalIgnoreCase)))
-        {
-            reasons.Add("Lancé depuis un emplacement inhabituel pour un programme installé.");
-            severity = severity == FindingSeverity.Benign ? FindingSeverity.Notable : severity;
-        }
-
-        return new Finding("autorun", source, path, severity, reasons, details);
-    }
-
-    private static FindingSeverity Add(
-        List<string> reasons, string reason, FindingSeverity severity)
-    {
-        reasons.Add(reason);
-        return severity;
+        return new Finding(
+            "autorun", source, path, judgement.Severity, judgement.Reasons, details);
     }
 
     /// <summary>

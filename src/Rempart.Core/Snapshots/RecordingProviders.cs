@@ -177,6 +177,23 @@ public sealed class SnapshotFileSystemProvider(MachineSnapshot snapshot) : IFile
         snapshot.Directories.TryGetValue(directory, out var files) ? files : [];
 }
 
+public sealed class RecordingScheduledTaskProvider(
+    IScheduledTaskProvider inner, MachineSnapshot snapshot) : IScheduledTaskProvider
+{
+    public ScheduledTaskRead Enumerate() => snapshot.ScheduledTasks ??= inner.Enumerate();
+}
+
+public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
+    : IScheduledTaskProvider
+{
+    // Absent d'une capture anterieure : traite comme un refus, jamais comme une
+    // absence de taches. Une fixture d'avant ce lot reste rejouable, elle produit
+    // simplement un constat « non enumere » au lieu de l'inventaire.
+    public ScheduledTaskRead Enumerate() =>
+        snapshot.ScheduledTasks
+        ?? ScheduledTaskRead.Failed("Tâches planifiées absentes de l'instantané.");
+}
+
 public sealed class RecordingWmiProvider(IWmiProvider inner, MachineSnapshot snapshot) : IWmiProvider
 {
     public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties)

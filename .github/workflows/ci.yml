@@ -94,6 +94,18 @@ jobs:
           & $exe diagnose-wmi
           if ($LASTEXITCODE -ne 0) { throw "WMI ne repond pas depuis le binaire AOT" }
 
+      - name: Le planificateur repond depuis le binaire AOT
+        shell: pwsh
+        run: |
+          # Meme risque que WMI, et pour la meme raison : l'interop COM du
+          # planificateur est generee a la compilation et ses interfaces derivent
+          # d'IDispatch. Un decalage d'un emplacement de table virtuelle ne se voit
+          # ni a la compilation ni en JIT -- seulement ici. Un scan qui ne trouverait
+          # aucune tache rendrait un rapport d'apparence saine.
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe diagnose-tasks
+          if ($LASTEXITCODE -ne 0) { throw "Le planificateur ne repond pas depuis le binaire AOT" }
+
       - uses: actions/upload-artifact@v4
         with:
           name: rempart-win-x64

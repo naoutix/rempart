@@ -29,6 +29,7 @@ try
         "explain" => Explain(args),
         "synthesise" => Synthesise(args),
         "diagnose-wmi" => DiagnoseWmi(),
+        "diagnose-tasks" => DiagnoseTasks(),
         "version" => Print(ToolVersion()),
         _ => Help(),
     };
@@ -63,7 +64,8 @@ static int Scan(string[] args)
             new SnapshotSecurityPolicyProvider(snapshot),
             new SnapshotWmiProvider(snapshot),
             new SnapshotSignatureProvider(snapshot),
-            new SnapshotFileSystemProvider(snapshot));
+            new SnapshotFileSystemProvider(snapshot),
+            new SnapshotScheduledTaskProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -76,7 +78,8 @@ static int Scan(string[] args)
             new LiveSecurityPolicyProvider(),
             new Rempart.Windows.Wmi.LiveWmiProvider(),
             new LiveSignatureProvider(),
-            new LiveFileSystemProvider());
+            new LiveFileSystemProvider(),
+            new Rempart.Windows.Tasks.LiveScheduledTaskProvider());
         origin = UtcNow();
     }
 
@@ -113,7 +116,9 @@ static int Capture(string[] args)
         new RecordingSecurityPolicyProvider(new LiveSecurityPolicyProvider(), snapshot),
         new RecordingWmiProvider(new Rempart.Windows.Wmi.LiveWmiProvider(), snapshot),
         new RecordingSignatureProvider(new LiveSignatureProvider(), snapshot),
-        new RecordingFileSystemProvider(new LiveFileSystemProvider(), snapshot));
+        new RecordingFileSystemProvider(new LiveFileSystemProvider(), snapshot),
+        new RecordingScheduledTaskProvider(
+            new Rempart.Windows.Tasks.LiveScheduledTaskProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
@@ -184,6 +189,61 @@ static int DiagnoseWmi()
     }
 
     Console.WriteLine($"  {Property} = {value}");
+    return 0;
+}
+
+/// <summary>
+/// Vérifie que le planificateur de tâches répond depuis le binaire publié.
+///
+/// Même raison d'être que <c>diagnose-wmi</c>, et même risque exactement : l'interop
+/// COM du planificateur est générée à la compilation, ses interfaces dérivent
+/// d'<c>IDispatch</c>, et un décalage d'un seul emplacement de table virtuelle est
+/// invisible en JIT comme à la compilation.
+///
+/// Un scan qui ne trouverait aucune tâche produirait un rapport d'apparence saine.
+/// C'est précisément ce qui s'est produit avec WMI pendant deux lots, et la raison
+/// pour laquelle cette commande existe avant que le problème ne se pose.
+///
+/// Toute machine Windows porte des dizaines de tâches ; l'énumération de base ne
+/// demande pas l'élévation. Un échec ici dénonce l'interop, pas l'environnement.
+/// </summary>
+static int DiagnoseTasks()
+{
+    RequireWindows();
+
+    var read = new Rempart.Windows.Tasks.LiveScheduledTaskProvider().Enumerate();
+
+    Console.WriteLine($"planificateur -> {read.Status}, {read.Tasks.Count} tâche(s)");
+
+    if (read.Diagnostic is { } diagnostic)
+    {
+        Console.WriteLine($"  défaillance : {diagnostic}");
+    }
+
+    // Un Windows sans aucune tâche n'existe pas : zéro dénonce l'énumération, pas la
+    // machine. Le seuil reste bas — un runner de CI en porte moins qu'un poste réel.
+    if (read.Status != ReadStatus.Found || read.Tasks.Count == 0)
+    {
+        Console.Error.WriteLine(
+            "Le planificateur ne rend aucune tâche. Toute installation de Windows en " +
+            "porte : c'est l'interop COM qui est en cause, pas l'environnement.");
+        return 1;
+    }
+
+    // La définition XML est lue par un appel distinct de l'énumération. Compter les
+    // tâches ne prouve donc pas qu'on sait les lire.
+    var withAction = read.Tasks.Count(t => t.Actions.Count > 0);
+    Console.WriteLine($"  dont {withAction} avec au moins une action lue");
+
+    if (withAction == 0)
+    {
+        Console.Error.WriteLine(
+            "Aucune définition lisible : l'énumération répond mais get_Xml non. " +
+            "Un scan rendrait des tâches sans jamais juger ce qu'elles lancent.");
+        return 1;
+    }
+
+    Console.WriteLine($"  exemple : {read.Tasks[0].Path}");
     return 0;
 }
 
@@ -560,6 +620,9 @@ static int Help() => Print(
 
       rempart diagnose-wmi
           Vérifie que WMI répond. Destiné à la CI, contre le binaire AOT.
+
+      rempart diagnose-tasks
+          Vérifie que le planificateur de tâches répond. Même usage.
 
       rempart version
 

@@ -44,6 +44,15 @@ public static class SyntheticSnapshot
             Services = new Dictionary<string, ServiceRead>(source.Services),
             Policy = source.Policy,
             Wmi = new Dictionary<string, WmiRead>(source.Wmi),
+
+            // Repris tels quels de la capture d'origine, qui est anonymisée. Les
+            // profils synthétiques font varier la configuration jugée par les règles,
+            // pas l'inventaire de persistance : le reprendre donne aux collecteurs de
+            // constats une matière réelle à rejouer, là où l'omettre les ferait tourner
+            // à vide sans que le rejeu ne le signale.
+            ScheduledTasks = source.ScheduledTasks,
+            Signatures = new Dictionary<string, FileSignature>(source.Signatures),
+
             SystemInfo = (source.SystemInfo ?? Fallback) with
             {
                 MachineName = machineName,
