@@ -359,6 +359,14 @@
       "status": "NotFound",
       "value": null
     },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy||VerifiedAndReputablePolicyState": {
+      "status": "Found",
+      "value": {
+        "kind": "DWord",
+        "text": null,
+        "number": 1
+      }
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||EnableFirewall": {
       "status": "Found",
       "value": {

@@ -235,6 +235,10 @@
       "status": "NotFound",
       "value": null
     },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy||VerifiedAndReputablePolicyState": {
+      "status": "NotFound",
+      "value": null
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||EnableFirewall": {
       "status": "NotFound",
       "value": null
