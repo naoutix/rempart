@@ -280,8 +280,12 @@ static void WriteFindings(IReadOnlyList<Finding> findings)
     var flagged = findings.Where(f => f.Severity != FindingSeverity.Benign).ToList();
 
     Console.WriteLine();
-    Console.WriteLine($"[constats] {findings.Count} démarrage(s) automatique(s), " +
-                      $"{flagged.Count} à examiner");
+    var byKind = string.Join(", ", findings
+        .GroupBy(f => f.Kind)
+        .OrderBy(g => g.Key, StringComparer.Ordinal)
+        .Select(g => $"{g.Count()} {g.Key}"));
+
+    Console.WriteLine($"[constats] {byKind} — {flagged.Count} à examiner");
 
     foreach (var finding in flagged.OrderByDescending(f => f.Severity))
     {

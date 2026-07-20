@@ -35,7 +35,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     /// qui est present au lieu de decrire des valeurs connues d'avance.
     /// </summary>
     public static IReadOnlyList<IFindingCollector> DefaultFindingCollectors =>
-        [new AutorunsCollector()];
+        [new AutorunsCollector(), new WmiSubscriptionsCollector()];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
         : this(collectors, [])

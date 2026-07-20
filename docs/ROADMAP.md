@@ -116,7 +116,9 @@ lancé au démarrage.
 - [x] `ISignatureProvider` — Authenticode par `WinVerifyTrust`, SHA-256
 - [x] Collecteur des démarrages automatiques — clés Run et RunOnce, HKLM et HKCU,
       plus la vue 32 bits. Signature vérifiée par certificat embarqué **et par catalogue**.
-- [ ] Tâches planifiées, abonnements WMI permanents, pilotes chargés
+- [x] Abonnements WMI permanents — consommateurs et filtres, filtres livrés avec
+      Windows écartés du bruit
+- [ ] Dossiers Startup, tâches planifiées, pilotes chargés
 
 Processus (chemin, signature Authenticode, parent, ligne de commande), services,
 tâches planifiées, clés Run, dossiers Startup, **abonnements WMI permanents**,
