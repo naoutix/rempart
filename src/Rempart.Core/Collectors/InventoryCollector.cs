@@ -9,6 +9,10 @@ namespace Rempart.Core.Collectors;
 /// via System.Management ne survit pas proprement à la compilation Native AOT, et le
 /// livrable en binaire unique en dépend. Les données qui exigent réellement WMI
 /// (numéro de série châssis, détail TPM) attendent que la question soit tranchée (M2).
+///
+/// La collecte se fait en deux temps : lecture d'abord, composition ensuite. L'ordre
+/// des champs restitués est donc un choix de lisibilité, indépendant de l'ordre des
+/// accès au registre.
 /// </summary>
 public sealed class InventoryCollector : ICollector
 {
@@ -21,87 +25,80 @@ public sealed class InventoryCollector : ICollector
 
     public CollectorResult Collect(ProviderSet providers)
     {
-        var fields = new Dictionary<string, string?>();
         var diagnostics = new List<string>();
         var denied = false;
 
-        void Read(string label, string keyPath, string valueName)
+        string? Read(string keyPath, string valueName)
         {
             var read = providers.Registry.ReadValue(keyPath, valueName);
-            switch (read.Status)
+            if (read.Status == ReadStatus.AccessDenied)
             {
-                case ReadStatus.Found:
-                    fields[label] = read.Value?.ToString();
-                    break;
-                case ReadStatus.NotFound:
-                    fields[label] = null;
-                    break;
-                case ReadStatus.AccessDenied:
-                    fields[label] = null;
-                    denied = true;
-                    diagnostics.Add($"Accès refusé : {keyPath}\\{valueName}");
-                    break;
+                denied = true;
+                diagnostics.Add($"Accès refusé : {keyPath}\\{valueName}");
+                return null;
             }
+
+            return read.Status == ReadStatus.Found ? read.Value?.ToString() : null;
         }
 
-        Read("os.product", CurrentVersionKey, "ProductName");
-        Read("os.displayVersion", CurrentVersionKey, "DisplayVersion");
-        Read("os.build", CurrentVersionKey, "CurrentBuildNumber");
+        // ─ Lecture ────────────────────────────────────────────────────────────────
+        var registryProductName = Read(CurrentVersionKey, "ProductName");
+        var displayVersion = Read(CurrentVersionKey, "DisplayVersion");
+        var build = Read(CurrentVersionKey, "CurrentBuildNumber");
+        var updateBuildRevision = Read(CurrentVersionKey, "UBR");
+        var edition = Read(CurrentVersionKey, "EditionID");
+        var installationType = Read(CurrentVersionKey, "InstallationType");
 
-        // ProductName annonce encore « Windows 10 » sur tout Windows 11 : Microsoft ne
-        // l'a jamais corrigé. Le numéro de build fait foi, sans quoi toute règle
-        // conditionnée à la version porterait sur une valeur fausse.
-        fields["os.name"] = DeriveOsName(fields.GetValueOrDefault("os.build"),
-            fields.GetValueOrDefault("os.product"));
+        var manufacturer = Read(BiosKey, "SystemManufacturer");
+        var model = Read(BiosKey, "SystemProductName");
+        var family = Read(BiosKey, "SystemFamily");
+        var biosVersion = Read(BiosKey, "BIOSVersion");
+        var biosDate = Read(BiosKey, "BIOSReleaseDate");
+        var baseboardManufacturer = Read(BiosKey, "BaseBoardManufacturer");
+        var baseboardProduct = Read(BiosKey, "BaseBoardProduct");
 
-        Read("os.updateBuildRevision", CurrentVersionKey, "UBR");
-        Read("os.edition", CurrentVersionKey, "EditionID");
-        Read("os.installationType", CurrentVersionKey, "InstallationType");
-
-        Read("hardware.manufacturer", BiosKey, "SystemManufacturer");
-        Read("hardware.model", BiosKey, "SystemProductName");
-        Read("hardware.family", BiosKey, "SystemFamily");
-        Read("firmware.biosVersion", BiosKey, "BIOSVersion");
-        Read("firmware.biosDate", BiosKey, "BIOSReleaseDate");
-        Read("hardware.baseboardManufacturer", BiosKey, "BaseBoardManufacturer");
-        Read("hardware.baseboardProduct", BiosKey, "BaseBoardProduct");
-
-        // Secure Boot : la clé n'existe pas du tout en démarrage Legacy/CSM.
-        // Absence et désactivation sont deux états différents, on ne les confond pas.
-        var secureBoot = providers.Registry.ReadValue(SecureBootStateKey, "UEFISecureBootEnabled");
-        fields["security.secureBoot"] = secureBoot.Status switch
-        {
-            ReadStatus.Found => secureBoot.Value?.Number == 1 ? "enabled" : "disabled",
-            ReadStatus.NotFound => "unsupported",
-            _ => null,
-        };
-        if (secureBoot.Status == ReadStatus.AccessDenied)
-        {
-            denied = true;
-            diagnostics.Add($"Accès refusé : {SecureBootStateKey}");
-        }
-
-        var tpm = providers.Registry.KeyExists(TpmServiceKey);
-        fields["security.tpmService"] = tpm switch
-        {
-            ReadStatus.Found => "present",
-            ReadStatus.NotFound => "absent",
-            _ => null,
-        };
-        if (tpm == ReadStatus.AccessDenied)
-        {
-            denied = true;
-            diagnostics.Add($"Accès refusé : {TpmServiceKey}");
-        }
-
+        var secureBoot = ReadSecureBoot(providers, diagnostics, ref denied);
+        var tpm = ReadTpm(providers, diagnostics, ref denied);
         var system = providers.SystemInfo.Read();
-        fields["machine.name"] = system.MachineName;
-        fields["os.version"] = system.OsVersion;
-        fields["os.is64Bit"] = system.Is64BitOperatingSystem.ToString();
-        fields["machine.processorCount"] = system.ProcessorCount.ToString();
-        fields["machine.uptimeSeconds"] = system.UptimeSeconds.ToString();
-        fields["firmware.type"] = system.FirmwareType;
-        fields["scan.elevated"] = system.IsElevated.ToString();
+
+        // ─ Composition ────────────────────────────────────────────────────────────
+        // os.name en tête : c'est la seule ligne à laquelle on peut se fier pour la
+        // version de Windows. La valeur brute du registre ferme la liste, où elle
+        // n'induit plus personne en erreur.
+        var fields = new Dictionary<string, string?>
+        {
+            ["os.name"] = DeriveOsName(build, registryProductName),
+            ["os.displayVersion"] = displayVersion,
+            ["os.build"] = build,
+            ["os.updateBuildRevision"] = updateBuildRevision,
+            ["os.edition"] = edition,
+            ["os.installationType"] = installationType,
+            ["os.version"] = system.OsVersion,
+            ["os.is64Bit"] = system.Is64BitOperatingSystem.ToString(),
+
+            ["hardware.manufacturer"] = manufacturer,
+            ["hardware.model"] = model,
+            ["hardware.family"] = family,
+            ["hardware.baseboardManufacturer"] = baseboardManufacturer,
+            ["hardware.baseboardProduct"] = baseboardProduct,
+            ["machine.name"] = system.MachineName,
+            ["machine.processorCount"] = system.ProcessorCount.ToString(),
+            ["machine.uptimeSeconds"] = system.UptimeSeconds.ToString(),
+
+            ["firmware.type"] = system.FirmwareType,
+            ["firmware.biosVersion"] = biosVersion,
+            ["firmware.biosDate"] = biosDate,
+
+            ["security.secureBoot"] = secureBoot,
+            ["security.tpmService"] = tpm,
+
+            ["scan.elevated"] = system.IsElevated.ToString(),
+
+            // Conservée telle que lue. Un audit doit pouvoir montrer sa source, pas
+            // seulement sa conclusion : le jour où une règle surprend, c'est cette
+            // valeur qu'on veut voir. Le nom du champ dit d'où elle vient.
+            ["os.registryProductName"] = registryProductName,
+        };
 
         if (!system.IsElevated)
         {
@@ -112,6 +109,45 @@ public sealed class InventoryCollector : ICollector
 
         var status = denied ? CollectorStatus.InsufficientPrivileges : CollectorStatus.Ok;
         return new CollectorResult(Name, status, fields, diagnostics);
+    }
+
+    /// <summary>
+    /// La clé n'existe pas du tout en démarrage Legacy/CSM. Absence et désactivation
+    /// appellent des remédiations différentes — migrer en UEFI, ou simplement activer.
+    /// </summary>
+    private static string? ReadSecureBoot(
+        ProviderSet providers, List<string> diagnostics, ref bool denied)
+    {
+        var read = providers.Registry.ReadValue(SecureBootStateKey, "UEFISecureBootEnabled");
+
+        switch (read.Status)
+        {
+            case ReadStatus.Found:
+                return read.Value?.Number == 1 ? "enabled" : "disabled";
+            case ReadStatus.NotFound:
+                return "unsupported";
+            default:
+                denied = true;
+                diagnostics.Add($"Accès refusé : {SecureBootStateKey}");
+                return null;
+        }
+    }
+
+    private static string? ReadTpm(ProviderSet providers, List<string> diagnostics, ref bool denied)
+    {
+        var status = providers.Registry.KeyExists(TpmServiceKey);
+
+        switch (status)
+        {
+            case ReadStatus.Found:
+                return "present";
+            case ReadStatus.NotFound:
+                return "absent";
+            default:
+                denied = true;
+                diagnostics.Add($"Accès refusé : {TpmServiceKey}");
+                return null;
+        }
     }
 
     /// <summary>

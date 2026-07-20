@@ -18,7 +18,23 @@ public sealed class InventoryCollectorTests
         // Un rapport qui cache ses trous est pire qu'un rapport incomplet.
         Assert.Equal(CollectorStatus.InsufficientPrivileges, result.Status);
         Assert.Contains(result.Diagnostics, d => d.Contains("Accès refusé", StringComparison.Ordinal));
-        Assert.Null(result.Fields["os.product"]);
+        Assert.Null(result.Fields["os.registryProductName"]);
+    }
+
+    [Fact]
+    public void Derived_os_name_comes_before_the_raw_registry_value()
+    {
+        // Ordre d'affichage, pas cosmétique : « Windows 10 Pro » en premiere ligne
+        // sur une machine Windows 11 fait douter tout lecteur. La valeur dérivée
+        // ouvre la liste, la valeur brute la ferme.
+        var registry = new FakeRegistryProvider()
+            .WithText(CurrentVersion, "ProductName", "Windows 10 Pro")
+            .WithText(CurrentVersion, "CurrentBuildNumber", "26200");
+
+        var keys = Collect(registry).Fields.Keys.ToList();
+
+        Assert.Equal("os.name", keys[0]);
+        Assert.Equal("os.registryProductName", keys[^1]);
     }
 
     [Theory]
