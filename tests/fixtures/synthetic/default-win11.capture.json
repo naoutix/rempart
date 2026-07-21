@@ -419,6 +419,38 @@
         "number": null
       }
     },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon||Userinit": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\WINDOWS\\system32\\userinit.exe,",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon||Shell": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "explorer.exe",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows||AppInit_DLLs": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows||AppInit_DLLs": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "",
+        "number": null
+      }
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
       "status": "NotFound",
       "value": null
@@ -471,7 +503,7 @@
       "status": "Found",
       "info": {
         "name": "SharedAccess",
-        "state": "Stopped",
+        "state": "Running",
         "startMode": "Manual"
       }
     },
@@ -600,7 +632,7 @@
     "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe": {
       "status": "Valid",
       "publisher": null,
-      "sha256": "30e9f49de4f07e8b3e89b4e3550b749ed7d5174f3f181c75825599be9fc634ea"
+      "sha256": "5a246f6dc531b0cbbb813a2755f192d9924181df9fe2ce6bfbe0375b436a3666"
     },
     "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe": {
       "status": "Valid",
@@ -620,17 +652,17 @@
     "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe": {
       "status": "Valid",
       "publisher": null,
-      "sha256": "7538d02f4caa2e00d9e9a3601b7fc3d8d348ea0439baf4579aee96534fa90010"
+      "sha256": "cc60165e11ed0dec47f9b493129dd85f60f84b2a56b344ee98693ff17ca40092"
     },
     "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe": {
       "status": "Valid",
       "publisher": null,
-      "sha256": "47fa259b453d6cc50ef209daee720c05e444d2679134c7729471bc4350d51146"
+      "sha256": "9a20c81bfcd9ad39be7d554203b3058b6ecf5716a4a0626f6099e92578ff1f1d"
     },
     "C:\\Program Files\\Microsoft Office\\root\\VFS\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\operfmon.exe": {
       "status": "Valid",
       "publisher": null,
-      "sha256": "ad0d7d0a9906f52bf60acba99e7fdb47fbf81366f7c0031b5b64d177a3667817"
+      "sha256": "279b25be72566cd140fe5e4f8449b022dc16d24f11e551675157f347198d8ae7"
     },
     "C:\\WINDOWS\\system32\\appidpolicyconverter.exe": {
       "status": "Valid",
@@ -836,6 +868,1231 @@
       "status": "Valid",
       "publisher": null,
       "sha256": "d021acaeebd5b9857fa2f261aff52586c9974a176b98f446183307accd96110d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\ACPI.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "67d6b8d7b0fd4e356bcfa060e0862f9fca51ad541488c62891d55d97bbd9a5cc"
+    },
+    "C:\\WINDOWS\\system32\\Drivers\\acpiex.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0d6d944a77d4a48ae99977160e7c1bd8fce1404de6ebe2b6dc20202217fafa4f"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\acpipagr.inf_amd64_d1093347a27ff89c\\acpipagr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "96a4a7046116b2e729020f64326744a53415c75e7a0009d409b4e012efab0be4"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\afd.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "f93639bb027e19df5460c6d2bc69db08139af5d716743ac88ba15e581934dd76"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\afunix.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b302ea890e2121eefa48addd19f5fd1da922a65e89915b6d83ac6ee5c9fda576"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\ahcache.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cf0abe8a8cfa159b83aa5cf17c5921e1e32e45005c781850fa39b1dfb64df785"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amd3dvcache.inf_amd64_0ee9fc510270aa43\\amd3dvcache.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a69fb01aa62bbf5c2b81357b344608834052c15566f4677a7a80e6cc2c2798f1"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amdappcompat.inf_amd64_e01b29e17ce4a109\\AmdAppCompat.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "dd21c77134f1751b97212e4376c5fbad654ec71ee02fb5f7b75aebc140ffb4e8"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amdfendr.inf_amd64_bea53a1d416fbcfa\\amdfendr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2f502a09ecc269765bf630adc80e6948fcc0164aac94bef391566b41d22ffaff"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amdfendr.inf_amd64_bea53a1d416fbcfa\\amdfendrmgr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "6e0b22ef6a7c2fee40ff980699eef6cf94320bd14cadf6e01a557369cd46600f"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amdgpio2.inf_amd64_487ee5525dcee517\\amdgpio2.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "bc5e9f8ea42d02e505f8c8ae518d3c34d999f16f68da4b0c909765eadbb1445c"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amdgpio3.inf_amd64_893f7355b0a16289\\amdgpio3.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8e6d91b8ca754799bbf3ab775f81309e3dbc1b5149fef4bb435ae050208ca16d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\amdi2c.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2167b534c9d7890e8fdb0637c1c962240ee3ef8412aeeed362a35551e4b2597b"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amdppkg.inf_amd64_5fd171e24453b255\\AmdPpkg.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0bcfa132e1bbd1b10195a3de8e61f0b481f713502e567398d7972eeee14ab117"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\amdppm.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0c823aeb756322eccf534f894cc199bd1128641dc70404e3ad1acb3682e3de4d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\amdpsp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0fe55990d74636a7c53bcf6098437353a6333700617391896ef31c69eadb6348"
+    },
+    "\\??\\C:\\WINDOWS\\system32\\AMDRyzenMasterDriver.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7250ddcb9b04e7e00694c9d5ae3aa2b37caae367a4125bb84d8ac0b0dfab8624"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\amdsafd.inf_amd64_d4de13a10f2586d0\\amdsafd.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "6edd94a6773eb5cfb8958008580119c66a6f18647bb1442c7dac03558b410694"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\u0202073.inf_amd64_3c7f18bc022bf004\\B026184\\amdkmdag.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "76768f63048a56b978ec03e2997ef94aba39f5faad4423cdbe9a9e3c31a09672"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\amdwps.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e84ccd1521e0f1db5b0a6e67a50dc53b430d79112c973cc354acd616f0824343"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\amdxe.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "96777e433f0015b3332a01b94cabb80a3da5e4872094801d200f058b4ee44a3d"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\atihdwt6.inf_amd64_76dcade1eff04982\\AtihdWT6.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "1c2cc65d95969206710a0b671ef50c74ff5cea89873778362ecc76975490b2ed"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\bam.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "dcf689b7898e3982c73a220d1aa4b47f68933e733d6d99f368a96188a5e314c3"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\basicdisplay.inf_amd64_9f34636ebdd89def\\BasicDisplay.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "75ab8fd5c899616e70b6252b6c7291463f7750de5866fbb5b6f8b0d21daf3eea"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\basicrender.inf_amd64_398debb686d62c0f\\BasicRender.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c58546b3941570e6381717f4be40cb75930acb4e2fc871b334927a69c268f20c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Beep.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "98cdbd998cf136fbbb9ecce829717b917374d0af20780bfd02767303c2756d85"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\bfs.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ddb7e0cae6275e02cff53fb04d2fc5d66e15cf94686d47802dcbc4d62d1618bc"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\bindflt.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5d9af32118ebc58406dae2ec770e1a24f67cc916279d7491fb41675ae67bf83b"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\bowser.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9971b2c6c24f4d920998651c028fe5c2155caac176dfd0349d5b908b74af9360"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\BthEnum.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8b76717839a650ac8a1b42d6d24815602c36286d3a5fc44e8642baa2547e3823"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Microsoft.Bluetooth.Legacy.LEEnumerator.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "27e4159efe2cec95614ec4b0a098c27246f4bcf340b539a15e4c8ec8fb3d6089"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\bthpan.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7d639291ea0c28c740d92befe82161b0c9f510788a9ffac82f6a44922bea275f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\BTHport.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e74eecaebc167a284f7637d69aa7c5b6c1683aa9c91205f30a1518f5372df866"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\BTHUSB.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "4622ed1f090ad029dc448772286289a197b4eed65f85667ba701d075041a372f"
+    },
+    "C:\\WINDOWS\\system32\\cdd.dll": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "52f34cf21cf1cbcd4d99821b7c987ffa7da5fd6c7a9a6526edb4e27baf391d6d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\cdrom.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "297578fe9855f4114a839fd9dee664e4eb4350d44ee171259dc529adc8e423db"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\CimFS.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b2c0de4ced045cada8953b4524a198792c5f686f2f83cf295164171a3efd487e"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\cldflt.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2af09e949fc54cfedcbc8a598eb7c0d293cdc9993940dd456c112b994882d628"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\CLFS.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e92c877de1e2fd23266e21faff1ca036168eddd52550d082fabe042c924c1d6a"
+    },
+    "C:\\WINDOWS\\system32\\Drivers\\cng.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "4ae40760d5bdd95777f2709c71c0c15ada443592785c3ba93843e2c8bbd8ab07"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\compositebus.inf_amd64_8cf6fa9d3afdfa25\\CompositeBus.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cd3da415d3eb770aff4a6fcffc83627394c607674611449896250d6b8e1b4839"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\condrv.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3b424955065267757dd33a3b04836d7853a5345e67e8d11ceedf6ccd064095b9"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\csc.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "846fc0d190aec98773779f3fdde02cf60526f723c22b794127cc1a5299bc1c86"
+    },
+    "C:\\WINDOWS\\system32\\Drivers\\dfsc.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0c097c4d23a6b1a4d9fdb44e0b4e6458843e527c413122910a2124baee90673f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\disk.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "eb51c5bb2f1edd09d78cb7b0c1c3200105a830a868c42d193dd3bbd766ec8f4f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\dxgkrnl.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8ed165fcd47205c6f7d9f3db4235a20f84394da7dd0703ca8092a585da65811d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\EhStorClass.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "64b1313192498a8b7fa6d6988e02b70e024a105c297852cf4a5375fb7d1d8668"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\fastfat.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "22074c76808062297fdf132a6e3e21ab5cb5df69958c28a4a21d2481bbc557e7"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\filecrypt.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "48f8408987eccdcc97b3d32c14c17fcc9e4e13ffb8be5e6c481b931be7ad5b1c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\fileinfo.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "56b772ac11842c2d1bb5f13bbf24f84ea51aad78dff8ccc26fb64e4b2b73f85e"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\fltmgr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "212c77fe83780d9ac73b54ac043db0ae7e5ca6dc331f971fa373e9a274f44d4a"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\FsDepends.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "561e096a019e7193d987f98b9ea3cb4bfec6d28de6be54a445b1ff53151d0a5a"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\fse.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d42ec9a2304a08d35d82522729a1f14902b555a4cb21a76fd774fc51b2bfc53d"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\fvevol.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "427eb75136482b2037ec25213e8c682bde578bdb8fb5140fd8d22e09238a3c1a"
+    },
+    "C:\\WINDOWS\\system32\\Drivers\\msgpioclx.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8903afa596aaabfdac49df40780149e002512fd0eedb0485283258b56f5a8f03"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\HdAudio.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "34b56954b0f3b8143486bcf0d9680fcc125e99999aa5fbade78c935890db781f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\HDAudBus.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "10d709583e265306c15ec044f75f750352c942e6606c421d0471cd149f2944f2"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\hidusb.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b67be1b1d1ff7295966b5e3a49ed2230acdb6e44a2ec2030c5d3966240062ecc"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\HTTP.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "fa233afc42174a5afa9ec9c44ca45a9e6ff67451997258a80849f30272e25f11"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\hvservice.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d106305d184ad61c091a887b8aec1c2206ed23472e738874224f478b715035cf"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\hvsocketcontrol.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "755ada27a06e9ea9bc690b1e66ef1fe0f1209f50520d32c4de7f7a8204bbf41f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\intelpep.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "bb9fdc5d1ca0428d9efa2acefbe0b38f24fec3fd1582d9f69af57956ec0acf22"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\IntelPMT.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7ff092c76abf84060ba5a644c23e78c0c80b3542cc50077a70e00bc948a09698"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\iorate.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "f35e1f621e1694495ee51306fe950739f3a83cde80d005476d1e960303eef53b"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\kbdclass.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "fad240492829942947b860345f484dc7505186a8f95939887f745dbb806c3742"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\kbdhid.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0824bb6536e75fa98823724694557691232ec5fb47f6b1237f4841082d13839d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\kdnic.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "030fb78c8c7c1c63300508eed5b2beea463d8fa0df9602fe6c5e40e0212b87f3"
+    },
+    "C:\\WINDOWS\\system32\\Drivers\\ksecdd.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c35a0f0accbf0c6b76b9b44b2f77e34c5636ae66198c528e2c658b638bc33be6"
+    },
+    "C:\\WINDOWS\\system32\\Drivers\\ksecpkg.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5bc30420087a5e4dae85f67c8ebf8bf06bc9377f5de5681fd5186929f479047a"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\wd\\KslD.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ce8bb47133235ec93858e5ea01e6fc38d21321d34ad50aa14f6a2c90d4c3e83c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\ksthunk.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7048c9d96755ff002e8f75c2b860e5e8564f7274bf220ed64216d3911e12e9f7"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\lltdio.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "879e58a6c814afee5a98b286e6756833d93864339533947569e409a36f93721f"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\logi_lamparray_usb.inf_amd64_cdf3ca3c77d5f267\\logi_lamparray.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e03748ef98e51a64be1d6ac3a7ec0e7f09cddb68c3c529fd3200633e74d7cb65"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\luafv.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "80190da61034ec1f09f7970163781bc4715174552ee4977f71396cce94a41a31"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mmcss.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8bf2c7d6f8799eeb598cc7809bf838c9a49a6506a0ab605b77f68cb743740dba"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\monitor.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c9ce50b0c8f8e07ef8cb575592942d0ef8e01e4641460483ac805b5435bca842"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mouclass.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0cb695cdd5edd557ed9e544e2dad3fe9ec6684f81c1b7bbff0a841bf1c495339"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mouhid.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0675a2d2b5488af06ed72f13f687290189a61111ca048c33122657b07fd74458"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mountmgr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "46c36b1e501e02c38910678e05800bcb7ebb2145a13be55e1888d32f8ad8174c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mpsdrv.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d640f00f5e152782906d443981f7577dbaa1960058e27b7683ba029182f5a220"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mrxdav.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "6d22c357e2a2bf93d1b9ef34818cd861e6bfcdbee21aa64182bb4c73bc3dcec8"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\mrxsmb.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "fce7e8ddfac9ec8a525258d26bb7bdf4b654977e01c376835ab258c13d9d7405"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\mrxsmb20.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2f75ecde97c38d37b9adbf4db9a31d2822331c269fd5d2a3d5329ab889fd78ca"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Msfs.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7266392fe3c07c5195f47f7ad5b53e4effda553754c822b300b973254914b64f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\msisadrv.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "df2bf42c5cd3401fa0215ab3eea91efd07edce240f36e30fb14371f5c4b3ad80"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mslldp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "510827b0870a01901de4bb7a11d7d0b2a34ebbc6f75e2bdcd2b12572597203c4"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\msseccore.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "05a78f5757f66821bb5c59d8e959c9f424181bdf81ce75a4aec279f1c9c7ea48"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mssmbios.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b158d81780504ab412c17bb9db0c710f6ad9c7f2b75e7095c2fc2fc1847dc9a0"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\mtkbtfilterx.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c4375be08f142ede37235e78e29d4446d1c2da0919f62ac5c33d764f37149980"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\mtkwl6ex.inf_amd64_e4e766c9f7adc16a\\mtkwl6ex.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "af3c1594c2b20d08d6cc97f221cf9c8ab7276dec4435cb5fa1f5d923759ce388"
+    },
+    "C:\\WINDOWS\\system32\\Drivers\\mup.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0c5b3c04efd79142cc27803f6f8d0720e2b02c8a473e953c544adb02d8d003f7"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\nwifi.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b934468310e52490749b11a006fee0d4a47b9b11ba1969008ed44f08929f41c5"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\ndis.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8989c181e85414c3d30b3b1554390a1d03d06aeeb3ff3b99bc074ad9a682a878"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\ndiscap.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "bc5a261c3f9df1ef7e11a9d2e6325a2cbbad20703b0a6a1d641241428f35e9d1"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\ndistapi.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e4241a35a960fbfc0d3fe33e2797872f91f2547e184f967794fc57be31efabbf"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\ndisuio.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "066cc6d74febbb6d655a7623d9700dc42b040bff7152b6b534f03b310fb8125f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\NdisVirtualBus.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5620649d1a8f0f38f367e473bdbeb80a3a89a4a21326e2304cd0389d24c68511"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\ndiswan.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9b9cd5091a29b1c3f8fc6a19255b59cb324d0864322e68c58ae6c257446ce9d7"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\NDProxy.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9b30afefe4791a5161d1dc47e331e6f5bdf6ced1736e5d9768b5eda304d1bd09"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Ndu.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "859c7c2f67227c7a13645219fc7b9c4b3c3dc82dd2cfb8422fb7a82e7f21f13a"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\netbios.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "29c10b2bd9c7272c7c71462f39252a75de0159eccfc58bdf1c407d8c226f0afc"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\netbt.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7ee6c3d274c3dbd7a5ee16268db161e8a46b08eb34b25b90b7add2ea3ca079d7"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Npfs.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7428025b18bd0ed4958295c4fca56ab2e61a6ac83ecb7a4d858b6def8674cae8"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\npsvctrig.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "dde7961a0323d8450a3506af210ee5ab8eacde91d6f78f6d91d52c456fb9a3a3"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\nsiproxy.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "daff8c6396e7b36bff293423c31841626c325d4b6840d2afbd0dfee98da4ad8b"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Ntfs.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b340816e8f307030247d624d746437b2ca1133664c6261df1376b5829cb69380"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Null.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2f2d67101d1642765bab790a36ba65de3a859d10a497fe7c24d12a65bf66068f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\nvhda64v.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "f3ddd1e064b8dd189832b753561c1a185db493bd90ec99e807c9eb91b8ca6f6d"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\nv_dispi.inf_amd64_6f3cfb7117944855\\nvlddmkm.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a5dde035859cfa298f890c832ae3094002b13a24462ace190da8c2c85ae46142"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\nvmedisk.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "397a4369b0ca77b49d38603092421c8336798b8b47805f199c4c04e89a87de13"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\nvvad64v.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b9f49287b1a45070668423cc5b4cdaf073192de50a5004717caf97e7a2d6d78e"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\partmgr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2baad9193ad191210d5df7db988e552d72731ccd8e20a9928058a11fdb75f752"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\pci.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d743ee2a6908d53b4f16286c2e3521a570bd98aef7f6099803a6e534cf9e86cd"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\pcw.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "aeb24cbfe4cabfc83024bc2ed357bd35890a68a3f1528994c1e70e86fdc2f319"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\pdc.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "564aea8dafee09aa3593f10883c53a5f1a0e863906b69ef446c21aab400bf8d8"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\peauth.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "4fb47bfb32baf011bed81af89b68fd5e0954c9180b19fb57a5d8f17c9b7dabf4"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\raspptp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "42426bca3c86bd78065bfd3243a3a045cf25a59736d4d81aba206e3028e0c301"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\prm.inf_amd64_7c38475757a1f016\\PRM.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cef2b58655b4c4e3947ccce2f0357059819e20ca8945134a40459d2f7ec60650"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\pacer.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "29bfa7eb7bdc0e9d5d290c0b1d2862e530c4cf29b8b123a82aea5afa40c6379c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\qwavedrv.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "f0fdbabfd721999a672f1a54a4a6c52f41cc6e4c1088ec1afb7e5500f42002af"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\AgileVpn.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0ce36990f3330c840fd3bcf859443627e88ee809ee8e97ea20ac41425542f33b"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rasl2tp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "204a9307d5cdf8bee92de771fa86c1a96704a02bf3ef0e20eab4c5dac28f02bb"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\raspppoe.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "4174df6db0196626db7dfd7a66b960103a01a08dbaa5de2fc6cc7b22c2dd41d7"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rassstp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "95ed1e66ef3773eed79b3a23d7d7e188ea331fb7d7f5c059c4b786537567f9c7"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\rdbss.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "f3ba970fb40f57c64644989b400c50b66a1a8e429258198190310baa695dc9d2"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rdpbus.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0ab7d6235202301a440f9e81d6f6b3a8b2cc3e42bd794f67dfbfb710a616e6b9"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rdyboost.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e83d146702f22e6a8fdb19b2f90ed7e745dcc3bcae1fdc7f8ac8847a793ad2c1"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rfcomm.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7a17f8788de287305ecd7dada5c524468c37d04f8615315e661d86bbf43e8de7"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rhproxy.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "816c553ec9382554d13162a9c30213ac54ce503858c5dbd84c8b1be1c9e3c5d1"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rspndr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "4f5e457b5d00f16d9ccaa9003344d4bc87b9b59ea098a60cd5c970b9b7d0e4c7"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\rt640x64.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cd83ee15b22e2fe498be6086391c94f9c3cab01fac8d9994075396e3689a10e1"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\serenum.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "59d9888a42e20faeff78bc3312e0015148c5c21abcb0799e1c93fe24b70210f8"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\serial.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0cce651e05c888a994c4370233e0f68ece99821e652cf075ea389a1b8f62515f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\spaceport.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7e4f4f8b9b1a7fb5cfff11a947093975fa79f0e4e6f7798b6d17f1f57b4f5d57"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\SpbCx.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ef01558a086b90dde54803a0d29c66725c216852d99bafb27b9f42e0856a53cb"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\srv2.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "76173a951299a004d04151121a0afb63ef705c0591d66cbf139736b9a193fcfc"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\srvnet.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d39e9a5f3e0e36943fe2612c76c8514fcd3339943e17768d87f1036e3dd573ed"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\storahci.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b94d906a8d8b396e8b64ff392405767cd1230ca92db885077ea958f55b7aa086"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\stornvme.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7c6c04108b8e09817366de42570d939db47f8098a8a221b472ffef9781063e83"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\storqosflt.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "07285578581b6782bca6f9e9d93873a9ace421231ad4017e8d54fe2d8b0b5c45"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\storvsp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3f7daff36842ec24a705923410dc6b9cd4797ea58497839006847cdb31427634"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\swenum.inf_amd64_8b9dd76f362e3ec6\\swenum.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0e6d766bbd3d9b7476cde2d2e9c317fa51090c9a608929c9e372f66ea2e2f88f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\tcpip.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "45c1b98901dbad8a6f24e5f1ea542c63cedf2f64be18b37e43944f4e1a3a7ae3"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\tcpipreg.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7b809cfdf5bcda3d86e4fe0401165a7e1df9e4bc7eb11eb46ec6591f9f9af692"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\tdx.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b7a6bd878e5b242b6ba3e9766bda1a7ccd2f5a33899486d00ca62db6e153693f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\tpm.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b9e1824a7ec4bfc99df9ea0233d0f7ca93444b1673d962db371a904250e05f1e"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\UCPD.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "61bf7cedf139bafee613507f01117d388c78d7de02e43e43fe7ed118bb569d3c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\ucx01000.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d325a1ea05cbe9baaf835cefd00f68a6830b9a85489e03ce52b14266dbf94378"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\uefi.inf_amd64_8681c4be783af156\\UEFI.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "d3b92d7cb053db884e09d9e0fffe4e3f5cd3ee5ccfc04ac18b8a35fa9fbe0018"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\uiomap.inf_amd64_10a42a73c2de27c4\\uiomap.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "90e1ab64baa27f999df87ce46872637161782104378d9eeb32cc51f8a928ce33"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\umbus.inf_amd64_914dd46b4b013b1b\\umbus.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ea211d5531bc397d1ae6e8692124ff8abefcdd8d8609dc14333155f108bd81df"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\UnionFS.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0cc733f9c1bca4f73b2eb9cdee6ad026b7245e05dfac4a9a4e45f10caeaf50c3"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\usbccgp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "19d7698b36f3b674c65325326788b8d1a0202354e3c96842f0e67e013fdfb019"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\UsbHub3.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9f031ab0147a460363e895cfed7b982e873448d946a24421d3628623423261b2"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\USBSTOR.SYS": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5e19ae14617058129adc9be387641e02512c7a88da1f052424eb8900f8d70d5a"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\USBXHCI.SYS": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7b1a0bf1052805a4dfaff549528549f641ffe97af8d26af920e1b8d1ff84a9d6"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\vdrvroot.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0029fa9fe4f3055244d25646bf833705b937a7553430c50d055f643e993bdb6d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\vhdmp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "715507d4c28e49afa909c49a798d98a710bbd60d03aacbe258d3cfe8205a4b48"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\vhdparser.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2753873b43512b0e78ff9a224216f9a01beb8f890371fdd046882093121513d6"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Vid.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "68c252d7396a7250fec18f066b9ca0e2a4677279a94e7fcadf15dd4514c6d4cf"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\wvkrnlintvsp.inf_amd64_ee0d6d0424e1e907\\vkrnlintvsp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3c7592369ef515be3e0719f5d7df4bf50f9199fa221fabf7f5cbaec80abb45e0"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\vmbusr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "f34cceb9d3bdc711fac159604b3d60a799bf03e5563c5e4a19e56df5b4e63c44"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\VmsProxyHNic.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "81d48df9399b804d21df79579b36d64dbaa371fe0e38b60a2c29df13729e99a3"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\vmswitch.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "fb9d5893ef2e57e7c93d5abe764d2a8e41f82a30b0eb0914af537e49b0975f70"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\VmsProxy.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "25e8a2ac1b5ab73761a824e7d493131ac85443ef96af4acd38f94350b38088b9"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\volmgr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8e67e7ec2974ab2193f710dd0c99890d5b388381601b2246c17ebe594ccca96d"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\volmgrx.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c812705476e9d45043977b16e96e93835e860043b1c196976830d7aa7386303c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\volsnap.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "bb738d22f8df0b14b8ac492caf5d93bc7c5f60d3c169a5b4ec1470c9b1c120b4"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\volume.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "42e63746060e7698bddf08ffb22905e11ef9a329181c06930784238ade49506f"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\vpcivsp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3f4363e0507d0dc31b73ccd4fa839f318f831325a4b765901a59ae0f81adac5b"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\netvwifibus.inf_amd64_ab4e111fe8221178\\vwifibus.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5cb6e77b582990932082bce8d7b4edcbc856387b372f5576ffbe3ac68d7e5ec8"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\vwififlt.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3438f1776e907d138579146264351da5601efc08f06c36f24621a4c28d261857"
+    },
+    "C:\\WINDOWS\\system32\\DriverStore\\FileRepository\\netvwifimp.inf_amd64_d5d60e62de4bba77\\vwifimp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a6adfbee8ad0cdaee9c513f8ecc8074f35e65331a793e84928ab4a6ddd0ff512"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\wanarp.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "722f93093d7aba5b3fe867fb5695d9557ad640108bed87081c87f6aafeddadd9"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\wcifs.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9ecdabf5482c119d9ab46c6e3a9c8ac831c13e6a82e24dbcf7a91a47ef3a2091"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Wdf01000.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "6c15b86327090956b7b072893d9702f36651cc47d330b120ad80e29a7f47cf4a"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\wd\\WdFilter.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "398d772e06ff29ab81b7aeaaa210eb3bfc17aefd8e0a1800c96fad26ef26b27e"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\wdiwifi.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "8a7833cc7bdae0c555c7e8b25f3203f6d42304e3b6140b32f7a0d56f769e168c"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\wd\\WdNisDrv.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e83b3c6ef69240b2bd2c8690987d56c9cff6970872add97ba3910b05650d4d94"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\wfplwfs.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "4df46bcb4c6b67794a4f85d419c4384c9ec11962f4d9042e1f99935e88f2199e"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\WindowsTrustedRT.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "bf7f8ca812419352613b7cf4cba732d769c9b02eea734bcad6eb5470d05eac71"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\WindowsTrustedRTProxy.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "fa8336a782b6e51d6677d7c1423d8efa4ede207c64d29bb0a360ac8615cb7492"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\winnat.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "c350da4f2f7330ccf28b4241c09529593f93b5daeac869f5049e5f6c2dfe22c4"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\wmiacpi.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3a8540de14ed7f876de425fa0379790f01526a1df50c409a4e8bc3fc134f7177"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\Wof.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "065980458b88b99ae0c408a83ff1e3cbd87e7a10dbacbbd83981b497c20db34b"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\WpdUpFltr.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "45489df939804ffe56e9a833cbed357402795d7d0cbd6dfcda29645cd3df4300"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\wtd.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e8dfc1d810c8dc7d6d5e3bc16101cd4a965ea4c6dcafae41a9f49383b3124882"
+    },
+    "C:\\WINDOWS\\system32\\drivers\\WUDFRd.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9729f921d452620633384a2dda5ce81731afd73f21bf1bdab55e2aeb3294b808"
+    },
+    "C:\\WINDOWS\\system32\\DRIVERS\\WUDFRd.sys": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9729f921d452620633384a2dda5ce81731afd73f21bf1bdab55e2aeb3294b808"
+    },
+    "C:\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7168361755ec552a77169a47eb7df5c4e3a13c63f7ccc43fade15abf19ef1c43"
+    },
+    "C:\\WINDOWS\\system32\\sihost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "6e271366388fbc5a1e2e5204e7cf98557b44db2e9e34e1b6a7c8e7b80e14caab"
+    },
+    "C:\\WINDOWS\\system32\\svchost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "1222a44a5fdb4efde4dfcb41093648627950e7ec02d8667f1c26ccae31d922e2"
+    },
+    "C:\\WINDOWS\\system32\\taskhostw.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ea8d441df237fb3d3b7a27a95fde186e19c94d58a618f5c29ed5fc13cb155e96"
+    },
+    "C:\\WINDOWS\\Explorer.EXE": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"
+    },
+    "C:\\Windows\\System32\\ShellHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2432f8111d707fc5607081ab1f2879e768d78b53f4155ba911b4e427d6aa50fc"
+    },
+    "C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\CrossDeviceResume.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ed8bba30fd8e89774c0ad42e4c6cd269cd0aacd47732be462965e1f91b52708c"
+    },
+    "C:\\Program Files\\WindowsApps\\MicrosoftWindows.CrossDevice_1.26052.99.0_x64__cw5n1h2txyewy\\CrossDeviceService.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "fbfa4981aedf3f934ceda7e32e41cefa04f56a4f41c96b92911034c5d1713446"
+    },
+    "C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\SearchHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "715695172fb74817ff0230c0ff8e0f3ed0141a8979e980e04fa0f9c9e8b81334"
+    },
+    "C:\\Windows\\SystemApps\\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\\StartMenuExperienceHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "74788dd48afa48caada27200fe84c5da0efc9cad215d9af248a983d8438ed34e"
+    },
+    "C:\\Windows\\System32\\RuntimeBroker.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7585be81da95812b1b1b50e9c832d4ae972f725ca3558f607366c8b7a7b94c05"
+    },
+    "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\150.0.4078.83\\msedgewebview2.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e681242df22d38e15d064747ce19be295264847ca0e0cfc25b5311c388aa914d"
+    },
+    "C:\\Program Files\\WindowsApps\\Microsoft.YourPhone_1.26052.144.0_x64__8wekyb3d8bbwe\\PhoneExperienceHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "06ba8bbaca4548fa0e9a3ffce603d7d20d6b435bee85b1962ae357470c1d65a8"
+    },
+    "C:\\Windows\\System32\\SecurityHealthSystray.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "129cc582d72581f1459c7a9ac8b020dcd3642fae6a69acc26c680190494970db"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Discord\\app-1.0.9248\\Discord.exe": {
+      "status": "Valid",
+      "publisher": "GlobalSign Root CA",
+      "sha256": "b257c6548c8bb6465bd164fdf24cbee8634549c35e22da5394762a0677e52f1b"
+    },
+    "C:\\Program Files (x86)\\Common Files\\Adobe\\Adobe Desktop Common\\IPCBox\\AdobeIPCBroker.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "ef0a3fb13c6f5f35a56a319f340b2e7e6cca1a76b3c1c7c0017705ab5d169f48"
+    },
+    "C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e62cfbb5702ecf44f63f69d6dfb18f6408330f64e24503f594781beed8b195e1"
+    },
+    "C:\\Program Files\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud UI Helper.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "5bcd12903db759f53ea48d6a6f65adda4fbee733d735d4f6acabf46976c634ac"
+    },
+    "C:\\Program Files (x86)\\Common Files\\Adobe\\Adobe Desktop Common\\ADS\\Adobe Desktop Service.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a0ee64295f37faed22bcdc32df19b7a53ea2f000af49da93da3228a9c11e1ea9"
+    },
+    "C:\\Program Files\\WindowsApps\\Claude_1.22209.3.0_x64__pzs8sxrjxfjjc\\app\\Claude.exe": {
+      "status": "Valid",
+      "publisher": "Entrust Root Certification Authority",
+      "sha256": "8c6884dbf509912afab7db9418199dab8063d9fe517f87ec9f713040760f3d66"
+    },
+    "C:\\Program Files\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud Helper.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "b170a944b2243a1b1cea1901147608181739f6fe1f1f2441ba863410e9c72d17"
+    },
+    "C:\\Program Files (x86)\\Adobe\\Adobe Sync\\CoreSync\\CoreSync.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0bef7d269f5d9a96a0fa7cf276bcb166c83e23e07729ce78739343b7c8cb1a34"
+    },
+    "C:\\Program Files\\Common Files\\Adobe\\Adobe OS Extension\\AdobeNotificationClient.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "2edc28f22a0a3a34a5f236388f0829038997d279cdef3cbaeadbc3d40be039e5"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\.local\\bin\\uv.exe": {
+      "status": "Unsigned",
+      "publisher": null,
+      "sha256": "6d40479cd1d0d5db7fc0fe68ad703fc8acbd84bba50d864bb97461f6af9d9561"
+    },
+    "C:\\WINDOWS\\system32\\conhost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "32e45de7f02912f3907083690043df4abdc4705eea28300719788eaa4a339d0b"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Claude\\Claude Extensions\\ant.dir.cursortouch.windows-mcp\\.venv\\Scripts\\windows-mcp.exe": {
+      "status": "Unsigned",
+      "publisher": null,
+      "sha256": "58347cf3d3e2f324789b50e07f66aa793799021641c190dec59c383523d24156"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Roaming\\Claude\\Claude Extensions\\ant.dir.cursortouch.windows-mcp\\.venv\\Scripts\\python.exe": {
+      "status": "Unsigned",
+      "publisher": null,
+      "sha256": "b52ab3e1fd7320610cbf8ce01cf91f4010c75c5981f6d090fde45a83c5b9d2d9"
+    },
+    "C:\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe": {
+      "status": "Unsigned",
+      "publisher": null,
+      "sha256": "623f669041a962346e6a377408193e628bfc409d12e5851042a727685980813e"
+    },
+    "C:\\Program Files\\AMD\\CNext\\CNext\\Radeonsoftware.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "1511057f7991144ba9f64a134214d9196c829503e439c7f1e49246c93753fbb0"
+    },
+    "\\\\?\\C:\\WINDOWS\\system32\\conhost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "32e45de7f02912f3907083690043df4abdc4705eea28300719788eaa4a339d0b"
+    },
+    "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "7600ffe12da441fe89d035b13801e8e91d064bc544a27b19a5cf49f6ab8b18f5"
+    },
+    "C:\\Program Files\\AMD\\CNext\\CNext\\AMDRSSrcExt.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "bd0db01ac59590f27448286d5fcecc5f224df60b6b0f423e4e08324f81a7f697"
+    },
+    "C:\\Windows\\SystemApps\\ShellExperienceHost_cw5n1h2txyewy\\ShellExperienceHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0e4c3bb301e4ed7de2cbd514fd4797ef81079857fc160cf3d7a2ef2d9f552d48"
+    },
+    "C:\\WINDOWS\\system32\\ApplicationFrameHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "9f24cf6b3663162986d302fb2aefcc140798f6ac68cc1b4b034332c1e7d85dd7"
+    },
+    "C:\\Windows\\ImmersiveControlPanel\\SystemSettings.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "dd33f5aa9b1a49943b996fb5f311efd4a665acbc0b5d8936399bdba2fad5d7c2"
+    },
+    "C:\\Windows\\System32\\oobe\\UserOOBEBroker.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a9846f2c37983593b9b8295ed05c15e593a1c5d8277f8477605c87bfbc3c08e2"
+    },
+    "C:\\WINDOWS\\system32\\OpenWith.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "25cc3350585c58b8ab176e8c1595a40c6c2acee8a595ac4910973a66e0ff13bf"
+    },
+    "C:\\Program Files\\WindowsApps\\Microsoft.WindowsNotepad_11.2605.34.0_x64__8wekyb3d8bbwe\\Notepad\\Notepad.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a84360f31e78c4aaab51a0e5c8981c599be022b58c7a9776b2d89e8b2527d416"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Programs\\Bitwarden\\Bitwarden.exe": {
+      "status": "Valid",
+      "publisher": "Entrust Root Certification Authority",
+      "sha256": "c92fc609ad41812b774f7ed790167d0d0abb4baeaba9f196f65b0b25125ba209"
+    },
+    "C:\\Program Files\\AMD\\AMDInstallManager\\AMDInstallManager.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "290ae7ed27562a2db99533d9070351caf8b97cd407b4fae0cd16e90c9063055c"
+    },
+    "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\libs\\node.exe": {
+      "status": "Valid",
+      "publisher": "NAVER Global Root Certification Authority",
+      "sha256": "d14ba95cdce1ef7dc9ad3ac74949ca5db38b27378ee30f30a23cf26f9e875a11"
+    },
+    "C:\\WINDOWS\\system32\\wwahost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "a11ff31bde6e10a75ad2c01045ed6dc726d0a191531e4060200ab81e676a1fcf"
+    },
+    "C:\\WINDOWS\\system32\\DllHost.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "834dd7b48347e580a944738ce1ad5b3f41fb689173708f2e9aaebe091597c9bc"
+    },
+    "C:\\Program Files\\WindowsApps\\Microsoft.ScreenSketch_11.2602.49.0_x64__8wekyb3d8bbwe\\SnippingTool\\SnippingTool.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e2f5c2b9e4fbf021d0559f14f657c864ab500d7c60364a9ef488fb99cea4883d"
+    },
+    "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\AppVShNotify.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "3fcf6c1eb1a8048ca292756988723db9e033e18b52e3bbf3486ecabce243c8e8"
+    },
+    "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "dd0f61118dd71516c723f0592ecf13e6d6277eae73bdd6aa62bcc5ddb766c7a0"
+    },
+    "C:\\Program Files\\Microsoft Office\\root\\vfs\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\ai.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "cc037825b5741307c5e9c64ba4d905ae35e0fff54dda71daf55edaaff093c0c4"
+    },
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "739a40caaf0f6cd1c75c82128b9aca918634ddb7eee6ccfec1975a450c16f7b1"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Packages\\Claude_pzs8sxrjxfjjc\\LocalCache\\Roaming\\Claude\\ChromeNativeHost\\chrome-native-host.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "840633697f1a845bfe3e73af3510bdab5b33c75c2a9e34f2edbfaca96d945c39"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Claude\\claude-code\\2.1.215\\claude.exe": {
+      "status": "Valid",
+      "publisher": "NAVER Global Root Certification Authority",
+      "sha256": "f14452d1e199273795f2920c00fd7a7f818178ddf1f3efb4d005a7e3d4ec4eff"
+    },
+    "C:\\Program Files\\dotnet\\dotnet.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "4377f10c78400f0370b88156773de9843c07f14e65b3232005ec3179ef38d463"
+    },
+    "C:\\Program Files\\dotnet\\sdk\\10.0.302\\Roslyn\\bincore\\VBCSCompiler.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "33e4d98be8a19efaa9077da96fb24964eba45e41266678c2cf54527089cd4268"
+    },
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\VCTIP.EXE": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0438198f79ccba1ad170f4344632e74bbf8b0d8ae55f92446565c54bedb26e37"
+    },
+    "C:\\Users\\anon:dcbbdf833cfe\\Documents\\3 - Projects\\CleanProject\\src\\Rempart.Cli\\bin\\Debug\\net10.0-windows\\win-x64\\rempart.exe": {
+      "status": "Unsigned",
+      "publisher": null,
+      "sha256": "989e6e76fe97a9298360e87a6f4d8c71b2624a761bafa6a240435f5dd404d899"
+    },
+    "C:\\WINDOWS\\system32\\userinit.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "6557bb7316e1bfd6fcab7a91459bb8c47c61e112ce20d806931f7cbfe0ab83aa"
+    },
+    "C:\\WINDOWS\\explorer.exe": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"
     }
   },
   "directories": {},
@@ -3560,7 +4817,7 @@
         "path": "\\Microsoft\\Windows\\WDI\\ResolutionHost",
         "name": "ResolutionHost",
         "enabled": true,
-        "state": "running",
+        "state": "ready",
         "author": "anon:d38014d52be7",
         "userId": null,
         "runLevel": "HighestAvailable",
@@ -3925,8 +5182,8 @@
         ]
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{8f381026-0ad6-488e-8273-a84e6d37c835}",
-        "name": "SoftLandingDeferralTask-{8f381026-0ad6-488e-8273-a84e6d37c835}",
+        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
+        "name": "SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -3941,8 +5198,8 @@
         ]
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{255e53e0-aa7a-48b1-8b58-b08306fe171d}",
-        "name": "SoftLandingTriggerTask-128000000001615609-render-{255e53e0-aa7a-48b1-8b58-b08306fe171d}",
+        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
+        "name": "SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
         "enabled": false,
         "state": "disabled",
         "author": null,
@@ -3990,5 +5247,7 @@
       }
     ],
     "diagnostic": null
-  }
+  },
+  "drivers": null,
+  "processes": null
 }

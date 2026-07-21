@@ -812,7 +812,7 @@
         "compte": "anon:9b7dfa1f0da9",
         "commande": "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe",
         "signature": "Valid",
-        "sha256": "30e9f49de4f07e8b3e89b4e3550b749ed7d5174f3f181c75825599be9fc634ea"
+        "sha256": "5a246f6dc531b0cbbb813a2755f192d9924181df9fe2ce6bfbe0375b436a3666"
       }
     },
     {
@@ -871,7 +871,7 @@
         "\u00E9l\u00E9vation": "HighestAvailable",
         "commande": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe /frequentupdate SCHEDULEDTASK displaylevel=False",
         "signature": "Valid",
-        "sha256": "7538d02f4caa2e00d9e9a3601b7fc3d8d348ea0439baf4579aee96534fa90010"
+        "sha256": "cc60165e11ed0dec47f9b493129dd85f60f84b2a56b344ee98693ff17ca40092"
       }
     },
     {
@@ -887,7 +887,7 @@
         "\u00E9l\u00E9vation": "HighestAvailable",
         "commande": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe /WatchService",
         "signature": "Valid",
-        "sha256": "7538d02f4caa2e00d9e9a3601b7fc3d8d348ea0439baf4579aee96534fa90010"
+        "sha256": "cc60165e11ed0dec47f9b493129dd85f60f84b2a56b344ee98693ff17ca40092"
       }
     },
     {
@@ -901,7 +901,7 @@
         "auteur": "Microsoft Office",
         "commande": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
         "signature": "Valid",
-        "sha256": "47fa259b453d6cc50ef209daee720c05e444d2679134c7729471bc4350d51146"
+        "sha256": "9a20c81bfcd9ad39be7d554203b3058b6ecf5716a4a0626f6099e92578ff1f1d"
       }
     },
     {
@@ -915,7 +915,7 @@
         "auteur": "Microsoft Office",
         "commande": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe /onlogon",
         "signature": "Valid",
-        "sha256": "47fa259b453d6cc50ef209daee720c05e444d2679134c7729471bc4350d51146"
+        "sha256": "9a20c81bfcd9ad39be7d554203b3058b6ecf5716a4a0626f6099e92578ff1f1d"
       }
     },
     {
@@ -930,7 +930,7 @@
         "\u00E9l\u00E9vation": "HighestAvailable",
         "commande": "C:\\Program Files\\Microsoft Office\\root\\VFS\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\operfmon.exe",
         "signature": "Valid",
-        "sha256": "ad0d7d0a9906f52bf60acba99e7fdb47fbf81366f7c0031b5b64d177a3667817"
+        "sha256": "279b25be72566cd140fe5e4f8449b022dc16d24f11e551675157f347198d8ae7"
       }
     },
     {
@@ -3174,7 +3174,7 @@
       "severity": "Benign",
       "reasons": [],
       "details": {
-        "\u00E9tat": "running",
+        "\u00E9tat": "ready",
         "auteur": "anon:d38014d52be7",
         "\u00E9l\u00E9vation": "HighestAvailable",
         "type": "ComHandler",
@@ -3494,8 +3494,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{8f381026-0ad6-488e-8273-a84e6d37c835}",
-      "target": "SoftLandingDeferralTask-{8f381026-0ad6-488e-8273-a84e6d37c835}",
+      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
+      "target": "SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
       "severity": "Benign",
       "reasons": [],
       "details": {
@@ -3507,8 +3507,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{255e53e0-aa7a-48b1-8b58-b08306fe171d}",
-      "target": "SoftLandingTriggerTask-128000000001615609-render-{255e53e0-aa7a-48b1-8b58-b08306fe171d}",
+      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
+      "target": "SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
       "severity": "Benign",
       "reasons": [],
       "details": {
@@ -3542,6 +3542,30 @@
         "compte": "anon:fe2a3f975474",
         "type": "ComHandler",
         "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "logon-extension",
+      "source": "Winlogon\\Userinit",
+      "target": "C:\\WINDOWS\\system32\\userinit.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "r\u00E9f\u00E9rence": "C:\\WINDOWS\\system32\\userinit.exe",
+        "signature": "Valid",
+        "sha256": "6557bb7316e1bfd6fcab7a91459bb8c47c61e112ce20d806931f7cbfe0ab83aa"
+      }
+    },
+    {
+      "kind": "logon-extension",
+      "source": "Winlogon\\Shell",
+      "target": "C:\\WINDOWS\\explorer.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "r\u00E9f\u00E9rence": "explorer.exe",
+        "signature": "Valid",
+        "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"
       }
     }
   ],
