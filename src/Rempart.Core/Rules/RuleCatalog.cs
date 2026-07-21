@@ -18,6 +18,25 @@ namespace Rempart.Core.Rules;
 /// </summary>
 public static class RuleCatalog
 {
+    /// <summary>
+    /// Date de référence des données embarquées : à quand remonte le dernier examen du
+    /// catalogue livré.
+    ///
+    /// <para>
+    /// Déclarée à la main, faute de source automatique fiable : le binaire est publié en
+    /// AOT, sans date de compilation exploitable, et une date dérivée du système de
+    /// fichiers ne survivrait pas à la mise en cache. <b>À avancer à chaque révision
+    /// matérielle du catalogue</b> — sans quoi le rapport annoncerait des données plus
+    /// fraîches qu'elles ne le sont, exactement le mensonge que D15 veut empêcher.
+    /// </para>
+    ///
+    /// <para>
+    /// C'est un plancher : dès que <c>rempart update</c> chargera des données signées,
+    /// leur date de publication prendra le relais (ADR-002, D15).
+    /// </para>
+    /// </summary>
+    public const string EmbeddedAsOfUtc = "2026-07-21T00:00:00Z";
+
     private static IReadOnlyList<Rule>? cachedEmbedded;
 
     /// <param name="externalDirectory">

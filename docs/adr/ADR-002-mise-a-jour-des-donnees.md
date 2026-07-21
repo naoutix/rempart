@@ -345,7 +345,8 @@ cette décision lui retire.
        publication, plusieurs signatures pour la rotation
 3. [ ] `rempart update` : téléchargement, vérification, différentiel, confirmation
 4. [ ] Chargement des données externes avec priorité sur l'embarqué (D12)
-5. [ ] Date et ancienneté dans le rapport (D15)
+5. [x] Date et ancienneté dans le rapport (D15) — ligne « données : » sous l'empreinte,
+       date de référence embarquée, alerte au-delà de 180 jours (seuil provisoire)
 6. [x] Procédure de protection et de révocation de la clé — **écrite ci-dessus**
 7. [x] **Générer la paire de clés, hors de la machine de développement** — fait le
        2026-07-21, dans un bac à sable Windows jetable, hors ligne. La clé privée est
