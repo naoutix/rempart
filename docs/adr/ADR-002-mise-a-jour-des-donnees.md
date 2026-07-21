@@ -347,9 +347,9 @@ cette décision lui retire.
 4. [ ] Chargement des données externes avec priorité sur l'embarqué (D12)
 5. [ ] Date et ancienneté dans le rapport (D15)
 6. [x] Procédure de protection et de révocation de la clé — **écrite ci-dessus**
-7. [ ] **Générer la paire de clés, hors de la machine de développement** —
-       `rempart keygen`, outillage livré. Seul l'auteur du projet peut l'exécuter ;
-       rien ne peut être publié avant. Tant que ce point n'est pas fait,
-       `ManifestVerifier` n'épingle aucune clé et refuse donc tout manifeste, ce qui
-       est le bon comportement par défaut
+7. [x] **Générer la paire de clés, hors de la machine de développement** — fait le
+       2026-07-21, dans un bac à sable Windows jetable, hors ligne. La clé privée est
+       chiffrée et n'a jamais touché la machine de développement. La clé publique
+       `168e543a9424` est épinglée dans `PinnedKeys`, sa cohérence avec l'empreinte
+       vérifiée par un test qui refuse de livrer une faute de recopie
 8. [x] Trancher le sort d'une donnée refusée — **D17**
