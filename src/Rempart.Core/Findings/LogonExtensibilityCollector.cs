@@ -70,7 +70,7 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
             }
 
             var expectedHere = string.Equals(
-                Path.GetFileName(path), expected, StringComparison.OrdinalIgnoreCase);
+                FileName(path), expected, StringComparison.OrdinalIgnoreCase);
 
             var finding = Judge(providers, $"Winlogon\\{valueName}", path, providers.Signatures);
 
@@ -134,6 +134,18 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
             Severity = finding.Severity < floor ? floor : finding.Severity,
             Reasons = [reason, .. finding.Reasons],
         };
+
+    /// <summary>
+    /// Nom de fichier d'un chemin, en découpant sur les deux séparateurs à la main.
+    /// <c>Path.GetFileName</c> emploie le séparateur de l'hôte : sous Linux, il ne
+    /// reconnaît pas le <c>\</c> d'un chemin Windows et rend le chemin entier — ce qui
+    /// faisait diverger le rejeu en CI du golden capturé sous Windows.
+    /// </summary>
+    private static string FileName(string path)
+    {
+        var separator = path.LastIndexOfAny(['\\', '/']);
+        return separator >= 0 ? path[(separator + 1)..] : path;
+    }
 
     /// <summary>Retire les guillemets et ne garde que le chemin de l'exécutable d'une entrée.</summary>
     private static string ExtractExecutable(string entry)
