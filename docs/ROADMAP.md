@@ -169,7 +169,11 @@ cinq en gras et apparentées sont faites ; les autres restent.
       résolu `explorer.exe` vers le dossier Windows et non System32
 - [ ] Détection des chemins de service non-quotés (le vrai défaut : dossier intermédiaire
       inscriptible) — demande d'énumérer les services et leur `ImagePath`
-- [ ] LSA (Security/Authentication/Notification Packages, `REG_MULTI_SZ`) et COM hijacking
+- [x] LSA — paquets d'authentification, de securite (SSP) et de notification, lus en
+      `REG_MULTI_SZ` sous `Lsa` et `Lsa\OSConfig`, juges par `SignatureLadder`. Le
+      marqueur de liste vide `""` de Windows est ecarte, un acces refuse est dit et non
+      tu. Verifie en direct : 2 paquets, tous benins
+- [ ] COM hijacking
 - [ ] Enrichissement VirusTotal **opt-in explicite** (D9)
 
 **Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test —

@@ -3565,6 +3565,32 @@
         "signature": "Valid",
         "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"
       }
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Authentication Packages",
+      "target": "C:\\Windows\\System32\\msv1_0.dll",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "paquet": "msv1_0",
+        "liste": "Authentication Packages",
+        "signature": "Valid",
+        "sha256": "288a2061dd52eaf8f5febdd2d931858a3f20198119bcfeadaa3df48ad7af3336"
+      }
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Notification Packages",
+      "target": "C:\\Windows\\System32\\scecli.dll",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "paquet": "scecli",
+        "liste": "Notification Packages",
+        "signature": "Valid",
+        "sha256": "e434527aa58a9e0c071c3ea0c04b7fb5fc9d53f2117e24fb3cbb566169c1930b"
+      }
     }
   ],
   "score": {

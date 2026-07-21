@@ -3567,6 +3567,46 @@
         "signature": "Valid",
         "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"
       }
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Authentication Packages",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
+      ],
+      "details": {}
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Notification Packages",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
+      ],
+      "details": {}
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Security Packages",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
+      ],
+      "details": {}
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Security Packages",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
+      ],
+      "details": {}
     }
   ],
   "score": {

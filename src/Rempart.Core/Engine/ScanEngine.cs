@@ -51,6 +51,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new LoadedDriversCollector(blocklist),
         new RunningProcessesCollector(),
         new LogonExtensibilityCollector(),
+        new LsaPackagesCollector(),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
