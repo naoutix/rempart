@@ -275,66 +275,89 @@ static int Sign(string[] args)
 }
 
 /// <summary>
-/// Prépare une mise à jour des données depuis un manifeste signé (ADR-002).
+/// Prépare une mise à jour des données signée (ADR-002).
 ///
 /// <para>
-/// Cette étape vérifie et montre — elle n'applique rien (D14 : « montre ce qui change
-/// avant d'appliquer »). Le manifeste et chaque jeu de données sont authentifiés, puis
-/// le différentiel affiché. Rien n'est écrit : un refus après lecture ne laisse aucune
-/// trace.
-/// </para>
-///
-/// <para>
-/// Depuis un fichier local, pas encore du réseau : c'est le flux de la clé USB (D11),
-/// et la seule moitié qui se teste sans hébergement. La couche réseau produira ce même
-/// fichier, et se branchera ici sans rien changer à la vérification.
+/// Vérifie et montre — n'applique rien sans <c>--apply</c> (D14). Le manifeste et
+/// chaque jeu de données sont authentifiés, le différentiel affiché. Depuis un fichier
+/// local (<c>--from</c>, le flux clé USB) ou depuis le réseau (<c>--url</c>) : la
+/// vérification est exactement la même, car <b>le transport n'est jamais de
+/// confiance</b>, seule la signature l'est.
 /// </para>
 /// </summary>
 static int Update(string[] args)
 {
     var manifestPath = OptionValue(args, "--from");
+    var url = OptionValue(args, "--url");
 
-    if (manifestPath is null)
+    if ((manifestPath is null) == (url is null))
     {
         Console.Error.WriteLine(
-            "Indiquer le manifeste : rempart update --from <fichier>. Le téléchargement " +
-            "réseau n'est pas encore disponible ; produire le fichier sur une machine " +
-            "connectée, puis l'apporter.");
+            "Indiquer soit --from <fichier>, soit --url <base>, mais pas les deux ni aucun.");
         return 1;
     }
 
-    if (!File.Exists(manifestPath))
-    {
-        Console.Error.WriteLine($"Manifeste introuvable : {manifestPath}");
-        return 1;
-    }
+    var current = RuleCatalog.Load(OptionValue(args, "--rules"));
 
-    // Les jeux de données vivent à côté du manifeste : c'est ce qu'a produit la
-    // machine connectée, transporté d'un bloc. Le séparateur final est ajouté pour que
-    // le garde-fou distingue « dans ce dossier » d'« un dossier frère au nom voisin ».
-    var directory = (Path.GetDirectoryName(Path.GetFullPath(manifestPath)) ?? ".")
-        .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+    // Chaque source produit la même chose : une prévisualisation, et de quoi appliquer.
+    // Le reste — affichage, confirmation, écriture — est commun.
+    UpdatePreview preview;
+    Action applyToStore;
 
-    byte[]? ReadDataset(string name)
+    if (url is not null)
     {
-        // Empêche un manifeste de faire lire un fichier hors de son dossier : un nom
-        // comme « ..\\.. » ne doit pas devenir un chemin arbitraire.
-        var full = Path.GetFullPath(Path.Combine(directory, name));
-        if (!full.StartsWith(directory, StringComparison.OrdinalIgnoreCase)
-            || !File.Exists(full))
+        using var transport = new HttpTransport();
+        var (fetch, error) = RemoteUpdate.Prepare(url, transport, PinnedKeys.Verifier(), current);
+
+        if (fetch is null)
         {
-            return null;
+            Console.Error.WriteLine(error);
+            return 1;
         }
 
-        return File.ReadAllBytes(full);
+        preview = fetch.Preview;
+        applyToStore = () =>
+            UpdateStore.Write(StoreDirectory(args), fetch.ManifestBytes, fetch.DatasetBytes);
+    }
+    else
+    {
+        if (!File.Exists(manifestPath))
+        {
+            Console.Error.WriteLine($"Manifeste introuvable : {manifestPath}");
+            return 1;
+        }
+
+        // Les jeux de données vivent à côté du manifeste. Le séparateur final distingue
+        // « dans ce dossier » d'« un dossier frère au nom voisin ».
+        var directory = (Path.GetDirectoryName(Path.GetFullPath(manifestPath!)) ?? ".")
+            .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+        byte[]? ReadDataset(string name)
+        {
+            // Un nom comme « ..\\.. » ne doit pas devenir un chemin arbitraire.
+            var full = Path.GetFullPath(Path.Combine(directory, name));
+            return full.StartsWith(directory, StringComparison.OrdinalIgnoreCase)
+                && File.Exists(full)
+                ? File.ReadAllBytes(full)
+                : null;
+        }
+
+        preview = UpdatePlanner.Prepare(
+            File.ReadAllText(manifestPath!), PinnedKeys.Verifier(), ReadDataset, current);
+
+        applyToStore = () => UpdateStore.Apply(
+            manifestPath!, StoreDirectory(args), preview.Datasets.Select(d => d.Name));
     }
 
-    var preview = UpdatePlanner.Prepare(
-        File.ReadAllText(manifestPath),
-        PinnedKeys.Verifier(),
-        ReadDataset,
-        RuleCatalog.Load(OptionValue(args, "--rules")));
+    return ReportAndMaybeApply(args, preview, applyToStore);
+}
 
+/// <summary>
+/// Affiche la prévisualisation, puis, si <c>--apply</c> et confirmation, écrit dans le
+/// magasin. Commun aux deux sources — la vérification a déjà eu lieu, identique.
+/// </summary>
+static int ReportAndMaybeApply(string[] args, UpdatePreview preview, Action applyToStore)
+{
     if (!preview.Trusted)
     {
         // Chaque motif de refus a sa réaction propre : ne pas les confondre.
@@ -396,10 +419,9 @@ static int Update(string[] args)
         }
     }
 
-    var storeDir = StoreDirectory(args);
-    UpdateStore.Apply(manifestPath, storeDir, preview.Datasets.Select(d => d.Name));
+    applyToStore();
 
-    Console.WriteLine($"Mise à jour posée dans {storeDir}.");
+    Console.WriteLine($"Mise à jour posée dans {StoreDirectory(args)}.");
     Console.WriteLine(
         "Les prochains scans la vérifieront de nouveau avant de l'utiliser, et " +
         "l'afficheront dans leur en-tête.");
@@ -1100,12 +1122,13 @@ static int Help() => Print(
           hors ligne avec la clé privée, pendant de keygen. Le type est deviné
           à l'extension (.yaml = règles, sinon pilotes), ou imposé par --kind.
 
-      rempart update --from <manifeste> [--apply] [--yes] [--store <dossier>]
+      rempart update (--from <manifeste> | --url <base>) [--apply] [--yes]
+                     [--store <dossier>]
           Vérifie un manifeste signé et ses jeux de données, puis montre ce
-          qui changerait. Sans --apply, n'écrit rien. Avec --apply, pose la
-          mise à jour dans le magasin (après confirmation, ou --yes) ; les
-          scans suivants la vérifient de nouveau avant de l'utiliser.
-          Les jeux de données sont attendus à côté du manifeste.
+          qui changerait. --from lit un fichier local (flux clé USB) ; --url
+          télécharge <base>/manifest.json et ses jeux de données. Le transport
+          n'est jamais de confiance : seule la signature l'est. Sans --apply,
+          n'écrit rien ; avec, pose la mise à jour après confirmation (ou --yes).
 
       rempart version
 

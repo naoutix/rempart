@@ -60,6 +60,24 @@ public static class UpdateStore
     }
 
     /// <summary>
+    /// Écrit un manifeste vérifié et ses jeux de données depuis des octets — le cas du
+    /// téléchargement, où il n'y a pas de dossier source à copier. Les octets sont ceux
+    /// que la préparation vient de vérifier, jamais retéléchargés : le scan les
+    /// re-vérifiera de toute façon.
+    /// </summary>
+    public static void Write(
+        string storeDirectory, byte[] manifest, IReadOnlyDictionary<string, byte[]> datasets)
+    {
+        Directory.CreateDirectory(storeDirectory);
+        File.WriteAllBytes(Path.Combine(storeDirectory, ManifestFileName), manifest);
+
+        foreach (var (name, bytes) in datasets)
+        {
+            File.WriteAllBytes(WithinOrThrow(storeDirectory, name), bytes);
+        }
+    }
+
+    /// <summary>
     /// Résout le catalogue à évaluer : le socle, complété par la mise à jour du magasin
     /// si elle vérifie.
     /// </summary>

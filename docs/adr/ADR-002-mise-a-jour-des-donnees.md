@@ -343,10 +343,12 @@ cette décision lui retire.
 1. [x] Trancher le niveau de confiance — **manifeste signé (D16)**
 2. [x] Format du manifeste — charge utile base64 signée, empreintes SHA-256, date de
        publication, plusieurs signatures pour la rotation
-3. [x] `rempart update --from <manifeste>` : vérifie signature et jeux de données,
-       montre le différentiel (D14), et sur `--apply` pose la mise à jour dans le
-       magasin après confirmation. Reste le téléchargement réseau — qui produit ce
-       même fichier
+3. [x] `rempart update` : vérifie signature et jeux de données, montre le différentiel
+       (D14), et sur `--apply` pose la mise à jour dans le magasin après confirmation.
+       Depuis un fichier local (`--from`) ou par téléchargement (`--url`) — même
+       vérification, car le transport n'est jamais de confiance, seule la signature
+       l'est (option C écartée). Prouvé de bout en bout par un vrai serveur HTTP servant
+       un manifeste signé, téléchargé et vérifié par le binaire AOT
 9. [x] `rempart sign` : l'acte de publication, pendant de `keygen`. Rassemble les jeux
        de données d'un dossier, calcule leurs empreintes, et signe la charge utile avec
        la clé privée chiffrée — hors ligne, la clé n'en sort jamais (D16). Le manifeste
