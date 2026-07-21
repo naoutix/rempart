@@ -683,6 +683,22 @@
         "number": null
       }
     },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||Authentication Packages": {
+      "status": "AccessDenied",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||Notification Packages": {
+      "status": "AccessDenied",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa||Security Packages": {
+      "status": "AccessDenied",
+      "value": null
+    },
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig||Security Packages": {
+      "status": "AccessDenied",
+      "value": null
+    },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
       "status": "Found",
       "value": {
@@ -2320,15 +2336,10 @@
       "publisher": null,
       "sha256": "33e4d98be8a19efaa9077da96fb24964eba45e41266678c2cf54527089cd4268"
     },
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\VCTIP.EXE": {
-      "status": "Valid",
-      "publisher": null,
-      "sha256": "0438198f79ccba1ad170f4344632e74bbf8b0d8ae55f92446565c54bedb26e37"
-    },
     "C:\\Users\\anon:dcbbdf833cfe\\Documents\\3 - Projects\\CleanProject\\src\\Rempart.Cli\\bin\\Debug\\net10.0-windows\\win-x64\\rempart.exe": {
       "status": "Unsigned",
       "publisher": null,
-      "sha256": "548b4716181f97434da2652475bb529d174ddcc1a1a00d416bdea183fa5602ba"
+      "sha256": "45b6e494d13bbe577cff212bac8bdc25d4bdbb08224afa2a7cc356024131520b"
     },
     "C:\\WINDOWS\\system32\\userinit.exe": {
       "status": "Valid",
@@ -2339,6 +2350,16 @@
       "status": "Valid",
       "publisher": null,
       "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"
+    },
+    "C:\\Windows\\System32\\msv1_0.dll": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "288a2061dd52eaf8f5febdd2d931858a3f20198119bcfeadaa3df48ad7af3336"
+    },
+    "C:\\Windows\\System32\\scecli.dll": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "e434527aa58a9e0c071c3ea0c04b7fb5fc9d53f2117e24fb3cbb566169c1930b"
     }
   },
   "directories": {},
