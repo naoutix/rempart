@@ -22,14 +22,20 @@ public static class ManifestSigner
     /// Décrit un fichier tel que le manifeste doit le déclarer : empreinte et taille,
     /// ce sur quoi le vérificateur jugera qu'un fichier reçu est bien celui-ci.
     /// </summary>
-    public static ManifestEntry Describe(string name, byte[] content) =>
-        new(name,
+    public static ManifestEntry Describe(string name, byte[] content, string? kind = null)
+    {
+        var sha256 = Convert.ToHexStringLower(SHA256.HashData(content));
+
+        return new ManifestEntry(
+            name,
             // Version dérivée du contenu : deux publications d'un même fichier portent
             // la même, deux contenus différents non. Rien à saisir à la main, rien à
             // oublier d'incrémenter.
-            Convert.ToHexStringLower(SHA256.HashData(content))[..8],
-            Convert.ToHexStringLower(SHA256.HashData(content)),
-            content.LongLength);
+            sha256[..8],
+            sha256,
+            content.LongLength,
+            kind ?? DatasetKind.Infer(name));
+    }
 
     /// <summary>
     /// Signe une charge utile avec la clé privée d'éditeur.

@@ -1,17 +1,46 @@
 namespace Rempart.Core.Updates;
 
+/// <summary>Les natures de jeux de données que le canal sait router.</summary>
+public static class DatasetKind
+{
+    /// <summary>Règles YAML, fusionnées dans le catalogue (D12).</summary>
+    public const string Rules = "rules";
+
+    /// <summary>Liste de pilotes vulnérables connus (LOLDrivers), en JSON.</summary>
+    public const string Drivers = "drivers";
+
+    /// <summary>
+    /// Devine la nature d'un fichier à son extension : <c>.yaml</c>/<c>.yml</c> sont
+    /// des règles, le reste (JSON) une liste de pilotes. Un éditeur peut toujours
+    /// l'imposer explicitement à la signature ; ceci n'est qu'un défaut commode.
+    /// </summary>
+    public static string Infer(string name) =>
+        name.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase)
+        || name.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
+            ? Rules
+            : Drivers;
+}
+
 /// <summary>
 /// Un jeu de données publié, décrit par son empreinte.
 ///
 /// L'empreinte est ce qui fait foi : le nom et la version sont du confort de lecture,
 /// mais c'est <see cref="Sha256"/> qui décide si le fichier reçu est celui que
 /// l'éditeur a signé.
+///
+/// <para>
+/// <see cref="Kind"/> dit comment lire le fichier — règles ou pilotes. Sa valeur par
+/// défaut est <c>rules</c> : un manifeste d'avant le typage se lit donc comme des
+/// règles, ce qu'il était. À l'inverse, un manifeste portant un type qu'une vieille
+/// version ne connaît pas doit être refusé, pas deviné.
+/// </para>
 /// </summary>
 public sealed record ManifestEntry(
     string Name,
     string Version,
     string Sha256,
-    long SizeBytes);
+    long SizeBytes,
+    string Kind = DatasetKind.Rules);
 
 /// <summary>
 /// La charge utile signée : ce que l'éditeur affirme, et rien d'autre.

@@ -37,12 +37,18 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     /// Collecteurs de constats. Separes des collecteurs de champs : ils enumerent ce
     /// qui est present au lieu de decrire des valeurs connues d'avance.
     /// </summary>
-    public static IReadOnlyList<IFindingCollector> DefaultFindingCollectors =>
+    /// <summary>
+    /// Collecteurs de constats, armés de la liste de pilotes en vigueur. La liste vient
+    /// du magasin de mises à jour (D12) ; à défaut, elle est vide et le collecteur juge
+    /// les pilotes sur leur seule signature.
+    /// </summary>
+    public static IReadOnlyList<IFindingCollector> DefaultFindingCollectors(
+        Updates.DriverBlocklist blocklist) =>
     [
         new AutorunsCollector(),
         new WmiSubscriptionsCollector(),
         new ScheduledTasksCollector(),
-        new LoadedDriversCollector(Updates.DriverBlocklist.Empty),
+        new LoadedDriversCollector(blocklist),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
@@ -76,7 +82,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     }
 
     public ScanResult Run(
-        ProviderSet providers, string toolVersion, string startedAtUtc, string? dataAsOfUtc = null)
+        ProviderSet providers, string toolVersion, string startedAtUtc, string? dataAsOfUtc = null,
+        IReadOnlyList<IFindingCollector>? findingCollectors = null)
     {
         var results = new List<CollectorResult>(collectors.Count);
 
@@ -105,7 +112,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             .ToList();
 
         var findings = new List<Finding>();
-        foreach (var collector in DefaultFindingCollectors)
+        foreach (var collector in findingCollectors
+            ?? DefaultFindingCollectors(Updates.DriverBlocklist.Empty))
         {
             try
             {

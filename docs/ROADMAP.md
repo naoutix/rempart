@@ -132,11 +132,12 @@ lancé au démarrage.
       jugé sur sa signature, échelle commune aux autres persistances : un pilote noyau
       non signé est le premier signe d'un chargement forcé. Vérifié en direct : 190
       pilotes, 190 signés, zéro faux positif
-- [~] Comparaison à LOLDrivers — le mécanisme est là (`DriverBlocklist`, confrontation
-      par empreinte, un pilote connu vulnérable est suspect même signé). La liste
-      elle-même reste à peupler par le canal signé : ~1 500 entrées hebdomadaires qu'on
-      n'embarque pas figées, et qu'on n'invente surtout pas. Il manque le typage des
-      jeux de données dans le canal (règles vs pilotes) pour la livrer signée
+- [x] Comparaison à LOLDrivers — mécanisme et canal complets. Le manifeste type chaque
+      jeu de données (`rules` / `drivers`), le magasin route vers `DriverBlocklist`, et
+      un pilote chargé dont l'empreinte y figure ressort suspect même signé. Un type
+      qu'une vieille version ignore est refusé, jamais deviné. Ne reste que la donnée
+      elle-même : publier un vrai jeu LOLDrivers signé — une tâche d'exploitation, pas
+      de code, et qu'on ne fabrique pas de mémoire
 
 **Deux transitoires à traiter avant `rempart diff` (M7).** Les entrées `RunOnce` sont
 consommées puis supprimées par Windows : deux scans successifs montrent un écart sans
