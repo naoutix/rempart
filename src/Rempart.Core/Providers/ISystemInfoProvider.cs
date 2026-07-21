@@ -38,7 +38,8 @@ public sealed class ProviderSet(
     ISignatureProvider? signatures = null,
     IFileSystemProvider? files = null,
     IScheduledTaskProvider? scheduledTasks = null,
-    IDriverProvider? drivers = null)
+    IDriverProvider? drivers = null,
+    IProcessProvider? processes = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -72,6 +73,16 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, aucun pilote n'est énuméré — pas d'invention de chargement.</summary>
     public IDriverProvider Drivers { get; } = drivers ?? EmptyDrivers.Instance;
+
+    /// <summary>Absent, aucun processus n'est énuméré — pas d'invention d'exécution.</summary>
+    public IProcessProvider Processes { get; } = processes ?? EmptyProcesses.Instance;
+}
+
+internal sealed class EmptyProcesses : IProcessProvider
+{
+    public static readonly EmptyProcesses Instance = new();
+
+    public IReadOnlyList<RunningProcess> Enumerate() => [];
 }
 
 internal sealed class EmptyDrivers : IDriverProvider

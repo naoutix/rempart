@@ -55,6 +55,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Pilotes noyau chargés, ou null si l'instantané précède leur collecte.</summary>
     public List<LoadedDriver>? Drivers { get; set; }
+
+    /// <summary>Processus en cours, ou null si l'instantané précède leur collecte.</summary>
+    public List<RunningProcess>? Processes { get; set; }
 }
 
 public static class SnapshotKeys
