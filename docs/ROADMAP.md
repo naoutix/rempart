@@ -101,7 +101,11 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
       Windows, et un `windowsDefault` deviné produirait de faux constats. Demande une
       vérification sur plusieurs machines.
 
-### M3 · Persistance & processus
+### M3 · Persistance & processus — 🚧 persistance faite, processus à venir
+
+Les quatre surfaces de persistance sont livrées et le canal de mise à jour signé qui
+leur manquait (LOLDrivers) aussi. Le volet **processus** — énumérer les processus
+courants et leurs relations — reste à faire, avec les surfaces mineures ci-dessous.
 
 **Le modèle a dû s'étendre.** Une règle compare une valeur à une attente ; la
 persistance ne s'exprime pas ainsi. Dix-sept programmes au démarrage dont trois non
@@ -144,16 +148,22 @@ consommées puis supprimées par Windows : deux scans successifs montrent un éc
 qu'il se soit rien passé. Même question pour les tâches planifiées à déclenchement
 unique.
 
-Processus (chemin, signature Authenticode, parent, ligne de commande), services,
-tâches planifiées, clés Run, dossiers Startup, **abonnements WMI permanents**,
-COM hijacking, Winlogon/LSA providers, AppInit_DLLs, pilotes chargés.
+Surfaces visées : processus courants (chemin, signature Authenticode, parent, ligne de
+commande), services, tâches planifiées, clés Run, dossiers Startup, **abonnements WMI
+permanents**, COM hijacking, Winlogon/LSA providers, AppInit_DLLs, pilotes chargés. Les
+cinq en gras et apparentées sont faites ; les autres restent.
 
-- [ ] Hash SHA-256 et vérification de signature de chaque binaire
-- [ ] Détection des chemins de service non-quotés
-- [ ] Pilotes vulnérables connus (LOLDrivers)
+- [x] Hash SHA-256 et vérification de signature de chaque binaire remonté — `SignatureLadder`,
+      appliqué à chaque constat (démarrage, tâche, pilote). Pas un scan de tous les
+      binaires du disque : la signature de ce qu'on énumère
+- [x] Pilotes vulnérables connus (LOLDrivers) — voir la liste ci-dessus, bout en bout
+- [ ] Collecteur des processus courants — chemin, parent, ligne de commande, signature
+- [ ] Détection des chemins de service non-quotés (le vrai défaut : dossier intermédiaire
+      inscriptible), COM hijacking, Winlogon/LSA, AppInit_DLLs
 - [ ] Enrichissement VirusTotal **opt-in explicite** (D9)
 
-**Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test.
+**Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test —
+atteint pour les surfaces livrées ; le volet processus rouvre le lot.
 
 ### M4 · Réseau & DNS
 Interfaces, DNS configurés, **test actif DoH/DoT avec mesure de latence**, fichier hosts,
