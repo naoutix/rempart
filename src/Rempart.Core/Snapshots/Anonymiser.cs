@@ -85,6 +85,16 @@ public static class Anonymiser
             };
         }
 
+        if (snapshot.Drivers is { Count: > 0 } drivers)
+        {
+            // Les chemins de pilotes sont des chemins systeme, mais un pilote tiers peut
+            // se loger sous un profil utilisateur : on scrube par prudence, comme partout.
+            snapshot.Drivers =
+            [
+                .. drivers.Select(d => d with { Path = ScrubProfile(d.Path) }),
+            ];
+        }
+
         snapshot.Anonymised = true;
         return snapshot;
     }

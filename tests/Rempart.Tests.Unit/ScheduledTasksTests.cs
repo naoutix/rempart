@@ -15,9 +15,10 @@ internal sealed class FakeSignatureProvider : ISignatureProvider
     private readonly Dictionary<string, FileSignature> signatures =
         new(StringComparer.OrdinalIgnoreCase);
 
-    public FakeSignatureProvider With(string path, SignatureStatus status, string? publisher = null)
+    public FakeSignatureProvider With(
+        string path, SignatureStatus status, string? publisher = null, string? sha256 = null)
     {
-        signatures[path] = new FileSignature(status, publisher);
+        signatures[path] = new FileSignature(status, publisher, sha256);
         return this;
     }
 

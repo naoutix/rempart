@@ -183,6 +183,20 @@ public sealed class RecordingScheduledTaskProvider(
     public ScheduledTaskRead Enumerate() => snapshot.ScheduledTasks ??= inner.Enumerate();
 }
 
+public sealed class RecordingDriverProvider(
+    IDriverProvider inner, MachineSnapshot snapshot) : IDriverProvider
+{
+    public IReadOnlyList<LoadedDriver> Enumerate() =>
+        snapshot.Drivers ??= [.. inner.Enumerate()];
+}
+
+public sealed class SnapshotDriverProvider(MachineSnapshot snapshot) : IDriverProvider
+{
+    // Absent d'une capture anterieure : liste vide, la fixture reste rejouable et
+    // produit simplement moins de constats.
+    public IReadOnlyList<LoadedDriver> Enumerate() => snapshot.Drivers ?? [];
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {
