@@ -345,9 +345,13 @@ cette décision lui retire.
        publication, plusieurs signatures pour la rotation
 3. [x] `rempart update --from <manifeste>` : vérifie signature et jeux de données,
        montre le différentiel (D14), et sur `--apply` pose la mise à jour dans le
-       magasin après confirmation. Restent le téléchargement réseau — qui produit ce
-       même fichier — et un outil de signature de manifeste, sans lequel rien ne peut
-       encore produire un manifeste de confiance
+       magasin après confirmation. Reste le téléchargement réseau — qui produit ce
+       même fichier
+9. [x] `rempart sign` : l'acte de publication, pendant de `keygen`. Rassemble les jeux
+       de données d'un dossier, calcule leurs empreintes, et signe la charge utile avec
+       la clé privée chiffrée — hors ligne, la clé n'en sort jamais (D16). Le manifeste
+       produit est exactement ce qu'`update` sait vérifier ; une cérémonie complète
+       générer → signer → vérifier → appliquer est prouvée en test avec une vraie paire
 4. [x] Chargement des données externes avec priorité sur l'embarqué (D12) — le scan
        résout le magasin, re-vérifie signature et empreintes (D13), fusionne par-dessus
        le socle sans jamais en retirer, et prend la date de publication comme date des

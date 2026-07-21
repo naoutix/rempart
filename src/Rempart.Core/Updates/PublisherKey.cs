@@ -72,10 +72,19 @@ public static class PublisherKey
     /// </summary>
     public static string ReadPublicKeyOf(string encryptedPrivateKey, ReadOnlySpan<char> passphrase)
     {
-        using var key = ECDsa.Create();
+        using var key = Open(encryptedPrivateKey, passphrase);
+        return Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
+    }
+
+    /// <summary>
+    /// Ouvre une clé privée chiffrée pour signer. L'appelant en dispose — la clé ne doit
+    /// pas séjourner en mémoire plus longtemps que la signature qu'elle produit.
+    /// </summary>
+    public static ECDsa Open(string encryptedPrivateKey, ReadOnlySpan<char> passphrase)
+    {
+        var key = ECDsa.Create();
         key.ImportEncryptedPkcs8PrivateKey(
             passphrase, Convert.FromBase64String(encryptedPrivateKey), out _);
-
-        return Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
+        return key;
     }
 }

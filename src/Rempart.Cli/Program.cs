@@ -32,6 +32,7 @@ try
         "diagnose-wmi" => DiagnoseWmi(),
         "diagnose-tasks" => DiagnoseTasks(),
         "keygen" => Keygen(args),
+        "sign" => Sign(args),
         "update" => Update(args),
         "version" => Print(ToolVersion()),
         _ => Help(),
@@ -162,6 +163,106 @@ static int Capture(string[] args)
         ? "  ATTENTION : capture brute, non anonymisée. Ne pas versionner tel quel."
         : "  anonymisé : hostname, numéros de série et propriétaire remplacés par des empreintes.");
 
+    return 0;
+}
+
+/// <summary>
+/// Signe un manifeste — l'acte de publication de l'ADR-002.
+///
+/// <para>
+/// Le pendant de <c>keygen</c> : à lancer sur la même machine hors ligne, avec la clé
+/// privée chiffrée qui n'en sort jamais (D16). Rassemble les jeux de données d'un
+/// dossier, en calcule les empreintes, et signe le tout. Le manifeste produit est
+/// exactement ce que <c>update</c> saura vérifier.
+/// </para>
+/// </summary>
+static int Sign(string[] args)
+{
+    var keyPath = OptionValue(args, "--key");
+    var dataDir = OptionValue(args, "--data") ?? ".";
+
+    if (keyPath is null || !File.Exists(keyPath))
+    {
+        Console.Error.WriteLine(
+            "Indiquer la clé privée chiffrée : rempart sign --key <fichier> --data <dossier>.");
+        return 1;
+    }
+
+    if (!Directory.Exists(dataDir))
+    {
+        Console.Error.WriteLine($"Dossier de données introuvable : {dataDir}");
+        return 1;
+    }
+
+    var outPath = OptionValue(args, "--out")
+        ?? Path.Combine(dataDir, UpdateStore.ManifestFileName);
+
+    // Ni la clé privée ni le manifeste produit ne doivent se signer eux-mêmes comme des
+    // jeux de données : on les exclut de l'énumération.
+    var excluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        Path.GetFullPath(keyPath), Path.GetFullPath(outPath),
+    };
+
+    var datasets = Directory
+        .EnumerateFiles(dataDir, "*", SearchOption.TopDirectoryOnly)
+        .Where(f => !excluded.Contains(Path.GetFullPath(f)))
+        .OrderBy(f => Path.GetFileName(f), StringComparer.Ordinal)
+        .ToList();
+
+    if (datasets.Count == 0)
+    {
+        Console.Error.WriteLine(
+            $"Aucun jeu de données à signer dans {dataDir}. Y placer les fichiers d'abord.");
+        return 1;
+    }
+
+    if (Console.IsInputRedirected)
+    {
+        Console.Error.WriteLine(
+            "Cette commande exige une console : la phrase de passe ne doit pas transiter " +
+            "par un tube ni par un argument.");
+        return 1;
+    }
+
+    Console.WriteLine("Phrase de passe de la clé privée (non affichée) :");
+    var passphrase = ReadHidden();
+
+    var entries = datasets
+        .Select(f => ManifestSigner.Describe(Path.GetFileName(f), File.ReadAllBytes(f)))
+        .ToList();
+
+    var payload = new ManifestPayload(
+        1, OptionValue(args, "--published") ?? UtcNow(), entries);
+
+    SignedManifest signed;
+    try
+    {
+        using var key = PublisherKey.Open(File.ReadAllText(keyPath).Trim(), passphrase);
+        signed = ManifestSigner.Sign(payload, key);
+    }
+    catch (System.Security.Cryptography.CryptographicException)
+    {
+        // Phrase de passe fausse, ou fichier de clé abîmé : ne pas distinguer les deux
+        // n'aide pas un attaquant et évite de confirmer qu'une phrase approchait.
+        Console.Error.WriteLine("Clé illisible : phrase de passe erronée, ou fichier abîmé.");
+        return 1;
+    }
+
+    File.WriteAllText(outPath, RempartJson.Serialise(signed));
+
+    Console.WriteLine();
+    Console.WriteLine($"Manifeste signé écrit dans {outPath}.");
+    Console.WriteLine($"  signé par {signed.Signatures[0].KeyId}, {entries.Count} jeu(x) de données");
+    foreach (var entry in entries)
+    {
+        Console.WriteLine($"    {entry.Name}  ({entry.SizeBytes} octets, {entry.Sha256[..12]})");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine(
+        "Apporter ce manifeste et les jeux de données sur la machine cible, côte à côte, " +
+        "puis : rempart update --from <manifeste> --apply");
     return 0;
 }
 
@@ -975,6 +1076,12 @@ static int Help() => Print(
           Génère la paire de clés d'éditeur, pour signer les manifestes.
           À lancer sur une machine hors ligne — voir ADR-002. La clé privée
           est chiffrée par une phrase de passe, sans option contraire.
+
+      rempart sign --key <clé privée> --data <dossier> [--out <manifeste>]
+                   [--published <date ISO>]
+          Signe un manifeste sur les jeux de données d'un dossier. À lancer
+          hors ligne avec la clé privée, pendant de keygen. Le manifeste
+          produit est ce que « update » saura vérifier.
 
       rempart update --from <manifeste> [--apply] [--yes] [--store <dossier>]
           Vérifie un manifeste signé et ses jeux de données, puis montre ce
