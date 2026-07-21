@@ -87,27 +87,30 @@ public class ProcessTests
     }
 
     /// <summary>
-    /// Le chemin et la ligne de commande d'un processus lancé depuis un profil portent le
-    /// nom du compte : l'anonymisation le hache dans les deux, sans quoi une capture
-    /// partagée le transmettrait.
+    /// Le chemin de l'exécutable est un chemin propre : on y hache le compte. La ligne de
+    /// commande, elle, est vidée — pas nettoyée. Elle porte le compte sous des formes
+    /// qu'un remplacement de « \Users\x\ » ne voit pas : un chemin URL-encodé, un secret
+    /// en argument, ou la commande même de la session de capture. Prétendre l'anonymiser
+    /// serait faux.
     /// </summary>
     [Fact]
-    public void Anonymiser_scrubs_the_account_in_process_path_and_command_line()
+    public void Anonymiser_scrubs_the_path_and_empties_the_command_line()
     {
         var snapshot = new MachineSnapshot
         {
             SystemInfo = FakeSystemInfoProvider.Default,
             Processes =
             [
-                new RunningProcess(1, 4, "tool.exe",
-                    @"C:\Users\leoar\tool.exe", @"C:\Users\leoar\tool.exe --in C:\Users\leoar\data"),
+                new RunningProcess(1, 4, "tool.exe", @"C:\Users\leoar\tool.exe",
+                    // Compte sous forme URL-encodée : ScrubProfile ne le verrait pas.
+                    @"tool.exe --path C:%5CUsers%5Cleoar%5Csecret --token abc123"),
             ],
         };
 
         var process = Anonymiser.Apply(snapshot).Processes![0];
 
         Assert.DoesNotContain("leoar", process.Path, StringComparison.Ordinal);
-        Assert.DoesNotContain("leoar", process.CommandLine, StringComparison.Ordinal);
         Assert.EndsWith(@"\tool.exe", process.Path, StringComparison.Ordinal);
+        Assert.Equal("", process.CommandLine);
     }
 }

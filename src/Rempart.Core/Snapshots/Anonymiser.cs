@@ -114,16 +114,20 @@ public static class Anonymiser
 
         if (snapshot.Processes is { Count: > 0 } processes)
         {
-            // Chemin ET ligne de commande : un processus lance depuis un profil porte le
-            // nom du compte dans les deux, et une ligne de commande peut en contenir bien
-            // plus. Le nom de compte est haché ; le reste, qui dit quelle application
-            // tourne, est conservé.
+            // Le chemin de l'exécutable est un chemin propre : on y hache le compte.
+            //
+            // La ligne de commande, elle, est vidée — pas nettoyée. Elle porte le nom de
+            // compte sous des formes qu'un remplacement de « \Users\x\ » ne voit pas : un
+            // chemin URL-encodé (« %5CUsers%5Cx%5C »), un secret passé en argument, ou la
+            // commande même de la session qui a lancé la capture. Prétendre l'anonymiser
+            // serait faux ; une capture qui se dit anonymisée doit l'être. Un scan en
+            // direct la montre toujours — c'est la capture destinée à voyager qui la perd.
             snapshot.Processes =
             [
                 .. processes.Select(p => p with
                 {
                     Path = ScrubProfile(p.Path),
-                    CommandLine = ScrubProfile(p.CommandLine),
+                    CommandLine = "",
                 }),
             ];
         }
