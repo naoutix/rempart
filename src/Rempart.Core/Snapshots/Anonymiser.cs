@@ -51,6 +51,23 @@ public static class Anonymiser
         snapshot.Signatures = snapshot.Signatures
             .ToDictionary(entry => ScrubProfile(entry.Key), entry => entry.Value);
 
+        // Les valeurs WMI portent des chemins : Win32_Service rend le chemin de chaque
+        // service, et un service installé sous un profil y nomme un compte. L'anonymiseur
+        // les ignorait, et ces chemins fuyaient donc dans les fixtures versionnées.
+        snapshot.Wmi = snapshot.Wmi.ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value with
+            {
+                Instances =
+                [
+                    .. entry.Value.Instances.Select(instance => new WmiInstance(
+                        instance.Properties.ToDictionary(
+                            property => property.Key,
+                            property => ScrubProfile(property.Value),
+                            StringComparer.OrdinalIgnoreCase))),
+                ],
+            });
+
         snapshot.Directories = snapshot.Directories.ToDictionary(
             entry => ScrubProfile(entry.Key),
             entry => entry.Value.Select(ScrubProfile).ToList());

@@ -880,6 +880,1756 @@
         }
       ],
       "diagnostic": null
+    },
+    "root\\CIMV2:Win32_Service||Name,PathName": {
+      "status": "Found",
+      "instances": [
+        {
+          "properties": {
+            "Name": "AdobeUpdateService",
+            "PathName": "\u0022C:\\Program Files (x86)\\Common Files\\Adobe\\Adobe Desktop Common\\ElevationManager\\AdobeUpdateService.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ADPSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceAndNoImpersonation -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ALG",
+            "PathName": "C:\\WINDOWS\\System32\\alg.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AMD Crash Defender Service",
+            "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\amdfendr.inf_amd64_bea53a1d416fbcfa\\amdfendrsr.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AMD External Events Utility",
+            "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\u0202073.inf_amd64_3c7f18bc022bf004\\B026184\\atiesrxx.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "amd3dvcacheSvc",
+            "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\amd3dvcache.inf_amd64_0ee9fc510270aa43\\amd3dvcacheSvc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AmdAppCompatSvc",
+            "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\amdappcompat.inf_amd64_e01b29e17ce4a109\\AmdAppCompatSvc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AmdPpkgSvc",
+            "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\amdppkg.inf_amd64_5fd171e24453b255\\AmdPpkgSvc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AppIDSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Appinfo",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AppMgmt",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AppReadiness",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k AppReadiness -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AppVClient",
+            "PathName": "C:\\WINDOWS\\system32\\AppVClient.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AppXSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k wsappx -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ApxSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AssignedAccessManagerSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k AssignedAccessManagerSvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AudioEndpointBuilder",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Audiosrv",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "autotimesvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k autoTimeSvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AxInstSV",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k AxInstSVGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BDESVC",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BFE",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNoNetworkFirewall -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BITS",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BrokerInfrastructure",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DcomLaunch -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BTAGService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BthAvctpSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "bthserv",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "camsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k osprivacy -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CDPSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CertPropSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ClickToRunSvc",
+            "PathName": "\u0022C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeClickToRun.exe\u0022 /service"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ClipSVC",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k wsappx -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "cloudidsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k CloudIdServiceGroup -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CmService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted"
+          }
+        },
+        {
+          "properties": {
+            "Name": "COMSysApp",
+            "PathName": "C:\\WINDOWS\\system32\\dllhost.exe /Processid:{02D4B3F1-FD88-11D1-960D-00805FC79235}"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CoreMessagingRegistrar",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNoNetwork -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CoworkVMService",
+            "PathName": "\u0022C:\\Program Files\\WindowsApps\\Claude_1.22209.3.0_x64__pzs8sxrjxfjjc\\app\\resources\\cowork-svc.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CryptSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CscService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DcomLaunch",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DcomLaunch -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "dcsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "defragsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k defragsvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DeviceAssociationService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DeviceInstall",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DcomLaunch -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DevQueryBroker",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Dhcp",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "diagsvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k diagnostics"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DiagTrack",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k utcsvc -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DialogBlockingService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DialogBlockingService"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DiscordSystemHelper",
+            "PathName": "\u0022C:\\Program Files\\Common Files\\Discord\\Discord\\DiscordSystemHelper.exe\u0022 service"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DispBrokerDesktopSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DisplayEnhancementService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DmEnrollmentSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "dmwappushservice",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Dnscache",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DoSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "dot3svc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DPS",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNoNetwork -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DsmSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DsSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DusmSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNetworkRestricted -p -s DusmSvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "EapHost",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "EasyAntiCheat_EOS",
+            "PathName": "\u0022C:\\Program Files (x86)\\EasyAntiCheat_EOS\\EasyAntiCheat_EOS.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "edgeupdate",
+            "PathName": "\u0022C:\\Program Files (x86)\\Microsoft\\EdgeUpdate\\MicrosoftEdgeUpdate.exe\u0022 /svc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "edgeupdatem",
+            "PathName": "\u0022C:\\Program Files (x86)\\Microsoft\\EdgeUpdate\\MicrosoftEdgeUpdate.exe\u0022 /medsvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "EFS",
+            "PathName": "C:\\WINDOWS\\System32\\lsass.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "embeddedmode",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "EntAppSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k appmodelRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "EventLog",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "EventSystem",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "fdPHost",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "FDResPub",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceAndNoImpersonation -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "fhsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "FontCache",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "FrameServer",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k Camera"
+          }
+        },
+        {
+          "properties": {
+            "Name": "FrameServerMonitor",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k CameraMonitor"
+          }
+        },
+        {
+          "properties": {
+            "Name": "FvSvc",
+            "PathName": "\u0022C:\\Program Files\\NVIDIA Corporation\\FrameViewSDK\\nvfvsdksvc_x64.exe\u0022 -service"
+          }
+        },
+        {
+          "properties": {
+            "Name": "GameInputSvc",
+            "PathName": "C:\\WINDOWS\\System32\\GameInputSvc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "gcs",
+            "PathName": "C:\\WINDOWS\\system32\\vmcomputeagent.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "GoogleChromeElevationService",
+            "PathName": "\u0022C:\\Program Files\\Google\\Chrome\\Application\\150.0.7871.130\\elevation_service.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "GoogleUpdaterInternalService152.0.7933.0",
+            "PathName": "\u0022C:\\Program Files (x86)\\Google\\GoogleUpdater\\152.0.7933.0\\updater.exe\u0022 --system --windows-service --service=update-internal"
+          }
+        },
+        {
+          "properties": {
+            "Name": "GoogleUpdaterService152.0.7933.0",
+            "PathName": "\u0022C:\\Program Files (x86)\\Google\\GoogleUpdater\\152.0.7933.0\\updater.exe\u0022 --system --windows-service --service=update"
+          }
+        },
+        {
+          "properties": {
+            "Name": "gpsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k GPSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "GraphicsPerfSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k GraphicsPerfSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "hidserv",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "hns",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k NetSvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "hpatchmon",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "HvHost",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "icssvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "IKEEXT",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "InstallService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "InventorySvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k InvSvcGroup -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "iphlpsvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetSvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "IpxlatCfgSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "IsoEnvBroker",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k IsoEnvBroker -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "KeyIso",
+            "PathName": "C:\\WINDOWS\\system32\\lsass.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "KtmRm",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkServiceAndNoImpersonation -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "LanmanServer",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "LanmanWorkstation",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "lfsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcsRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "LicenseManager",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "lltdsvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "lmhosts",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "LocalKdc",
+            "PathName": "C:\\WINDOWS\\System32\\lsass.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "logi_lamparray_service",
+            "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\logi_lamparray_usb.inf_amd64_cdf3ca3c77d5f267\\logi_lamparray_service.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "LSM"
+          }
+        },
+        {
+          "properties": {
+            "Name": "LxpSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs"
+          }
+        },
+        {
+          "properties": {
+            "Name": "MapsBroker",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "McmSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k McmSvc -p -s McmSvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "McpManagementService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k McpManagementServiceGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "MDCoreSvc",
+            "PathName": "\u0022C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpDefenderCoreService.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "MicrosoftEdgeElevationService",
+            "PathName": "\u0022C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\150.0.4078.83\\elevation_service.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "midisrv",
+            "PathName": "C:\\WINDOWS\\system32\\midisrv.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "mpssvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNoNetworkFirewall -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "MSDTC",
+            "PathName": "C:\\WINDOWS\\System32\\msdtc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "MSiSCSI",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "msiserver",
+            "PathName": "C:\\WINDOWS\\system32\\msiexec.exe /V"
+          }
+        },
+        {
+          "properties": {
+            "Name": "MsKeyboardFilter",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NaturalAuthentication",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NcaSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetSvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NcbService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NcdAutoSetup",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNoNetwork -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Netlogon",
+            "PathName": "C:\\WINDOWS\\system32\\lsass.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Netman",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "netprofm",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netprofm -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NetSetupSvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NetTcpPortSharing",
+            "PathName": "C:\\WINDOWS\\Microsoft.NET\\Framework64\\v4.0.30319\\SMSvcHost.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NgcCtnrSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NgcSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NlaSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netprofm -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "nsi",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "nvagent",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k NetSvcs"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NvContainerLocalSystem",
+            "PathName": "\u0022C:\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe\u0022 -s NvContainerLocalSystem -a -f \u0022C:\\ProgramData\\NVIDIA Corporation\\NVIDIA App\\NvContainer\\NvContainerLocalSystem.log\u0022 -l 3 -d \u0022C:\\Program Files\\NVIDIA Corporation\\NvContainer\\plugins\\LocalSystem\u0022 -r -p 30000  -ert"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NVDisplay.ContainerLocalSystem",
+            "PathName": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nv_dispi.inf_amd64_6f3cfb7117944855\\Display.NvContainer\\NVDisplay.Container.exe -arg \u003CExeDir\u003E\\arguments.txt"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PcaSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PeerDistSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k PeerDist"
+          }
+        },
+        {
+          "properties": {
+            "Name": "perceptionsimulation",
+            "PathName": "C:\\WINDOWS\\system32\\PerceptionSimulation\\PerceptionSimulationService.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PerfHost",
+            "PathName": "C:\\WINDOWS\\SysWow64\\perfhost.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PhoneSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "pla",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNoNetwork -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PlugPlay",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DcomLaunch -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PolicyAgent",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k NetworkServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Power",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DcomLaunch -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PrintDeviceConfigurationService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PrintNotify",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k print"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PrintScanBrokerService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k PrintScanBrokerService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ProfSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UserProfileService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PushToInstall",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "QWAVE",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceAndNoImpersonation -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RasAuto",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RasMan",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs"
+          }
+        },
+        {
+          "properties": {
+            "Name": "refsdedupsvc",
+            "PathName": "C:\\WINDOWS\\System32\\ReFsDedupSvc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RemoteAccess",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RemoteRegistry",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k localService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RetailDemo",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k rdxgroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RmSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNetworkRestricted"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RpcEptMapper",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k RPCSS -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RpcLocator",
+            "PathName": "C:\\WINDOWS\\system32\\locator.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "RpcSs",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k rpcss -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SamSs",
+            "PathName": "C:\\WINDOWS\\system32\\lsass.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SCardSvr",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceAndNoImpersonation"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ScDeviceEnum",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Schedule",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SCPolicySvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SDRSVC",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k SDRSVC"
+          }
+        },
+        {
+          "properties": {
+            "Name": "seclogon",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SecurityHealthService",
+            "PathName": "C:\\WINDOWS\\system32\\SecurityHealthService.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SEMgrSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SENS",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcsRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Sense",
+            "PathName": "\u0022C:\\Program Files\\Windows Defender Advanced Threat Protection\\MsSense.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SensorDataService",
+            "PathName": "C:\\WINDOWS\\System32\\SensorDataService.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SensorService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SensrSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceAndNoImpersonation -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SessionEnv",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SharedAccess",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ShellHWDetection",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "shpamsvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcsRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "smphost",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k smphost"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SmsRouter",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SNMPTrap",
+            "PathName": "C:\\WINDOWS\\System32\\snmptrap.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Spooler",
+            "PathName": "C:\\WINDOWS\\System32\\spoolsv.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "sppsvc",
+            "PathName": "C:\\WINDOWS\\system32\\sppsvc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SSDPSRV",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceAndNoImpersonationRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ssh-agent",
+            "PathName": "C:\\WINDOWS\\System32\\OpenSSH\\ssh-agent.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SstpSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "StateRepository",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k appmodel -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Steam Client Service",
+            "PathName": "\u0022C:\\Program Files (x86)\\Common Files\\Steam\\steamservice.exe\u0022 /RunAsService"
+          }
+        },
+        {
+          "properties": {
+            "Name": "StiSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k imgsvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "StorSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "svsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "swprv",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k swprv"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SysMain",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "SystemEventsBroker",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DcomLaunch -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TapiSrv",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TermService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkService"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TextInputManagementService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Themes",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TieringEngineService",
+            "PathName": "C:\\WINDOWS\\system32\\TieringEngineService.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TimeBrokerSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TokenBroker",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TrkWks",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TroubleshootingSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "TrustedInstaller",
+            "PathName": "C:\\WINDOWS\\servicing\\TrustedInstaller.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "tzautoupdate",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "UevAgentService",
+            "PathName": "C:\\WINDOWS\\system32\\AgentService.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "UmRdpService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "upnphost",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceAndNoImpersonationRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "UserManager",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "UsoSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "VaultSvc",
+            "PathName": "C:\\WINDOWS\\system32\\lsass.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vds",
+            "PathName": "C:\\WINDOWS\\System32\\vds.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmcompute",
+            "PathName": "C:\\WINDOWS\\system32\\vmcompute.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmicguestinterface",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestrictedRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmicheartbeat",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k ICService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmickvpexchange",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestrictedRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmicrdv",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k ICService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmicshutdown",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestrictedRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmictimesync",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmicvmsession",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestrictedRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "vmicvss",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestrictedRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "VSInstallerElevationService",
+            "PathName": "\u0022C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\VSInstallerElevationService.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "VSS",
+            "PathName": "C:\\WINDOWS\\system32\\vssvc.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "W32Time",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WaaSMedicSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k wusvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WalletService",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k appmodel -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WarpJITSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNetworkRestricted"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wbengine",
+            "PathName": "\u0022C:\\WINDOWS\\system32\\wbengine.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WbioSrvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k WbioSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Wcmsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p -s Wcmsvc"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wcncsvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceAndNoImpersonation -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WdiServiceHost",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WdiSystemHost",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WdNisSvc",
+            "PathName": "\u0022C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\NisSrv.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WebClient",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "webthreatdefsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k WebThreatDefense -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Wecsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WEPHOSTSVC",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k WepHostSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wercplsupport",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WerSvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k WerSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WFDSConMgrSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "whesvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k whesvc -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WiaRpc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WinDefend",
+            "PathName": "\u0022C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MsMpEng.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WinHttpAutoProxySvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceHttp -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "Winmgmt",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WinRM",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k NetworkService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wisvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WlanSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wlidsvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wlpasvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WManSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wmiApSrv",
+            "PathName": "C:\\WINDOWS\\system32\\wbem\\WmiApSrv.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WMPNetworkSvc",
+            "PathName": "\u0022C:\\Program Files\\Windows Media Player\\wmpnetwk.exe\u0022"
+          }
+        },
+        {
+          "properties": {
+            "Name": "workfolderssvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WpcMonSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WPDBusEnum",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WpnService",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WSAIFabricSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k WSAIFabricSvcGroup -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wscsvc",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k LocalServiceNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WSearch",
+            "PathName": "C:\\WINDOWS\\system32\\SearchIndexer.exe /Embedding"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wuauserv",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "wuqisvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k WuqiSvcGroup -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WwanSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "XblAuthManager",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcsRedirectionGuard -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "XblGameSave",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "XboxGipSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "XboxNetApiSvc",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k netsvcs -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "AarSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k AarSvcGroup -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BcastDVRUserService_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k BcastDVRUserService"
+          }
+        },
+        {
+          "properties": {
+            "Name": "BluetoothUserService_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k BthAppGroup -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CaptureService_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "cbdhsvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k ClipboardSvcGroup -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CDPUserSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CloudBackupRestoreSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "ConsentUxUserSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DevicesFlow"
+          }
+        },
+        {
+          "properties": {
+            "Name": "CredentialEnrollmentManagerUserSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\CredentialEnrollmentManager.exe"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DeviceAssociationBrokerSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DevicesFlow -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DevicePickerUserSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DevicesFlow"
+          }
+        },
+        {
+          "properties": {
+            "Name": "DevicesFlowUserSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k DevicesFlow"
+          }
+        },
+        {
+          "properties": {
+            "Name": "MessagingService_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "NPSMSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "OneSyncSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "P9RdrService_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k P9RdrService -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PenService_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k PenService"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PimIndexMaintenanceSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "PrintWorkflowUserSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k PrintWorkflow"
+          }
+        },
+        {
+          "properties": {
+            "Name": "UdkUserSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UdkSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "UnistoreSvc_b27808",
+            "PathName": "C:\\WINDOWS\\System32\\svchost.exe -k UnistackSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "UserDataSvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup"
+          }
+        },
+        {
+          "properties": {
+            "Name": "webthreatdefusersvc_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p"
+          }
+        },
+        {
+          "properties": {
+            "Name": "WpnUserService_b27808",
+            "PathName": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup"
+          }
+        }
+      ],
+      "diagnostic": null
     }
   },
   "registryLists": {},
@@ -2364,10 +4114,15 @@
       "publisher": null,
       "sha256": "33e4d98be8a19efaa9077da96fb24964eba45e41266678c2cf54527089cd4268"
     },
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\VCTIP.EXE": {
+      "status": "Valid",
+      "publisher": null,
+      "sha256": "0438198f79ccba1ad170f4344632e74bbf8b0d8ae55f92446565c54bedb26e37"
+    },
     "C:\\Users\\anon:dcbbdf833cfe\\Documents\\3 - Projects\\CleanProject\\src\\Rempart.Cli\\bin\\Debug\\net10.0-windows\\win-x64\\rempart.exe": {
       "status": "Unsigned",
       "publisher": null,
-      "sha256": "45b6e494d13bbe577cff212bac8bdc25d4bdbb08224afa2a7cc356024131520b"
+      "sha256": "a734c8900294b07295103dbc40129935a83d189934626e816c0ce4f0e396007f"
     },
     "C:\\WINDOWS\\system32\\userinit.exe": {
       "status": "Valid",
