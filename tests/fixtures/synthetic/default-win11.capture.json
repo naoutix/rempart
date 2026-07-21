@@ -2082,14 +2082,14 @@
     "C:\\Users\\anon:dcbbdf833cfe\\Documents\\3 - Projects\\CleanProject\\src\\Rempart.Cli\\bin\\Debug\\net10.0-windows\\win-x64\\rempart.exe": {
       "status": "Unsigned",
       "publisher": null,
-      "sha256": "989e6e76fe97a9298360e87a6f4d8c71b2624a761bafa6a240435f5dd404d899"
+      "sha256": "548b4716181f97434da2652475bb529d174ddcc1a1a00d416bdea183fa5602ba"
     },
     "C:\\WINDOWS\\system32\\userinit.exe": {
       "status": "Valid",
       "publisher": null,
       "sha256": "6557bb7316e1bfd6fcab7a91459bb8c47c61e112ce20d806931f7cbfe0ab83aa"
     },
-    "C:\\WINDOWS\\explorer.exe": {
+    "C:\\Windows\\explorer.exe": {
       "status": "Valid",
       "publisher": null,
       "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"

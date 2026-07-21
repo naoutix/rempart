@@ -3557,7 +3557,7 @@
     {
       "kind": "logon-extension",
       "source": "Winlogon\\Shell",
-      "target": "C:\\WINDOWS\\explorer.exe",
+      "target": "C:\\Windows\\explorer.exe",
       "severity": "Benign",
       "reasons": [],
       "details": {

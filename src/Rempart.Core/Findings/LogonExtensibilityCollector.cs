@@ -144,45 +144,35 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Résout un nom nu vers son fichier réel. Un chemin déjà complet est rendu tel quel.
+    /// Résout un nom nu vers son emplacement Windows canonique. Un chemin déjà complet
+    /// est rendu tel quel.
     ///
     /// <para>
-    /// Windows ne cherche pas un nom nu qu'en System32 : <c>explorer.exe</c> vit dans le
-    /// dossier Windows, pas System32. Chercher au seul System32 faisait ressortir le shell
-    /// « fichier introuvable » — une lacune de résolution déguisée en constat, le même
-    /// piège que les chemins nus des tâches. On essaie donc les emplacements réels ; ce
-    /// qui reste introuvable partout est rendu tel quel, et la signature le dira sans
-    /// accuser à tort.
+    /// <c>explorer.exe</c> vit dans le dossier Windows, pas System32 : le supposer en
+    /// System32 faisait ressortir le shell « fichier introuvable ». Mais la résolution
+    /// ne peut pas <b>interroger le système de fichiers</b> — <c>File.Exists</c> et le
+    /// dossier Windows réel dépendent de l'hôte, et un instantané capturé sous Windows
+    /// se rejoue en CI sous Linux, où la même valeur se résoudrait autrement. Ce fut
+    /// exactement le piège du séparateur des pilotes.
+    /// </para>
+    ///
+    /// <para>
+    /// La convention est donc écrite en dur — <c>explorer.exe</c> au dossier Windows, le
+    /// reste en System32 — sans aucun accès disque, pour que capture et rejeu produisent
+    /// le même chemin quelle que soit la machine qui les exécute.
     /// </para>
     /// </summary>
     private static string Resolve(string reference)
     {
-        var expanded = Environment.ExpandEnvironmentVariables(reference);
+        var trimmed = reference.Trim().Trim('"');
 
-        if (expanded.Contains('\\') || expanded.Contains('/'))
+        if (trimmed.Length == 0 || trimmed.Contains('\\') || trimmed.Contains('/'))
         {
-            return expanded;
+            return trimmed;
         }
 
-        var candidates = new List<string>
-        {
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), expanded),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), expanded),
-        };
-
-        foreach (var directory in (Environment.GetEnvironmentVariable("PATH") ?? "")
-                     .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            try
-            {
-                candidates.Add(Path.Combine(directory.Trim(), expanded));
-            }
-            catch (ArgumentException)
-            {
-                // Une entrée de PATH mal formée ne doit pas arrêter la résolution.
-            }
-        }
-
-        return candidates.FirstOrDefault(File.Exists) ?? candidates[0];
+        return string.Equals(trimmed, "explorer.exe", StringComparison.OrdinalIgnoreCase)
+            ? @"C:\Windows\" + trimmed
+            : @"C:\Windows\System32\" + trimmed;
     }
 }
