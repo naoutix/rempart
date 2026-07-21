@@ -197,6 +197,18 @@ public sealed class SnapshotDriverProvider(MachineSnapshot snapshot) : IDriverPr
     public IReadOnlyList<LoadedDriver> Enumerate() => snapshot.Drivers ?? [];
 }
 
+public sealed class RecordingProcessProvider(
+    IProcessProvider inner, MachineSnapshot snapshot) : IProcessProvider
+{
+    public IReadOnlyList<RunningProcess> Enumerate() =>
+        snapshot.Processes ??= [.. inner.Enumerate()];
+}
+
+public sealed class SnapshotProcessProvider(MachineSnapshot snapshot) : IProcessProvider
+{
+    public IReadOnlyList<RunningProcess> Enumerate() => snapshot.Processes ?? [];
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {

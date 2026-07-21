@@ -95,6 +95,22 @@ public static class Anonymiser
             ];
         }
 
+        if (snapshot.Processes is { Count: > 0 } processes)
+        {
+            // Chemin ET ligne de commande : un processus lance depuis un profil porte le
+            // nom du compte dans les deux, et une ligne de commande peut en contenir bien
+            // plus. Le nom de compte est haché ; le reste, qui dit quelle application
+            // tourne, est conservé.
+            snapshot.Processes =
+            [
+                .. processes.Select(p => p with
+                {
+                    Path = ScrubProfile(p.Path),
+                    CommandLine = ScrubProfile(p.CommandLine),
+                }),
+            ];
+        }
+
         snapshot.Anonymised = true;
         return snapshot;
     }
@@ -130,28 +146,45 @@ public static class Anonymiser
     /// </summary>
     internal static string ScrubProfile(string path)
     {
-        var marker = path.IndexOf(@"\Users\", StringComparison.OrdinalIgnoreCase);
-        if (marker < 0)
+        const string Marker = @"\Users\";
+
+        // Toutes les occurrences, pas seulement la première : une ligne de commande peut
+        // porter plusieurs fois le même chemin de profil — l'entrée et la sortie, par
+        // exemple — et n'en hacher qu'une laisserait le nom de compte lisible ailleurs.
+        var index = path.IndexOf(Marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
         {
             return path;
         }
 
-        var start = marker + @"\Users\".Length;
-        var end = path.IndexOf('\\', start);
-        if (end < 0)
+        var builder = new StringBuilder(path.Length);
+        var cursor = 0;
+
+        while (index >= 0)
         {
-            end = path.Length;
+            var start = index + Marker.Length;
+            var end = path.IndexOf('\\', start);
+            if (end < 0)
+            {
+                end = path.Length;
+            }
+
+            var account = path[start..end];
+            builder.Append(path, cursor, start - cursor);
+
+            builder.Append(
+                account.Length == 0
+                    || account.StartsWith(Prefix, StringComparison.Ordinal)
+                    || ImpersonalProfiles.Contains(account, StringComparer.OrdinalIgnoreCase)
+                    ? account
+                    : Hash(account));
+
+            cursor = end;
+            index = path.IndexOf(Marker, end, StringComparison.OrdinalIgnoreCase);
         }
 
-        var account = path[start..end];
-        if (account.Length == 0
-            || account.StartsWith(Prefix, StringComparison.Ordinal)
-            || ImpersonalProfiles.Contains(account, StringComparer.OrdinalIgnoreCase))
-        {
-            return path;
-        }
-
-        return string.Concat(path[..start], Hash(account), path[end..]);
+        builder.Append(path, cursor, path.Length - cursor);
+        return builder.ToString();
     }
 
     /// <summary>

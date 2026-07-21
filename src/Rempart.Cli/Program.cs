@@ -71,7 +71,8 @@ static int Scan(string[] args)
             new SnapshotSignatureProvider(snapshot),
             new SnapshotFileSystemProvider(snapshot),
             new SnapshotScheduledTaskProvider(snapshot),
-            new SnapshotDriverProvider(snapshot));
+            new SnapshotDriverProvider(snapshot),
+            new SnapshotProcessProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -86,7 +87,8 @@ static int Scan(string[] args)
             new LiveSignatureProvider(),
             new LiveFileSystemProvider(),
             new Rempart.Windows.Tasks.LiveScheduledTaskProvider(),
-            new LiveDriverProvider());
+            new LiveDriverProvider(),
+            new LiveProcessProvider());
         origin = UtcNow();
     }
 
@@ -135,7 +137,8 @@ static int Capture(string[] args)
         new RecordingFileSystemProvider(new LiveFileSystemProvider(), snapshot),
         new RecordingScheduledTaskProvider(
             new Rempart.Windows.Tasks.LiveScheduledTaskProvider(), snapshot),
-        new RecordingDriverProvider(new LiveDriverProvider(), snapshot));
+        new RecordingDriverProvider(new LiveDriverProvider(), snapshot),
+        new RecordingProcessProvider(new LiveProcessProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin. Le magasin

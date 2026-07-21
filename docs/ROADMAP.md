@@ -157,7 +157,11 @@ cinq en gras et apparentées sont faites ; les autres restent.
       appliqué à chaque constat (démarrage, tâche, pilote). Pas un scan de tous les
       binaires du disque : la signature de ce qu'on énumère
 - [x] Pilotes vulnérables connus (LOLDrivers) — voir la liste ci-dessus, bout en bout
-- [ ] Collecteur des processus courants — chemin, parent, ligne de commande, signature
+- [x] Collecteur des processus courants — chemin, parent, ligne de commande, signature,
+      énumérés par `Win32_Process` (WMI). Regroupés par exécutable (une douzaine de
+      `svchost.exe` = un constat), jugés par `SignatureLadder`. Vérifié en direct : 60
+      exécutables, 6 non signés remontés — tous de vrais binaires de dev, dont `rempart`
+      lui-même ; zéro faux positif
 - [ ] Détection des chemins de service non-quotés (le vrai défaut : dossier intermédiaire
       inscriptible), COM hijacking, Winlogon/LSA, AppInit_DLLs
 - [ ] Enrichissement VirusTotal **opt-in explicite** (D9)

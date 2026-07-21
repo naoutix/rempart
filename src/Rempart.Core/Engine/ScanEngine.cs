@@ -49,6 +49,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new WmiSubscriptionsCollector(),
         new ScheduledTasksCollector(),
         new LoadedDriversCollector(blocklist),
+        new RunningProcessesCollector(),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
