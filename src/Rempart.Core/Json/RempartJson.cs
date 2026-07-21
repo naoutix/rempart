@@ -24,6 +24,18 @@ namespace Rempart.Core.Json;
 [JsonSerializable(typeof(ManifestEntry))]
 public sealed partial class RempartJsonContext : JsonSerializerContext;
 
+/// <summary>
+/// Variante compacte, sans indentation. Pour les artefacts de données volumineux —
+/// une liste de 2 000 pilotes indentée triplerait de taille sans rien apporter, sinon
+/// à un fichier destiné à voyager et à être signé.
+/// </summary>
+[JsonSourceGenerationOptions(
+    WriteIndented = false,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
+[JsonSerializable(typeof(DriverBlocklistFile))]
+internal sealed partial class CompactJsonContext : JsonSerializerContext;
+
 public static class RempartJson
 {
     public static string Serialise(ScanResult result) =>
@@ -34,6 +46,10 @@ public static class RempartJson
 
     public static string Serialise(SignedManifest manifest) =>
         JsonSerializer.Serialize(manifest, RempartJsonContext.Default.SignedManifest);
+
+    /// <summary>Sérialise une liste de blocage sans indentation — c'est un artefact à transporter.</summary>
+    public static string SerialiseCompact(DriverBlocklistFile blocklist) =>
+        JsonSerializer.Serialize(blocklist, CompactJsonContext.Default.DriverBlocklistFile);
 
     public static MachineSnapshot DeserialiseSnapshot(string json) =>
         JsonSerializer.Deserialize(json, RempartJsonContext.Default.MachineSnapshot)

@@ -32,6 +32,7 @@ try
         "diagnose-wmi" => DiagnoseWmi(),
         "diagnose-tasks" => DiagnoseTasks(),
         "keygen" => Keygen(args),
+        "fetch-loldrivers" => FetchLoldrivers(args),
         "sign" => Sign(args),
         "update" => Update(args),
         "version" => Print(ToolVersion()),
@@ -167,6 +168,59 @@ static int Capture(string[] args)
         ? "  ATTENTION : capture brute, non anonymisée. Ne pas versionner tel quel."
         : "  anonymisé : hostname, numéros de série et propriétaire remplacés par des empreintes.");
 
+    return 0;
+}
+
+/// <summary>
+/// Télécharge la liste officielle LOLDrivers et la prépare au format que <c>sign</c>
+/// puis <c>update</c> savent traiter.
+///
+/// <para>
+/// L'outil va chercher la donnée ; l'éditeur la signe. Côté publication, en ligne :
+/// c'est le seul endroit où l'on sort sur le réseau pour produire une donnée, jamais
+/// pour l'appliquer. La confiance des machines auditées ne repose pas sur ce
+/// téléchargement mais sur la signature qui suit — loldrivers.io est la source amont
+/// que l'éditeur choisit, et sa signature l'engage.
+/// </para>
+/// </summary>
+static int FetchLoldrivers(string[] args)
+{
+    var outPath = OptionValue(args, "--out") ?? "loldrivers.json";
+
+    Console.WriteLine($"Téléchargement depuis {LolDriversImport.SourceUrl} …");
+
+    using var transport = new HttpTransport(TimeSpan.FromSeconds(120));
+    var raw = transport.Get(LolDriversImport.SourceUrl, out var error);
+
+    if (raw is null)
+    {
+        Console.Error.WriteLine($"Téléchargement impossible : {error}");
+        return 1;
+    }
+
+    DriverBlocklistFile blocklist;
+    try
+    {
+        blocklist = LolDriversImport.Transform(
+            System.Text.Encoding.UTF8.GetString(raw), UtcNow());
+    }
+    catch (System.Text.Json.JsonException ex)
+    {
+        // La source a peut-être changé de forme : le dire plutôt que d'écrire une liste
+        // tronquée qui passerait pour complète.
+        Console.Error.WriteLine(
+            $"La réponse n'a pas la forme attendue : {ex.Message} La source a pu changer.");
+        return 1;
+    }
+
+    File.WriteAllText(outPath, RempartJson.SerialiseCompact(blocklist));
+
+    Console.WriteLine();
+    Console.WriteLine($"Écrit dans {outPath} — {blocklist.Drivers.Count} pilotes.");
+    Console.WriteLine(
+        "Rien n'est signé : c'est ton geste. Sur une machine hors ligne, avec ta clé :");
+    Console.WriteLine($"  rempart sign --key <clé privée> --data {Path.GetDirectoryName(Path.GetFullPath(outPath))}");
+    Console.WriteLine("  puis  rempart update --from <…\\manifest.json> --apply");
     return 0;
 }
 
@@ -1115,6 +1169,10 @@ static int Help() => Print(
           Génère la paire de clés d'éditeur, pour signer les manifestes.
           À lancer sur une machine hors ligne — voir ADR-002. La clé privée
           est chiffrée par une phrase de passe, sans option contraire.
+
+      rempart fetch-loldrivers [--out <fichier>]
+          Télécharge la liste officielle LOLDrivers et la prépare à signer.
+          L'outil va chercher la donnée ; toi seul la signes ensuite.
 
       rempart sign --key <clé privée> --data <dossier> [--out <manifeste>]
                    [--kind rules|drivers] [--published <date ISO>]
