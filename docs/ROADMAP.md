@@ -162,8 +162,14 @@ cinq en gras et apparentées sont faites ; les autres restent.
       `svchost.exe` = un constat), jugés par `SignatureLadder`. Vérifié en direct : 60
       exécutables, 6 non signés remontés — tous de vrais binaires de dev, dont `rempart`
       lui-même ; zéro faux positif
+- [x] Winlogon (Userinit, Shell) et AppInit_DLLs — points d'extension au démarrage et à
+      l'injection, jugés par `SignatureLadder` comme le reste. Défaut connu par
+      emplacement ; un ajout à Userinit est signalé même signé, une DLL AppInit l'est par
+      principe. Vérifié en direct : deux constats bénins, zéro faux positif après avoir
+      résolu `explorer.exe` vers le dossier Windows et non System32
 - [ ] Détection des chemins de service non-quotés (le vrai défaut : dossier intermédiaire
-      inscriptible), COM hijacking, Winlogon/LSA, AppInit_DLLs
+      inscriptible) — demande d'énumérer les services et leur `ImagePath`
+- [ ] LSA (Security/Authentication/Notification Packages, `REG_MULTI_SZ`) et COM hijacking
 - [ ] Enrichissement VirusTotal **opt-in explicite** (D9)
 
 **Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test —

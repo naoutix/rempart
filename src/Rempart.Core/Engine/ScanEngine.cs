@@ -50,6 +50,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new ScheduledTasksCollector(),
         new LoadedDriversCollector(blocklist),
         new RunningProcessesCollector(),
+        new LogonExtensibilityCollector(),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
