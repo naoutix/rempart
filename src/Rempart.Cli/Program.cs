@@ -86,8 +86,16 @@ static int Scan(string[] args)
         origin = UtcNow();
     }
 
-    var result = ScanEngine.Default(OptionValue(args, "--rules"))
-        .Run(providers, ToolVersion(), origin);
+    // Le magasin de mises à jour ne s'applique qu'en direct. Un rejeu reproduit un scan
+    // passé : y injecter le magasin de cette machine-ci le rendrait non déterministe, et
+    // ferait dépendre une fixture d'un état local. En rejeu, seul le socle compte.
+    var resolution = snapshotPath is null
+        ? ResolveLiveCatalog(args)
+        : new CatalogResolution(RuleCatalog.Load(OptionValue(args, "--rules")),
+            RuleCatalog.EmbeddedAsOfUtc, null);
+
+    var result = new ScanEngine(ScanEngine.DefaultCollectors, resolution.Rules)
+        .Run(providers, ToolVersion(), origin, resolution.AsOfUtc);
 
     if (asJson)
     {
@@ -95,7 +103,7 @@ static int Scan(string[] args)
     }
     else
     {
-        WriteHumanReadable(result);
+        WriteHumanReadable(result, resolution.UpdateNote);
     }
 
     // Un manque de droits n'est pas une erreur d'exécution, mais l'appelant doit
@@ -124,8 +132,11 @@ static int Capture(string[] args)
             new Rempart.Windows.Tasks.LiveScheduledTaskProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
-    // que fait un scan, sans quoi elle ne testerait que la moitie du chemin.
-    var engine = ScanEngine.Default(OptionValue(args, "--rules"));
+    // que fait un scan, sans quoi elle ne testerait que la moitie du chemin. Le magasin
+    // de mises a jour est resolu ici aussi, pour qu'une capture prefetch les cles des
+    // regles ajoutees par une mise a jour et reste rejouable.
+    var engine = new ScanEngine(
+        ScanEngine.DefaultCollectors, ResolveLiveCatalog(args).Rules);
     engine.Run(providers, ToolVersion(), snapshot.CapturedAtUtc);
 
     // Puis toutes les cles que les regles pourraient lire dans un autre contexte, afin
@@ -247,13 +258,61 @@ static int Update(string[] args)
         return 1;
     }
 
-    // L'application (écriture, puis lecture au scan) arrive au prochain lot. Le dire
-    // plutôt que de laisser croire que quelque chose a été posé.
+    if (!HasFlag(args, "--apply"))
+    {
+        Console.WriteLine(
+            "Tout est vérifié. Rien n'a été écrit — relancer avec --apply pour poser cette " +
+            "mise à jour, que les prochains scans utiliseront.");
+        return 0;
+    }
+
+    // Appliquer modifie ce que les scans évalueront : on le confirme, sauf --yes. Sans
+    // console, refuser plutôt qu'appliquer une mise à jour que personne n'a validée.
+    if (!HasFlag(args, "--yes"))
+    {
+        if (Console.IsInputRedirected)
+        {
+            Console.Error.WriteLine(
+                "Application non confirmée : ajouter --yes, ou lancer depuis une console.");
+            return 1;
+        }
+
+        Console.Write("Appliquer cette mise à jour ? [o/N] ");
+        var answer = Console.ReadLine()?.Trim();
+        if (!string.Equals(answer, "o", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(answer, "oui", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("Annulé. Rien n'a été écrit.");
+            return 0;
+        }
+    }
+
+    var storeDir = StoreDirectory(args);
+    UpdateStore.Apply(manifestPath, storeDir, preview.Datasets.Select(d => d.Name));
+
+    Console.WriteLine($"Mise à jour posée dans {storeDir}.");
     Console.WriteLine(
-        "Tout est vérifié. L'application effective n'est pas encore disponible : " +
-        "cette commande montre ce qui changerait, elle n'écrit rien.");
+        "Les prochains scans la vérifieront de nouveau avant de l'utiliser, et " +
+        "l'afficheront dans leur en-tête.");
     return 0;
 }
+
+/// <summary>
+/// Le catalogue effectif d'un scan en direct : socle embarqué (plus les règles
+/// <c>--rules</c> s'il y en a), complété par la mise à jour du magasin si elle vérifie.
+/// </summary>
+static CatalogResolution ResolveLiveCatalog(string[] args) =>
+    UpdateStore.Resolve(
+        StoreDirectory(args),
+        RuleCatalog.Load(OptionValue(args, "--rules")),
+        PinnedKeys.Verifier());
+
+/// <summary>
+/// Le magasin voyage avec le binaire : à côté de l'exécutable par défaut, pour qu'une
+/// clé USB emporte ses données à jour sans dossier compagnon à ne pas oublier.
+/// </summary>
+static string StoreDirectory(string[] args) =>
+    OptionValue(args, "--store") ?? Path.Combine(AppContext.BaseDirectory, "rempart-data");
 
 static void WriteDataset(DatasetPreview dataset)
 {
@@ -580,11 +639,18 @@ static string DescribeAge(DataAge age)
 /// c'est du contexte, et vingt-trois lignes de contexte avant le premier constat
 /// font qu'on ne lit plus le constat.
 /// </summary>
-static void WriteHumanReadable(ScanResult result)
+static void WriteHumanReadable(ScanResult result, string? updateNote = null)
 {
     Console.WriteLine($"Rempart {result.ToolVersion} — scan du {result.StartedAtUtc}");
     Console.WriteLine($"règles : {result.RulesFingerprint}");
     Console.WriteLine($"données : {DescribeAge(result.DataAge)}");
+
+    // La provenance des données — appliquée ou refusée — se dit toujours, jamais en
+    // silence (ADR-002, D14 et D17).
+    if (updateNote is { } note)
+    {
+        Console.WriteLine($"mise à jour : {note}");
+    }
 
     if (result.Score is { } score)
     {
@@ -910,10 +976,12 @@ static int Help() => Print(
           À lancer sur une machine hors ligne — voir ADR-002. La clé privée
           est chiffrée par une phrase de passe, sans option contraire.
 
-      rempart update --from <manifeste> [--rules <dossier>]
+      rempart update --from <manifeste> [--apply] [--yes] [--store <dossier>]
           Vérifie un manifeste signé et ses jeux de données, puis montre ce
-          qui changerait. N'écrit rien. Les jeux de données sont attendus à
-          côté du manifeste.
+          qui changerait. Sans --apply, n'écrit rien. Avec --apply, pose la
+          mise à jour dans le magasin (après confirmation, ou --yes) ; les
+          scans suivants la vérifient de nouveau avant de l'utiliser.
+          Les jeux de données sont attendus à côté du manifeste.
 
       rempart version
 
