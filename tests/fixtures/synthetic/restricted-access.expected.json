@@ -3656,5 +3656,12 @@
     "totalUnknown": 4,
     "isPartial": true
   },
-  "rulesFingerprint": "82:c3e6e3029b12"
+  "rulesFingerprint": "82:c3e6e3029b12",
+  "dataAge": {
+    "asOfUtc": "2026-07-21T00:00:00Z",
+    "days": 0,
+    "stale": false,
+    "unknown": false,
+    "thresholdDays": 180
+  }
 }

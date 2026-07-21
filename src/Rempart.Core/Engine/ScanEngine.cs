@@ -2,6 +2,7 @@ using Rempart.Core.Collectors;
 using Rempart.Core.Findings;
 using Rempart.Core.Providers;
 using Rempart.Core.Rules;
+using Rempart.Core.Updates;
 
 namespace Rempart.Core.Engine;
 
@@ -14,7 +15,9 @@ public sealed record ScanResult(
     ScoreCard? Score,
     /// <summary>Identifie le catalogue evalue : deux rapports ne sont comparables
     /// que s'ils partagent la meme empreinte.</summary>
-    string RulesFingerprint);
+    string RulesFingerprint,
+    /// <summary>Age des donnees evaluees au moment du scan (ADR-002, D15).</summary>
+    DataAge DataAge);
 
 /// <summary>
 /// Exécute les collecteurs, puis évalue les règles.
@@ -117,6 +120,10 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             verdicts,
             findings,
             verdicts.Count > 0 ? Scoring.Compute(verdicts) : null,
-            RuleCatalog.Fingerprint(rules));
+            RuleCatalog.Fingerprint(rules),
+            // Contre l'heure du scan : en direct c'est l'heure réelle, en rejeu l'heure
+            // figée de la capture. La date de référence est celle du catalogue embarqué
+            // tant que « rempart update » ne charge pas de données plus récentes.
+            DataFreshness.At(RuleCatalog.EmbeddedAsOfUtc, startedAtUtc));
     }
 }

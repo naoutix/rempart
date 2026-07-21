@@ -418,6 +418,31 @@ static int Synthesise(string[] args)
 }
 
 /// <summary>
+/// Rend l'âge des données en une ligne. Une date illisible est dite telle, jamais
+/// tue : « inconnu » ne doit pas se lire comme « à jour ».
+/// </summary>
+static string DescribeAge(DataAge age)
+{
+    if (age.Unknown)
+    {
+        return "date de référence illisible — impossible d'en juger l'ancienneté";
+    }
+
+    var asOf = age.AsOfUtc.Length >= 10 ? age.AsOfUtc[..10] : age.AsOfUtc;
+
+    var summary = age.Days == 0
+        ? $"catalogue au {asOf}, à jour"
+        : $"catalogue au {asOf}, {age.Days} jour{(age.Days > 1 ? "s" : "")}";
+
+    if (age.Stale)
+    {
+        summary += $" — au-delà de {age.ThresholdDays} j, envisager « rempart update »";
+    }
+
+    return summary;
+}
+
+/// <summary>
 /// Ce qu'on vient chercher d'abord : les problèmes. L'inventaire ferme le rapport —
 /// c'est du contexte, et vingt-trois lignes de contexte avant le premier constat
 /// font qu'on ne lit plus le constat.
@@ -426,6 +451,7 @@ static void WriteHumanReadable(ScanResult result)
 {
     Console.WriteLine($"Rempart {result.ToolVersion} — scan du {result.StartedAtUtc}");
     Console.WriteLine($"règles : {result.RulesFingerprint}");
+    Console.WriteLine($"données : {DescribeAge(result.DataAge)}");
 
     if (result.Score is { } score)
     {
