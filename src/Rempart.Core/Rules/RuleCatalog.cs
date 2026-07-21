@@ -84,23 +84,35 @@ public static class RuleCatalog
     {
         var builder = new StringBuilder();
 
-        // Identifiant, opérateur, attendu et défaut : tout ce qui change un verdict.
-        // Le titre et la justification n'en font pas partie, une reformulation ne
-        // devant pas rendre deux rapports incomparables.
         foreach (var rule in rules.OrderBy(r => r.Id, StringComparer.Ordinal))
         {
-            builder.Append(rule.Id).Append('|')
-                .Append(rule.Severity).Append('|')
-                .Append(rule.Check.Path).Append('|')
-                .Append(rule.Check.ValueName).Append('|')
-                .Append(rule.Check.Operator).Append('|')
-                .Append(rule.Check.Expected).Append('|')
-                .Append(rule.Check.WindowsDefault).Append('\n');
+            builder.Append(RuleContent(rule)).Append('\n');
         }
 
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString()));
         return $"{rules.Count}:{Convert.ToHexStringLower(digest)[..12]}";
     }
+
+    /// <summary>
+    /// Empreinte d'une règle seule, sur les mêmes champs que <see cref="Fingerprint"/>.
+    ///
+    /// Extraite pour que le différentiel d'une mise à jour (ADR-002, D14) juge un
+    /// changement au même aune que l'empreinte du catalogue : deux règles de même
+    /// identifiant ne diffèrent que si l'un de ces champs change. Une seconde définition
+    /// de « ce qui compte dans une règle » divergerait tôt ou tard de celle-ci.
+    /// </summary>
+    public static string RuleFingerprint(Rule rule) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(RuleContent(rule))))[..12];
+
+    /// <summary>
+    /// Identifiant, sévérité, cible et défaut : tout ce qui change un verdict. Le titre
+    /// et la justification n'en font pas partie — une reformulation ne doit rendre ni
+    /// deux rapports incomparables, ni une mise à jour « modifiée » à tort.
+    /// </summary>
+    private static string RuleContent(Rule rule) =>
+        string.Join('|',
+            rule.Id, rule.Severity, rule.Check.Path, rule.Check.ValueName,
+            rule.Check.Operator, rule.Check.Expected, rule.Check.WindowsDefault);
 
     private static IReadOnlyList<Rule> LoadEmbedded()
     {
