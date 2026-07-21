@@ -2,11 +2,13 @@
 
 Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 
-> **État : M3 terminé, canal de mise à jour complet.** 82 contrôles sur 13 domaines,
-> quatre surfaces de persistance auditées (démarrages, tâches, pilotes, WMI), 268 tests,
-> binaire de 9,1 Mo sans installation. Les contrôles sont des fichiers YAML.
-> **L'audit ne modifie rien** — aucune remédiation avant M9. La seule écriture est le
-> magasin de données à jour, et uniquement sur `update --apply`.
+> **État : M3 bien avancé, canal de mise à jour signé complet (ADR-002).** Quatre
+> surfaces de persistance auditées (démarrages, tâches, pilotes noyau, abonnements WMI),
+> 82 contrôles sur 13 domaines, 268 tests, binaire de 9,1 Mo sans installation. Les
+> contrôles sont des fichiers YAML.
+> **Reste dans M3** l'analyse des processus courants et quelques surfaces mineures — voir
+> [ROADMAP.md](docs/ROADMAP.md). **L'audit ne modifie rien** — aucune remédiation avant
+> M9 ; la seule écriture est le magasin de données à jour, sur `update --apply`.
 
 ```
 rempart scan             posture (règles) + constats (persistance), score par domaine
