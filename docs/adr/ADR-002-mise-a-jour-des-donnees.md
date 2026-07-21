@@ -343,8 +343,13 @@ cette décision lui retire.
 1. [x] Trancher le niveau de confiance — **manifeste signé (D16)**
 2. [x] Format du manifeste — charge utile base64 signée, empreintes SHA-256, date de
        publication, plusieurs signatures pour la rotation
-3. [ ] `rempart update` : téléchargement, vérification, différentiel, confirmation
-4. [ ] Chargement des données externes avec priorité sur l'embarqué (D12)
+3. [~] `rempart update` : **vérification et différentiel faits** (`rempart update --from
+       <manifeste>`), depuis un fichier local. Vérifie signature et chaque jeu de
+       données, montre le différentiel, n'écrit rien (D14). Restent le téléchargement
+       réseau — qui produit ce même fichier — et un outil de signature de manifeste,
+       sans lequel rien ne peut encore produire un manifeste de confiance à appliquer
+4. [ ] Chargement des données externes avec priorité sur l'embarqué (D12) — avec
+       l'écriture du magasin par `--apply`, pour que la donnée appliquée soit lue au scan
 5. [x] Date et ancienneté dans le rapport (D15) — ligne « données : » sous l'empreinte,
        date de référence embarquée, alerte au-delà de 180 jours (seuil provisoire)
 6. [x] Procédure de protection et de révocation de la clé — **écrite ci-dessus**

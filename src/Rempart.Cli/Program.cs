@@ -32,6 +32,7 @@ try
         "diagnose-wmi" => DiagnoseWmi(),
         "diagnose-tasks" => DiagnoseTasks(),
         "keygen" => Keygen(args),
+        "update" => Update(args),
         "version" => Print(ToolVersion()),
         _ => Help(),
     };
@@ -151,6 +152,138 @@ static int Capture(string[] args)
         : "  anonymisé : hostname, numéros de série et propriétaire remplacés par des empreintes.");
 
     return 0;
+}
+
+/// <summary>
+/// Prépare une mise à jour des données depuis un manifeste signé (ADR-002).
+///
+/// <para>
+/// Cette étape vérifie et montre — elle n'applique rien (D14 : « montre ce qui change
+/// avant d'appliquer »). Le manifeste et chaque jeu de données sont authentifiés, puis
+/// le différentiel affiché. Rien n'est écrit : un refus après lecture ne laisse aucune
+/// trace.
+/// </para>
+///
+/// <para>
+/// Depuis un fichier local, pas encore du réseau : c'est le flux de la clé USB (D11),
+/// et la seule moitié qui se teste sans hébergement. La couche réseau produira ce même
+/// fichier, et se branchera ici sans rien changer à la vérification.
+/// </para>
+/// </summary>
+static int Update(string[] args)
+{
+    var manifestPath = OptionValue(args, "--from");
+
+    if (manifestPath is null)
+    {
+        Console.Error.WriteLine(
+            "Indiquer le manifeste : rempart update --from <fichier>. Le téléchargement " +
+            "réseau n'est pas encore disponible ; produire le fichier sur une machine " +
+            "connectée, puis l'apporter.");
+        return 1;
+    }
+
+    if (!File.Exists(manifestPath))
+    {
+        Console.Error.WriteLine($"Manifeste introuvable : {manifestPath}");
+        return 1;
+    }
+
+    // Les jeux de données vivent à côté du manifeste : c'est ce qu'a produit la
+    // machine connectée, transporté d'un bloc. Le séparateur final est ajouté pour que
+    // le garde-fou distingue « dans ce dossier » d'« un dossier frère au nom voisin ».
+    var directory = (Path.GetDirectoryName(Path.GetFullPath(manifestPath)) ?? ".")
+        .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+    byte[]? ReadDataset(string name)
+    {
+        // Empêche un manifeste de faire lire un fichier hors de son dossier : un nom
+        // comme « ..\\.. » ne doit pas devenir un chemin arbitraire.
+        var full = Path.GetFullPath(Path.Combine(directory, name));
+        if (!full.StartsWith(directory, StringComparison.OrdinalIgnoreCase)
+            || !File.Exists(full))
+        {
+            return null;
+        }
+
+        return File.ReadAllBytes(full);
+    }
+
+    var preview = UpdatePlanner.Prepare(
+        File.ReadAllText(manifestPath),
+        PinnedKeys.Verifier(),
+        ReadDataset,
+        RuleCatalog.Load(OptionValue(args, "--rules")));
+
+    if (!preview.Trusted)
+    {
+        // Chaque motif de refus a sa réaction propre : ne pas les confondre.
+        Console.Error.WriteLine($"Manifeste refusé ({preview.Status}) : {preview.Explanation}");
+        return 1;
+    }
+
+    Console.WriteLine($"Manifeste de confiance. {preview.Explanation}");
+    Console.WriteLine();
+
+    var blocked = false;
+    foreach (var dataset in preview.Datasets)
+    {
+        WriteDataset(dataset);
+        blocked |= !dataset.Verified;
+    }
+
+    if (preview.Datasets.Count == 0)
+    {
+        Console.WriteLine("Le manifeste ne décrit aucun jeu de données.");
+        return 0;
+    }
+
+    Console.WriteLine();
+    if (blocked)
+    {
+        Console.Error.WriteLine(
+            "Au moins un jeu de données n'a pas pu être vérifié : rien ne serait appliqué. " +
+            "On ne pose pas la moitié d'une mise à jour.");
+        return 1;
+    }
+
+    // L'application (écriture, puis lecture au scan) arrive au prochain lot. Le dire
+    // plutôt que de laisser croire que quelque chose a été posé.
+    Console.WriteLine(
+        "Tout est vérifié. L'application effective n'est pas encore disponible : " +
+        "cette commande montre ce qui changerait, elle n'écrit rien.");
+    return 0;
+}
+
+static void WriteDataset(DatasetPreview dataset)
+{
+    if (!dataset.Verified)
+    {
+        Console.WriteLine($"  ✗ {dataset.Name} ({dataset.Version}) — {dataset.Problem}");
+        return;
+    }
+
+    var diff = dataset.Diff!;
+    if (diff.ChangesNothing)
+    {
+        Console.WriteLine($"  = {dataset.Name} ({dataset.Version}) — rien ne change " +
+                          $"({diff.Unchanged} contrôles identiques)");
+        return;
+    }
+
+    Console.WriteLine($"  ✓ {dataset.Name} ({dataset.Version}) — " +
+                      $"{diff.Added.Count} ajouté(s), {diff.Modified.Count} modifié(s), " +
+                      $"{diff.Unchanged} inchangé(s)");
+
+    foreach (var id in diff.Added)
+    {
+        Console.WriteLine($"      + {id}");
+    }
+
+    foreach (var change in diff.Modified)
+    {
+        Console.WriteLine($"      ~ {change.Id}  ({change.Before} → {change.After})");
+    }
 }
 
 /// <summary>
@@ -776,6 +909,11 @@ static int Help() => Print(
           Génère la paire de clés d'éditeur, pour signer les manifestes.
           À lancer sur une machine hors ligne — voir ADR-002. La clé privée
           est chiffrée par une phrase de passe, sans option contraire.
+
+      rempart update --from <manifeste> [--rules <dossier>]
+          Vérifie un manifeste signé et ses jeux de données, puis montre ce
+          qui changerait. N'écrit rien. Les jeux de données sont attendus à
+          côté du manifeste.
 
       rempart version
 
