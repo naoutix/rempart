@@ -42,6 +42,11 @@ flowchart TB
 Le point structurant est la couche providers : les collecteurs ne connaissent pas Windows,
 seulement l'interface. Le même code tourne contre une machine réelle ou contre un snapshot JSON.
 
+> Ce schéma est la **cible**. Aujourd'hui existent l'inventaire, les règles de sécurité
+> et la persistance (démarrages, tâches, pilotes, WMI). Réseau & DNS, logiciels &
+> bloatware, hygiène et l'add-on matériel sont des lots à venir — voir [ROADMAP.md](ROADMAP.md).
+> Le canal de mise à jour, non représenté ici, a son propre schéma plus bas.
+
 ## Flux d'exécution
 
 ```mermaid
@@ -69,29 +74,82 @@ L'anonymisation masque hostname et numéros de série, pas la posture de sécuri
 de M2, une capture réelle révélerait quels contrôles de durcissement sont désactivés sur
 une machine identifiable — d'où l'exclusion, et non la seule anonymisation.
 
+## Canal de mise à jour
+
+Les données vieillissent ; le binaire non ([ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)).
+La frontière de confiance est une signature, jamais un transport.
+
+```mermaid
+flowchart LR
+    subgraph OFF["Hors ligne — l'éditeur"]
+        K["keygen<br/>paire de clés"]
+        S["sign<br/>clé privée chiffrée"]
+    end
+    subgraph PUB["En ligne — publication"]
+        F["fetch-loldrivers<br/>source amont"]
+    end
+    subgraph AUD["Machine auditée"]
+        U["update --from / --url<br/>vérifie + prévisualise"]
+        ST["magasin"]
+        SC["scan<br/>re-vérifie à chaque fois"]
+    end
+
+    K -->|clé publique épinglée| U
+    F -->|données brutes| S
+    S -->|manifeste signé| U
+    U -->|--apply| ST
+    ST --> SC
+```
+
+Ce qui garantit chaque maillon :
+
+| Décision | Ce qu'elle impose |
+|---|---|
+| Signature, pas transport | `--from` (clé USB) et `--url` (réseau) passent la **même** vérification ; HTTPS n'atteste de rien |
+| Socle plancher (D12) | une mise à jour corrige ou ajoute, **jamais ne retire** un contrôle embarqué |
+| Re-vérification au scan (D13) | le scan ne fait pas confiance au magasin ; un fichier altéré après `--apply` est rejeté |
+| Jamais en silence (D14/D17) | mise à jour appliquée **ou** refusée, l'en-tête du rapport le dit avec le motif exact |
+| Clé manuelle (D16) | aucune automatisation ne détient la clé privée — sinon compromettre le dépôt suffirait |
+
+Le pipeline de vérification est unique (`UpdatePlanner`), la source des octets injectée :
+fichier local, ou transport HTTP. C'est la même abstraction que les providers, appliquée
+au téléchargement.
+
 ## Arborescence
 
 ```
 rempart/
 ├── src/
-│   ├── Rempart.Cli/            # CLI : scan, capture, explain, synthesise
+│   ├── Rempart.Cli/            # CLI : scan, capture, explain, synthesise,
+│   │                           #   keygen, sign, fetch-loldrivers, update
 │   ├── Rempart.Core/
-│   │   ├── Collectors/         # ICollector : décrit la machine, ne juge pas
-│   │   ├── Engine/             # orchestration, sémantique des champs
+│   │   ├── Collectors/         # ICollector : décrit la machine par champs connus
+│   │   ├── Findings/           # IFindingCollector : énumère la persistance
+│   │   │                       #   (démarrages, tâches, pilotes, WMI) + SignatureLadder
+│   │   ├── Engine/             # orchestration, sémantique des champs, score
 │   │   ├── Json/               # sérialisation par génération de source (AOT)
-│   │   ├── Providers/          # IRegistryProvider, ISystemInfoProvider
+│   │   ├── Providers/          # IRegistryProvider, IWmiProvider, IDriverProvider…
 │   │   ├── Rules/              # chargement YAML, évaluation, scoring, liste noire
-│   │   └── Snapshots/          # capture, rejeu, anonymisation, fixtures synthétiques
-│   └── Rempart.Windows/        # P/Invoke et registre — implémentations Live
+│   │   ├── Snapshots/          # capture, rejeu, anonymisation, fixtures synthétiques
+│   │   └── Updates/            # canal signé (ADR-002) : manifeste, vérification,
+│   │                           #   signature, magasin, LOLDrivers, transport HTTP
+│   └── Rempart.Windows/        # P/Invoke, registre, WMI, tâches — implémentations Live
 ├── rules/security/             # les contrôles livrés, embarqués en ressources
 ├── tests/
-│   ├── Rempart.Tests.Unit/
+│   ├── Rempart.Tests.Unit/     # moteur, règles, canal — sans Windows
+│   ├── Rempart.Tests.Windows/  # vrai registre, WMI, tâches, pilotes — Windows
 │   └── fixtures/
 │       ├── synthetic/          # versionné — produit par « rempart synthesise »
 │       └── local/              # hors dépôt — captures de machines réelles
 ├── scripts/                    # verify.ps1, regenerate-fixtures.ps1
 └── .github/workflows/
 ```
+
+Deux familles de collecteurs, volontairement distinctes. `ICollector` décrit des champs
+connus d'avance (modèle, build, état d'un service) ; `IFindingCollector` **énumère** ce
+qui est présent — programmes au démarrage, tâches, pilotes — et porte un jugement par
+élément. Les deux ne se mélangent pas au score : une configuration à 94 % ne doit pas
+masquer un pilote noyau non signé.
 
 Les répertoires prévus par la feuille de route mais pas encore créés — rapport HTML,
 add-on matériel, catalogues bloatware, profils de remédiation, couche image — sont
