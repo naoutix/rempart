@@ -70,7 +70,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         }
     }
 
-    public ScanResult Run(ProviderSet providers, string toolVersion, string startedAtUtc)
+    public ScanResult Run(
+        ProviderSet providers, string toolVersion, string startedAtUtc, string? dataAsOfUtc = null)
     {
         var results = new List<CollectorResult>(collectors.Count);
 
@@ -122,8 +123,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             verdicts.Count > 0 ? Scoring.Compute(verdicts) : null,
             RuleCatalog.Fingerprint(rules),
             // Contre l'heure du scan : en direct c'est l'heure réelle, en rejeu l'heure
-            // figée de la capture. La date de référence est celle du catalogue embarqué
-            // tant que « rempart update » ne charge pas de données plus récentes.
-            DataFreshness.At(RuleCatalog.EmbeddedAsOfUtc, startedAtUtc));
+            // figée de la capture. La date de référence est celle du catalogue embarqué,
+            // ou celle de la mise à jour appliquée si l'appelant en fournit une.
+            DataFreshness.At(dataAsOfUtc ?? RuleCatalog.EmbeddedAsOfUtc, startedAtUtc));
     }
 }
