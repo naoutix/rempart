@@ -37,7 +37,8 @@ public sealed class ProviderSet(
     IWmiProvider? wmi = null,
     ISignatureProvider? signatures = null,
     IFileSystemProvider? files = null,
-    IScheduledTaskProvider? scheduledTasks = null)
+    IScheduledTaskProvider? scheduledTasks = null,
+    IDriverProvider? drivers = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -68,6 +69,16 @@ public sealed class ProviderSet(
     /// </summary>
     public IScheduledTaskProvider ScheduledTasks { get; } =
         scheduledTasks ?? UnavailableScheduledTasks.Instance;
+
+    /// <summary>Absent, aucun pilote n'est énuméré — pas d'invention de chargement.</summary>
+    public IDriverProvider Drivers { get; } = drivers ?? EmptyDrivers.Instance;
+}
+
+internal sealed class EmptyDrivers : IDriverProvider
+{
+    public static readonly EmptyDrivers Instance = new();
+
+    public IReadOnlyList<LoadedDriver> Enumerate() => [];
 }
 
 internal sealed class UnavailableScheduledTasks : IScheduledTaskProvider

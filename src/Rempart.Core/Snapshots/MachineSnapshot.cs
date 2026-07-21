@@ -52,6 +52,9 @@ public sealed class MachineSnapshot
     /// null compte : il distingue « pas encore capturé » de « planificateur vide ».
     /// </summary>
     public ScheduledTaskRead? ScheduledTasks { get; set; }
+
+    /// <summary>Pilotes noyau chargés, ou null si l'instantané précède leur collecte.</summary>
+    public List<LoadedDriver>? Drivers { get; set; }
 }
 
 public static class SnapshotKeys

@@ -20,6 +20,7 @@ namespace Rempart.Core.Json;
 [JsonSerializable(typeof(MachineSnapshot))]
 [JsonSerializable(typeof(SignedManifest))]
 [JsonSerializable(typeof(ManifestPayload))]
+[JsonSerializable(typeof(DriverBlocklistFile))]
 public sealed partial class RempartJsonContext : JsonSerializerContext;
 
 public static class RempartJson

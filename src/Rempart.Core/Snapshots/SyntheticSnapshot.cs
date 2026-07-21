@@ -53,6 +53,11 @@ public static class SyntheticSnapshot
             ScheduledTasks = source.ScheduledTasks,
             Signatures = new Dictionary<string, FileSignature>(source.Signatures),
 
+            // Les pilotes ne sont pas repris : une machine saine en charge ~190, tous
+            // validement signés, qui n'ajouteraient que du volume bénin aux fixtures.
+            // Les cas qui comptent — pilote non signé, pilote listé vulnérable — sont
+            // exercés par des tests unitaires ciblés, pas par une capture réelle.
+
             SystemInfo = (source.SystemInfo ?? Fallback) with
             {
                 MachineName = machineName,

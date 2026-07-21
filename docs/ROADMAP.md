@@ -126,9 +126,17 @@ lancé au démarrage.
       chaîne `ITaskDefinition` : une occasion de se tromper d'emplacement au lieu de dix.
       Couvert en CI par `rempart diagnose-tasks` contre le binaire AOT — même garde-fou
       que WMI, posé avant que le problème ne se pose et non après
-- [ ] Pilotes chargés comparés à LOLDrivers — **attend ADR-002** : la liste fait
-      ~1 500 entrées et vieillit chaque semaine, elle n'a de sens qu'avec le canal de
-      mise à jour
+- [x] Pilotes chargés — énumérés par `Win32_SystemDriver` (WMI), et non par
+      `EnumDeviceDrivers` qui, hors élévation, rend le nombre de pilotes mais met leurs
+      adresses noyau à zéro (protection KASLR) — un succès qui ment. Chaque pilote est
+      jugé sur sa signature, échelle commune aux autres persistances : un pilote noyau
+      non signé est le premier signe d'un chargement forcé. Vérifié en direct : 190
+      pilotes, 190 signés, zéro faux positif
+- [~] Comparaison à LOLDrivers — le mécanisme est là (`DriverBlocklist`, confrontation
+      par empreinte, un pilote connu vulnérable est suspect même signé). La liste
+      elle-même reste à peupler par le canal signé : ~1 500 entrées hebdomadaires qu'on
+      n'embarque pas figées, et qu'on n'invente surtout pas. Il manque le typage des
+      jeux de données dans le canal (règles vs pilotes) pour la livrer signée
 
 **Deux transitoires à traiter avant `rempart diff` (M7).** Les entrées `RunOnce` sont
 consommées puis supprimées par Windows : deux scans successifs montrent un écart sans
