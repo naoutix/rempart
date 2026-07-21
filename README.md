@@ -2,14 +2,17 @@
 
 Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 
-> **État : M2b terminé.** 82 contrôles sur 13 domaines, 178 tests, binaire de 4,3 Mo
-> sans installation. Les contrôles sont des fichiers YAML.
-> **La v1 n'écrit rien** — aucune remédiation avant M9.
+> **État : M3 terminé, canal de mise à jour complet.** 82 contrôles sur 13 domaines,
+> quatre surfaces de persistance auditées (démarrages, tâches, pilotes, WMI), 268 tests,
+> binaire de 9,1 Mo sans installation. Les contrôles sont des fichiers YAML.
+> **L'audit ne modifie rien** — aucune remédiation avant M9. La seule écriture est le
+> magasin de données à jour, et uniquement sur `update --apply`.
 
 ```
-rempart scan          82 contrôles, score par domaine
-rempart explain <ID>  pourquoi une règle existe et ce que coûte sa correction
-rempart capture       instantané rejouable hors-ligne, anonymisé
+rempart scan             posture (règles) + constats (persistance), score par domaine
+rempart explain <ID>     pourquoi une règle existe et ce que coûte sa correction
+rempart capture          instantané rejouable hors-ligne, anonymisé
+rempart update …         appliquer une mise à jour de données signée (voir plus bas)
 ```
 
 ## Ce que c'est, ce que ce n'est pas
@@ -22,6 +25,30 @@ comparable d'une machine à l'autre.
 supporte pas et le gain est nul. Ni un antivirus : il constate, il ne protège pas.
 Ni un scanner réseau : il audite la machine sur laquelle il tourne, rien d'autre.
 
+## Les commandes
+
+Auditer, au quotidien :
+
+| Commande | Ce qu'elle fait |
+|---|---|
+| `rempart scan [--json]` | Analyse la machine. **Élevé** pour la vue complète (BitLocker, comptes, LSA). |
+| `rempart scan --from <capture>` | Rejoue un instantané, sans la machine. |
+| `rempart explain [<ID>]` | Liste les contrôles, ou détaille une règle : justification, références, coût. |
+| `rempart capture [--raw]` | Enregistre l'état, rejouable. Anonymisé par défaut. |
+
+Le canal de mise à jour des données (règles, liste LOLDrivers) — voir
+[ADR-002](docs/adr/ADR-002-mise-a-jour-des-donnees.md) et la section plus bas :
+
+| Commande | Où | Ce qu'elle fait |
+|---|---|---|
+| `rempart keygen` | hors ligne, **une fois** | Génère la paire de clés d'éditeur. Clé privée chiffrée. |
+| `rempart fetch-loldrivers` | en ligne | Télécharge la liste officielle LOLDrivers, prête à signer. |
+| `rempart sign --key … --data …` | hors ligne | Signe un jeu de données (règles ou pilotes). |
+| `rempart update --from <man.> \| --url <base>` | connecté | Vérifie et prévisualise ; `--apply` pose la mise à jour. |
+
+Diagnostics de CI : `diagnose-wmi`, `diagnose-tasks` (l'interop COM répond dans le
+binaire AOT). Fabrication de fixtures : `synthesise`. `rempart help` liste tout.
+
 ---
 
 # Pour développer
@@ -29,7 +56,7 @@ Ni un scanner réseau : il audite la machine sur laquelle il tourne, rien d'autr
 ## Démarrer
 
 ```bash
-dotnet test                                   # 178 tests, ~10 s
+dotnet test                                   # 268 tests, ~10 s
 dotnet run --project src/Rempart.Cli -- scan  # sur la machine locale
 ```
 
@@ -99,6 +126,36 @@ le bruit disqualifie un outil d'audit plus sûrement qu'un contrôle manquant.
 qu'on se pose avant d'appliquer un durcissement : qu'est-ce qui cesse de marcher, qui
 est concerné, comment le savoir à l'avance. « Rien » est recevable, mais doit être
 écrit.
+
+## Mettre les données à jour
+
+Règles et liste de pilotes vulnérables vieillissent — la seconde chaque semaine. Le
+binaire embarque un socle complet ; une mise à jour signée le corrige ou le complète,
+sans jamais en retirer ([ADR-002](docs/adr/ADR-002-mise-a-jour-des-donnees.md)).
+
+**Un seul principe gouverne le canal : le transport n'est jamais de confiance, seule la
+signature l'est.** Un jeu de données — téléchargé, apporté sur clé USB, servi par un
+dépôt public — est cru si et seulement s'il porte la signature d'une clé épinglée dans
+le binaire. Un serveur compromis, un intermédiaire, une redirection : aucun ne peut
+faire accepter des données que l'éditeur n'a pas signées. C'est pourquoi `update --url`
+et `update --from` passent exactement la même vérification.
+
+La cérémonie de publication, une fois la clé générée (`keygen`, hors ligne) :
+
+```powershell
+rempart fetch-loldrivers --out drivers\loldrivers.json   # en ligne : l'outil télécharge
+rempart sign --key cle-privee.txt --data drivers          # hors ligne : vous seul signez
+rempart update --from drivers\manifest.json --apply       # pose la mise à jour dans le magasin
+```
+
+Chaque `scan` **re-vérifie** ensuite le magasin — il ne fait pas confiance à ce qu'un
+`--apply` antérieur a écrit — et affiche l'état des données dans son en-tête. Un fichier
+du magasin altéré après coup est rejeté, le socle embarqué tient, et le rapport le dit.
+
+La clé privée est générée et conservée **hors de la machine de développement** (une VM
+jetable suffit), chiffrée par une phrase de passe. Aucune automatisation de CI ne la
+détient : la signature est un acte manuel, sans quoi compromettre le dépôt rendrait au
+dépôt le pouvoir que ce dispositif lui retire.
 
 ## Les principes qui tiennent le projet
 
