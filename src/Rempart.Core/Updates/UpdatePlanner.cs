@@ -6,9 +6,13 @@ namespace Rempart.Core.Updates;
 public sealed record DatasetPreview(
     string Name,
     string Version,
+    string Kind,
     bool Verified,
     string? Problem,
-    CatalogDiff? Diff);
+    /// <summary>Différentiel, pour un jeu de règles.</summary>
+    CatalogDiff? Diff = null,
+    /// <summary>Nombre d'entrées, pour une liste de pilotes.</summary>
+    int DriverCount = 0);
 
 /// <summary>
 /// Ce qu'une mise à jour ferait, sans l'avoir faite.
@@ -84,8 +88,7 @@ public static class UpdatePlanner
 
         if (bytes is null)
         {
-            return new DatasetPreview(entry.Name, entry.Version, Verified: false,
-                "Fichier introuvable à côté du manifeste.", null);
+            return Unverified(entry, "Fichier introuvable à côté du manifeste.");
         }
 
         if (!ManifestVerifier.FileMatches(entry, bytes))
@@ -93,26 +96,42 @@ public static class UpdatePlanner
             // Le manifeste est authentique mais le fichier ne correspond pas : reçu
             // corrompu ou substitué. Distinct d'une signature invalide, et à traiter
             // comme tel — ne rien appliquer, mais ne pas crier à la falsification.
-            return new DatasetPreview(entry.Name, entry.Version, Verified: false,
+            return Unverified(entry,
                 "Empreinte ou taille ne correspond pas au manifeste : fichier corrompu " +
-                "ou incomplet.", null);
+                "ou incomplet.");
         }
+
+        var text = System.Text.Encoding.UTF8.GetString(bytes);
 
         try
         {
-            var incoming = RuleLoader.Load(
-                System.Text.Encoding.UTF8.GetString(bytes), entry.Name);
+            return entry.Kind switch
+            {
+                DatasetKind.Rules => new DatasetPreview(
+                    entry.Name, entry.Version, entry.Kind, Verified: true, null,
+                    Diff: CatalogDiff.Between(currentRules, RuleLoader.Load(text, entry.Name))),
 
-            return new DatasetPreview(entry.Name, entry.Version, Verified: true, null,
-                CatalogDiff.Between(currentRules, incoming));
+                DatasetKind.Drivers => new DatasetPreview(
+                    entry.Name, entry.Version, entry.Kind, Verified: true, null,
+                    DriverCount: DriverBlocklist.Parse(text).Count),
+
+                // Type inconnu de cette version : ni règles, ni pilotes. Un manifeste
+                // plus récent que le binaire. On ne devine pas, on refuse — et on le dit,
+                // pour que la réponse soit « mettre le binaire à jour », pas « corrompu ».
+                _ => Unverified(entry,
+                    $"Type de jeu de données inconnu de cette version : « {entry.Kind} ». " +
+                    "Installer une version plus récente."),
+            };
         }
-        catch (RuleFormatException ex)
+        catch (Exception ex) when (ex is RuleFormatException or System.Text.Json.JsonException)
         {
             // Fichier authentique et intègre, mais que cette version ne sait pas lire.
             // Ce n'est pas une attaque : le dire plutôt que de laisser croire à une
             // corruption.
-            return new DatasetPreview(entry.Name, entry.Version, Verified: false,
-                $"Jeu de données illisible par cette version : {ex.Message}", null);
+            return Unverified(entry, $"Jeu de données illisible par cette version : {ex.Message}");
         }
     }
+
+    private static DatasetPreview Unverified(ManifestEntry entry, string problem) =>
+        new(entry.Name, entry.Version, entry.Kind, Verified: false, problem);
 }

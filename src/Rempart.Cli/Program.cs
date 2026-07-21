@@ -95,10 +95,11 @@ static int Scan(string[] args)
     var resolution = snapshotPath is null
         ? ResolveLiveCatalog(args)
         : new CatalogResolution(RuleCatalog.Load(OptionValue(args, "--rules")),
-            RuleCatalog.EmbeddedAsOfUtc, null);
+            DriverBlocklist.Empty, RuleCatalog.EmbeddedAsOfUtc, null);
 
     var result = new ScanEngine(ScanEngine.DefaultCollectors, resolution.Rules)
-        .Run(providers, ToolVersion(), origin, resolution.AsOfUtc);
+        .Run(providers, ToolVersion(), origin, resolution.AsOfUtc,
+            ScanEngine.DefaultFindingCollectors(resolution.Blocklist));
 
     if (asJson)
     {
@@ -231,8 +232,12 @@ static int Sign(string[] args)
     Console.WriteLine("Phrase de passe de la clé privée (non affichée) :");
     var passphrase = ReadHidden();
 
+    // Type imposé pour tous les fichiers, ou deviné à l'extension : un éditeur signe
+    // d'ordinaire un seul type à la fois (une mise à jour de règles, ou de pilotes).
+    var kind = OptionValue(args, "--kind");
+
     var entries = datasets
-        .Select(f => ManifestSigner.Describe(Path.GetFileName(f), File.ReadAllBytes(f)))
+        .Select(f => ManifestSigner.Describe(Path.GetFileName(f), File.ReadAllBytes(f), kind))
         .ToList();
 
     var payload = new ManifestPayload(
@@ -423,6 +428,15 @@ static void WriteDataset(DatasetPreview dataset)
     if (!dataset.Verified)
     {
         Console.WriteLine($"  ✗ {dataset.Name} ({dataset.Version}) — {dataset.Problem}");
+        return;
+    }
+
+    // Une liste de pilotes n'a pas de différentiel : elle remplace la précédente. On en
+    // donne le nombre d'entrées, la seule mesure qui parle.
+    if (dataset.Kind == DatasetKind.Drivers)
+    {
+        Console.WriteLine($"  ✓ {dataset.Name} ({dataset.Version}) — " +
+                          $"{dataset.DriverCount} pilote(s) vulnérable(s) surveillé(s)");
         return;
     }
 
@@ -1081,10 +1095,10 @@ static int Help() => Print(
           est chiffrée par une phrase de passe, sans option contraire.
 
       rempart sign --key <clé privée> --data <dossier> [--out <manifeste>]
-                   [--published <date ISO>]
+                   [--kind rules|drivers] [--published <date ISO>]
           Signe un manifeste sur les jeux de données d'un dossier. À lancer
-          hors ligne avec la clé privée, pendant de keygen. Le manifeste
-          produit est ce que « update » saura vérifier.
+          hors ligne avec la clé privée, pendant de keygen. Le type est deviné
+          à l'extension (.yaml = règles, sinon pilotes), ou imposé par --kind.
 
       rempart update --from <manifeste> [--apply] [--yes] [--store <dossier>]
           Vérifie un manifeste signé et ses jeux de données, puis montre ce

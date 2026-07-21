@@ -8,6 +8,7 @@ namespace Rempart.Core.Updates;
 /// </summary>
 public sealed record CatalogResolution(
     IReadOnlyList<Rule> Rules,
+    DriverBlocklist Blocklist,
     string AsOfUtc,
 
     /// <summary>
@@ -75,7 +76,7 @@ public static class UpdateStore
         {
             // Cas normal hors-ligne : pas de magasin, pas de note. Le binaire seul reste
             // pleinement utilisable (D12).
-            return new CatalogResolution(baseRules, RuleCatalog.EmbeddedAsOfUtc, null);
+            return new CatalogResolution(baseRules, DriverBlocklist.Empty, RuleCatalog.EmbeddedAsOfUtc, null);
         }
 
         var verdict = verifier.Verify(File.ReadAllText(manifestPath));
@@ -84,12 +85,13 @@ public static class UpdateStore
         {
             // Une mise à jour refusée ne s'applique pas — et ne se tait pas. Le socle
             // tient, le rapport dit pourquoi la mise à jour n'a pas été retenue.
-            return new CatalogResolution(baseRules, RuleCatalog.EmbeddedAsOfUtc,
+            return Refused(baseRules,
                 $"Mise à jour présente mais refusée ({verdict.Status}) : {verdict.Explanation} " +
                 "Socle embarqué conservé.");
         }
 
         var incoming = new List<Rule>();
+        var blocklist = DriverBlocklist.Empty;
 
         foreach (var entry in verdict.Payload.Datasets)
         {
@@ -102,30 +104,51 @@ public static class UpdateStore
                 // pose rien : on n'applique pas la moitié d'une mise à jour. Le fichier
                 // a pu être altéré après l'écriture — c'est exactement ce que la
                 // re-vérification attrape.
-                return new CatalogResolution(baseRules, RuleCatalog.EmbeddedAsOfUtc,
+                return Refused(baseRules,
                     $"Mise à jour présente mais un jeu de données ({entry.Name}) ne correspond " +
                     "plus à son empreinte : altéré ou incomplet. Socle embarqué conservé.");
             }
 
+            var text = System.Text.Encoding.UTF8.GetString(bytes);
+
             try
             {
-                incoming.AddRange(RuleLoader.Load(
-                    System.Text.Encoding.UTF8.GetString(bytes), entry.Name));
+                switch (entry.Kind)
+                {
+                    case DatasetKind.Rules:
+                        incoming.AddRange(RuleLoader.Load(text, entry.Name));
+                        break;
+
+                    case DatasetKind.Drivers:
+                        blocklist = DriverBlocklist.Parse(text);
+                        break;
+
+                    default:
+                        // Type qu'une version plus récente comprend, pas celle-ci : refuser
+                        // tout, plutôt que d'appliquer ce qu'on sait lire et taire le reste.
+                        return Refused(baseRules,
+                            $"Mise à jour d'un type inconnu ({entry.Kind}) : installer une " +
+                            "version plus récente. Socle embarqué conservé.");
+                }
             }
-            catch (RuleFormatException ex)
+            catch (Exception ex) when (ex is RuleFormatException or System.Text.Json.JsonException)
             {
-                return new CatalogResolution(baseRules, RuleCatalog.EmbeddedAsOfUtc,
+                return Refused(baseRules,
                     $"Mise à jour présente mais illisible par cette version ({entry.Name}) : " +
                     $"{ex.Message} Socle embarqué conservé.");
             }
         }
 
         var merged = Merge(baseRules, incoming);
+        var driverNote = blocklist.Count > 0 ? $", {blocklist.Count} pilotes surveillés" : "";
 
-        return new CatalogResolution(merged, verdict.Payload.PublishedAtUtc,
+        return new CatalogResolution(merged, blocklist, verdict.Payload.PublishedAtUtc,
             $"Mise à jour appliquée, publiée le {verdict.Payload.PublishedAtUtc} : " +
-            $"{merged.Count} contrôles ({baseRules.Count} au socle).");
+            $"{merged.Count} contrôles ({baseRules.Count} au socle){driverNote}.");
     }
+
+    private static CatalogResolution Refused(IReadOnlyList<Rule> baseRules, string note) =>
+        new(baseRules, DriverBlocklist.Empty, RuleCatalog.EmbeddedAsOfUtc, note);
 
     /// <summary>
     /// Fusionne la mise à jour dans le socle (D12).
