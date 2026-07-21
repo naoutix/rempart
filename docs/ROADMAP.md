@@ -167,8 +167,11 @@ cinq en gras et apparentées sont faites ; les autres restent.
       emplacement ; un ajout à Userinit est signalé même signé, une DLL AppInit l'est par
       principe. Vérifié en direct : deux constats bénins, zéro faux positif après avoir
       résolu `explorer.exe` vers le dossier Windows et non System32
-- [ ] Détection des chemins de service non-quotés (le vrai défaut : dossier intermédiaire
-      inscriptible) — demande d'énumérer les services et leur `ImagePath`
+- [x] Détection des chemins de service non-quotés — via `Win32_Service.PathName` (WMI).
+      Un chemin non quoté avec un espace laisse Windows résoudre des préfixes avant le vrai
+      fichier ; correction : des guillemets. Notable, pas suspect — l'exploitabilité
+      demande un dossier intermédiaire inscriptible, pas encore vérifié. Sur la machine de
+      test : 291 services, zéro non quoté (confirmé par PowerShell)
 - [x] LSA — paquets d'authentification, de securite (SSP) et de notification, lus en
       `REG_MULTI_SZ` sous `Lsa` et `Lsa\OSConfig`, juges par `SignatureLadder`. Le
       marqueur de liste vide `""` de Windows est ecarte, un acces refuse est dit et non
