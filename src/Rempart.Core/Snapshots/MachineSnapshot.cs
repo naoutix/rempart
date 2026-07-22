@@ -80,6 +80,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Profils Wi-Fi enregistrés, ou null si l'instantané précède leur collecte.</summary>
     public List<WifiProfile>? Wifi { get; set; }
+
+    /// <summary>Logiciels installés, ou null si l'instantané précède leur collecte.</summary>
+    public List<InstalledSoftware>? Software { get; set; }
 }
 
 public static class SnapshotKeys

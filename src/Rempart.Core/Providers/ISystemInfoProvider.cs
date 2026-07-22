@@ -45,7 +45,8 @@ public sealed class ProviderSet(
     IDnsProvider? dns = null,
     IHostsFileProvider? hostsFile = null,
     IProxyProvider? proxy = null,
-    IWifiProfileProvider? wifi = null)
+    IWifiProfileProvider? wifi = null,
+    ISoftwareInventoryProvider? softwareInventory = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -101,6 +102,10 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, aucun profil Wi-Fi n'est énuméré — pas d'invention de réseau.</summary>
     public IWifiProfileProvider Wifi { get; } = wifi ?? EmptyWifi.Instance;
+
+    /// <summary>Absent, aucun logiciel n'est énuméré — pas d'invention d'inventaire.</summary>
+    public ISoftwareInventoryProvider SoftwareInventory { get; } =
+        softwareInventory ?? EmptySoftwareInventory.Instance;
 }
 
 internal sealed class EmptyDns : IDnsProvider
@@ -129,6 +134,13 @@ internal sealed class EmptyWifi : IWifiProfileProvider
     public static readonly EmptyWifi Instance = new();
 
     public IReadOnlyList<WifiProfile> Read() => [];
+}
+
+internal sealed class EmptySoftwareInventory : ISoftwareInventoryProvider
+{
+    public static readonly EmptySoftwareInventory Instance = new();
+
+    public IReadOnlyList<InstalledSoftware> Read() => [];
 }
 
 internal sealed class UnreadFirewall : IFirewallProvider

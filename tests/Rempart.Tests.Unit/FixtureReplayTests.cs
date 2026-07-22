@@ -177,7 +177,8 @@ public sealed class FixtureReplayTests
             dns: new SnapshotDnsProvider(snapshot),
             hostsFile: new SnapshotHostsFileProvider(snapshot),
             proxy: new SnapshotProxyProvider(snapshot),
-            wifi: new SnapshotWifiProfileProvider(snapshot));
+            wifi: new SnapshotWifiProfileProvider(snapshot),
+            softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot));
 
         // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
         // donnee qu'on veut voir figer, pas seulement les champs collectes.
