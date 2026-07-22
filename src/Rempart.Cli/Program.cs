@@ -66,18 +66,18 @@ static int Scan(string[] args)
         providers = new ProviderSet(
             new SnapshotRegistryProvider(snapshot),
             new SnapshotSystemInfoProvider(snapshot),
-            new SnapshotServiceStateProvider(snapshot),
-            new SnapshotSecurityPolicyProvider(snapshot),
-            new SnapshotWmiProvider(snapshot),
-            new SnapshotSignatureProvider(snapshot),
-            new SnapshotFileSystemProvider(snapshot),
-            new SnapshotScheduledTaskProvider(snapshot),
-            new SnapshotDriverProvider(snapshot),
-            new SnapshotProcessProvider(snapshot),
-            new SnapshotListeningPortProvider(snapshot),
-            new SnapshotFirewallProvider(snapshot),
-            new SnapshotDnsProvider(snapshot),
-            new SnapshotHostsFileProvider(snapshot));
+            services: new SnapshotServiceStateProvider(snapshot),
+            policy: new SnapshotSecurityPolicyProvider(snapshot),
+            wmi: new SnapshotWmiProvider(snapshot),
+            signatures: new SnapshotSignatureProvider(snapshot),
+            files: new SnapshotFileSystemProvider(snapshot),
+            scheduledTasks: new SnapshotScheduledTaskProvider(snapshot),
+            drivers: new SnapshotDriverProvider(snapshot),
+            processes: new SnapshotProcessProvider(snapshot),
+            listeningPorts: new SnapshotListeningPortProvider(snapshot),
+            firewall: new SnapshotFirewallProvider(snapshot),
+            dns: new SnapshotDnsProvider(snapshot),
+            hostsFile: new SnapshotHostsFileProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -86,18 +86,18 @@ static int Scan(string[] args)
         providers = new ProviderSet(
             new LiveRegistryProvider(),
             new LiveSystemInfoProvider(),
-            new LiveServiceStateProvider(),
-            new LiveSecurityPolicyProvider(),
-            new Rempart.Windows.Wmi.LiveWmiProvider(),
-            new LiveSignatureProvider(),
-            new LiveFileSystemProvider(),
-            new Rempart.Windows.Tasks.LiveScheduledTaskProvider(),
-            new LiveDriverProvider(),
-            new LiveProcessProvider(),
-            new LiveListeningPortProvider(),
-            new LiveFirewallProvider(),
-            new LiveDnsProvider(),
-            new LiveHostsFileProvider());
+            services: new LiveServiceStateProvider(),
+            policy: new LiveSecurityPolicyProvider(),
+            wmi: new Rempart.Windows.Wmi.LiveWmiProvider(),
+            signatures: new LiveSignatureProvider(),
+            files: new LiveFileSystemProvider(),
+            scheduledTasks: new Rempart.Windows.Tasks.LiveScheduledTaskProvider(),
+            drivers: new LiveDriverProvider(),
+            processes: new LiveProcessProvider(),
+            listeningPorts: new LiveListeningPortProvider(),
+            firewall: new LiveFirewallProvider(),
+            dns: new LiveDnsProvider(),
+            hostsFile: new LiveHostsFileProvider());
         origin = UtcNow();
     }
 
@@ -159,19 +159,19 @@ static int Capture(string[] args)
     var providers = new ProviderSet(
         new RecordingRegistryProvider(new LiveRegistryProvider(), snapshot),
         new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot),
-        new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot),
-        new RecordingSecurityPolicyProvider(new LiveSecurityPolicyProvider(), snapshot),
-        new RecordingWmiProvider(new Rempart.Windows.Wmi.LiveWmiProvider(), snapshot),
-        new RecordingSignatureProvider(new LiveSignatureProvider(), snapshot),
-        new RecordingFileSystemProvider(new LiveFileSystemProvider(), snapshot),
-        new RecordingScheduledTaskProvider(
+        services: new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot),
+        policy: new RecordingSecurityPolicyProvider(new LiveSecurityPolicyProvider(), snapshot),
+        wmi: new RecordingWmiProvider(new Rempart.Windows.Wmi.LiveWmiProvider(), snapshot),
+        signatures: new RecordingSignatureProvider(new LiveSignatureProvider(), snapshot),
+        files: new RecordingFileSystemProvider(new LiveFileSystemProvider(), snapshot),
+        scheduledTasks: new RecordingScheduledTaskProvider(
             new Rempart.Windows.Tasks.LiveScheduledTaskProvider(), snapshot),
-        new RecordingDriverProvider(new LiveDriverProvider(), snapshot),
-        new RecordingProcessProvider(new LiveProcessProvider(), snapshot),
-        new RecordingListeningPortProvider(new LiveListeningPortProvider(), snapshot),
-        new RecordingFirewallProvider(new LiveFirewallProvider(), snapshot),
-        new RecordingDnsProvider(new LiveDnsProvider(), snapshot),
-        new RecordingHostsFileProvider(new LiveHostsFileProvider(), snapshot));
+        drivers: new RecordingDriverProvider(new LiveDriverProvider(), snapshot),
+        processes: new RecordingProcessProvider(new LiveProcessProvider(), snapshot),
+        listeningPorts: new RecordingListeningPortProvider(new LiveListeningPortProvider(), snapshot),
+        firewall: new RecordingFirewallProvider(new LiveFirewallProvider(), snapshot),
+        dns: new RecordingDnsProvider(new LiveDnsProvider(), snapshot),
+        hostsFile: new RecordingHostsFileProvider(new LiveHostsFileProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin. Le magasin
