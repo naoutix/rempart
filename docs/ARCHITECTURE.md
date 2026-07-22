@@ -42,10 +42,12 @@ flowchart TB
 Le point structurant est la couche providers : les collecteurs ne connaissent pas Windows,
 seulement l'interface. Le même code tourne contre une machine réelle ou contre un snapshot JSON.
 
-> Ce schéma est la **cible**. Aujourd'hui existent l'inventaire, les règles de sécurité
-> et la persistance (démarrages, tâches, pilotes, WMI). Réseau & DNS, logiciels &
-> bloatware, hygiène et l'add-on matériel sont des lots à venir — voir [ROADMAP.md](ROADMAP.md).
-> Le canal de mise à jour, non représenté ici, a son propre schéma plus bas.
+> Ce schéma est la **cible**. Aujourd'hui existent l'inventaire, les règles de sécurité,
+> la persistance (démarrages, tâches, pilotes, WMI, processus, LSA, COM…) et le réseau
+> (ports en écoute croisés avec le pare-feu, résolveurs DNS, fichier hosts). Logiciels &
+> bloatware, hygiène et l'add-on matériel restent des lots à venir, comme `diff` et
+> `report` côté CLI — voir [ROADMAP.md](ROADMAP.md). Le canal de mise à jour, non
+> représenté ici, a son propre schéma plus bas.
 
 ## Flux d'exécution
 

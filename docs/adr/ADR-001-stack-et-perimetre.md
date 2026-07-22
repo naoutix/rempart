@@ -64,7 +64,8 @@ explicitement.
 ### D5 — Abstraction providers obligatoire dès le premier collecteur
 
 Aucun collecteur n'appelle Windows directement. Tout passe par `IRegistryProvider`,
-`IWmiProvider`, `IServiceProvider`, `IFileSystemProvider`.
+`IWmiProvider`, `IServiceStateProvider`, `IFileSystemProvider` (et, depuis, une famille
+de providers dédiés aux surfaces système volumineuses — voir [ADR-004](ADR-004-etat-systeme-en-champ-dedie.md)).
 
 Débloque `rempart capture` (dump JSON de l'état brut d'une machine) et le rejeu hors-ligne en test.
 Rétrofiter cette abstraction sur 30 collecteurs déjà écrits serait une réécriture — d'où
