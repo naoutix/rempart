@@ -2,6 +2,7 @@ using Rempart.Core.Collectors;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Json;
+using Rempart.Core.Pac;
 using Rempart.Core.Providers;
 using Rempart.Core.Reputation;
 using Rempart.Core.Rules;
@@ -132,6 +133,23 @@ static int Scan(string[] args)
         result = result with
         {
             Findings = [.. FindingEnrichment.WithReputation(result.Findings, reputation)],
+        };
+    }
+
+    // Récupération du script PAC — le second appel réseau possible du scan, opt-in
+    // explicite (--fetch-pac) et jamais en rejeu : un instantané passé ne doit pas
+    // déclencher de trafic. Ne récupère que les constats proxy signalés portant une URL.
+    if (snapshotPath is null && HasFlag(args, "--fetch-pac"))
+    {
+        var withPac = result.Findings.Count(f => f.Severity != FindingSeverity.Benign
+            && f.Details.ContainsKey("pac") && f.Details["pac"].Length > 0);
+
+        Console.Error.WriteLine($"Récupération de {withPac} script(s) PAC signalé(s)…");
+
+        using var fetcher = new LivePacFetcher();
+        result = result with
+        {
+            Findings = [.. PacEnrichment.WithRouting(result.Findings, fetcher)],
         };
     }
 
