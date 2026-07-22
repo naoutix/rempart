@@ -1,0 +1,12 @@
+version: 2
+
+# Les actions CI sont epinglees par empreinte de commit (voir .github/workflows/ci.yml).
+# Sans rafraichissement, un pin fige rate les correctifs amont, y compris de securite.
+# Dependabot bump l'empreinte tout en gardant le commentaire de version a jour.
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
