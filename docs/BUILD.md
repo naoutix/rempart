@@ -144,5 +144,6 @@ cd $env:TEMP\test
 .\rempart.exe scan --from t.json
 ```
 
-Taille attendue : environ 2,6 Mo. Les `.pdb` du dossier `publish` sont des symboles de
-débogage et ne sont pas nécessaires à l'exécution.
+Taille attendue : environ 9,4 Mo (elle croît avec les surfaces auditées ; 2,6 Mo au
+jalon M0). Les `.pdb` du dossier `publish` sont des symboles de débogage et ne sont pas
+nécessaires à l'exécution.
