@@ -41,6 +41,10 @@ public sealed class MachineSnapshot
     /// </summary>
     public Dictionary<string, List<string>> RegistryLists { get; set; } = [];
 
+    /// <summary>Noms des sous-clés d'une clé énumérée. Distinct de <see cref="RegistryLists"/>,
+    /// qui porte les noms de valeurs.</summary>
+    public Dictionary<string, List<string>> SubKeyLists { get; set; } = [];
+
     /// <summary>Signatures vérifiées, indexées par chemin de fichier.</summary>
     public Dictionary<string, FileSignature> Signatures { get; set; } = [];
 

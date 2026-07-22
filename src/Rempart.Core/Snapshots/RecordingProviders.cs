@@ -43,6 +43,13 @@ public sealed class RecordingRegistryProvider(IRegistryProvider inner, MachineSn
 
         return values;
     }
+
+    public IReadOnlyList<string> ListSubKeys(string keyPath)
+    {
+        var names = inner.ListSubKeys(keyPath);
+        snapshot.SubKeyLists[keyPath] = [.. names];
+        return names;
+    }
 }
 
 public sealed class RecordingSystemInfoProvider(ISystemInfoProvider inner, MachineSnapshot snapshot)
@@ -105,6 +112,9 @@ public sealed class SnapshotRegistryProvider(MachineSnapshot snapshot) : IRegist
 
         return values;
     }
+
+    public IReadOnlyList<string> ListSubKeys(string keyPath) =>
+        snapshot.SubKeyLists.TryGetValue(keyPath, out var names) ? names : [];
 }
 
 public sealed class RecordingServiceStateProvider(

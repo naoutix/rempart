@@ -176,7 +176,15 @@ cinq en gras et apparentées sont faites ; les autres restent.
       `REG_MULTI_SZ` sous `Lsa` et `Lsa\OSConfig`, juges par `SignatureLadder`. Le
       marqueur de liste vide `""` de Windows est ecarte, un acces refuse est dit et non
       tu. Verifie en direct : 2 paquets, tous benins
-- [ ] COM hijacking
+- [x] COM hijacking — enregistrements COM cote utilisateur (HKCU\Software\Classes\CLSID),
+      qui priment sur le composant systeme sans droits d'''administrateur. A demande une
+      capacite d'''enumeration de sous-cles au fournisseur de registre. Juge par
+      SignatureLadder ; plancher Notable car l'''emplacement inscriptible fait le vecteur.
+      Deux faux positifs corriges en verifiant : extraction de l'''exe d'''un LocalServer32
+      (chemin quote + args), et reconnaissance MSIX -- un binaire WindowsApps est signe par
+      son paquet, pas au niveau fichier, et ne doit pas passer pour suspect (correction
+      partagee par tous les collecteurs). Sur la machine de test : 2 COM utilisateur
+      (Adobe, Paint), Notable, aucun suspect
 - [ ] Enrichissement VirusTotal **opt-in explicite** (D9)
 
 **Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test —

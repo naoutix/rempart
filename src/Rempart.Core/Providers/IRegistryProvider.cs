@@ -49,4 +49,11 @@ public interface IRegistryProvider
     /// chercher par nom ce dont on ignore l'existence.
     /// </summary>
     IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath);
+
+    /// <summary>
+    /// Les noms des sous-clés d'une clé. Pour découvrir une arborescence dont on ne
+    /// connaît pas les entrées — les CLSID enregistrés par un utilisateur, par exemple,
+    /// dont les identifiants sont imprévisibles. Vide si la clé est absente ou refusée.
+    /// </summary>
+    IReadOnlyList<string> ListSubKeys(string keyPath);
 }

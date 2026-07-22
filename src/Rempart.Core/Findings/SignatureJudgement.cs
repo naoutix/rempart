@@ -42,6 +42,19 @@ public static class SignatureLadder
         var signature = signatures.Verify(path);
         var reasons = new List<string>();
 
+        // Un binaire sous WindowsApps est déployé par MSIX : Windows n'y écrit que des
+        // paquets dont il a vérifié la signature, et le fichier lui-même n'en porte pas
+        // au niveau Authenticode. « Non signé » y est donc la règle, pas un signal — le
+        // marquer suspect accuserait à tort chaque application du Store.
+        if (signature.Status == SignatureStatus.Unsigned
+            && path.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase))
+        {
+            return new SignatureJudgement(FindingSeverity.Benign,
+                ["Signé par son paquet MSIX, non au niveau fichier — la confiance vient "
+                 + "du paquet, que Windows vérifie au déploiement."],
+                signature);
+        }
+
         var severity = signature.Status switch
         {
             SignatureStatus.Valid => FindingSeverity.Benign,
