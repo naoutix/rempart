@@ -112,6 +112,22 @@ public static class Anonymiser
             ];
         }
 
+        if (snapshot.Firewall is { Rules.Count: > 0 } firewall)
+        {
+            // Le chemin d'application d'une règle porte parfois un profil utilisateur —
+            // six règles le faisaient sur la machine de référence. Le SID du propriétaire
+            // (LUOwn), lui, n'est pas conservé à l'analyse, donc rien à en scruber.
+            snapshot.Firewall = firewall with
+            {
+                Rules =
+                [
+                    .. firewall.Rules.Select(rule => rule.App is { } app
+                        ? rule with { App = ScrubProfile(app) }
+                        : rule),
+                ],
+            };
+        }
+
         if (snapshot.Processes is { Count: > 0 } processes)
         {
             // Le chemin de l'exécutable est un chemin propre : on y hache le compte.

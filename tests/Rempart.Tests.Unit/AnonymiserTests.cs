@@ -11,6 +11,33 @@ namespace Rempart.Tests.Unit;
 public sealed class AnonymiserTests
 {
     [Fact]
+    public void Firewall_rule_application_paths_are_scrubbed()
+    {
+        // Une règle de pare-feu peut viser une application installée sous un profil
+        // utilisateur : son chemin nomme alors quelqu'un, et la capture destinée à voyager
+        // le porterait. Les chemins système (%SystemRoot%) n'ont rien à cacher et restent
+        // lisibles.
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default,
+            Firewall = new FirewallState(
+                [
+                    new FirewallRule(true, "In", "Allow", 6, "5000", ["Public"],
+                        @"C:\Users\leoar\AppData\Local\App\app.exe"),
+                    new FirewallRule(true, "In", "Allow", 6, "445", ["Public"],
+                        @"%SystemRoot%\system32\svchost.exe"),
+                ],
+                PublicFirewallEnabled: true, PublicDefaultInboundAllow: false),
+        };
+
+        var rules = Anonymiser.Apply(snapshot).Firewall!.Rules;
+
+        Assert.DoesNotContain("leoar", rules[0].App, StringComparison.Ordinal);
+        Assert.EndsWith(@"\App\app.exe", rules[0].App, StringComparison.Ordinal);
+        Assert.Equal(@"%SystemRoot%\system32\svchost.exe", rules[1].App);
+    }
+
+    [Fact]
     public void Machine_name_is_replaced()
     {
         var snapshot = new MachineSnapshot { SystemInfo = FakeSystemInfoProvider.Default };

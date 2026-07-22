@@ -233,6 +233,20 @@ public sealed class SnapshotListeningPortProvider(MachineSnapshot snapshot) : IL
     public IReadOnlyList<ListeningPort> Enumerate() => snapshot.ListeningPorts ?? [];
 }
 
+public sealed class RecordingFirewallProvider(
+    IFirewallProvider inner, MachineSnapshot snapshot) : IFirewallProvider
+{
+    public FirewallState Read() => snapshot.Firewall ??= inner.Read();
+}
+
+public sealed class SnapshotFirewallProvider(MachineSnapshot snapshot) : IFirewallProvider
+{
+    // Absent d'une capture anterieure : etat non lu, donc « inconnu ». La regle croisee
+    // se retire alors sans rien affirmer, et le collecteur retombe sur le jugement de
+    // signature seul.
+    public FirewallState Read() => snapshot.Firewall ?? FirewallState.Unread;
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {

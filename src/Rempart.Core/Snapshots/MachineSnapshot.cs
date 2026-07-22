@@ -65,6 +65,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Points d'écoute réseau, ou null si l'instantané précède leur collecte.</summary>
     public List<ListeningPort>? ListeningPorts { get; set; }
+
+    /// <summary>État du pare-feu, ou null si l'instantané précède sa collecte.</summary>
+    public FirewallState? Firewall { get; set; }
 }
 
 public static class SnapshotKeys
