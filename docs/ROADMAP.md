@@ -247,7 +247,19 @@ correspondante**, réputation du port.
       (`ProgramData\Microsoft\Wlansvc\Profiles`), décodé et rejouable ; le SSID, qui nomme
       un lieu, est haché à l'anonymisation. Vérifié sur machine réelle : 23 profils,
       19 bénins, 4 réseaux ouverts relevés dont 3 en connexion automatique.
-- [ ] IPv6, NetBIOS, mDNS (durcissements de résolution de noms)
+- [x] NetBIOS, mDNS, LLMNR — déjà audités par règles : `WIN-NET-001` (NodeType, NetBIOS
+      restreint), `WIN-NET-002` (EnableMDNS), `WIN-LEG-003` (EnableMulticast, LLMNR). Les
+      trois protocoles de résolution par diffusion, vecteurs d'empoisonnement et de capture
+      d'authentification NTLM.
+- [ ] IPv6 — **reporté**, même raison que TLS/SCHANNEL (M2b). Le durcissement des
+      technologies de transition (Teredo, 6to4, ISATAP) est piloté par une stratégie
+      absente par défaut (`…\TCPIP\v6Transition`), dont l'état effectif par défaut varie
+      selon la build de Windows — Teredo est par exemple déjà désactivé par défaut sur un
+      client moderne. Un `windowsDefault` deviné ferait échouer toute machine non
+      explicitement configurée alors qu'elle est déjà sûre : c'est crier au loup. À
+      reprendre après vérification sur plusieurs machines. IPv6 lui-même n'est pas visé :
+      Microsoft déconseille de le désactiver, et une règle l'exigeant serait un faux
+      positif contraire au principe du projet.
 
 **Fait quand** un port ouvert mais bloqué par le pare-feu n'est pas classé au même
 niveau qu'un port réellement exposé. ✅ Le critère est atteint : SMB (445) et RPC (135),

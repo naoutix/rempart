@@ -11,9 +11,9 @@ Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 > propriétaire et croisés avec les règles du pare-feu (un port bloqué n'est pas un port
 > exposé) ; les résolveurs DNS, le fichier hosts et la configuration proxy (WinINET, GPO,
 > WinHTTP, avec récupération opt-in du script PAC) sont audités, ainsi que les profils
-> Wi-Fi enregistrés (réseaux ouverts, WEP, connexion automatique). Restent le test actif
-> DoH/DoT et quelques durcissements (IPv6, NetBIOS, mDNS) — voir
-> [ROADMAP.md](docs/ROADMAP.md). **L'audit
+> Wi-Fi enregistrés (réseaux ouverts, WEP, connexion automatique). Reste le test actif
+> DoH/DoT ; le durcissement IPv6-transition est reporté, ses défauts variant selon la
+> build de Windows — voir [ROADMAP.md](docs/ROADMAP.md). **L'audit
 > ne modifie rien** — aucune remédiation avant M9 ; la seule écriture est le magasin de
 > données à jour, sur `update --apply`.
 
