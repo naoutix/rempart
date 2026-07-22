@@ -17,6 +17,7 @@ namespace Rempart.Core.Json;
     UseStringEnumConverter = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
 [JsonSerializable(typeof(ScanResult))]
+[JsonSerializable(typeof(Dns.DnsProbeReport))]
 [JsonSerializable(typeof(MachineSnapshot))]
 [JsonSerializable(typeof(SignedManifest))]
 [JsonSerializable(typeof(ManifestPayload))]
