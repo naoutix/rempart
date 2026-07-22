@@ -236,8 +236,12 @@ correspondante**, réputation du port.
       alarme, comme un résolveur reçu du DHCP ; un proxy local reste bénin. Le blob WinHTTP
       est lu en hex via `IRegistryProvider`, décodé par une fonction pure Core testable
       sans Windows. Vérifié sur machine réelle : accès direct, zéro faux positif.
-- [ ] Récupération et analyse opt-in du script PAC (précédent VirusTotal — appel réseau
-      explicite, jamais en rejeu). Profils Wi-Fi, IPv6, NetBIOS, mDNS
+- [x] Récupération et analyse opt-in du script PAC (`--fetch-pac`) — récupère par HTTP le
+      script référencé par `AutoConfigURL`, en extrait **statiquement** les directives de
+      routage (`PROXY`/`SOCKS`/`HTTPS host:port`) sans jamais l'exécuter, et hisse un
+      constat proxy à suspect si le PAC route vers un hôte externe. Le second appel réseau
+      possible du scan, jamais par défaut ni en rejeu (précédent VirusTotal, D9).
+- [ ] Profils Wi-Fi, IPv6, NetBIOS, mDNS
 
 **Fait quand** un port ouvert mais bloqué par le pare-feu n'est pas classé au même
 niveau qu'un port réellement exposé. ✅ Le critère est atteint : SMB (445) et RPC (135),

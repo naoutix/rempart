@@ -1,8 +1,8 @@
 # Design — Collecteur proxy & PAC (M4 réseau)
 
 > État : design validé le 2026-07-22. Deux PR, un seul design.
-> **PR-A** livre le collecteur proxy passif (WinINET + GPO + WinHTTP).
-> **PR-B** ajoute la récupération et l'analyse du PAC, opt-in.
+> **PR-A** — collecteur proxy passif (WinINET + GPO + WinHTTP). ✅ livrée (#52).
+> **PR-B** — récupération et analyse opt-in du PAC (`--fetch-pac`). ✅ livrée.
 
 ## Contexte
 
@@ -164,18 +164,23 @@ imposé par GPO reste *bénin*.
 
 ---
 
-# PR-B — Récupération et analyse du PAC (opt-in) *(esquisse)*
+# PR-B — Récupération et analyse du PAC (opt-in) ✅ livrée
 
 Nature distincte : appel réseau actif. Suit le précédent VirusTotal (`--virustotal-key`).
 
-- Flag explicite (p. ex. `--fetch-pac`), jamais par défaut, jamais en rejeu.
-- Réutilise le patron `HttpClient` de `VirusTotalReputation` (AOT, timeout, erreurs
-  typées — chaque code de réponse a sa lecture, aucune ne se déguise en « sain »).
-- Télécharge le script PAC référencé par `AutoConfigURL`, en extrait les directives de
-  routage (`PROXY`/`SOCKS host:port`), et hisse la gravité si le PAC route vers un hôte
-  externe inattendu.
-- Greffé en enrichissement sur le constat proxy de PR-A (comme `FindingEnrichment` greffe
-  la réputation VirusTotal), pas un collecteur séparé.
+Tel que livré :
 
-Détail à trancher au moment de PR-B : réutiliser `IReputationSource`/`FindingEnrichment`
-ou une abstraction dédiée. Hors périmètre de ce design.
+- Flag `--fetch-pac`, jamais par défaut, jamais en rejeu (garde-fou `snapshotPath is null`,
+  jumeau de celui de VirusTotal).
+- `LivePacFetcher` réutilise le patron `HttpClient` de `VirusTotalReputation` (AOT, timeout,
+  erreurs typées — un 404/timeout n'est jamais « sain »).
+- `PacDirectiveExtractor` (pur, `[GeneratedRegex]`, testable sans réseau) extrait
+  **statiquement** les directives `PROXY`/`SOCKS`/`HTTPS host:port` du script — **jamais
+  d'exécution JS** : embarquer un moteur pour évaluer un script hostile serait le contraire
+  de l'objectif.
+- `PacEnrichment` greffe le routage sur les constats proxy signalés (comme
+  `FindingEnrichment` greffe la réputation) : une route externe hisse à suspect, une route
+  locale ou une récupération en échec n'aggrave rien. Un constat bénin (proxy imposé GPO)
+  n'est jamais récupéré.
+- Abstraction dédiée `IPacFetcher`/`PacAnalysis` plutôt que réutiliser
+  `IReputationSource` : la sémantique diffère (des points de routage, pas une empreinte).
