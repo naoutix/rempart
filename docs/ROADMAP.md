@@ -3,6 +3,8 @@
 Chaque lot se termine par un livrable **vérifiable sur une machine réelle**.
 Pas de lot qui ne produise que de l'infrastructure invisible.
 
+La dette technique connue est suivie à part, dans [DEBT.md](DEBT.md).
+
 ---
 
 ## v1 — Audit en lecture seule
@@ -17,7 +19,8 @@ Pas de lot qui ne produise que de l'infrastructure invisible.
 - [x] 34 tests, sans machine Windows ni VM
 - [x] CI écrite et **vérifiée** — les 4 jobs passent, `publish-aot` produit 4,1 Mo
       sur runner Windows, identique au build local
-- [ ] `IWmiProvider` — **reporté en M2**, System.Management ne survit pas à Native AOT
+- [x] `IWmiProvider` — reporté en M2 puis **résolu en M2b** : accessible par interop COM
+      générée à la compilation, `System.Management` reste hors de portée sous AOT (voir M2b)
 
 **Critère de sortie reformulé.** Le critère initial — « scan live identique au rejeu » —
 est intenable : l'uptime change entre les deux et l'anonymisation modifie le hostname
