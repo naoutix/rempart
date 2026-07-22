@@ -6,11 +6,12 @@ Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 > Neuf surfaces de persistance auditées (démarrages, tâches, pilotes noyau, abonnements
 > WMI, processus, extensibilité de session, paquets LSA, chemins de service non guillemetés,
 > détournement COM), enrichissement VirusTotal optionnel, 82 contrôles sur 13 domaines,
-> 356 tests, binaire de 9,4 Mo sans installation. Les contrôles sont des fichiers YAML.
+> 377 tests, binaire de 9,4 Mo sans installation. Les contrôles sont des fichiers YAML.
 > **En cours dans M4** l'inventaire réseau : les ports en écoute sont reliés à leur binaire
 > propriétaire et croisés avec les règles du pare-feu (un port bloqué n'est pas un port
-> exposé) ; les résolveurs DNS et le fichier hosts sont audités. Restent le test actif
-> DoH/DoT, le proxy et les profils Wi-Fi — voir [ROADMAP.md](docs/ROADMAP.md). **L'audit
+> exposé) ; les résolveurs DNS, le fichier hosts et la configuration proxy (WinINET, GPO,
+> WinHTTP) sont audités. Restent le test actif DoH/DoT, la récupération opt-in du PAC et
+> les profils Wi-Fi — voir [ROADMAP.md](docs/ROADMAP.md). **L'audit
 > ne modifie rien** — aucune remédiation avant M9 ; la seule écriture est le magasin de
 > données à jour, sur `update --apply`.
 
@@ -63,7 +64,7 @@ version ; `rempart help` liste tout.
 ## Démarrer
 
 ```bash
-dotnet test                                   # 356 tests (47 exigent Windows), ~10 s
+dotnet test                                   # 377 tests (48 exigent Windows), ~10 s
 dotnet run --project src/Rempart.Cli -- scan  # sur la machine locale
 ```
 
