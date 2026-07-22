@@ -40,7 +40,8 @@ public sealed class ProviderSet(
     IScheduledTaskProvider? scheduledTasks = null,
     IDriverProvider? drivers = null,
     IProcessProvider? processes = null,
-    IListeningPortProvider? listeningPorts = null)
+    IListeningPortProvider? listeningPorts = null,
+    IFirewallProvider? firewall = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -81,6 +82,16 @@ public sealed class ProviderSet(
     /// <summary>Absent, aucun port n'est énuméré — pas d'invention d'écoute.</summary>
     public IListeningPortProvider ListeningPorts { get; } =
         listeningPorts ?? EmptyListeningPorts.Instance;
+
+    /// <summary>Absent, l'état du pare-feu reste « inconnu » — la règle croisée se retire.</summary>
+    public IFirewallProvider Firewall { get; } = firewall ?? UnreadFirewall.Instance;
+}
+
+internal sealed class UnreadFirewall : IFirewallProvider
+{
+    public static readonly UnreadFirewall Instance = new();
+
+    public FirewallState Read() => FirewallState.Unread;
 }
 
 internal sealed class EmptyListeningPorts : IListeningPortProvider

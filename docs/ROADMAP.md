@@ -209,18 +209,20 @@ correspondante**, réputation du port.
       les processus et les pilotes. Un binaire non signé exposé sur `0.0.0.0` est
       suspect ; en écoute locale il ne l'est pas — le collecteur de processus s'en
       charge déjà. Vérifié sur machine réelle : 47 ports, zéro faux positif.
-- [ ] Règle croisée : écoute sur `0.0.0.0` **ET** autorisé en profil Public → sévérité haute
+- [x] Règle croisée : écoute exposée **ET** autorisée en entrée sur le profil Public →
+      relevée. Le pare-feu est lu depuis le registre (règles locales + stratégie de
+      groupe), chaque règle analysée, et l'atteignabilité d'un port croisée avec le
+      binaire propriétaire — un blocage l'emporte sur une autorisation, le défaut entrant
+      de Windows bloque. Non signé et atteignable → suspect ; signé et atteignable →
+      notable ; ouvert mais bloqué → bénin. Vérifié sur machine réelle : sur 44 points
+      d'écoute, seuls 2 sont réellement joignables (DNS, mDNS), là où le compte brut en
+      donnait 39 — les règles d'app empaquetées ouvraient tout à tort.
 - [ ] Recommandation de résolveur basée sur une latence mesurée
 
-**Décision prise en chemin.** Sans élévation, presque tous les services système exposent
-un port dont le PID ne se résout pas — les hisser tous noierait le seul signal qui compte.
-Un propriétaire non identifiable est donc inventorié en bénin, pas relevé : l'absence de
-preuve n'est pas une preuve. L'exposition reste dans les détails, pour la règle pare-feu
-à venir et pour un rejeu élevé. C'est cette règle croisée — exposé **et** autorisé au
-pare-feu — qui portera le « réellement exposé ».
-
 **Fait quand** un port ouvert mais bloqué par le pare-feu n'est pas classé au même
-niveau qu'un port réellement exposé.
+niveau qu'un port réellement exposé. ✅ Le critère est atteint : SMB (445) et RPC (135),
+ouverts mais bloqués en Public, retombent en bénin ; seuls les services qu'une règle
+active laisse entrer sont relevés.
 
 ### M5 · Logiciels & bloatware
 Inventaire (MSI, Appx, winget, Chocolatey, portables), extensions navigateur avec
