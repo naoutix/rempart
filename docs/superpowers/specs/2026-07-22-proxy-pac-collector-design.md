@@ -25,19 +25,23 @@ proxy ou un PAC **posé sans y être contraint**.
 
 ## Contrainte technique déterminante
 
-`IRegistryProvider` / `RegistryValue` ne portent que du texte et du nombre — pas d'octets
-bruts. Or `WinHttpSettings` est un blob binaire (`REG_BINARY`).
+`WinHttpSettings` est un blob binaire (`REG_BINARY`). Vérification faite dans le code :
+`LiveRegistryProvider.Convert` (ligne 111) **surface déjà un `REG_BINARY` en chaîne
+hexadécimale minuscule** (`RegistryValue` de `Kind="Binary"`, hex dans `Text`). Le blob
+est donc lisible **à travers `IRegistryProvider.ReadValue`**, sans accès direct au
+registre ni extension de l'abstraction.
 
-**Décision (A2) :** ne PAS étendre `IRegistryProvider` au binaire. Un tel changement
-transverse toucherait le provider, l'impl live, l'enregistrement snapshot, la
-sérialisation et **toutes les fixtures existantes** — précisément le genre de changement
-qui a déjà cassé le rejeu des fixtures anciennes.
+**Décision (A2) :** `IProxyProvider` rend une configuration **déjà décodée** (comme
+`IDnsProvider` rend des `DnsInterface`, pas du registre brut). Le décodage du blob WinHTTP
+vit dans la couche logique (décodeur pur, testable sans Windows), et le snapshot
+n'enregistre que le record décodé. Deux bénéfices :
 
-À la place, `IProxyProvider` rend une configuration **déjà décodée** (comme `IDnsProvider`
-rend des `DnsInterface`, pas du registre brut). Le décodage du blob WinHTTP vit
-entièrement dans la couche `Rempart.Windows`. Le snapshot n'enregistre que le record
-décodé → le rejeu reste 100 % texte/JSON, aucun support binaire ajouté, aucune fixture
-existante touchée.
+- Le rejeu reste 100 % texte/JSON et passe par `SnapshotProxyProvider` (qui rend
+  `snapshot.Proxy`), **jamais** par le registre du snapshot — donc aucun risque de
+  `SnapshotIncompleteException` sur une fixture ancienne, contrairement à un collecteur
+  qui relirait le registre au rejeu.
+- `LiveProxyProvider` ne dépend que de `IRegistryProvider` → il se teste avec le
+  `FakeRegistryProvider` existant, sans machine Windows.
 
 ---
 
@@ -63,17 +67,18 @@ public interface IProxyProvider { ProxyConfiguration Read(); }
 
 ## Répartition des responsabilités
 
-- **`LiveProxyProvider`** (`Rempart.Windows`) : lit les chaînes WinINET + GPO via
-  `IRegistryProvider` (comme `LiveDnsProvider`), et lit le blob WinHTTP en **accès direct**
-  (`RegistryKey.GetValue` rend un `byte[]`, hors du `IRegistryProvider` texte-only), puis
-  le passe au décodeur.
+- **`LiveProxyProvider`** (`Rempart.Windows`) : lit tout via `IRegistryProvider` (comme
+  `LiveDnsProvider`) — chaînes WinINET + GPO, **et** le blob WinHTTP récupéré en hex puis
+  décodé (`Convert.FromHexString` → octets → décodeur). Aucun accès direct au registre.
   - WinINET : `HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings` —
     `ProxyEnable`, `ProxyServer`, `AutoConfigURL`, `ProxyOverride`.
-  - GPO : présence d'une clé proxy sous `…\Policies\…\Internet Settings` (HKLM et/ou HKCU)
+  - GPO : présence d'une valeur `ProxyServer` ou `AutoConfigURL` sous
+    `…\Policies\Microsoft\Windows\CurrentVersion\Internet Settings` (HKLM et/ou HKCU)
     → `PolicyImposed`.
   - WinHTTP : `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Connections\WinHttpSettings`.
 
-- **`WinHttpSettingsDecoder`** (`Rempart.Windows`) : le blob est un petit en-tête
+- **`WinHttpSettingsDecoder`** (`Rempart.Core`, décodeur pur, testable sans Windows) :
+  le blob est un petit en-tête
   (version, drapeaux) suivi de chaînes **préfixées par leur longueur** (serveur, bypass).
   ⚠️ Les offsets exacts ne sont PAS présumés depuis la mémoire — ils seront **épinglés
   contre un blob réel capturé** et recoupés avec `netsh winhttp show proxy` pendant
@@ -115,34 +120,41 @@ rejouable. L'inspection du contenu du script est PR-B.
 | `Providers/IProxyProvider.cs` | *(nouveau)* interface + records |
 | `Providers/ISystemInfoProvider.cs` | `ProviderSet` gagne `IProxyProvider Proxy` + `EmptyProxy` |
 | `Findings/ProxyCollector.cs` | *(nouveau)* le jugement |
-| `Windows/LiveProxyProvider.cs` | *(nouveau)* WinINET+GPO + WinHTTP direct |
-| `Windows/WinHttpSettingsDecoder.cs` | *(nouveau)* décodeur du blob |
+| `Providers/WinHttpSettingsDecoder.cs` | *(nouveau)* décodeur pur du blob (Core, testable sans Windows) |
+| `Windows/LiveProxyProvider.cs` | *(nouveau)* WinINET+GPO+WinHTTP, tout via `IRegistryProvider` |
 | `Snapshots/RecordingProviders.cs` | enregistre le `ProxyConfiguration` décodé |
 | `Snapshots/MachineSnapshot.cs` + `Json/RempartJson.cs` | section `proxy` (source-gen, AOT) |
 | `Snapshots/Anonymiser.cs` | masque un serveur proxy identifiant |
 | `Engine/ScanEngine.cs` | enregistre `ProxyCollector` |
 | `Cli/Program.cs` | branche `LiveProxyProvider` sur le scan live |
 
-## Fixtures
+## Fixtures & tests
 
-Synthétiques versionnées, étendues avec une section `proxy` :
+Alignement sur le pattern réel du dépôt : les collecteurs de constats réseau (DNS, hosts,
+ports) ne sont **pas** injectés dans les fixtures synthétiques (`SyntheticSnapshot.Build`
+ne porte aucune donnée réseau). Ils sont couverts par des **tests unitaires à provider
+simulé** pour l'échelle de jugement, et par les **captures locales réelles** (hors dépôt)
+pour la matière. Le proxy suit ce pattern — pas de fixture synthétique proxy à fabriquer.
 
-- *défaut* → aucun proxy → aucun constat
-- *proxy local* → `127.0.0.1:8080` → bénin
-- *proxy GPO externe* → imposé → bénin
-- *proxy externe non imposé* → notable
-- *PAC http externe* → suspect
-- + un blob WinHTTP réel capturé (hors dépôt s'il identifie une machine, sinon synthétisé)
-  pour le test du décodeur
-
-## Tests
-
-- `WinHttpSettingsDecoder` : blob → `ProxyScope` attendu ; blob tronqué/vide → dégradation
-  propre (pas d'exception)
-- `ProxyCollector` : chaque ligne de l'échelle → gravité attendue
-- Rejeu déterministe : la fixture proxy rejouée rend la sortie de référence
-- Invariant : les fixtures versionnées avec proxy restent anonymisées
-- Le décodeur ne lève jamais sur entrée malformée
+- `WinHttpSettingsDecoder` : vecteurs = **blobs hex réels capturés** (`netsh winhttp set
+  proxy …` puis lecture du registre) → `ProxyScope` attendu ; blob tronqué/vide → scope
+  désactivé, **jamais** d'exception (un registre corrompu ne doit pas planter le scan).
+- `ProxyCollector` : chaque ligne de l'échelle → gravité attendue, via un
+  `FakeProxyProvider`.
+- `LiveProxyProvider` : test de fumée Windows-only (`Rempart.Tests.Windows`, comme
+  `LiveDnsProvider`) — lit la machine courante sans lever, config cohérente. Il reste
+  mince : ne dépend que de `IRegistryProvider` et délègue tout le décodage au décodeur
+  Core. Vérification manuelle documentée : capturer un vrai blob (`netsh winhttp set
+  proxy …`), confirmer que le décodeur en tire le même serveur/bypass que
+  `netsh winhttp show proxy`.
+- Round-trip snapshot : un `ProxyConfiguration` enregistré puis rejoué rend la config
+  identique ; un snapshot sans section `proxy` rejoue une config vide (rétrocompat).
+- Intégration moteur : `ScanEngine.Run` avec un `FakeProxyProvider` posant un PAC http
+  externe fait apparaître un constat *suspect* dans `result.Findings`.
+- Invariant d'anonymisation : un serveur proxy externe est haché dans les captures
+  versionnées (test `Anonymiser`).
+- La suite complète reste verte : les références de rejeu existantes sont **inchangées**
+  (aucune donnée proxy dans les fixtures → aucun nouveau constat).
 
 ## Critère de sortie PR-A
 
