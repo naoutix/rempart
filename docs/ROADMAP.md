@@ -228,7 +228,16 @@ correspondante**, réputation du port.
       une adresse nulle, agrégé, suspect s'il neutralise une mise à jour). Vérifié sur
       machine réelle : DNS en DHCP inventorié, `hosts` par défaut muet.
 - [ ] Recommandation de résolveur basée sur une latence mesurée (test actif DoH/DoT)
-- [ ] Proxy et PAC, profils Wi-Fi, IPv6, NetBIOS, mDNS
+- [x] Proxy et PAC — configuration relevée et jugée, sans appel réseau. Trois portées :
+      WinINET (par utilisateur), proxy imposé par stratégie de groupe, et proxy machine
+      WinHTTP (blob binaire décodé, format confronté à un vrai blob). Un PAC http externe
+      non imposé ressort suspect (un script en clair, altérable, hébergé hors du contrôle
+      de la machine réécrit tout le routage) ; un proxy imposé par GPO est inventorié sans
+      alarme, comme un résolveur reçu du DHCP ; un proxy local reste bénin. Le blob WinHTTP
+      est lu en hex via `IRegistryProvider`, décodé par une fonction pure Core testable
+      sans Windows. Vérifié sur machine réelle : accès direct, zéro faux positif.
+- [ ] Récupération et analyse opt-in du script PAC (précédent VirusTotal — appel réseau
+      explicite, jamais en rejeu). Profils Wi-Fi, IPv6, NetBIOS, mDNS
 
 **Fait quand** un port ouvert mais bloqué par le pare-feu n'est pas classé au même
 niveau qu'un port réellement exposé. ✅ Le critère est atteint : SMB (445) et RPC (135),

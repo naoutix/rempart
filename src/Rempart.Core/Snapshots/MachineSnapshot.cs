@@ -74,6 +74,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Lignes du fichier hosts, ou null si l'instantané précède sa collecte.</summary>
     public List<string>? HostsFile { get; set; }
+
+    /// <summary>Configuration proxy décodée, ou null si l'instantané précède sa collecte.</summary>
+    public ProxyConfiguration? Proxy { get; set; }
 }
 
 public static class SnapshotKeys
