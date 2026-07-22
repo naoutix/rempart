@@ -101,11 +101,12 @@ C'est le premier chantier de M2b, avant même les nouveaux providers.
       Windows, et un `windowsDefault` deviné produirait de faux constats. Demande une
       vérification sur plusieurs machines.
 
-### M3 · Persistance & processus — 🚧 persistance faite, processus à venir
+### M3 · Persistance & processus — ✅ terminé
 
-Les quatre surfaces de persistance sont livrées et le canal de mise à jour signé qui
-leur manquait (LOLDrivers) aussi. Le volet **processus** — énumérer les processus
-courants et leurs relations — reste à faire, avec les surfaces mineures ci-dessous.
+Toutes les surfaces livrées : démarrages, WMI, tâches, pilotes (avec LOLDrivers par le
+canal signé), processus courants, Winlogon/AppInit, LSA, COM hijacking, chemins de
+service non-quotés, et l'enrichissement VirusTotal opt-in. La détection MSIX, ajoutée en
+cours, épargne les applications du Store à tous les collecteurs.
 
 **Le modèle a dû s'étendre.** Une règle compare une valeur à une attente ; la
 persistance ne s'exprime pas ainsi. Dix-sept programmes au démarrage dont trois non
@@ -185,7 +186,11 @@ cinq en gras et apparentées sont faites ; les autres restent.
       son paquet, pas au niveau fichier, et ne doit pas passer pour suspect (correction
       partagee par tous les collecteurs). Sur la machine de test : 2 COM utilisateur
       (Adobe, Paint), Notable, aucun suspect
-- [ ] Enrichissement VirusTotal **opt-in explicite** (D9)
+- [x] Enrichissement VirusTotal **opt-in explicite** (D9) — `--virustotal-key` (ou
+      `REMPART_VT_KEY`), le seul appel réseau du scan, jamais par défaut ni en rejeu.
+      Consulte l'API v3 pour les constats signalés porteurs d'une empreinte ; une
+      détection hisse à suspect, « inconnu » ne rassure pas. Clé dans l'en-tête, pas
+      l'URL. Chaque code de réponse a sa lecture, aucune ne se déguise en « sain »
 
 **Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test —
 atteint pour les surfaces livrées ; le volet processus rouvre le lot.

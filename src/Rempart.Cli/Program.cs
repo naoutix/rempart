@@ -3,6 +3,7 @@ using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
+using Rempart.Core.Reputation;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
 using Rempart.Core.Updates;
@@ -103,6 +104,26 @@ static int Scan(string[] args)
     var result = new ScanEngine(ScanEngine.DefaultCollectors, resolution.Rules)
         .Run(providers, ToolVersion(), origin, resolution.AsOfUtc,
             ScanEngine.DefaultFindingCollectors(resolution.Blocklist));
+
+    // Enrichissement VirusTotal — le seul appel réseau du scan, jamais par défaut
+    // (ADR-001, D9) et jamais en rejeu : c'est un instantané passé, pas la machine
+    // courante. La clé vient de --virustotal-key ou de l'environnement.
+    var virusTotalKey = OptionValue(args, "--virustotal-key")
+        ?? Environment.GetEnvironmentVariable("REMPART_VT_KEY");
+
+    if (snapshotPath is null && !string.IsNullOrWhiteSpace(virusTotalKey))
+    {
+        var flagged = result.Findings.Count(f => f.Severity != FindingSeverity.Benign
+            && f.Details.ContainsKey("sha256"));
+
+        Console.Error.WriteLine($"Consultation VirusTotal de {flagged} constat(s) signalé(s)…");
+
+        using var reputation = new VirusTotalReputation(virusTotalKey);
+        result = result with
+        {
+            Findings = [.. FindingEnrichment.WithReputation(result.Findings, reputation)],
+        };
+    }
 
     if (asJson)
     {
@@ -909,6 +930,11 @@ static void WriteFindings(IReadOnlyList<Finding> findings)
         {
             Console.WriteLine($"              éditeur : {publisher}");
         }
+
+        if (finding.Details.TryGetValue("virustotal", out var virusTotal))
+        {
+            Console.WriteLine($"              virustotal : {virusTotal}");
+        }
     }
 }
 
@@ -1142,7 +1168,10 @@ static int Help() => Print(
     Rempart — audit de postes Windows
 
       rempart scan [--json] [--from <instantané>] [--rules <dossier>]
+                   [--virustotal-key <clé>]
           Analyse la machine locale, ou rejoue un instantané hors-ligne.
+          --virustotal-key (ou REMPART_VT_KEY) enrichit les constats signalés
+          de leur réputation VirusTotal — opt-in, le seul appel réseau du scan.
 
       rempart capture [--out <fichier>] [--raw]
           Enregistre l'état brut de la machine, rejouable en test.
