@@ -155,21 +155,27 @@ public sealed class FixtureReplayTests
         var snapshot = RempartJson.DeserialiseSnapshot(
             File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
 
+        // Tous les providers de rejeu sont câblés, en arguments nommés : le scan réel en
+        // fournit autant (Program.cs), et un rejeu qui en omettrait retomberait sur les
+        // no-op par défaut. Les collecteurs correspondants tourneraient alors à vide et la
+        // référence figerait « rien trouvé » sur une capture qui contient la donnée — la
+        // pire forme de fixture, celle qui rassure. Le nommage prévient aussi toute
+        // inversion silencieuse entre providers de même forme.
         var providers = new ProviderSet(
             new SnapshotRegistryProvider(snapshot),
             new SnapshotSystemInfoProvider(snapshot),
-            new SnapshotServiceStateProvider(snapshot),
-            new SnapshotSecurityPolicyProvider(snapshot),
-            new SnapshotWmiProvider(snapshot),
-
-            // Sans ces trois-là, le rejeu n'exerçait aucun collecteur de constats : les
-            // références figeaient « signature non vérifiable » et « tâches absentes de
-            // l'instantané » sur des captures qui contenaient les unes et les autres.
-            // La référence disait donc vrai sur ce que le test faisait, et faux sur ce
-            // qu'un scan fait — la pire forme de fixture, celle qui rassure.
-            new SnapshotSignatureProvider(snapshot),
-            new SnapshotFileSystemProvider(snapshot),
-            new SnapshotScheduledTaskProvider(snapshot));
+            services: new SnapshotServiceStateProvider(snapshot),
+            policy: new SnapshotSecurityPolicyProvider(snapshot),
+            wmi: new SnapshotWmiProvider(snapshot),
+            signatures: new SnapshotSignatureProvider(snapshot),
+            files: new SnapshotFileSystemProvider(snapshot),
+            scheduledTasks: new SnapshotScheduledTaskProvider(snapshot),
+            drivers: new SnapshotDriverProvider(snapshot),
+            processes: new SnapshotProcessProvider(snapshot),
+            listeningPorts: new SnapshotListeningPortProvider(snapshot),
+            firewall: new SnapshotFirewallProvider(snapshot),
+            dns: new SnapshotDnsProvider(snapshot),
+            hostsFile: new SnapshotHostsFileProvider(snapshot));
 
         // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
         // donnee qu'on veut voir figer, pas seulement les champs collectes.

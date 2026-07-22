@@ -56,7 +56,7 @@ public sealed class AutorunsCollector : IFindingCollector
             }
         }
 
-        foreach (var folder in StartupFolders())
+        foreach (var folder in StartupFolders(providers.Registry))
         {
             foreach (var file in providers.Files.ListFiles(folder))
             {
@@ -76,26 +76,57 @@ public sealed class AutorunsCollector : IFindingCollector
     /// Dossiers de démarrage, machine puis utilisateur. Leur contenu s'exécute à
     /// l'ouverture de session sans qu'aucune clé de registre ne le mentionne — un
     /// audit qui n'inspecterait que le registre les manquerait entièrement.
+    ///
+    /// <para>
+    /// Les chemins sont lus dans le registre (<c>Shell Folders</c>) plutôt que calculés
+    /// via <c>Environment</c> : le dossier utilisateur porte le nom de compte, propre à la
+    /// machine, et <c>Environment.GetFolderPath</c> le résoudrait selon l'hôte du rejeu —
+    /// sur Linux en CI, un chemin POSIX qui ne correspond plus à la clé capturée. Lue dans
+    /// le registre, la valeur est capturée puis rejouée à l'identique, comme tout le reste.
+    /// </para>
     /// </summary>
-    private static IEnumerable<string> StartupFolders()
+    private static IEnumerable<string> StartupFolders(IRegistryProvider registry)
     {
-        yield return Environment.ExpandEnvironmentVariables(
-            @"%ProgramData%\Microsoft\Windows\Start Menu\Programs\StartUp");
-
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        if (!string.IsNullOrEmpty(appData))
+        // Lu par ListValues plutôt que ReadValue : sur un instantané antérieur à cette
+        // collecte, ReadValue lève « lecture non enregistrée » et interromprait le
+        // collecteur, alors que ListValues rend une liste vide — la fixture ancienne reste
+        // rejouable, elle produit simplement moins de constats.
+        if (Value(registry,
+                @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+                "Common Startup") is { Length: > 0 } machine)
         {
-            yield return Path.Combine(appData, @"Microsoft\Windows\Start Menu\Programs\Startup");
+            yield return machine;
+        }
+
+        if (Value(registry,
+                @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+                "Startup") is { Length: > 0 } user)
+        {
+            yield return user;
         }
     }
+
+    private static string? Value(IRegistryProvider registry, string keyPath, string valueName) =>
+        registry.ListValues(keyPath).TryGetValue(valueName, out var value) ? value.Text : null;
 
     /// <summary>
     /// <c>desktop.ini</c> décrit l'apparence du dossier ; il ne s'exécute pas. Le
     /// signaler ajouterait du bruit sur toute machine, ce qui est la manière la plus
     /// sûre de faire cesser la lecture d'un rapport.
+    ///
+    /// Le nom de fichier est découpé à la main sur les deux séparateurs Windows plutôt
+    /// que par <c>Path.GetFileName</c> : sous Linux, celui-ci ne reconnaît pas le
+    /// contre-oblique et rendrait le chemin entier, laissant passer le <c>desktop.ini</c>
+    /// d'une capture Windows au rejeu.
     /// </summary>
     private static bool IsIgnored(string path) =>
-        Path.GetFileName(path).Equals("desktop.ini", StringComparison.OrdinalIgnoreCase);
+        FileName(path).Equals("desktop.ini", StringComparison.OrdinalIgnoreCase);
+
+    private static string FileName(string path)
+    {
+        var separator = path.LastIndexOfAny(['\\', '/']);
+        return separator >= 0 ? path[(separator + 1)..] : path;
+    }
 
     /// <summary>
     /// Un raccourci ne s'exécute pas lui-même : il désigne autre chose. Le juger sur
