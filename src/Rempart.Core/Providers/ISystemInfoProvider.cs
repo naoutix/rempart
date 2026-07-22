@@ -41,7 +41,9 @@ public sealed class ProviderSet(
     IDriverProvider? drivers = null,
     IProcessProvider? processes = null,
     IListeningPortProvider? listeningPorts = null,
-    IFirewallProvider? firewall = null)
+    IFirewallProvider? firewall = null,
+    IDnsProvider? dns = null,
+    IHostsFileProvider? hostsFile = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -85,6 +87,26 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, l'état du pare-feu reste « inconnu » — la règle croisée se retire.</summary>
     public IFirewallProvider Firewall { get; } = firewall ?? UnreadFirewall.Instance;
+
+    /// <summary>Absent, aucune interface DNS n'est énumérée — pas d'invention de résolveur.</summary>
+    public IDnsProvider Dns { get; } = dns ?? EmptyDns.Instance;
+
+    /// <summary>Absent, le fichier hosts est vu vide — pas d'invention de correspondance.</summary>
+    public IHostsFileProvider HostsFile { get; } = hostsFile ?? EmptyHostsFile.Instance;
+}
+
+internal sealed class EmptyDns : IDnsProvider
+{
+    public static readonly EmptyDns Instance = new();
+
+    public IReadOnlyList<DnsInterface> Read() => [];
+}
+
+internal sealed class EmptyHostsFile : IHostsFileProvider
+{
+    public static readonly EmptyHostsFile Instance = new();
+
+    public IReadOnlyList<string> ReadLines() => [];
 }
 
 internal sealed class UnreadFirewall : IFirewallProvider

@@ -247,6 +247,29 @@ public sealed class SnapshotFirewallProvider(MachineSnapshot snapshot) : IFirewa
     public FirewallState Read() => snapshot.Firewall ?? FirewallState.Unread;
 }
 
+public sealed class RecordingDnsProvider(IDnsProvider inner, MachineSnapshot snapshot) : IDnsProvider
+{
+    public IReadOnlyList<DnsInterface> Read() => snapshot.Dns ??= [.. inner.Read()];
+}
+
+public sealed class SnapshotDnsProvider(MachineSnapshot snapshot) : IDnsProvider
+{
+    // Absent d'une capture anterieure : liste vide, la fixture reste rejouable.
+    public IReadOnlyList<DnsInterface> Read() => snapshot.Dns ?? [];
+}
+
+public sealed class RecordingHostsFileProvider(
+    IHostsFileProvider inner, MachineSnapshot snapshot) : IHostsFileProvider
+{
+    public IReadOnlyList<string> ReadLines() => snapshot.HostsFile ??= [.. inner.ReadLines()];
+}
+
+public sealed class SnapshotHostsFileProvider(MachineSnapshot snapshot) : IHostsFileProvider
+{
+    // Absent d'une capture anterieure : aucune ligne, la fixture reste rejouable.
+    public IReadOnlyList<string> ReadLines() => snapshot.HostsFile ?? [];
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {
