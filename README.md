@@ -53,7 +53,8 @@ Le canal de mise à jour des données (règles, liste LOLDrivers) — voir
 | `rempart update --from <man.> \| --url <base>` | connecté | Vérifie et prévisualise ; `--apply` pose la mise à jour. |
 
 Diagnostics de CI : `diagnose-wmi`, `diagnose-tasks` (l'interop COM répond dans le
-binaire AOT). Fabrication de fixtures : `synthesise`. `rempart help` liste tout.
+binaire AOT). Fabrication de fixtures : `synthesise`. `rempart version` affiche la
+version ; `rempart help` liste tout.
 
 ---
 
@@ -233,8 +234,11 @@ et c'est le seul endroit où un bug entier était observable.
 |---|---|
 | [ADR-001](docs/adr/ADR-001-stack-et-perimetre.md) | Les 10 décisions fondatrices, avec les alternatives écartées |
 | [ADR-002](docs/adr/ADR-002-mise-a-jour-des-donnees.md) | Mise à jour des données qui vieillissent, manifeste signé |
+| [ADR-003](docs/adr/ADR-003-pare-feu-par-registre.md) | Lire le pare-feu par le registre plutôt que par COM |
+| [ADR-004](docs/adr/ADR-004-etat-systeme-en-champ-dedie.md) | État système volumineux en champ de snapshot dédié |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Schémas, format des règles, stratégie de test |
 | [ROADMAP.md](docs/ROADMAP.md) | M0 → M12, ce qui est reporté **et pourquoi** |
+| [DEBT.md](docs/DEBT.md) | Registre de dette technique, suivi au fil des audits |
 | [BUILD.md](docs/BUILD.md) | Prérequis, publication AOT, pièges |
 | [rules/security/](rules/security/) | Les 82 contrôles |
 
