@@ -39,7 +39,8 @@ public sealed class ProviderSet(
     IFileSystemProvider? files = null,
     IScheduledTaskProvider? scheduledTasks = null,
     IDriverProvider? drivers = null,
-    IProcessProvider? processes = null)
+    IProcessProvider? processes = null,
+    IListeningPortProvider? listeningPorts = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -76,6 +77,17 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, aucun processus n'est énuméré — pas d'invention d'exécution.</summary>
     public IProcessProvider Processes { get; } = processes ?? EmptyProcesses.Instance;
+
+    /// <summary>Absent, aucun port n'est énuméré — pas d'invention d'écoute.</summary>
+    public IListeningPortProvider ListeningPorts { get; } =
+        listeningPorts ?? EmptyListeningPorts.Instance;
+}
+
+internal sealed class EmptyListeningPorts : IListeningPortProvider
+{
+    public static readonly EmptyListeningPorts Instance = new();
+
+    public IReadOnlyList<ListeningPort> Enumerate() => [];
 }
 
 internal sealed class EmptyProcesses : IProcessProvider

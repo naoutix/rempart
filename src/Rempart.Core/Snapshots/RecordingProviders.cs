@@ -219,6 +219,20 @@ public sealed class SnapshotProcessProvider(MachineSnapshot snapshot) : IProcess
     public IReadOnlyList<RunningProcess> Enumerate() => snapshot.Processes ?? [];
 }
 
+public sealed class RecordingListeningPortProvider(
+    IListeningPortProvider inner, MachineSnapshot snapshot) : IListeningPortProvider
+{
+    public IReadOnlyList<ListeningPort> Enumerate() =>
+        snapshot.ListeningPorts ??= [.. inner.Enumerate()];
+}
+
+public sealed class SnapshotListeningPortProvider(MachineSnapshot snapshot) : IListeningPortProvider
+{
+    // Absent d'une capture anterieure : liste vide, la fixture reste rejouable et
+    // produit simplement moins de constats.
+    public IReadOnlyList<ListeningPort> Enumerate() => snapshot.ListeningPorts ?? [];
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {
