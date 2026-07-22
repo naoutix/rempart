@@ -270,6 +270,18 @@ public sealed class SnapshotHostsFileProvider(MachineSnapshot snapshot) : IHosts
     public IReadOnlyList<string> ReadLines() => snapshot.HostsFile ?? [];
 }
 
+public sealed class RecordingProxyProvider(IProxyProvider inner, MachineSnapshot snapshot) : IProxyProvider
+{
+    public ProxyConfiguration Read() => snapshot.Proxy ??= inner.Read();
+}
+
+public sealed class SnapshotProxyProvider(MachineSnapshot snapshot) : IProxyProvider
+{
+    // Absent d'une capture antérieure : config vide, la fixture reste rejouable et
+    // produit simplement aucun constat proxy.
+    public ProxyConfiguration Read() => snapshot.Proxy ?? ProxyConfiguration.Empty;
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {

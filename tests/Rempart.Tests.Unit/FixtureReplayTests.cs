@@ -175,7 +175,8 @@ public sealed class FixtureReplayTests
             listeningPorts: new SnapshotListeningPortProvider(snapshot),
             firewall: new SnapshotFirewallProvider(snapshot),
             dns: new SnapshotDnsProvider(snapshot),
-            hostsFile: new SnapshotHostsFileProvider(snapshot));
+            hostsFile: new SnapshotHostsFileProvider(snapshot),
+            proxy: new SnapshotProxyProvider(snapshot));
 
         // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
         // donnee qu'on veut voir figer, pas seulement les champs collectes.

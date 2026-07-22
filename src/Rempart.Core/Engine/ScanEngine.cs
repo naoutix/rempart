@@ -57,6 +57,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new ListeningPortsCollector(),
         new DnsResolverCollector(),
         new HostsFileCollector(),
+        new ProxyCollector(),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)

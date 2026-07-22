@@ -43,7 +43,8 @@ public sealed class ProviderSet(
     IListeningPortProvider? listeningPorts = null,
     IFirewallProvider? firewall = null,
     IDnsProvider? dns = null,
-    IHostsFileProvider? hostsFile = null)
+    IHostsFileProvider? hostsFile = null,
+    IProxyProvider? proxy = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -93,6 +94,9 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, le fichier hosts est vu vide — pas d'invention de correspondance.</summary>
     public IHostsFileProvider HostsFile { get; } = hostsFile ?? EmptyHostsFile.Instance;
+
+    /// <summary>Absent, aucune configuration proxy n'est inventée — config vide.</summary>
+    public IProxyProvider Proxy { get; } = proxy ?? EmptyProxy.Instance;
 }
 
 internal sealed class EmptyDns : IDnsProvider
@@ -107,6 +111,13 @@ internal sealed class EmptyHostsFile : IHostsFileProvider
     public static readonly EmptyHostsFile Instance = new();
 
     public IReadOnlyList<string> ReadLines() => [];
+}
+
+internal sealed class EmptyProxy : IProxyProvider
+{
+    public static readonly EmptyProxy Instance = new();
+
+    public ProxyConfiguration Read() => ProxyConfiguration.Empty;
 }
 
 internal sealed class UnreadFirewall : IFirewallProvider

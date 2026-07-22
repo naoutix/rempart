@@ -148,9 +148,59 @@ public static class Anonymiser
             ];
         }
 
+        if (snapshot.Proxy is { } proxy)
+        {
+            snapshot.Proxy = proxy with
+            {
+                WinInet = ScrubScope(proxy.WinInet),
+                WinHttp = ScrubScope(proxy.WinHttp),
+            };
+        }
+
         snapshot.Anonymised = true;
         return snapshot;
     }
+
+    /// <summary>
+    /// Hache l'hôte d'un serveur et d'un PAC, en préservant schéma, port et localité :
+    /// le rejeu du collecteur doit rendre le même verdict qu'avant anonymisation.
+    /// </summary>
+    private static ProxyScope ScrubScope(ProxyScope scope) => scope with
+    {
+        Server = ScrubHostPort(scope.Server),
+        AutoConfigUrl = ScrubUrlHost(scope.AutoConfigUrl),
+    };
+
+    private static string? ScrubHostPort(string? server)
+    {
+        if (string.IsNullOrEmpty(server) || IsLocalToken(server))
+        {
+            return server;
+        }
+
+        var colon = server.LastIndexOf(':');
+        // Un port en fin de chaîne (chiffres après le dernier « : ») reste lisible.
+        return colon > 0 && server[(colon + 1)..].All(char.IsDigit)
+            ? Hash(server[..colon]) + server[colon..]
+            : Hash(server);
+    }
+
+    private static string? ScrubUrlHost(string? url)
+    {
+        if (string.IsNullOrEmpty(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || IsLocalToken(uri.Host))
+        {
+            return url;
+        }
+
+        return $"{uri.Scheme}://{Hash(uri.Host)}{uri.PathAndQuery}";
+    }
+
+    private static bool IsLocalToken(string value) =>
+        value.Contains("127.0.0.1", StringComparison.Ordinal)
+        || value.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+        || value.Contains("[::1]", StringComparison.Ordinal)
+        || value is "::1";
 
     /// <summary>
     /// Hache ce qui désigne une personne, laisse le reste lisible.
