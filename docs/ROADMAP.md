@@ -276,10 +276,24 @@ active laisse entrer sont relevés.
 Inventaire (MSI, Appx, winget, Chocolatey, portables), extensions navigateur avec
 leurs permissions, catalogue bloatware classé par risque.
 
-- [ ] Distinction **provisionné vs installé par utilisateur** (D6)
-- [ ] Champ `survives_feature_update` renseigné
-- [ ] Note d'impact obligatoire sur chaque entrée du catalogue
-- [ ] Trancher le canal de rafraîchissement du catalogue *(point ouvert ADR-001)*
+Découpé en trois sous-lots : **M5a** inventaire (fait), **M5b** catalogue bloatware,
+**M5c** extensions navigateur.
+
+- [x] **M5a — inventaire logiciel.** Collecteur `software` sur quatre sources
+      autoritatives : Uninstall (registre, 3 racines — updates et composants système
+      écartés), Appx/MSIX (registre), App Paths, Chocolatey (système de fichiers). winget
+      apparaît déjà dans Uninstall/Appx ; les portables purs ne sont pas énumérables de
+      façon fiable (documenté, pas contourné par une heuristique bruyante). Constats
+      bénins, rejouables ; M5b les escaladera par enrichissement. Vérifié sur machine
+      réelle : 219 logiciels.
+- [x] Distinction **provisionné vs installé par utilisateur** (D6) — via M5a
+- [x] Champ `survives_feature_update` renseigné — via M5a ; un paquet Appx provisionné
+      revient après une mise à jour de fonctionnalité (6 relevés sur la machine de test)
+- [ ] **M5b — catalogue bloatware** : dataset signé (type `bloatware`, canal ADR-002)
+      croisé avec l'inventaire, note d'impact obligatoire par entrée
+- [x] Canal de rafraîchissement du catalogue — **déjà tranché** : le canal signé d'ADR-002,
+      comme LOLDrivers (ADR-001 le renvoyait à ADR-002)
+- [ ] **M5c — extensions navigateur** avec leurs permissions
 
 **Fait quand** le catalogue est validé sur une machine OEM réelle, pas sur une VM.
 
