@@ -1,6 +1,7 @@
 using Rempart.Core.Collectors;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
+using Rempart.Core.Dns;
 using Rempart.Core.Json;
 using Rempart.Core.Pac;
 using Rempart.Core.Providers;
@@ -152,6 +153,22 @@ static int Scan(string[] args)
         result = result with
         {
             Findings = [.. PacEnrichment.WithRouting(result.Findings, fetcher)],
+        };
+    }
+
+    // Test actif DoH/DoT — l'autre appel réseau opt-in, jamais par défaut ni en rejeu.
+    // Mesure la latence des résolveurs chiffrés et sépare le constat (chiffré bloqué)
+    // de l'avis (le plus rapide), qui reste hors du score.
+    if (snapshotPath is null && HasFlag(args, "--probe-dns"))
+    {
+        Console.Error.WriteLine("Sonde des résolveurs DNS chiffrés (DoH/DoT)…");
+
+        using var probe = new LiveDnsProbe();
+        var (report, probeFindings) = DnsProbeAnalysis.Analyse(probe.Probe());
+        result = result with
+        {
+            Findings = [.. result.Findings, .. probeFindings],
+            DnsProbe = report,
         };
     }
 
@@ -913,6 +930,11 @@ static void WriteHumanReadable(ScanResult result, string? updateNote = null)
 
     WriteFindings(result.Findings);
 
+    if (result.DnsProbe is { } probe)
+    {
+        WriteDnsProbe(probe);
+    }
+
     Console.WriteLine();
     foreach (var collector in result.Collectors)
     {
@@ -927,6 +949,33 @@ static void WriteHumanReadable(ScanResult result, string? updateNote = null)
         {
             Console.WriteLine($"  ! {diagnostic}");
         }
+    }
+}
+
+/// <summary>
+/// Test actif DoH/DoT : un avis, pas un constat. Affiché à part, hors du score, et
+/// clairement présenté comme une mesure ponctuelle et une suggestion.
+/// </summary>
+static void WriteDnsProbe(Rempart.Core.Dns.DnsProbeReport probe)
+{
+    Console.WriteLine();
+    Console.WriteLine("[résolveurs chiffrés] latence mesurée (ponctuelle, depuis ce réseau) :");
+
+    foreach (var result in probe.Results)
+    {
+        var state = result.Reachable ? $"{result.LatencyMs} ms" : $"bloqué ({result.Error})";
+        Console.WriteLine($"  {result.Resolver,-12} {result.Protocol,-4} {state}");
+    }
+
+    if (probe.RecommendedResolver is { } resolver)
+    {
+        Console.WriteLine(
+            $"  → suggestion : {resolver} en {probe.RecommendedProtocol} "
+            + $"({probe.RecommendedLatencyMs} ms) est le plus rapide joignable.");
+    }
+    else
+    {
+        Console.WriteLine("  → aucun résolveur chiffré joignable — voir le constat ci-dessus.");
     }
 }
 
@@ -1204,10 +1253,13 @@ static int Help() => Print(
     Rempart — audit de postes Windows
 
       rempart scan [--json] [--from <instantané>] [--rules <dossier>]
-                   [--virustotal-key <clé>]
+                   [--virustotal-key <clé>] [--fetch-pac] [--probe-dns]
           Analyse la machine locale, ou rejoue un instantané hors-ligne.
+          Trois appels réseau, tous opt-in et jamais en rejeu :
           --virustotal-key (ou REMPART_VT_KEY) enrichit les constats signalés
-          de leur réputation VirusTotal — opt-in, le seul appel réseau du scan.
+          de leur réputation VirusTotal ; --fetch-pac récupère et analyse le
+          script PAC d'un proxy signalé ; --probe-dns mesure la latence des
+          résolveurs chiffrés (DoH/DoT) et recommande le plus rapide.
 
       rempart capture [--out <fichier>] [--raw]
           Enregistre l'état brut de la machine, rejouable en test.

@@ -17,7 +17,10 @@ public sealed record ScanResult(
     /// que s'ils partagent la meme empreinte.</summary>
     string RulesFingerprint,
     /// <summary>Age des donnees evaluees au moment du scan (ADR-002, D15).</summary>
-    DataAge DataAge);
+    DataAge DataAge,
+    /// <summary>Avis du test actif DoH/DoT, ou null s'il n'a pas ete demande (--probe-dns).
+    /// Hors du score : c'est une recommandation, pas un verdict.</summary>
+    Dns.DnsProbeReport? DnsProbe = null);
 
 /// <summary>
 /// Exécute les collecteurs, puis évalue les règles.

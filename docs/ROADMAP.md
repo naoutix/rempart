@@ -227,7 +227,13 @@ correspondante**, réputation du port.
       routable, suspect s'il vise une mise à jour ou une authentification) du blocage (vers
       une adresse nulle, agrégé, suspect s'il neutralise une mise à jour). Vérifié sur
       machine réelle : DNS en DHCP inventorié, `hosts` par défaut muet.
-- [ ] Recommandation de résolveur basée sur une latence mesurée (test actif DoH/DoT)
+- [x] Test actif DoH/DoT (`--probe-dns`) — enrichissement opt-in, jamais par défaut ni en
+      rejeu. Un même paquet DNS wire sert DoT (socket TLS/853) et DoH (HTTPS `/dns-query`,
+      HTTP/2 préféré) ; latence mesurée (médiane de 3 échantillons) vers Cloudflare, Google
+      et Quad9. Le constat « DNS chiffré bloqué » entre dans les findings ; la
+      recommandation du plus rapide reste **hors du score**, clairement étiquetée comme un
+      avis. Vérifié sur réseau réel : DoH 3/3, DoT 2/3 (un 853 filtré par le réseau),
+      recommandation cohérente.
 - [x] Proxy et PAC — configuration relevée et jugée, sans appel réseau. Trois portées :
       WinINET (par utilisateur), proxy imposé par stratégie de groupe, et proxy machine
       WinHTTP (blob binaire décodé, format confronté à un vrai blob). Un PAC http externe
