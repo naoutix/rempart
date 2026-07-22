@@ -77,6 +77,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Configuration proxy décodée, ou null si l'instantané précède sa collecte.</summary>
     public ProxyConfiguration? Proxy { get; set; }
+
+    /// <summary>Profils Wi-Fi enregistrés, ou null si l'instantané précède leur collecte.</summary>
+    public List<WifiProfile>? Wifi { get; set; }
 }
 
 public static class SnapshotKeys

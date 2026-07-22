@@ -44,7 +44,8 @@ public sealed class ProviderSet(
     IFirewallProvider? firewall = null,
     IDnsProvider? dns = null,
     IHostsFileProvider? hostsFile = null,
-    IProxyProvider? proxy = null)
+    IProxyProvider? proxy = null,
+    IWifiProfileProvider? wifi = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -97,6 +98,9 @@ public sealed class ProviderSet(
 
     /// <summary>Absent, aucune configuration proxy n'est inventée — config vide.</summary>
     public IProxyProvider Proxy { get; } = proxy ?? EmptyProxy.Instance;
+
+    /// <summary>Absent, aucun profil Wi-Fi n'est énuméré — pas d'invention de réseau.</summary>
+    public IWifiProfileProvider Wifi { get; } = wifi ?? EmptyWifi.Instance;
 }
 
 internal sealed class EmptyDns : IDnsProvider
@@ -118,6 +122,13 @@ internal sealed class EmptyProxy : IProxyProvider
     public static readonly EmptyProxy Instance = new();
 
     public ProxyConfiguration Read() => ProxyConfiguration.Empty;
+}
+
+internal sealed class EmptyWifi : IWifiProfileProvider
+{
+    public static readonly EmptyWifi Instance = new();
+
+    public IReadOnlyList<WifiProfile> Read() => [];
 }
 
 internal sealed class UnreadFirewall : IFirewallProvider
