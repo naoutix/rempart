@@ -54,6 +54,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new LsaPackagesCollector(),
         new UnquotedServicePathCollector(),
         new ComHijackCollector(),
+        new ListeningPortsCollector(),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)

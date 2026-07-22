@@ -62,6 +62,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Processus en cours, ou null si l'instantané précède leur collecte.</summary>
     public List<RunningProcess>? Processes { get; set; }
+
+    /// <summary>Points d'écoute réseau, ou null si l'instantané précède leur collecte.</summary>
+    public List<ListeningPort>? ListeningPorts { get; set; }
 }
 
 public static class SnapshotKeys

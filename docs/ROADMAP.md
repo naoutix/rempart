@@ -203,9 +203,21 @@ Ports en écoute enrichis : adresse de bind (`127.0.0.1` vs `0.0.0.0` — la dis
 qui compte), processus propriétaire et signature, service associé, **règle pare-feu
 correspondante**, réputation du port.
 
-- [ ] `GetExtendedTcpTable` / `UdpTable` en P-Invoke
+- [x] `GetExtendedTcpTable` / `UdpTable` en P-Invoke — collecteur `listening-port`,
+      TCP en écoute et UDP, adresse de bind conservée. Le propriétaire est résolu par
+      son PID vers le chemin du binaire, puis jugé sur la même échelle de signature que
+      les processus et les pilotes. Un binaire non signé exposé sur `0.0.0.0` est
+      suspect ; en écoute locale il ne l'est pas — le collecteur de processus s'en
+      charge déjà. Vérifié sur machine réelle : 47 ports, zéro faux positif.
 - [ ] Règle croisée : écoute sur `0.0.0.0` **ET** autorisé en profil Public → sévérité haute
 - [ ] Recommandation de résolveur basée sur une latence mesurée
+
+**Décision prise en chemin.** Sans élévation, presque tous les services système exposent
+un port dont le PID ne se résout pas — les hisser tous noierait le seul signal qui compte.
+Un propriétaire non identifiable est donc inventorié en bénin, pas relevé : l'absence de
+preuve n'est pas une preuve. L'exposition reste dans les détails, pour la règle pare-feu
+à venir et pour un rejeu élevé. C'est cette règle croisée — exposé **et** autorisé au
+pare-feu — qui portera le « réellement exposé ».
 
 **Fait quand** un port ouvert mais bloqué par le pare-feu n'est pas classé au même
 niveau qu'un port réellement exposé.
