@@ -14,9 +14,9 @@ flowchart TB
         REPORT["Générateur de rapport"]
     end
 
-    subgraph COL["Collecteurs — ICollector"]
+    subgraph COL["Collecteurs — ICollector (inventaire) · IFindingCollector (persistance, réseau)"]
         C1["Inventaire"]
-        C2["Sécurité"]
+        C2["Sécurité — règles"]
         C3["Persistance"]
         C4["Réseau & DNS"]
         C5["Logiciels & bloatware"]
@@ -122,15 +122,17 @@ au téléchargement.
 ```
 rempart/
 ├── src/
-│   ├── Rempart.Cli/            # CLI : scan, capture, explain, synthesise,
-│   │                           #   keygen, sign, fetch-loldrivers, update
+│   ├── Rempart.Cli/            # CLI : scan, capture, explain, synthesise, keygen,
+│   │                           #   sign, fetch-loldrivers, update, diagnose-*, version
 │   ├── Rempart.Core/
 │   │   ├── Collectors/         # ICollector : décrit la machine par champs connus
-│   │   ├── Findings/           # IFindingCollector : énumère la persistance
-│   │   │                       #   (démarrages, tâches, pilotes, WMI) + SignatureLadder
+│   │   ├── Findings/           # IFindingCollector : énumère persistance (démarrages,
+│   │   │                       #   tâches, pilotes, WMI, processus, LSA, COM…) et réseau
+│   │   │                       #   (ports, DNS, hosts) + SignatureLadder
 │   │   ├── Engine/             # orchestration, sémantique des champs, score
 │   │   ├── Json/               # sérialisation par génération de source (AOT)
-│   │   ├── Providers/          # IRegistryProvider, IWmiProvider, IDriverProvider…
+│   │   ├── Providers/          # IRegistryProvider, IWmiProvider, IDriverProvider,
+│   │   │                       #   IFirewallProvider, IDnsProvider, IListeningPortProvider…
 │   │   ├── Rules/              # chargement YAML, évaluation, scoring, liste noire
 │   │   ├── Snapshots/          # capture, rejeu, anonymisation, fixtures synthétiques
 │   │   └── Updates/            # canal signé (ADR-002) : manifeste, vérification,
@@ -149,9 +151,9 @@ rempart/
 
 Deux familles de collecteurs, volontairement distinctes. `ICollector` décrit des champs
 connus d'avance (modèle, build, état d'un service) ; `IFindingCollector` **énumère** ce
-qui est présent — programmes au démarrage, tâches, pilotes — et porte un jugement par
-élément. Les deux ne se mélangent pas au score : une configuration à 94 % ne doit pas
-masquer un pilote noyau non signé.
+qui est présent — programmes au démarrage, tâches, pilotes, ports en écoute — et porte un
+jugement par élément. Les deux ne se mélangent pas au score : une configuration à 94 % ne
+doit pas masquer un pilote noyau non signé ni un port exposé au réseau.
 
 Les répertoires prévus par la feuille de route mais pas encore créés — rapport HTML,
 add-on matériel, catalogues bloatware, profils de remédiation, couche image — sont
@@ -171,10 +173,10 @@ Une règle est une donnée. Elle est lisible et relisible sans compétence C#.
     depuis la mémoire du processus LSASS.
   references: [CIS-2.3.10, ASD-E8]
   check:
-    type: registry                # registry | registryKey | service
+    type: registry                # registry | registryKey | service | policy | wmi
     path: HKLM\SYSTEM\CurrentControlSet\Control\Lsa
     value: RunAsPPL
-    operator: atLeast             # equals | notEquals | atLeast | exists | absent
+    operator: atLeast             # equals | notEquals | atLeast | atMost | exists | absent
     expect: "1"
     windowsDefault: "0"           # ★ voir ci-dessous
   remediation:                    # inerte en v1

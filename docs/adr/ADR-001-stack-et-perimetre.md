@@ -21,7 +21,9 @@ Contraintes structurantes :
 
 ### D1 — Stack : .NET 10 / C# en publication AOT autonome
 
-Livrable : un `rempart.exe` unique, ~20 Mo, sans dépendance ni runtime à installer.
+Livrable : un `rempart.exe` unique, sans dépendance ni runtime à installer. (Estimé
+~20 Mo à la rédaction ; mesuré à 2,6 Mo au socle M0, ~9,4 Mo après M4 — la taille croît
+avec les surfaces auditées.)
 
 **Pourquoi .NET 10 et pas 8** — .NET 8 arrive en fin de support LTS en novembre 2026.
 Démarrer un projet neuf sur une LTS expirant dans quelques mois serait une dette immédiate
@@ -133,10 +135,12 @@ la persistance sera signalé par certains antivirus, la signature de code devien
 en cas de distribution.
 
 **À revoir** — le catalogue bloatware et les données CVE vieillissent vite : il leur faut
-un canal de rafraîchissement hors du cycle de release du binaire.
+un canal de rafraîchissement hors du cycle de release du binaire. → **Tranché par
+[ADR-002](ADR-002-mise-a-jour-des-donnees.md)** : manifeste signé, transport jamais de confiance.
 
 ## Points ouverts
 
 - Signature de code : reporté tant que l'usage reste personnel.
-- Canal de mise à jour des catalogues : à trancher en M5.
+- ~~Canal de mise à jour des catalogues : à trancher en M5.~~ **Résolu par
+  [ADR-002](ADR-002-mise-a-jour-des-donnees.md).**
 - Support Windows 10 : à confirmer selon le parc réel.
