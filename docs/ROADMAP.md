@@ -217,7 +217,15 @@ correspondante**, réputation du port.
       notable ; ouvert mais bloqué → bénin. Vérifié sur machine réelle : sur 44 points
       d'écoute, seuls 2 sont réellement joignables (DNS, mDNS), là où le compte brut en
       donnait 39 — les règles d'app empaquetées ouvraient tout à tort.
-- [ ] Recommandation de résolveur basée sur une latence mesurée
+- [x] Résolveurs DNS et fichier `hosts` — deux collecteurs. Le DNS distingue le résolveur
+      reçu du DHCP (inventorié) du résolveur posé statiquement : un statique non reconnu,
+      ni résolveur public connu ni boucle locale, est relevé — c'est le levier d'un
+      détournement. Le fichier `hosts` sépare la redirection (domaine vers une adresse
+      routable, suspect s'il vise une mise à jour ou une authentification) du blocage (vers
+      une adresse nulle, agrégé, suspect s'il neutralise une mise à jour). Vérifié sur
+      machine réelle : DNS en DHCP inventorié, `hosts` par défaut muet.
+- [ ] Recommandation de résolveur basée sur une latence mesurée (test actif DoH/DoT)
+- [ ] Proxy et PAC, profils Wi-Fi, IPv6, NetBIOS, mDNS
 
 **Fait quand** un port ouvert mais bloqué par le pare-feu n'est pas classé au même
 niveau qu'un port réellement exposé. ✅ Le critère est atteint : SMB (445) et RPC (135),

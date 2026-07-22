@@ -68,6 +68,12 @@ public sealed class MachineSnapshot
 
     /// <summary>État du pare-feu, ou null si l'instantané précède sa collecte.</summary>
     public FirewallState? Firewall { get; set; }
+
+    /// <summary>Configuration DNS par interface, ou null si l'instantané la précède.</summary>
+    public List<DnsInterface>? Dns { get; set; }
+
+    /// <summary>Lignes du fichier hosts, ou null si l'instantané précède sa collecte.</summary>
+    public List<string>? HostsFile { get; set; }
 }
 
 public static class SnapshotKeys

@@ -6,12 +6,13 @@ Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 > Neuf surfaces de persistance auditées (démarrages, tâches, pilotes noyau, abonnements
 > WMI, processus, extensibilité de session, paquets LSA, chemins de service non guillemetés,
 > détournement COM), enrichissement VirusTotal optionnel, 82 contrôles sur 13 domaines,
-> 312 tests, binaire de 9,2 Mo sans installation. Les contrôles sont des fichiers YAML.
-> **En cours dans M4** l'inventaire réseau : les ports en écoute sont collectés, chaque
-> port relié à son binaire propriétaire et jugé sur sa signature ; suivent DNS, hosts et
-> la règle croisée pare-feu — voir [ROADMAP.md](docs/ROADMAP.md). **L'audit ne modifie
-> rien** — aucune remédiation avant M9 ; la seule écriture est le magasin de données à
-> jour, sur `update --apply`.
+> 352 tests, binaire de 9,4 Mo sans installation. Les contrôles sont des fichiers YAML.
+> **En cours dans M4** l'inventaire réseau : les ports en écoute sont reliés à leur binaire
+> propriétaire et croisés avec les règles du pare-feu (un port bloqué n'est pas un port
+> exposé) ; les résolveurs DNS et le fichier hosts sont audités. Restent le test actif
+> DoH/DoT, le proxy et les profils Wi-Fi — voir [ROADMAP.md](docs/ROADMAP.md). **L'audit
+> ne modifie rien** — aucune remédiation avant M9 ; la seule écriture est le magasin de
+> données à jour, sur `update --apply`.
 
 ```
 rempart scan             posture (règles) + constats (persistance), score par domaine

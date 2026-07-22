@@ -75,7 +75,9 @@ static int Scan(string[] args)
             new SnapshotDriverProvider(snapshot),
             new SnapshotProcessProvider(snapshot),
             new SnapshotListeningPortProvider(snapshot),
-            new SnapshotFirewallProvider(snapshot));
+            new SnapshotFirewallProvider(snapshot),
+            new SnapshotDnsProvider(snapshot),
+            new SnapshotHostsFileProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -93,7 +95,9 @@ static int Scan(string[] args)
             new LiveDriverProvider(),
             new LiveProcessProvider(),
             new LiveListeningPortProvider(),
-            new LiveFirewallProvider());
+            new LiveFirewallProvider(),
+            new LiveDnsProvider(),
+            new LiveHostsFileProvider());
         origin = UtcNow();
     }
 
@@ -165,7 +169,9 @@ static int Capture(string[] args)
         new RecordingDriverProvider(new LiveDriverProvider(), snapshot),
         new RecordingProcessProvider(new LiveProcessProvider(), snapshot),
         new RecordingListeningPortProvider(new LiveListeningPortProvider(), snapshot),
-        new RecordingFirewallProvider(new LiveFirewallProvider(), snapshot));
+        new RecordingFirewallProvider(new LiveFirewallProvider(), snapshot),
+        new RecordingDnsProvider(new LiveDnsProvider(), snapshot),
+        new RecordingHostsFileProvider(new LiveHostsFileProvider(), snapshot));
 
     // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
     // que fait un scan, sans quoi elle ne testerait que la moitie du chemin. Le magasin
