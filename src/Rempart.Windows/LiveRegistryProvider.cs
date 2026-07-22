@@ -86,6 +86,21 @@ public sealed class LiveRegistryProvider : IRegistryProvider
         return values;
     }
 
+    public IReadOnlyList<string> ListSubKeys(string keyPath)
+    {
+        try
+        {
+            using var key = OpenKey(keyPath);
+            return key is null ? [] : key.GetSubKeyNames();
+        }
+        catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException)
+        {
+            // Un refus rend une liste vide, comme pour les valeurs : les autres
+            // emplacements doivent continuer d'être énumérés.
+            return [];
+        }
+    }
+
     private static RegistryValue Convert(RegistryValueKind kind, object raw) => kind switch
     {
         RegistryValueKind.DWord or RegistryValueKind.QWord =>

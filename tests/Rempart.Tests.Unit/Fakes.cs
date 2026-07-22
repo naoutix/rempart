@@ -11,6 +11,7 @@ internal sealed class FakeRegistryProvider : IRegistryProvider
 {
     private readonly Dictionary<string, RegistryRead> values = [];
     private readonly Dictionary<string, ReadStatus> keys = [];
+    private readonly Dictionary<string, List<string>> subKeys = [];
 
     public FakeRegistryProvider WithText(string keyPath, string valueName, string text)
     {
@@ -41,6 +42,15 @@ internal sealed class FakeRegistryProvider : IRegistryProvider
 
     public ReadStatus KeyExists(string keyPath) =>
         keys.TryGetValue(keyPath, out var status) ? status : ReadStatus.NotFound;
+
+    public FakeRegistryProvider WithSubKeys(string keyPath, params string[] names)
+    {
+        subKeys[keyPath] = [.. names];
+        return this;
+    }
+
+    public IReadOnlyList<string> ListSubKeys(string keyPath) =>
+        subKeys.TryGetValue(keyPath, out var names) ? names : [];
 
     public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
     {

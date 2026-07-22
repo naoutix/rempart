@@ -53,6 +53,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new LogonExtensibilityCollector(),
         new LsaPackagesCollector(),
         new UnquotedServicePathCollector(),
+        new ComHijackCollector(),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
