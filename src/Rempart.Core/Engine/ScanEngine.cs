@@ -58,6 +58,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new DnsResolverCollector(),
         new HostsFileCollector(),
         new ProxyCollector(),
+        new WifiProfileCollector(),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)

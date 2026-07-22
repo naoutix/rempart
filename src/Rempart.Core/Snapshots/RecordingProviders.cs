@@ -282,6 +282,18 @@ public sealed class SnapshotProxyProvider(MachineSnapshot snapshot) : IProxyProv
     public ProxyConfiguration Read() => snapshot.Proxy ?? ProxyConfiguration.Empty;
 }
 
+public sealed class RecordingWifiProfileProvider(
+    IWifiProfileProvider inner, MachineSnapshot snapshot) : IWifiProfileProvider
+{
+    public IReadOnlyList<WifiProfile> Read() => snapshot.Wifi ??= [.. inner.Read()];
+}
+
+public sealed class SnapshotWifiProfileProvider(MachineSnapshot snapshot) : IWifiProfileProvider
+{
+    // Absent d'une capture antérieure : liste vide, la fixture reste rejouable.
+    public IReadOnlyList<WifiProfile> Read() => snapshot.Wifi ?? [];
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {

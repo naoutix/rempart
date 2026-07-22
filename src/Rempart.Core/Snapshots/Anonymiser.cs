@@ -157,6 +157,13 @@ public static class Anonymiser
             };
         }
 
+        if (snapshot.Wifi is { Count: > 0 } wifi)
+        {
+            // Le SSID nomme un lieu — domicile, employeur, café. On le hache ; la sécurité
+            // du profil, elle, reste lisible, c'est elle qu'une fixture doit exercer.
+            snapshot.Wifi = [.. wifi.Select(profile => profile with { Name = Hash(profile.Name) })];
+        }
+
         snapshot.Anonymised = true;
         return snapshot;
     }

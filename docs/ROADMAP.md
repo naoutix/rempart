@@ -241,7 +241,13 @@ correspondante**, réputation du port.
       routage (`PROXY`/`SOCKS`/`HTTPS host:port`) sans jamais l'exécuter, et hisse un
       constat proxy à suspect si le PAC route vers un hôte externe. Le second appel réseau
       possible du scan, jamais par défaut ni en rejeu (précédent VirusTotal, D9).
-- [ ] Profils Wi-Fi, IPv6, NetBIOS, mDNS
+- [x] Profils Wi-Fi enregistrés — chaque profil jugé sur sa sécurité : réseau ouvert (pire
+      en connexion automatique, vecteur d'« evil twin »), WEP cassé, WPA/TKIP déprécié,
+      WPA2/WPA3 + AES bénin. Lu depuis les fichiers XML de profil
+      (`ProgramData\Microsoft\Wlansvc\Profiles`), décodé et rejouable ; le SSID, qui nomme
+      un lieu, est haché à l'anonymisation. Vérifié sur machine réelle : 23 profils,
+      19 bénins, 4 réseaux ouverts relevés dont 3 en connexion automatique.
+- [ ] IPv6, NetBIOS, mDNS (durcissements de résolution de noms)
 
 **Fait quand** un port ouvert mais bloqué par le pare-feu n'est pas classé au même
 niveau qu'un port réellement exposé. ✅ Le critère est atteint : SMB (445) et RPC (135),
