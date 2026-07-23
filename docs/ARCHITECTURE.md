@@ -1,34 +1,34 @@
 # Architecture — Rempart
 
-Décisions et justifications : [ADR-001](adr/ADR-001-stack-et-perimetre.md).
+Decisions and their rationale: [ADR-001](adr/ADR-001-stack-et-perimetre.md) (French).
 
-## Vue d'ensemble
+## Overview
 
 ```mermaid
 flowchart TB
     CLI["rempart.exe<br/>scan · capture · diff · report"]
 
     subgraph CORE["Rempart.Core"]
-        ORCH["Orchestrateur<br/>collecteurs parallèles"]
-        RULES["Moteur de règles<br/>YAML → verdicts + score"]
-        REPORT["Générateur de rapport"]
+        ORCH["Orchestrator<br/>parallel collectors"]
+        RULES["Rule engine<br/>YAML → verdicts + score"]
+        REPORT["Report generator"]
     end
 
-    subgraph COL["Collecteurs — ICollector (inventaire) · IFindingCollector (persistance, réseau)"]
-        C1["Inventaire"]
-        C2["Sécurité — règles"]
-        C3["Persistance"]
-        C4["Réseau & DNS"]
-        C5["Logiciels & bloatware"]
-        C6["Hygiène"]
+    subgraph COL["Collectors — ICollector (inventory) · IFindingCollector (persistence, network)"]
+        C1["Inventory"]
+        C2["Security — rules"]
+        C3["Persistence"]
+        C4["Network & DNS"]
+        C5["Software & bloatware"]
+        C6["Hygiene"]
     end
 
-    subgraph PROV["Providers — abstraction obligatoire"]
-        PLIVE["Live<br/>registre · WMI · WinAPI"]
-        PSNAP["FromSnapshot<br/>rejeu JSON en test"]
+    subgraph PROV["Providers — mandatory abstraction"]
+        PLIVE["Live<br/>registry · WMI · WinAPI"]
+        PSNAP["FromSnapshot<br/>JSON replay in tests"]
     end
 
-    HW["rempart-hw.exe<br/>add-on · pilote noyau"]
+    HW["rempart-hw.exe<br/>add-on · kernel driver"]
 
     CLI --> ORCH
     ORCH --> COL
@@ -39,135 +39,135 @@ flowchart TB
     CLI -.opt-in.-> HW
 ```
 
-Le point structurant est la couche providers : les collecteurs ne connaissent pas Windows,
-seulement l'interface. Le même code tourne contre une machine réelle ou contre un snapshot JSON.
+The structural point is the provider layer: collectors never talk to Windows, only to
+the interfaces. The same code runs against a real machine or against a JSON snapshot.
 
-> Ce schéma est la **cible**. Aujourd'hui existent l'inventaire, les règles de sécurité,
-> la persistance (démarrages, tâches, pilotes, WMI, processus, LSA, COM…) et le réseau
-> (ports en écoute croisés avec le pare-feu, résolveurs DNS, fichier hosts). Logiciels &
-> bloatware, hygiène et l'add-on matériel restent des lots à venir, comme `diff` et
-> `report` côté CLI — voir [ROADMAP.md](ROADMAP.md). Le canal de mise à jour, non
-> représenté ici, a son propre schéma plus bas.
+> This diagram is the **target**. Implemented today: inventory, security rules,
+> persistence (autoruns, tasks, drivers, WMI, processes, LSA, COM, …), network
+> (listening ports cross-checked with the firewall, DNS resolvers, hosts file, proxy
+> and PAC, Wi-Fi profiles), and software inventory with the bloatware catalog.
+> Still to come: browser extensions, hygiene, the hardware add-on, and `diff` /
+> `report` on the CLI side — see [ROADMAP.md](ROADMAP.md) (French). The update
+> channel, not shown here, has its own diagram below.
 
-## Flux d'exécution
+## Execution flow
 
 ```mermaid
 flowchart LR
-    A["État machine"] -->|providers| B["Données brutes<br/>JSON"]
-    B --> C["Moteur de règles<br/>YAML"]
-    C --> D["Verdicts<br/>+ score par domaine"]
-    D --> E["Rapport"]
-    B -.->|rempart capture| F["Fixture de test<br/>rejouable hors-ligne"]
-    D -.->|rempart diff| G["Écart vs baseline<br/>ou vs autre machine"]
+    A["Machine state"] -->|providers| B["Raw data<br/>JSON"]
+    B --> C["Rule engine<br/>YAML"]
+    C --> D["Verdicts<br/>+ score per domain"]
+    D --> E["Report"]
+    B -.->|rempart capture| F["Test fixture<br/>offline replay"]
+    D -.->|rempart diff| G["Delta vs baseline<br/>or vs another machine"]
 ```
 
-`rempart capture` est ce qui rend le projet testable : chaque machine auditée devient une
-fixture permanente. Une VM vierge n'a aucun bloatware OEM — les machines réelles sont
-le seul banc de test valable pour le catalogue logiciels.
+`rempart capture` is what makes the project testable: every audited machine becomes a
+permanent fixture. A pristine VM has no OEM bloatware — real machines are the only
+meaningful test bench for the software catalog.
 
-**Le dépôt est public**, ce qui impose une séparation stricte :
+**The repository is public**, which forces a strict separation:
 
-| Répertoire | Régime | Contenu |
+| Directory | Regime | Content |
 |---|---|---|
-| `tests/fixtures/synthetic/` | Versionné | Valeurs fabriquées, aucune machine réelle |
-| `tests/fixtures/local/` | Hors dépôt | Captures de machines réelles, rejouées si présentes |
+| `tests/fixtures/synthetic/` | Versioned | Fabricated values, no real machine |
+| `tests/fixtures/local/` | Out of the repo | Captures of real machines, replayed when present |
 
-L'anonymisation masque hostname et numéros de série, pas la posture de sécurité. À partir
-de M2, une capture réelle révélerait quels contrôles de durcissement sont désactivés sur
-une machine identifiable — d'où l'exclusion, et non la seule anonymisation.
+Anonymization masks the hostname and serial numbers, not the security posture. From
+M2 onward, a real capture would reveal which hardening controls are disabled on an
+identifiable machine — hence exclusion from the repo, not mere anonymization.
 
-## Canal de mise à jour
+## Update channel
 
-Les données vieillissent ; le binaire non ([ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)).
-La frontière de confiance est une signature, jamais un transport.
+Data ages; the binary does not ([ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md),
+French). The trust boundary is a signature, never a transport.
 
 ```mermaid
 flowchart LR
-    subgraph OFF["Hors ligne — l'éditeur"]
-        K["keygen<br/>paire de clés"]
-        S["sign<br/>clé privée chiffrée"]
+    subgraph OFF["Offline — the publisher"]
+        K["keygen<br/>key pair"]
+        S["sign<br/>encrypted private key"]
     end
-    subgraph PUB["En ligne — publication"]
-        F["fetch-loldrivers<br/>source amont"]
+    subgraph PUB["Online — publication"]
+        F["fetch-loldrivers<br/>upstream source"]
     end
-    subgraph AUD["Machine auditée"]
-        U["update --from / --url<br/>vérifie + prévisualise"]
-        ST["magasin"]
-        SC["scan<br/>re-vérifie à chaque fois"]
+    subgraph AUD["Audited machine"]
+        U["update --from / --url<br/>verify + preview"]
+        ST["store"]
+        SC["scan<br/>re-verifies every time"]
     end
 
-    K -->|clé publique épinglée| U
-    F -->|données brutes| S
-    S -->|manifeste signé| U
+    K -->|pinned public key| U
+    F -->|raw data| S
+    S -->|signed manifest| U
     U -->|--apply| ST
     ST --> SC
 ```
 
-Ce qui garantit chaque maillon :
+What guarantees each link:
 
-| Décision | Ce qu'elle impose |
+| Decision | What it enforces |
 |---|---|
-| Signature, pas transport | `--from` (clé USB) et `--url` (réseau) passent la **même** vérification ; HTTPS n'atteste de rien |
-| Socle plancher (D12) | une mise à jour corrige ou ajoute, **jamais ne retire** un contrôle embarqué |
-| Re-vérification au scan (D13) | le scan ne fait pas confiance au magasin ; un fichier altéré après `--apply` est rejeté |
-| Jamais en silence (D14/D17) | mise à jour appliquée **ou** refusée, l'en-tête du rapport le dit avec le motif exact |
-| Clé manuelle (D16) | aucune automatisation ne détient la clé privée — sinon compromettre le dépôt suffirait |
+| Signature, not transport | `--from` (USB stick) and `--url` (network) run the **same** verification; HTTPS proves nothing |
+| Baseline floor (D12) | an update corrects or adds, it **never removes** an embedded check |
+| Re-verification at scan (D13) | the scan does not trust the store; a file altered after `--apply` is rejected |
+| Never silent (D14/D17) | an update is applied **or** rejected, and the report header says which, with the exact reason |
+| Manual key (D16) | no automation holds the private key — otherwise compromising the repository would be enough |
 
-Le pipeline de vérification est unique (`UpdatePlanner`), la source des octets injectée :
-fichier local, ou transport HTTP. C'est la même abstraction que les providers, appliquée
-au téléchargement.
+The verification pipeline is single (`UpdatePlanner`); the byte source is injected:
+local file or HTTP transport. Same abstraction as the providers, applied to download.
 
-## Arborescence
+## Directory layout
 
 ```
 rempart/
 ├── src/
-│   ├── Rempart.Cli/            # CLI : scan, capture, explain, synthesise, keygen,
+│   ├── Rempart.Cli/            # CLI: scan, capture, explain, synthesise, keygen,
 │   │                           #   sign, fetch-loldrivers, update, diagnose-*, version
 │   ├── Rempart.Core/
-│   │   ├── Collectors/         # ICollector : décrit la machine par champs connus
-│   │   ├── Findings/           # IFindingCollector : énumère persistance (démarrages,
-│   │   │                       #   tâches, pilotes, WMI, processus, LSA, COM…) et réseau
+│   │   ├── Collectors/         # ICollector: describes the machine via known fields
+│   │   ├── Findings/           # IFindingCollector: enumerates persistence (autoruns,
+│   │   │                       #   tasks, drivers, WMI, processes, LSA, COM…) and network
 │   │   │                       #   (ports, DNS, hosts) + SignatureLadder
-│   │   ├── Engine/             # orchestration, sémantique des champs, score
-│   │   ├── Json/               # sérialisation par génération de source (AOT)
+│   │   ├── Engine/             # orchestration, field semantics, scoring
+│   │   ├── Json/               # source-generated serialization (AOT)
 │   │   ├── Providers/          # IRegistryProvider, IWmiProvider, IDriverProvider,
 │   │   │                       #   IFirewallProvider, IDnsProvider, IListeningPortProvider…
-│   │   ├── Rules/              # chargement YAML, évaluation, scoring, liste noire
-│   │   ├── Snapshots/          # capture, rejeu, anonymisation, fixtures synthétiques
-│   │   └── Updates/            # canal signé (ADR-002) : manifeste, vérification,
-│   │                           #   signature, magasin, LOLDrivers, transport HTTP
-│   └── Rempart.Windows/        # P/Invoke, registre, WMI, tâches — implémentations Live
-├── rules/security/             # les contrôles livrés, embarqués en ressources
+│   │   ├── Rules/              # YAML loading, evaluation, scoring, blocklist
+│   │   ├── Snapshots/          # capture, replay, anonymization, synthetic fixtures
+│   │   └── Updates/            # signed channel (ADR-002): manifest, verification,
+│   │                           #   signature, store, LOLDrivers, HTTP transport
+│   └── Rempart.Windows/        # P/Invoke, registry, WMI, tasks — Live implementations
+├── rules/security/             # the shipped checks, embedded as resources
 ├── tests/
-│   ├── Rempart.Tests.Unit/     # moteur, règles, canal — sans Windows
-│   ├── Rempart.Tests.Windows/  # vrai registre, WMI, tâches, pilotes — Windows
+│   ├── Rempart.Tests.Unit/     # engine, rules, channel — no Windows required
+│   ├── Rempart.Tests.Windows/  # real registry, WMI, tasks, drivers — Windows only
 │   └── fixtures/
-│       ├── synthetic/          # versionné — produit par « rempart synthesise »
-│       └── local/              # hors dépôt — captures de machines réelles
+│       ├── synthetic/          # versioned — produced by "rempart synthesise"
+│       └── local/              # out of the repo — captures of real machines
 ├── scripts/                    # verify.ps1, regenerate-fixtures.ps1
 └── .github/workflows/
 ```
 
-Deux familles de collecteurs, volontairement distinctes. `ICollector` décrit des champs
-connus d'avance (modèle, build, état d'un service) ; `IFindingCollector` **énumère** ce
-qui est présent — programmes au démarrage, tâches, pilotes, ports en écoute — et porte un
-jugement par élément. Les deux ne se mélangent pas au score : une configuration à 94 % ne
-doit pas masquer un pilote noyau non signé ni un port exposé au réseau.
+Two collector families, deliberately distinct. `ICollector` describes fields known in
+advance (model, build, state of a service); `IFindingCollector` **enumerates** what is
+present — autorun programs, tasks, drivers, listening ports — and judges each element.
+The two never mix in the score: a 94 % configuration must not hide an unsigned kernel
+driver or a network-exposed port.
 
-Les répertoires prévus par la feuille de route mais pas encore créés — rapport HTML,
-add-on matériel, catalogues bloatware, profils de remédiation, couche image — sont
-décrits dans [ROADMAP.md](ROADMAP.md) plutôt qu'annoncés ici comme s'ils existaient.
+Directories planned by the roadmap but not created yet — HTML report, hardware add-on,
+remediation profiles, image layer — are described in [ROADMAP.md](ROADMAP.md) rather
+than announced here as if they existed.
 
-## Format d'une règle
+## Rule format
 
-Une règle est une donnée. Elle est lisible et relisible sans compétence C#.
+A rule is data. It can be read and reviewed without knowing C#.
 
 ```yaml
 - id: WIN-CRED-001
   title: LSA Protection (RunAsPPL) désactivée
   severity: high                  # info | low | medium | high | critical
-  domain: credentials             # regroupe le score ; petit ensemble stable
+  domain: credentials             # groups the score; small stable set
   rationale: >
     Permet à un attaquant disposant de droits locaux d'extraire les credentials
     depuis la mémoire du processus LSASS.
@@ -178,64 +178,66 @@ Une règle est une donnée. Elle est lisible et relisible sans compétence C#.
     value: RunAsPPL
     operator: atLeast             # equals | notEquals | atLeast | atMost | exists | absent
     expect: "1"
-    windowsDefault: "0"           # ★ voir ci-dessous
-  remediation:                    # inerte en v1
+    windowsDefault: "0"           # ★ see below
+  remediation:                    # inert in v1
     reversibility: trivial        # trivial | reinstallable | restorePointOnly | irreversible
-    breaks: >                     # ce qui cesse de fonctionner
+    breaks: >                     # what stops working
       Le chargement des pilotes de sécurité non signés par Microsoft.
-    affects: >                    # qui est concerné, et qui ne l'est pas
+    affects: >                    # who is affected, and who is not
       Les machines équipées d'un antivirus tiers ancien. Sans antivirus tiers, aucun effet.
-    verifyBefore: >               # optionnel, exigé dès que la réversibilité n'est pas triviale
+    verifyBefore: >               # optional, required when reversibility is not trivial
       Relever les pilotes non signés chargés et confirmer la compatibilité.
 ```
 
-### Remédiation en trois champs, pas un texte libre
+Rule texts (title, rationale, remediation) are currently written in French — they are
+what `scan` and `explain` print. Their translation is tracked in the roadmap.
 
-Un champ `impact` unique attire les généralités — « peut avoir des effets de bord » —
-sur lesquelles aucune décision ne se prend. Les trois questions posées sont celles qu'on
-se pose réellement avant d'appliquer un durcissement sur un parc : **qu'est-ce qui cesse
-de marcher, qui est concerné, comment le savoir à l'avance.**
+### Remediation as three fields, not free text
 
-« Rien » est une réponse recevable, mais elle doit être écrite. Un test refuse les
-réponses trop courtes, et exige `verifyBefore` dès que la réversibilité n'est pas triviale.
+A single `impact` field attracts generic statements — "may have side effects" — on
+which no decision can be made. The three questions asked are the ones actually asked
+before hardening a fleet: **what stops working, who is affected, how to check in
+advance.**
 
-`rempart explain <ID>` restitue tout cela : sans cette commande, ces informations
-existaient dans les fichiers YAML mais restaient hors de portée à l'usage.
+"Nothing" is an acceptable answer, but it must be written. A test rejects answers
+that are too short, and requires `verifyBefore` whenever reversibility is not trivial.
 
-### Contrôles de service
+`rempart explain <ID>` prints all of it. Before that command existed, this
+information sat in the YAML files and was out of reach at the moment of use.
+
+### Service checks
 
 ```yaml
 check:
   type: service
-  path: mpssvc                  # nom du service
+  path: mpssvc                  # service name
   value: state                  # state | startMode
   operator: equals
   expect: running               # running | stopped | paused
                                 # automatic | manual | disabled | absent
 ```
 
-Ce que le registre ne dit pas. Un service peut être configuré en démarrage automatique
-et se trouver **arrêté** — parce qu'il a échoué, ou qu'on l'a stoppé. Pour Windows
-Update, le pare-feu ou Defender, la différence entre « censé tourner » et « tourne »
-est exactement ce qu'un audit doit établir : la configuration peut être irréprochable
-pendant que la protection ne s'exécute pas.
+This covers what the registry does not say. A service can be configured for automatic
+start and currently be **stopped** — because it failed, or was stopped manually. For
+Windows Update, the firewall, or Defender, the difference between "supposed to run"
+and "running" is exactly what an audit must establish: the configuration can be
+flawless while the protection is not executing.
 
-`windowsDefault` n'a pas de sens ici et n'est pas exigé : l'état d'un service est
-directement observable, il n'existe pas de valeur implicite en cas d'absence.
+`windowsDefault` is meaningless here and not required: a service state is directly
+observable; there is no implicit value when it is absent.
 
-Un service absent rend `absent`, distinct d'un refus d'accès. Désinstaller un service
-qui n'existe pas n'a pas de sens ; un refus appelle une relance en administrateur.
+An absent service yields `absent`, distinct from an access denial. Uninstalling a
+service that does not exist makes no sense; a denial calls for an elevated re-run.
 
-### `appliesWhen` — quand une règle a un sens
+### `appliesWhen` — when a rule makes sense
 
-Certains contrôles ne valent que dans un contexte. Sans condition, ils produisent du
-bruit ailleurs — et le bruit disqualifie un outil d'audit plus sûrement qu'un contrôle
-manquant : on cesse de lire des alertes dont la moitié ne s'applique pas.
+Some checks are only meaningful in context. Without a condition they produce noise
+everywhere else, and half-irrelevant alerts get an audit report ignored.
 
 ```yaml
 appliesWhen:
-  domainJoined: true        # fait machine, via NetGetJoinInformation
-  registry:                 # ou condition registre — même format qu'un check
+  domainJoined: true        # machine fact, via NetGetJoinInformation
+  registry:                 # or a registry condition — same format as a check
     path: HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server
     value: fDenyTSConnections
     operator: equals
@@ -243,116 +245,117 @@ appliesWhen:
     windowsDefault: "1"
 ```
 
-Une règle écartée rend le verdict `NotApplicable`, distinct de `Unknown` : ici on sait,
-et la réponse est qu'il n'y avait rien à vérifier. Il sort du score sans marquer le
-rapport comme partiel.
+A rule ruled out yields the verdict `NotApplicable`, distinct from `Unknown`: here we
+do know, and the answer is that there was nothing to check. It leaves the score
+without marking the report as partial.
 
-Deux garde-fous. Un bloc `appliesWhen` vide est refusé au chargement — il laisserait
-croire à une condition alors que la règle s'applique partout. Et une condition non
-vérifiable est tenue pour remplie : mieux vaut rendre un verdict que masquer un contrôle
-sur une incertitude, car une règle escamotée ne se remarque pas.
+Two safeguards. An empty `appliesWhen` block is rejected at load time — it would
+suggest a condition where the rule actually applies everywhere. And a condition that
+cannot be evaluated counts as met: better to produce a verdict than to hide a check
+on an uncertainty, because a skipped rule goes unnoticed.
 
-**Conséquence sur la capture.** `rempart capture` lit toutes les clés que les règles
-pourraient consulter, y compris celles hors périmètre sur la machine courante. Sans
-cela un instantané ne serait rejouable que dans le contexte de sa capture.
+**Consequence for capture.** `rempart capture` reads every key the rules could
+consult, including those out of scope on the current machine. Otherwise a snapshot
+would only be replayable in the context it was captured in.
 
-### Régénérer les fixtures
+### Regenerating fixtures
 
 ```powershell
 ./scripts/regenerate-fixtures.ps1
 ```
 
-À lancer après tout changement du catalogue : une règle ajoutée lit une clé que les
-fixtures existantes ne contiennent pas, et le rejeu échoue.
+Run it after any catalog change: an added rule reads a key that existing fixtures do
+not contain, and replay fails.
 
-Le script s'appuie sur `rempart synthesise`, donc sur les règles chargées par le moteur
-lui-même. Une version antérieure reparsait le YAML en expressions régulières — seconde
-implémentation du chargeur, ni versionnée ni testée, que personne d'autre ne pouvait
-rejouer.
+The script relies on `rempart synthesise`, i.e. on the rules as loaded by the engine
+itself. An earlier version re-parsed the YAML with regular expressions — a second,
+unversioned, untested implementation of the loader that nobody else could reproduce.
 
-### Règles externes
+### External rules
 
-Les règles livrées sont embarquées dans le binaire — la clé USB doit rester autonome,
-sans dossier compagnon à oublier de copier. `--rules <dossier>` en ajoute d'autres :
+Shipped rules are embedded in the binary — the USB stick must stay self-contained,
+with no companion folder to forget. `--rules <dir>` adds more:
 
 ```
-rempart scan    --rules ./mes-regles
-rempart explain --rules ./mes-regles
+rempart scan    --rules ./my-rules
+rempart explain --rules ./my-rules
 ```
 
-Deux usages : itérer sur une règle sans recompiler, et porter des contrôles propres à un
-parc que le catalogue livré n'a pas à connaître.
+Two uses: iterating on a rule without recompiling, and carrying fleet-specific checks
+the shipped catalog has no reason to know about.
 
-Elles **complètent** le catalogue, elles ne le remplacent pas : une collision
-d'identifiant est une erreur, jamais une redéfinition tacite — sinon deux machines
-divergeraient sans que le rapport l'indique. La liste noire des composants protégés
-s'applique aussi à elles, et c'est là qu'elle compte le plus : une règle externe n'a
-pas été relue en pull request.
+External rules **extend** the catalog, they do not replace it: an identifier
+collision is an error, never a tacit redefinition — otherwise two machines would
+diverge without the report saying so. The protected-component blocklist applies to
+them too, and that is where it matters most: an external rule was never reviewed in
+a pull request.
 
-### `windowsDefault` — le champ qui décide de la justesse
+### `windowsDefault` — the field that decides correctness
 
-Obligatoire pour tout opérateur de comparaison ; le chargement échoue sans lui.
+Mandatory for every comparison operator; loading fails without it.
 
-Sur le registre Windows, **une clé absente est le cas courant, pas l'anomalie**. Le
-comportement effectif dépend alors d'un défaut documenté, qui est souvent l'état
-souhaité : `UseLogonCredential` absent signifie « pas de mot de passe en clair »,
-`NoAutoUpdate` absent signifie « mises à jour actives ».
+On the Windows registry, **an absent key is the common case, not the anomaly**. The
+effective behavior then follows a documented default, which is often the desired
+state: `UseLogonCredential` absent means "no cleartext password",
+`NoAutoUpdate` absent means "updates enabled".
 
-Une première version traitait toute absence comme un échec. Sur une machine saine, elle
-remontait trois alertes `CRITICAL` fausses — de quoi rendre l'outil inutilisable, puisque
-plus personne ne lit un rapport qui crie au loup.
+A first version treated every absence as a failure and reported three false
+`CRITICAL` findings on a healthy machine — enough to make the tool unusable, since
+nobody keeps reading a report that cries wolf.
 
-Exiger ce champ oblige l'auteur de la règle à connaître le défaut Windows applicable,
-ce qui est précisément la connaissance qui rend la règle juste.
+Requiring the field forces the rule author to know the applicable Windows default,
+which is precisely the knowledge that makes the rule correct.
 
-### Verdicts et score
+### Verdicts and score
 
-| Verdict | Signification |
+| Verdict | Meaning |
 |---|---|
-| `Pass` | Conforme |
-| `Fail` | Non conforme |
-| `Unknown` | Accès refusé — **jamais** compté comme conforme |
+| `Pass` | Compliant |
+| `Fail` | Non-compliant |
+| `Unknown` | Access denied — **never** counted as compliant |
 
-Les verdicts `Unknown` sortent du calcul du score, et un domaine entièrement illisible
-vaut `null`, pas zéro : « je ne sais pas » appelle une élévation, « c'est mauvais » appelle
-une correction. La pondération par sévérité est non linéaire — dix réglages mineurs ne
-compensent pas une faiblesse critique.
+`Unknown` verdicts leave the score computation, and a fully unreadable domain scores
+`null`, not zero: "I don't know" calls for elevation, "it's bad" calls for a fix.
+Severity weighting is non-linear — ten minor settings do not offset one critical
+weakness.
 
-Format d'une action de nettoyage :
+### Cleanup actions (planned, M9)
+
+Remediation ships in a later milestone; its data format is already settled:
 
 ```yaml
 - id: CLEAN-APPX-COPILOT
-  layer: B                        # A=image · B=politique · C=composant
+  layer: B                        # A=image · B=policy · C=component
   reversibility: reinstallable    # trivial | reinstallable | restore-point-only | irreversible
   impact: "Copilot indisponible. Aucune dépendance système connue."
-  survives_feature_update: false  # sera réinstallé par une mise à jour de fonctionnalité
+  survives_feature_update: false  # will be reinstalled by a feature update
 ```
 
-## Garanties de sécurité
+## Security guarantees
 
-| Garantie | Mécanisme |
+| Guarantee | Mechanism |
 |---|---|
-| v1 n'écrit rien | Aucun provider en écriture n'est implémenté avant M9 |
-| Composants critiques intouchables | Liste noire codée en dur + test de propriété sur tous les profils en CI |
-| Aucune fuite réseau | Sortie externe opt-in par exécution, hors-ligne par défaut |
-| Pas d'échec silencieux | Chaque collecteur remonte `insufficient_privileges` plutôt que d'omettre |
-| Rollback vérifiable | Journal JSON sur la clé + test VM appliquer → rollback → assert état initial |
-| Actions irréversibles isolées | `/ResetBase` et équivalents : jamais dans un profil, confirmation individuelle |
+| v1 writes nothing | No write-capable provider exists before M9 |
+| Critical components untouchable | Hard-coded blocklist + property test over all profiles in CI |
+| No network leakage | External calls are opt-in per run; offline by default |
+| No silent failure | Every collector reports `insufficient_privileges` rather than omitting |
+| Verifiable rollback | JSON journal on the stick + VM test: apply → rollback → assert initial state |
+| Irreversible actions isolated | `/ResetBase` and equivalents: never in a profile, individually confirmed |
 
-## Stratégie de test
+## Test strategy
 
-| Niveau | Portée | Exécution | Vitesse |
+| Level | Scope | Runs | Speed |
 |---|---|---|---|
-| 1 — Unitaire | Moteur de règles, parsing, scoring, rapport | CI, local | ms |
-| 2 — Fixtures | Collecteurs sur snapshots réels, sorties golden | CI, local | ms |
-| 3 — Intégration | Vrai Windows : ne plante pas, gère l'absence de droits | GH Actions + VM | s |
-| 4 — Remédiation | appliquer → vérifier → rollback → assert retour à l'initial | VM Hyper-V | min |
+| 1 — Unit | Rule engine, parsing, scoring, report | CI, local | ms |
+| 2 — Fixtures | Collectors on real snapshots, golden outputs | CI, local | ms |
+| 3 — Integration | Real Windows: does not crash, handles missing privileges | GH Actions + VM | s |
+| 4 — Remediation | apply → verify → rollback → assert back to initial | Hyper-V VM | min |
 
-Les niveaux 1 et 2 couvrent l'essentiel du code et tournent à chaque commit.
-La VM est réservée au niveau 4, où elle est irremplaçable.
+Levels 1 and 2 cover most of the code and run on every commit. The VM is reserved
+for level 4, where nothing else will do.
 
-Matrice de snapshots Hyper-V : Win11 Pro 25H2, Win11 Home (SKU différent → politiques
-différentes), un snapshot déjà durci pour vérifier l'idempotence.
+Hyper-V snapshot matrix: Win11 Pro 25H2, Win11 Home (different SKU → different
+policies), one already-hardened snapshot to verify idempotence.
 
-Hors de portée d'une VM, à tester sur machines physiques : SMART, températures,
-throttling, batterie, TPM matériel, bloatware OEM.
+Out of a VM's reach, to be tested on physical machines: SMART, temperatures,
+throttling, battery, hardware TPM, OEM bloatware.
