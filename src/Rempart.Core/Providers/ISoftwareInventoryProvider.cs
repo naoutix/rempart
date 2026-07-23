@@ -32,7 +32,15 @@ public sealed record InstalledSoftware(
     string? Publisher,
     SoftwareSource Source,
     bool Provisioned,
-    bool SurvivesFeatureUpdate);
+    bool SurvivesFeatureUpdate,
+    /// <summary>
+    /// Identifiant stable pour l'appariement exact du catalogue (M5b) : le
+    /// <b>Package Family Name</b> pour un Appx, le <b>nom de clé Uninstall</b> pour une
+    /// désinstallation classique. <c>null</c> ailleurs (App Paths, Chocolatey), qui ne
+    /// s'apparient alors que par motif de nom/éditeur. Une capture d'avant M5b se relit
+    /// avec <c>null</c> — l'exact ne matche pas, le motif reste.
+    /// </summary>
+    string? Identifier = null);
 
 /// <summary>
 /// Énumère les logiciels installés, déjà décodés. Abstrait comme le reste (ADR-001, D5) :

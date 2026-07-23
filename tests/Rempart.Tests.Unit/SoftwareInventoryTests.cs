@@ -43,6 +43,20 @@ public class AppxPackageNameTests
         Assert.Equal("Nom", name);
         Assert.Null(version);
     }
+
+    [Fact]
+    public void Derives_the_package_family_name_from_a_full_name()
+    {
+        Assert.Equal(
+            "AdobeNotificationClient_enpm4xejd91yc",
+            AppxPackageName.FamilyName("AdobeNotificationClient_7.0.2.14_x64__enpm4xejd91yc"));
+    }
+
+    [Fact]
+    public void A_name_without_separators_is_its_own_family_name()
+    {
+        Assert.Equal("SansSeparateur", AppxPackageName.FamilyName("SansSeparateur"));
+    }
 }
 
 internal sealed class FakeSoftwareInventoryProvider(params InstalledSoftware[] software)
@@ -100,7 +114,7 @@ public class SoftwareSnapshotTests
     {
         var snapshot = new MachineSnapshot { CapturedAtUtc = "2026-01-01T00:00:00.0000000Z" };
         var entry = new InstalledSoftware(
-            "7-Zip", "23.01", "Igor Pavlov", SoftwareSource.Uninstall, false, true);
+            "7-Zip", "23.01", "Igor Pavlov", SoftwareSource.Uninstall, false, true, "7-Zip");
 
         new RecordingSoftwareInventoryProvider(new FakeSoftwareInventoryProvider(entry), snapshot).Read();
 

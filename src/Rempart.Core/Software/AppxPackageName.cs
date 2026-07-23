@@ -29,4 +29,19 @@ public static class AppxPackageName
 
         return (parts[0], version);
     }
+
+    /// <summary>
+    /// Dérive le Package Family Name (<c>Nom_HashÉditeur</c>) d'un nom complet
+    /// <c>Nom_Version_Arch__HashÉditeur</c> : le nom (avant le premier <c>_</c>) et le
+    /// hash d'éditeur (après le dernier <c>_</c>). Un nom sans séparateur est rendu tel
+    /// quel — c'est déjà un identifiant.
+    /// </summary>
+    public static string FamilyName(string fullName)
+    {
+        var first = fullName.IndexOf('_');
+        var last = fullName.LastIndexOf('_');
+        return first < 0 || first == last
+            ? fullName
+            : string.Concat(fullName.AsSpan(0, first), "_", fullName.AsSpan(last + 1));
+    }
 }
