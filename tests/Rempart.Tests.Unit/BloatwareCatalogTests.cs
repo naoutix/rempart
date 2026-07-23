@@ -100,4 +100,22 @@ public class BloatwareCatalogTests
         Assert.Null(merged.Match(Uninstall("k", name: "old tool")));               // ancien motif parti
         Assert.Equal("B2", merged.Match(Uninstall("k", name: "extra tool"))?.Id);  // ajout
     }
+
+    [Fact]
+    public void The_embedded_baseline_parses_and_is_non_empty()
+    {
+        Assert.True(BloatwareCatalog.Embedded.Count > 0);
+    }
+
+    [Fact]
+    public void The_embedded_baseline_matches_a_known_provisioned_appx()
+    {
+        // Xbox Game Bar : Appx Microsoft provisionné, cas type de bloatware qui revient.
+        var hit = BloatwareCatalog.Embedded.Match(new InstalledSoftware(
+            "Xbox Game Bar", null, null, SoftwareSource.Appx, true, true,
+            "Microsoft.XboxGamingOverlay_8wekyb3d8bbwe"));
+
+        Assert.NotNull(hit);
+        Assert.False(string.IsNullOrWhiteSpace(hit!.Impact));
+    }
 }

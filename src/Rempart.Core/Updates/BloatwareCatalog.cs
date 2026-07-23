@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
@@ -56,6 +57,36 @@ public sealed class BloatwareCatalog
     }
 
     public static readonly BloatwareCatalog Empty = new("", []);
+
+    private static BloatwareCatalog? cachedEmbedded;
+
+    /// <summary>
+    /// Le socle embarqué : le plancher bloatware livré dans le binaire (D12), complété par
+    /// un catalogue signé quand il est présent. Chargé une fois depuis les ressources.
+    /// </summary>
+    public static BloatwareCatalog Embedded
+    {
+        get
+        {
+            if (cachedEmbedded is not null)
+            {
+                return cachedEmbedded;
+            }
+
+            var assembly = typeof(BloatwareCatalog).Assembly;
+            var name = assembly.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith("bloatware-baseline.json", StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException(
+                    "Socle bloatware embarqué introuvable. Vérifier l'inclusion de data/bloatware-baseline.json en ressource.");
+
+            using var stream = assembly.GetManifestResourceStream(name)!;
+            using var reader = new StreamReader(stream);
+            return cachedEmbedded = Parse(reader.ReadToEnd());
+        }
+    }
+
+    /// <summary>Date de référence du socle embarqué — à avancer à chaque révision.</summary>
+    public static string EmbeddedAsOfUtc => Embedded.AsOfUtc;
 
     /// <summary>
     /// Cherche l'entrée qui reconnaît ce logiciel. Plusieurs correspondances possibles

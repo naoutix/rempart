@@ -16,6 +16,9 @@
   <ItemGroup>
     <!-- Les regles YAML sont embarquees : le binaire doit rester autonome sur cle USB. -->
     <EmbeddedResource Include="..\..\rules\**\*.yaml" LinkBase="rules" />
+
+    <!-- Socle bloatware embarqué : identifiants Appx stables, complété par un catalogue signé. -->
+    <EmbeddedResource Include="data\bloatware-baseline.json" LinkBase="data" />
   </ItemGroup>
 
   <ItemGroup>
