@@ -75,6 +75,13 @@ public sealed class DriverBlocklist
             throw new JsonException("Liste de blocage illisible.");
         }
 
-        return new DriverBlocklist(file.AsOfUtc ?? "", file.Drivers ?? []);
+        // La clé « drivers » absente signale un fichier d'un autre type (ex. un catalogue
+        // bloatware sans --kind, classé ici par défaut) : un tableau vide chargerait une
+        // liste de blocage vide sans lever, un « update applied » silencieux sur rien. Une
+        // clé présente mais vide reste une liste vide légitime.
+        var drivers = file.Drivers
+            ?? throw new JsonException("Liste de blocage sans clé « drivers » : fichier probablement d'un autre type.");
+
+        return new DriverBlocklist(file.AsOfUtc ?? "", drivers);
     }
 }

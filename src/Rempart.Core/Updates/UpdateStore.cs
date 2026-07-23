@@ -165,7 +165,7 @@ public static class UpdateStore
 
         var merged = Merge(baseRules, incoming);
         var driverNote = blocklist.Count > 0 ? $", {blocklist.Count} pilotes surveillés" : "";
-        var bloatNote = catalog.Count > BloatwareCatalog.Embedded.Count
+        var bloatNote = catalog.Count != BloatwareCatalog.Embedded.Count
             ? $", {catalog.Count} entrées bloatware" : "";
 
         return new CatalogResolution(merged, blocklist, catalog, verdict.Payload.PublishedAtUtc,

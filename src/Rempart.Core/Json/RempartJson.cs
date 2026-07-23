@@ -34,6 +34,7 @@ public sealed partial class RempartJsonContext : JsonSerializerContext;
 [JsonSourceGenerationOptions(
     WriteIndented = false,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    UseStringEnumConverter = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
 [JsonSerializable(typeof(DriverBlocklistFile))]
 [JsonSerializable(typeof(BloatwareCatalogFile))]

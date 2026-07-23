@@ -157,16 +157,24 @@ public sealed class BloatwareCatalog
         var file = JsonSerializer.Deserialize(json, RempartJsonContext.Default.BloatwareCatalogFile)
             ?? throw new JsonException("Catalogue bloatware illisible.");
 
-        var entries = file.Entries ?? [];
+        // La clé « entries » absente signale un fichier d'un autre type (ex. une liste de
+        // blocage sans --kind) : un tableau vide serait un « update applied » silencieux
+        // sur rien. Une clé présente mais vide reste un catalogue vide légitime.
+        var entries = file.Entries
+            ?? throw new JsonException("Catalogue bloatware sans clé « entries » : fichier probablement d'un autre type.");
 
-        // Une entrée sans identifiant ou sans note d'impact n'a aucune valeur d'audit :
-        // lever plutôt que charger un catalogue tronqué (la note d'impact est obligatoire).
+        // Une entrée sans identifiant, sans valeur/identifiant de correspondance ou sans
+        // note d'impact n'a aucune valeur d'audit : lever plutôt que charger un catalogue
+        // tronqué (identifiant, valeur et note d'impact sont tous obligatoires — une
+        // Value vide ferait matcher un motif Name/Publisher sur tout logiciel).
         foreach (var entry in entries)
         {
-            if (string.IsNullOrWhiteSpace(entry.Id) || string.IsNullOrWhiteSpace(entry.Impact))
+            if (string.IsNullOrWhiteSpace(entry.Id)
+                || string.IsNullOrWhiteSpace(entry.Value)
+                || string.IsNullOrWhiteSpace(entry.Impact))
             {
                 throw new JsonException(
-                    $"Entrée de catalogue invalide ({entry.Id}) : identifiant et note d'impact obligatoires.");
+                    $"Entrée de catalogue invalide ({entry.Id}) : identifiant, valeur et note d'impact obligatoires.");
             }
         }
 

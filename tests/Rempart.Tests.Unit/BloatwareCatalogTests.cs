@@ -86,6 +86,34 @@ public class BloatwareCatalogTests
             """{"asOfUtc":"x","source":null,"entries":[{"id":"","match":"Name","value":"v","category":"c","risk":"Unwanted","impact":"i"}]}"""));
 
     [Fact]
+    public void Parse_throws_when_an_entry_has_an_empty_value() =>
+        Assert.ThrowsAny<Exception>(() => BloatwareCatalog.Parse(
+            """{"asOfUtc":"x","source":null,"entries":[{"id":"B","match":"Name","value":"","category":"c","risk":"Unwanted","impact":"i"}]}"""));
+
+    [Fact]
+    public void SerialiseCompact_writes_enums_as_strings_not_integers()
+    {
+        var json = RempartJson.SerialiseCompact(new BloatwareCatalogFile(
+            "2026-07-23T00:00:00Z", "test",
+            [new BloatwareEntry("B1", BloatwareMatch.Name, "v", "cat", BloatwareRisk.Unwanted, "impact")]));
+
+        Assert.Contains("\"match\":\"Name\"", json);
+        Assert.Contains("\"risk\":\"Unwanted\"", json);
+    }
+
+    [Fact]
+    public void Parse_throws_when_the_entries_key_is_absent() =>
+        Assert.ThrowsAny<Exception>(() => BloatwareCatalog.Parse(
+            """{"asOfUtc":"x","source":null,"drivers":[]}"""));
+
+    [Fact]
+    public void Parse_accepts_a_present_but_empty_entries_array()
+    {
+        var catalog = BloatwareCatalog.Parse("""{"asOfUtc":"x","source":null,"entries":[]}""");
+        Assert.Equal(0, catalog.Count);
+    }
+
+    [Fact]
     public void An_unreadable_catalog_throws_rather_than_loading_partially() =>
         Assert.ThrowsAny<Exception>(() => BloatwareCatalog.Parse("pas du json"));
 
