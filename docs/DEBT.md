@@ -2,7 +2,7 @@
 
 Ce que le projet sait devoir améliorer, tenu à jour au fil des audits. La dette du code
 vit surtout en commentaires ; ce registre la rassemble pour qu'elle soit lisible d'un coup
-et priorisable, plutôt que dispersée. Dernier audit : **2026-07-22, post-M4**.
+et priorisable, plutôt que dispersée. Dernier audit : **2026-07-23, post-M5b**.
 
 Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 
@@ -45,3 +45,11 @@ réel émerge :
   (condition d'exploitabilité) n'est pas vérifiée.
 - **Fraîcheur des données** : le seuil d'alerte de 180 jours est arbitraire tant que la
   cadence de publication réelle n'est pas observée ([ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)).
+- **Appx résiduel** : le collecteur lit directement la clé de registre
+  `AppModel\Repository\Packages`, qui peut retenir une entrée-ressource orpheline
+  (`..._split.scale-*`) d'un paquet désinstallé, sans l'entrée principale correspondante —
+  `Get-AppxPackage` ne le liste alors plus. Constaté sur machine réelle (M5b) : 2 des 5
+  entrées du socle bloatware (météo Bing, Clipchamp) étaient dans ce cas et sont ressorties
+  en `Notable` malgré l'absence réelle du paquet. Assumé : l'entrée porte le même Package
+  Family Name, ce n'est pas un faux constat sur un autre logiciel — juste une présence
+  fantôme à distinguer d'une installation active si le besoin se précise.

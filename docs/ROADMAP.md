@@ -289,8 +289,15 @@ Découpé en trois sous-lots : **M5a** inventaire (fait), **M5b** catalogue bloa
 - [x] Distinction **provisionné vs installé par utilisateur** (D6) — via M5a
 - [x] Champ `survives_feature_update` renseigné — via M5a ; un paquet Appx provisionné
       revient après une mise à jour de fonctionnalité (6 relevés sur la machine de test)
-- [ ] **M5b — catalogue bloatware** : dataset signé (type `bloatware`, canal ADR-002)
-      croisé avec l'inventaire, note d'impact obligatoire par entrée
+- [x] **M5b — catalogue bloatware** : dataset signé (type `bloatware`, canal ADR-002)
+      croisé avec l'inventaire, note d'impact obligatoire par entrée. Vérifié sur machine
+      réelle : socle de 5 entrées, 3 installées (Xbox Gaming Overlay, Xbox App, Groove
+      Musique) et confirmées via `Get-AppxPackage` — PFN exacts, aucune correction
+      nécessaire ; escalade en Notable observée pour ces trois avec `bloatware`/`catalogue`
+      renseignés, zéro faux positif sur le reste de l'inventaire. Les 2 entrées restantes
+      (météo Bing, Clipchamp) sont absentes de `Get-AppxPackage` sur cette machine mais
+      restent valables pour d'autres machines — voir DEBT.md pour la limite du registre
+      Appx qu'elles ont mise en lumière.
 - [x] Canal de rafraîchissement du catalogue — **déjà tranché** : le canal signé d'ADR-002,
       comme LOLDrivers (ADR-001 le renvoyait à ADR-002)
 - [ ] **M5c — extensions navigateur** avec leurs permissions
