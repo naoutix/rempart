@@ -9,7 +9,8 @@ Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 > détournement COM), enrichissement VirusTotal optionnel, 82 contrôles sur 13 domaines,
 > et l'inventaire logiciel (Uninstall, Appx, App Paths, Chocolatey, avec provisionné /
 > survives_feature_update) croisé avec un catalogue bloatware signé (socle de 5 entrées,
-> escalade Notable/Suspicious confirmée sur machine réelle). 441 tests, binaire de 9,4 Mo
+> escalade Notable, ou Suspicious pour un risque de sécurité ; Notable confirmée sur
+> machine réelle, Suspicious couverte par tests unitaires). 441 tests, binaire de 9,4 Mo
 > sans installation. Les contrôles sont des fichiers YAML.
 > **M4 a livré** l'inventaire réseau : les ports en écoute sont reliés à leur binaire
 > propriétaire et croisés avec les règles du pare-feu (un port bloqué n'est pas un port

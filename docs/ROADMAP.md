@@ -295,9 +295,10 @@ Découpé en trois sous-lots : **M5a** inventaire (fait), **M5b** catalogue bloa
       Musique) et confirmées via `Get-AppxPackage` — PFN exacts, aucune correction
       nécessaire ; escalade en Notable observée pour ces trois avec `bloatware`/`catalogue`
       renseignés, zéro faux positif sur le reste de l'inventaire. Les 2 entrées restantes
-      (météo Bing, Clipchamp) sont absentes de `Get-AppxPackage` sur cette machine mais
-      restent valables pour d'autres machines — voir DEBT.md pour la limite du registre
-      Appx qu'elles ont mise en lumière.
+      (météo Bing, Clipchamp) sont absentes de `Get-AppxPackage` sur cette machine — mais y
+      ont quand même escaladé en Notable, via une entrée-ressource orpheline du registre
+      Appx (faux positif assumé, DET-APPX-FAUXPOS dans DEBT.md) ; elles restent valables
+      pour d'autres machines où le paquet est réellement présent.
 - [x] Canal de rafraîchissement du catalogue — **déjà tranché** : le canal signé d'ADR-002,
       comme LOLDrivers (ADR-001 le renvoyait à ADR-002)
 - [ ] **M5c — extensions navigateur** avec leurs permissions
