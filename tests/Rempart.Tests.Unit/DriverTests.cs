@@ -114,4 +114,20 @@ public class DriverTests
     {
         Assert.ThrowsAny<Exception>(() => DriverBlocklist.Parse("pas du json"));
     }
+
+    /// <summary>
+    /// Un catalogue bloatware signé sans <c>--kind</c> route ici par défaut (Infer) :
+    /// sans la clé « drivers », il ne faut pas charger silencieusement une liste vide.
+    /// </summary>
+    [Fact]
+    public void Parse_throws_when_the_drivers_key_is_absent() =>
+        Assert.ThrowsAny<Exception>(() => DriverBlocklist.Parse(
+            """{"asOfUtc":"x","source":null,"entries":[]}"""));
+
+    [Fact]
+    public void Parse_accepts_a_present_but_empty_drivers_array()
+    {
+        var blocklist = DriverBlocklist.Parse("""{"asOfUtc":"x","source":"t","drivers":[]}""");
+        Assert.Equal(0, blocklist.Count);
+    }
 }

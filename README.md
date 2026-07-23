@@ -2,13 +2,16 @@
 
 Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 
-> **État : M4 (réseau) terminé, M5 (logiciels & bloatware) entamé.**
+> **État : M4 (réseau) terminé, M5a/M5b (inventaire + catalogue bloatware) livrés,
+> M5c (extensions navigateur) à venir.**
 > Neuf surfaces de persistance auditées (démarrages, tâches, pilotes noyau, abonnements
 > WMI, processus, extensibilité de session, paquets LSA, chemins de service non guillemetés,
 > détournement COM), enrichissement VirusTotal optionnel, 82 contrôles sur 13 domaines,
 > et l'inventaire logiciel (Uninstall, Appx, App Paths, Chocolatey, avec provisionné /
-> survives_feature_update). 420 tests, binaire de 9,4 Mo sans installation. Les contrôles
-> sont des fichiers YAML.
+> survives_feature_update) croisé avec un catalogue bloatware signé (socle de 5 entrées,
+> escalade Notable, ou Suspicious pour un risque de sécurité ; Notable confirmée sur
+> machine réelle, Suspicious couverte par tests unitaires). 441 tests, binaire de 9,4 Mo
+> sans installation. Les contrôles sont des fichiers YAML.
 > **M4 a livré** l'inventaire réseau : les ports en écoute sont reliés à leur binaire
 > propriétaire et croisés avec les règles du pare-feu (un port bloqué n'est pas un port
 > exposé) ; les résolveurs DNS, le fichier hosts et la configuration proxy (WinINET, GPO,
@@ -69,7 +72,7 @@ version ; `rempart help` liste tout.
 ## Démarrer
 
 ```bash
-dotnet test                                   # 420 tests (51 exigent Windows), ~10 s
+dotnet test                                   # 441 tests (52 exigent Windows), ~10 s
 dotnet run --project src/Rempart.Cli -- scan  # sur la machine locale
 ```
 

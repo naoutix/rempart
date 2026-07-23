@@ -1,0 +1,11 @@
+{
+  "asOfUtc": "2026-07-23T00:00:00Z",
+  "source": "socle Rempart — identifiants Appx stables, vérifiés sur machine réelle",
+  "entries": [
+    { "id": "BLOAT-XBOX-OVERLAY", "match": "Pfn", "value": "Microsoft.XboxGamingOverlay_8wekyb3d8bbwe", "category": "game", "risk": "Unwanted", "impact": "Superposition de jeu Xbox. Désinstallable ; revient à la mise à jour de fonctionnalité si provisionné." },
+    { "id": "BLOAT-XBOX-APP", "match": "Pfn", "value": "Microsoft.GamingApp_8wekyb3d8bbwe", "category": "game", "risk": "Unwanted", "impact": "Application Xbox. Inutile hors usage jeu ; désinstallable sans impact système." },
+    { "id": "BLOAT-BING-WEATHER", "match": "Pfn", "value": "Microsoft.BingWeather_8wekyb3d8bbwe", "category": "oem-preinstall", "risk": "Unwanted", "impact": "Widget météo préinstallé. Désinstallable sans dépendance." },
+    { "id": "BLOAT-ZUNE-MUSIC", "match": "Pfn", "value": "Microsoft.ZuneMusic_8wekyb3d8bbwe", "category": "oem-preinstall", "risk": "Unwanted", "impact": "Groove Musique. Redondant avec un lecteur tiers ; désinstallable." },
+    { "id": "BLOAT-CLIPCHAMP", "match": "Pfn", "value": "Clipchamp.Clipchamp_yxz26nhyzhsrt", "category": "oem-preinstall", "risk": "Unwanted", "impact": "Éditeur vidéo préinstallé. Désinstallable sans impact." }
+  ]
+}

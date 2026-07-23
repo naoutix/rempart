@@ -123,7 +123,7 @@ public class WifiEngineIntegrationTests
 
         var result = new ScanEngine(ScanEngine.DefaultCollectors, [])
             .Run(providers, "test", "2026-01-01T00:00:00.0000000Z", null,
-                ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty));
+                ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
         var wifi = Assert.Single(result.Findings, f => f.Kind == "wifi-profile");
         Assert.Equal(FindingSeverity.Suspicious, wifi.Severity);

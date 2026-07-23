@@ -1,20 +1,22 @@
 using Rempart.Core.Providers;
+using Rempart.Core.Updates;
 
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Inventaire des logiciels installés — un constat par entrée, bénin.
+/// Inventaire des logiciels installés — un constat par entrée, bénin par défaut, escaladé
+/// si le catalogue bloatware (M5b) reconnaît l'entrée.
 ///
 /// <para>
-/// L'inventaire seul ne juge rien : il énumère. Ce qui compte s'y ajoute au croisement avec
-/// le catalogue bloatware (M5b), qui escalade les entrées reconnues sans réécrire ce
-/// collecteur. On garde ici la distinction provisionné/utilisateur et
-/// <c>survives_feature_update</c> : ce sont elles qui, plus tard, distinguent un bloatware
-/// qu'on peut retirer d'un bloatware qui revient à chaque mise à jour de fonctionnalité.
+/// L'inventaire seul énumère. Le catalogue vient par-dessus, sans réécrire ce collecteur :
+/// il ne peut qu'aggraver un constat, jamais l'inventer. Un logiciel non reconnu reste
+/// bénin. Calque de <see cref="LoadedDriversCollector"/> avec la liste de pilotes.
 /// </para>
 /// </summary>
-public sealed class SoftwareInventoryCollector : IFindingCollector
+public sealed class SoftwareInventoryCollector(BloatwareCatalog? catalog = null) : IFindingCollector
 {
+    private readonly BloatwareCatalog catalog = catalog ?? BloatwareCatalog.Empty;
+
     public string Name => "software";
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
@@ -40,9 +42,24 @@ public sealed class SoftwareInventoryCollector : IFindingCollector
                 details["éditeur"] = software.Publisher;
             }
 
+            var severity = FindingSeverity.Benign;
+            var reasons = new List<string>();
+
+            // Le catalogue ne peut qu'aggraver : un logiciel reconnu monte à Notable
+            // (indésirable) ou Suspicious (risque de sécurité). Le risque est mappé ici,
+            // dans le code — la donnée ne porte pas de gravité en dur.
+            if (this.catalog.Match(software) is { } hit)
+            {
+                severity = hit.Risk == BloatwareRisk.SecurityRelevant
+                    ? FindingSeverity.Suspicious
+                    : FindingSeverity.Notable;
+                reasons.Add(hit.Impact);
+                details["bloatware"] = hit.Category;
+                details["catalogue"] = hit.Id;
+            }
+
             findings.Add(new Finding(
-                "software", software.Source.ToString(), software.Name,
-                FindingSeverity.Benign, [], details));
+                "software", software.Source.ToString(), software.Name, severity, reasons, details));
         }
 
         return findings;

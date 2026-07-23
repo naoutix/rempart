@@ -2,7 +2,7 @@
 
 Ce que le projet sait devoir améliorer, tenu à jour au fil des audits. La dette du code
 vit surtout en commentaires ; ce registre la rassemble pour qu'elle soit lisible d'un coup
-et priorisable, plutôt que dispersée. Dernier audit : **2026-07-22, post-M4**.
+et priorisable, plutôt que dispersée. Dernier audit : **2026-07-23, post-M5b**.
 
 Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 
@@ -28,6 +28,7 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 | DET-DIRTY | Aucune fixture « sale » **versionnée** : les chemins de menace ne sont testés que par fakes + une capture locale hors dépôt | 3 | 3 | 4 | 12 | Une capture réelle compromise, anonymisée, serait le banc de test le plus honnête |
 | DET-RECPROV | 13 paires `Recording`/`Snapshot` quasi-identiques (~250 l.) | 2 | 2 | 3 | 12 | Généraliser par `RecordingProvider<T>`/`SnapshotProvider<T>` |
 | DET-PROGRAM | `Program.cs` monolithe (~1240 l. : dispatch + 10 commandes + rendu + parsing d'args) | 3 | 2 | 4 | 10 | Découper en commandes + couche de rendu, quand ça freinera |
+| DET-APPX-FAUXPOS | Le collecteur Appx lit directement `AppModel\Repository\Packages`, qui peut retenir une entrée-ressource orpheline (`..._split.scale-*`) d'un paquet désinstallé, sans l'entrée principale — `Get-AppxPackage` ne le liste alors plus. Constaté sur machine réelle (M5b) : 2 des 5 entrées du socle bloatware (météo Bing, Clipchamp) étaient dans ce cas et sont ressorties en `Notable`. Vu du consommateur de l'audit, c'est un faux positif en bonne et due forme : le rapport nomme un bloatware « à désinstaller » pour un logiciel qui n'est pas installé, il n'y a rien à retirer | 3 | 3 | 3 | 18 | Risque « crier au loup », pas hypothétique : faire distinguer au lecteur Appx une installation active d'une entrée-ressource orpheline avant d'escalader |
 
 ## Limitations connues, assumées
 
@@ -45,3 +46,5 @@ réel émerge :
   (condition d'exploitabilité) n'est pas vérifiée.
 - **Fraîcheur des données** : le seuil d'alerte de 180 jours est arbitraire tant que la
   cadence de publication réelle n'est pas observée ([ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)).
+- **Appx résiduel** : voir DET-APPX-FAUXPOS ci-dessus (registre « Ouvert ») — ce n'est pas
+  une limitation assumée mais une dette à corriger.

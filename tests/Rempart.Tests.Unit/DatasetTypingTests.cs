@@ -105,7 +105,9 @@ public sealed class DatasetTypingTests : IDisposable
     public void An_unknown_kind_is_refused_and_the_floor_holds()
     {
         using var publisher = new TestPublisher();
-        var verifier = PublishAndApply(publisher, "cve.dat", "des données futures", kind: "bloatware");
+        // « bloatware » est devenu un type connu (M5b) : un vrai type futur, encore
+        // inconnu de ce binaire, pour que le test continue d'exercer le refus voulu.
+        var verifier = PublishAndApply(publisher, "cve.dat", "des données futures", kind: "signatures-malveillantes");
 
         var resolution = UpdateStore.Resolve(Store, RuleCatalog.Load(), verifier);
 

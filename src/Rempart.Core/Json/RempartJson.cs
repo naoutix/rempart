@@ -22,6 +22,7 @@ namespace Rempart.Core.Json;
 [JsonSerializable(typeof(SignedManifest))]
 [JsonSerializable(typeof(ManifestPayload))]
 [JsonSerializable(typeof(DriverBlocklistFile))]
+[JsonSerializable(typeof(BloatwareCatalogFile))]
 [JsonSerializable(typeof(ManifestEntry))]
 public sealed partial class RempartJsonContext : JsonSerializerContext;
 
@@ -33,8 +34,10 @@ public sealed partial class RempartJsonContext : JsonSerializerContext;
 [JsonSourceGenerationOptions(
     WriteIndented = false,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    UseStringEnumConverter = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
 [JsonSerializable(typeof(DriverBlocklistFile))]
+[JsonSerializable(typeof(BloatwareCatalogFile))]
 internal sealed partial class CompactJsonContext : JsonSerializerContext;
 
 public static class RempartJson
@@ -51,6 +54,10 @@ public static class RempartJson
     /// <summary>Sérialise une liste de blocage sans indentation — c'est un artefact à transporter.</summary>
     public static string SerialiseCompact(DriverBlocklistFile blocklist) =>
         JsonSerializer.Serialize(blocklist, CompactJsonContext.Default.DriverBlocklistFile);
+
+    /// <summary>Sérialise un catalogue bloatware sans indentation — artefact à transporter et signer.</summary>
+    public static string SerialiseCompact(BloatwareCatalogFile catalog) =>
+        JsonSerializer.Serialize(catalog, CompactJsonContext.Default.BloatwareCatalogFile);
 
     public static MachineSnapshot DeserialiseSnapshot(string json) =>
         JsonSerializer.Deserialize(json, RempartJsonContext.Default.MachineSnapshot)
