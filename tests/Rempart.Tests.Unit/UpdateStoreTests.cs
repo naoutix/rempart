@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Rempart.Core.Json;
+using Rempart.Core.Providers;
 using Rempart.Core.Rules;
 using Rempart.Core.Updates;
 
@@ -42,14 +43,16 @@ public sealed class UpdateStoreTests : IDisposable
     /// être appliqué. Renvoie le chemin du manifeste, la clé publique et son empreinte.
     /// </summary>
     private (string ManifestPath, ManifestVerifier Verifier) Publish(
-        TestPublisher publisher, string datasetName, string yaml, string publishedAt = "2026-08-01T00:00:00Z")
+        TestPublisher publisher, string datasetName, string content,
+        string publishedAt = "2026-08-01T00:00:00Z", string? kind = null)
     {
-        var bytes = Encoding.UTF8.GetBytes(yaml);
+        var bytes = Encoding.UTF8.GetBytes(content);
         File.WriteAllBytes(Path.Combine(Source, datasetName), bytes);
 
         var entry = new ManifestEntry(
             datasetName, "2.0.0",
-            Convert.ToHexStringLower(SHA256.HashData(bytes)), bytes.Length);
+            Convert.ToHexStringLower(SHA256.HashData(bytes)), bytes.Length,
+            kind ?? DatasetKind.Infer(datasetName));
 
         var payload = JsonSerializer.SerializeToUtf8Bytes(
             new ManifestPayload(1, publishedAt, [entry]),
@@ -78,6 +81,39 @@ public sealed class UpdateStoreTests : IDisposable
         Assert.Single(resolution.Rules);
         Assert.Equal(RuleCatalog.EmbeddedAsOfUtc, resolution.AsOfUtc);
         Assert.Null(resolution.UpdateNote);
+    }
+
+    [Fact]
+    public void An_applied_bloatware_dataset_resolves_into_the_catalog()
+    {
+        using var publisher = new TestPublisher();
+
+        var catalogJson = RempartJson.SerialiseCompact(new BloatwareCatalogFile(
+            "2026-08-01T00:00:00Z", "test",
+            [new BloatwareEntry("BLOAT-SIGNED", BloatwareMatch.Name, "signedware",
+                "oem-preinstall", BloatwareRisk.Unwanted, "Ajouté par catalogue signé.")]));
+
+        var (manifestPath, verifier) = Publish(publisher, "bloatware.json", catalogJson, kind: DatasetKind.Bloatware);
+        UpdateStore.Apply(manifestPath, Store, ["bloatware.json"]);
+
+        var resolution = UpdateStore.Resolve(Store, BaseCatalog(), verifier);
+
+        // Le socle embarqué tient, l'entrée signée s'y ajoute.
+        Assert.True(resolution.Catalog.Count > BloatwareCatalog.Embedded.Count);
+        Assert.Equal("BLOAT-SIGNED", resolution.Catalog.Match(new InstalledSoftware(
+            "SignedWare Pro", null, null, SoftwareSource.Uninstall, false, true, "{s}"))?.Id);
+    }
+
+    [Fact]
+    public void Without_a_store_the_catalog_is_the_embedded_baseline()
+    {
+        using var publisher = new TestPublisher();
+        var verifier = new ManifestVerifier(
+            new Dictionary<string, string> { [publisher.KeyId] = publisher.PublicKey });
+
+        var resolution = UpdateStore.Resolve(Store, BaseCatalog(), verifier);
+
+        Assert.Equal(BloatwareCatalog.Embedded.Count, resolution.Catalog.Count);
     }
 
     /// <summary>

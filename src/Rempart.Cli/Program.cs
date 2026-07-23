@@ -115,11 +115,11 @@ static int Scan(string[] args)
     var resolution = snapshotPath is null
         ? ResolveLiveCatalog(args)
         : new CatalogResolution(RuleCatalog.Load(OptionValue(args, "--rules")),
-            DriverBlocklist.Empty, RuleCatalog.EmbeddedAsOfUtc, null);
+            DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, null);
 
     var result = new ScanEngine(ScanEngine.DefaultCollectors, resolution.Rules)
         .Run(providers, ToolVersion(), origin, resolution.AsOfUtc,
-            ScanEngine.DefaultFindingCollectors(resolution.Blocklist));
+            ScanEngine.DefaultFindingCollectors(resolution.Blocklist, resolution.Catalog));
 
     // Enrichissement VirusTotal — le seul appel réseau du scan, jamais par défaut
     // (ADR-001, D9) et jamais en rejeu : c'est un instantané passé, pas la machine

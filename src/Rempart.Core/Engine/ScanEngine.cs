@@ -46,7 +46,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     /// les pilotes sur leur seule signature.
     /// </summary>
     public static IReadOnlyList<IFindingCollector> DefaultFindingCollectors(
-        Updates.DriverBlocklist blocklist) =>
+        Updates.DriverBlocklist blocklist, Updates.BloatwareCatalog catalog) =>
     [
         new AutorunsCollector(),
         new WmiSubscriptionsCollector(),
@@ -62,7 +62,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new HostsFileCollector(),
         new ProxyCollector(),
         new WifiProfileCollector(),
-        new SoftwareInventoryCollector(),
+        new SoftwareInventoryCollector(catalog),
     ];
 
     public ScanEngine(IReadOnlyList<ICollector> collectors)
@@ -127,7 +127,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
 
         var findings = new List<Finding>();
         foreach (var collector in findingCollectors
-            ?? DefaultFindingCollectors(Updates.DriverBlocklist.Empty))
+            ?? DefaultFindingCollectors(Updates.DriverBlocklist.Empty, Updates.BloatwareCatalog.Empty))
         {
             try
             {

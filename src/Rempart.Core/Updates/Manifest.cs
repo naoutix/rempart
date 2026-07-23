@@ -9,6 +9,10 @@ public static class DatasetKind
     /// <summary>Liste de pilotes vulnérables connus (LOLDrivers), en JSON.</summary>
     public const string Drivers = "drivers";
 
+    /// <summary>Catalogue bloatware (M5b), en JSON. Type imposé à la signature (--kind bloatware) :
+    /// l'inférence par extension ne distingue pas ce JSON de la liste de pilotes.</summary>
+    public const string Bloatware = "bloatware";
+
     /// <summary>
     /// Devine la nature d'un fichier à son extension : <c>.yaml</c>/<c>.yml</c> sont
     /// des règles, le reste (JSON) une liste de pilotes. Un éditeur peut toujours

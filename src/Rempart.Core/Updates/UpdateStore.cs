@@ -9,6 +9,7 @@ namespace Rempart.Core.Updates;
 public sealed record CatalogResolution(
     IReadOnlyList<Rule> Rules,
     DriverBlocklist Blocklist,
+    BloatwareCatalog Catalog,
     string AsOfUtc,
 
     /// <summary>
@@ -94,7 +95,7 @@ public static class UpdateStore
         {
             // Cas normal hors-ligne : pas de magasin, pas de note. Le binaire seul reste
             // pleinement utilisable (D12).
-            return new CatalogResolution(baseRules, DriverBlocklist.Empty, RuleCatalog.EmbeddedAsOfUtc, null);
+            return new CatalogResolution(baseRules, DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, null);
         }
 
         var verdict = verifier.Verify(File.ReadAllText(manifestPath));
@@ -110,6 +111,7 @@ public static class UpdateStore
 
         var incoming = new List<Rule>();
         var blocklist = DriverBlocklist.Empty;
+        var catalog = BloatwareCatalog.Embedded;
 
         foreach (var entry in verdict.Payload.Datasets)
         {
@@ -141,6 +143,10 @@ public static class UpdateStore
                         blocklist = DriverBlocklist.Parse(text);
                         break;
 
+                    case DatasetKind.Bloatware:
+                        catalog = BloatwareCatalog.Merge(BloatwareCatalog.Embedded, BloatwareCatalog.Parse(text));
+                        break;
+
                     default:
                         // Type qu'une version plus récente comprend, pas celle-ci : refuser
                         // tout, plutôt que d'appliquer ce qu'on sait lire et taire le reste.
@@ -159,14 +165,16 @@ public static class UpdateStore
 
         var merged = Merge(baseRules, incoming);
         var driverNote = blocklist.Count > 0 ? $", {blocklist.Count} pilotes surveillés" : "";
+        var bloatNote = catalog.Count > BloatwareCatalog.Embedded.Count
+            ? $", {catalog.Count} entrées bloatware" : "";
 
-        return new CatalogResolution(merged, blocklist, verdict.Payload.PublishedAtUtc,
+        return new CatalogResolution(merged, blocklist, catalog, verdict.Payload.PublishedAtUtc,
             $"Mise à jour appliquée, publiée le {verdict.Payload.PublishedAtUtc} : " +
-            $"{merged.Count} contrôles ({baseRules.Count} au socle){driverNote}.");
+            $"{merged.Count} contrôles ({baseRules.Count} au socle){driverNote}{bloatNote}.");
     }
 
     private static CatalogResolution Refused(IReadOnlyList<Rule> baseRules, string note) =>
-        new(baseRules, DriverBlocklist.Empty, RuleCatalog.EmbeddedAsOfUtc, note);
+        new(baseRules, DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, note);
 
     /// <summary>
     /// Fusionne la mise à jour dans le socle (D12).
