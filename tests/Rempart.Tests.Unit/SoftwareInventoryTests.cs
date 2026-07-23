@@ -3,6 +3,7 @@ using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Snapshots;
 using Rempart.Core.Software;
+using Rempart.Core.Updates;
 
 namespace Rempart.Tests.Unit;
 
@@ -104,6 +105,52 @@ public class SoftwareInventoryCollectorTests
         Assert.Equal("oui", finding.Details["provisionné"]);
         Assert.Equal("oui", finding.Details["survives_feature_update"]);
         Assert.False(finding.Details.ContainsKey("éditeur"));   // pas d'éditeur Appx
+    }
+
+    private static Finding CollectWith(BloatwareCatalog catalog, InstalledSoftware software) =>
+        Assert.Single(new SoftwareInventoryCollector(catalog).Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            softwareInventory: new FakeSoftwareInventoryProvider(software))));
+
+    private static BloatwareCatalog OneEntry(BloatwareEntry entry) =>
+        BloatwareCatalog.Parse(RempartJson.SerialiseCompact(
+            new BloatwareCatalogFile("2026-07-23T00:00:00Z", "test", [entry])));
+
+    [Fact]
+    public void An_unwanted_match_escalates_a_benign_finding_to_notable()
+    {
+        var finding = CollectWith(
+            OneEntry(new BloatwareEntry("BLOAT-GAME", BloatwareMatch.Name, "candy crush",
+                "game", BloatwareRisk.Unwanted, "Jeu préinstallé, désinstallable sans impact.")),
+            new InstalledSoftware("Candy Crush Saga", null, null, SoftwareSource.Appx, true, true, "king.CandyCrush_x"));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal("game", finding.Details["bloatware"]);
+        Assert.Equal("BLOAT-GAME", finding.Details["catalogue"]);
+        Assert.Contains("désinstallable", string.Join(" ", finding.Reasons));
+    }
+
+    [Fact]
+    public void A_security_relevant_match_escalates_to_suspicious()
+    {
+        var finding = CollectWith(
+            OneEntry(new BloatwareEntry("BLOAT-UPD", BloatwareMatch.Publisher, "acme",
+                "security-relevant", BloatwareRisk.SecurityRelevant, "Updater OEM vulnérable connu.")),
+            new InstalledSoftware("Acme Update", "1.0", "ACME Corp", SoftwareSource.Uninstall, false, true, "{acme}"));
+
+        Assert.Equal(FindingSeverity.Suspicious, finding.Severity);
+    }
+
+    [Fact]
+    public void An_unmatched_entry_stays_benign()
+    {
+        var finding = CollectWith(
+            OneEntry(new BloatwareEntry("BLOAT-X", BloatwareMatch.Name, "zzz-absent",
+                "game", BloatwareRisk.Unwanted, "impact")),
+            new InstalledSoftware("7-Zip", "23.01", "Igor Pavlov", SoftwareSource.Uninstall, false, true, "7-Zip"));
+
+        Assert.Equal(FindingSeverity.Benign, finding.Severity);
+        Assert.False(finding.Details.ContainsKey("bloatware"));
     }
 }
 
