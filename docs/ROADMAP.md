@@ -5,6 +5,18 @@ Pas de lot qui ne produise que de l'infrastructure invisible.
 
 La dette technique connue est suivie à part, dans [DEBT.md](DEBT.md).
 
+## Langue de la documentation
+
+Décision du 2026-07-23, sur retour de relecture externe : la vitrine du dépôt passe
+en anglais — README, CONTRIBUTING, ARCHITECTURE, BUILD, commentaires de code et
+messages de commit. Les archives internes datées (ADR, specs de conception, cette
+feuille de route, DEBT) restent en français. Les textes des règles — titres et
+rationales, c'est-à-dire la sortie de `scan` et `explain` — restent en français
+tant que l'outil vise un public francophone.
+
+- [ ] Traduire les 82 règles YAML et la sortie CLI en anglais — à trancher le jour
+      où l'outil vise un public plus large qu'aujourd'hui.
+
 ---
 
 ## v1 — Audit en lecture seule
