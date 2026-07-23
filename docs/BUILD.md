@@ -1,140 +1,139 @@
-# Compiler Rempart
+# Building Rempart
 
-## Prérequis
+## Prerequisites
 
 | | |
 |---|---|
 | .NET SDK 10 | `winget install Microsoft.DotNet.SDK.10` |
-| Build Tools C++ | Requis **uniquement** pour la publication Native AOT (voir plus bas) |
+| C++ Build Tools | Required **only** for the Native AOT publish (see below) |
 
-Deux suites, deux régimes :
+Two test suites, two regimes:
 
-| Projet | Portée | Où |
+| Project | Scope | Runs on |
 |---|---|---|
-| `Rempart.Tests.Unit` | `Rempart.Core` seul, rejeu d'instantanés | Partout, sans Windows |
-| `Rempart.Tests.Windows` | Vrai registre, API systèmes, scan de bout en bout | Windows uniquement |
+| `Rempart.Tests.Unit` | `Rempart.Core` alone, snapshot replay | Anywhere, no Windows needed |
+| `Rempart.Tests.Windows` | Real registry, system APIs, end-to-end scan | Windows only |
 
 ```bash
-dotnet test                              # les deux
-dotnet test tests/Rempart.Tests.Unit     # la partie portable
+dotnet test                              # both
+dotnet test tests/Rempart.Tests.Unit     # the portable part
 ```
 
-## Publication du binaire
+## Publishing the binary
 
 ```bash
 dotnet publish src/Rempart.Cli -c Release
 # → src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe
 ```
 
-Native AOT exige le linker MSVC, fourni par la charge de travail « Développement Desktop
-en C++ » :
+Native AOT needs the MSVC linker, which ships with the "Desktop development with
+C++" workload:
 
 ```powershell
 winget install Microsoft.VisualStudio.BuildTools --override "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" --accept-package-agreements --accept-source-agreements
 ```
 
-Lancer cette commande depuis un PowerShell **normal**, pas administrateur : winget
-déclenche lui-même l'élévation, et le contexte élevé utilise un cache de sources distinct
-qui échoue souvent sur `0x8a15000f : Data required by the source is missing`.
+Run this from a **normal** PowerShell, not an elevated one: winget triggers its own
+elevation, and the elevated context uses a separate source cache that often fails
+with `0x8a15000f: Data required by the source is missing`.
 
-### `vswhere.exe` doit être dans le PATH
+### `vswhere.exe` must be on the PATH
 
-Les cibles du compilateur AOT invoquent `vswhere.exe` sans chemin absolu. L'installeur
-Visual Studio ne l'ajoute pas au `PATH`, d'où un échec tardif — après plusieurs minutes
-de compilation — sur `MSB3073 ... code 123`, alors même que `link.exe` a bien été localisé.
+The AOT compiler targets invoke `vswhere.exe` without an absolute path. The Visual
+Studio installer does not add it to `PATH`, which produces a late failure — after
+several minutes of compilation — with `MSB3073 ... code 123`, even though `link.exe`
+was found.
 
 ```powershell
 $env:PATH += ";${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 ```
 
-Ou de façon permanente, via les variables d'environnement utilisateur.
+Or permanently, through the user environment variables.
 
 ## Smart App Control
 
-Sur une machine où Smart App Control est actif, les assemblys fraîchement compilées
-peuvent être **refusées au chargement** :
+On a machine where Smart App Control is active, freshly compiled assemblies can be
+**refused at load time**:
 
 ```
-System.IO.FileLoadException: Une stratégie de contrôle d'application a bloqué ce
-fichier. (0x800711C7)
+System.IO.FileLoadException: An application control policy has blocked this
+file. (0x800711C7)
 ```
 
-Le refus se lit dans le journal `Microsoft-Windows-CodeIntegrity/Operational`,
-événement 3077 : *did not meet the Enterprise signing level requirements*.
+The refusal is logged in `Microsoft-Windows-CodeIntegrity/Operational`, event 3077:
+*did not meet the Enterprise signing level requirements*.
 
-Vérifier l'état de la protection :
+Checking the protection state:
 
 ```powershell
 Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' `
-    -Name VerifiedAndReputablePolicyState   # 0 inactif · 1 actif · 2 évaluation
+    -Name VerifiedAndReputablePolicyState   # 0 off · 1 on · 2 evaluation
 ```
 
-**Ce comportement n'est pas prévisible localement.** Smart App Control soumet chaque
-empreinte au service de réputation Microsoft ; certains fichiers passent, d'autres non,
-et ni recompiler ni attendre ne constitue une méthode fiable.
+**This behavior is not predictable locally.** Smart App Control submits each file
+hash to Microsoft's reputation service; some files pass, others do not, and neither
+recompiling nor waiting is a reliable workaround.
 
-### La désactiver : ce qu'on gagne et ce qu'on perd
+### Disabling it: the trade-off
 
-Ce document affirmait qu'elle **ne se réactive qu'en réinstallant Windows**. C'est
-faux, et la correction vaut d'être notée : la
-[FAQ Microsoft](https://support.microsoft.com/en-us/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003)
-indique que les mises à jour récentes permettent de la réactiver sans installation
-propre. L'affirmation venait de l'ancien comportement, longtemps exact, écrit ici de
-mémoire au lieu d'être vérifiée.
+An earlier version of this document claimed it could only be re-enabled by
+reinstalling Windows. That is wrong: per the
+[Microsoft FAQ](https://support.microsoft.com/en-us/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003),
+recent updates allow re-enabling it without a clean install.
 
-Observé sur une machine de développement : la désactivation prend effet **sans
-redémarrage**, et `VerifiedAndReputablePolicyState` passe à `0` en conservant
-`SAC_PreviousState` — Windows garde trace de l'état antérieur.
+Observed on a development machine: disabling takes effect **without a reboot**, and
+`VerifiedAndReputablePolicyState` drops to `0` while `SAC_PreviousState` is kept —
+Windows records the previous state.
 
-L'arbitrage reste réel, mais il n'est pas irréversible :
+The trade-off is real, but not irreversible:
 
-- **la garder active** — les binaires fraîchement compilés seront bloqués de façon
-  imprévisible ; la CI valide à votre place ;
-- **la désactiver** — le poste de développement devient moins protégé que les postes
-  qu'on prépare avec cet outil ;
-- **signer le code** — seul correctif qui vaut pour les deux. Un certificat EV a de la
-  réputation immédiatement. Point resté ouvert dans l'ADR-001.
+- **keep it on** — freshly compiled binaries will be blocked unpredictably; CI
+  validates in your place;
+- **turn it off** — the development machine becomes less protected than the
+  machines this tool prepares;
+- **sign the code** — the only fix that satisfies both. An EV certificate has
+  immediate reputation. Left open in ADR-001.
 
-Conséquences pratiques :
+Practical consequences:
 
-- **La CI fait foi** sur une machine protégée par Smart App Control. Ses runners
-  n'appliquent pas cette stratégie, et y exécutent `rempart diagnose-wmi` et
-  `rempart diagnose-tasks` contre le binaire publié : un bug d'interop COM ne se voit
-  pas en JIT.
-- `verify.ps1` consulte le journal d'intégrité et distingue ce refus d'un échec de
-  test — le message de xUnit, lui, ressemble à une régression.
-- La signature de code est le seul correctif durable. Point resté ouvert dans
-  l'ADR-001, à trancher le jour d'une distribution.
+- **CI is the reference** on a machine protected by Smart App Control. Its runners
+  do not apply that policy, and they run `rempart diagnose-wmi` and
+  `rempart diagnose-tasks` against the published binary: a COM interop bug does not
+  show under the JIT.
+- `verify.ps1` reads the code-integrity log and distinguishes this refusal from a
+  test failure — the xUnit message, on its own, looks like a regression.
+- Code signing is the only durable fix. Left open in ADR-001, to be settled when
+  the tool is distributed.
 
-## Rejouer la CI en local
+## Replaying CI locally
 
 ```powershell
-./scripts/verify.ps1              # tout
-./scripts/verify.ps1 -SkipPublish # sans l'etape AOT, pour une boucle rapide
+./scripts/verify.ps1              # everything
+./scripts/verify.ps1 -SkipPublish # skip the AOT step, for a fast loop
 ```
 
-Le script valide la syntaxe des workflows, lance les tests, publie en AOT et vérifie
-que le binaire fonctionne **seul** dans un répertoire temporaire. Il applique de lui-même
-le correctif `PATH` pour `vswhere.exe`.
+The script validates workflow syntax, runs the tests, publishes with AOT, and checks
+that the binary works **alone** in a temporary directory. It applies the `vswhere.exe`
+`PATH` fix by itself.
 
-`act` rejouerait les workflows plus fidèlement, en conteneur, mais exige Docker — lourd
-sur une machine qu'on cherche à garder propre. Ce script exécute les mêmes commandes
-directement, ce qui couvre l'essentiel du risque.
+`act` would replay the workflows more faithfully, in containers, but requires
+Docker — heavy on a machine one is trying to keep clean. This script runs the same
+commands directly, which covers most of the risk.
 
-La validation de syntaxe demande [`actionlint`](https://github.com/rhysd/actionlint),
-optionnel — le script le signale et poursuit sans lui :
+Workflow syntax validation uses [`actionlint`](https://github.com/rhysd/actionlint),
+which is optional — the script says so and continues without it:
 
 ```powershell
 winget install rhysd.actionlint
 ```
 
-Il vaut le détour : un workflow invalide échoue au démarrage, **sans job et sans log
-consultable**. Diagnostiquer à l'aveugle coûte cher.
+It is worth installing: an invalid workflow fails at startup, **with no job and no
+log to consult**.
 
-## Vérifier le livrable
+## Verifying the deliverable
 
-Le binaire doit fonctionner **seul**, sorti de son dossier de build — c'est la promesse
-tenue par la clé USB :
+The binary must work **alone**, outside its build directory — that is the promise
+the USB stick relies on:
 
 ```powershell
 Copy-Item ...\publish\rempart.exe $env:TEMP\test\
@@ -144,6 +143,6 @@ cd $env:TEMP\test
 .\rempart.exe scan --from t.json
 ```
 
-Taille attendue : environ 9,4 Mo (elle croît avec les surfaces auditées ; 2,6 Mo au
-jalon M0). Les `.pdb` du dossier `publish` sont des symboles de débogage et ne sont pas
-nécessaires à l'exécution.
+Expected size: about 9.4 MB (it grows with the audited surfaces; 2.6 MB at
+milestone M0). The `.pdb` files in the `publish` directory are debug symbols and are
+not needed at run time.
