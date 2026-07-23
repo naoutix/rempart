@@ -6,8 +6,8 @@ namespace Rempart.Core.Software;
 /// <para>
 /// La forme canonique est <c>Nom_Version_Architecture_ResourceId_EmpreinteÉditeur</c>,
 /// segments joints par des tirets bas — p. ex.
-/// <c>AdobeNotificationClient_7.0.2.14_x64__enpm4xejd91yc</c>. On en tire le nom et la
-/// version ; le reste (architecture, empreinte d'éditeur) n'a pas d'intérêt à l'inventaire.
+/// <c>AdobeNotificationClient_7.0.2.14_x64__enpm4xejd91yc</c>. Parse() en tire le nom et la
+/// version ; FamilyName() dérive l'identifiant stable du paquet (nom_hashÉditeur).
 /// Pur, sans réflexion. Ne lève jamais : un nom atypique (un GUID, des segments manquants)
 /// rend le nom complet tel quel, sans version.
 /// </para>
