@@ -9,7 +9,7 @@ Audit de postes Windows, en un binaire unique exécutable depuis une clé USB.
 > et l'inventaire logiciel (Uninstall, Appx, App Paths, Chocolatey, avec provisionné /
 > survives_feature_update). 420 tests, binaire de 9,4 Mo sans installation. Les contrôles
 > sont des fichiers YAML.
-> **En cours dans M4** l'inventaire réseau : les ports en écoute sont reliés à leur binaire
+> **M4 a livré** l'inventaire réseau : les ports en écoute sont reliés à leur binaire
 > propriétaire et croisés avec les règles du pare-feu (un port bloqué n'est pas un port
 > exposé) ; les résolveurs DNS, le fichier hosts et la configuration proxy (WinINET, GPO,
 > WinHTTP, avec récupération opt-in du script PAC) sont audités, ainsi que les profils
@@ -246,6 +246,7 @@ et c'est le seul endroit où un bug entier était observable.
 | [ROADMAP.md](docs/ROADMAP.md) | M0 → M12, ce qui est reporté **et pourquoi** |
 | [DEBT.md](docs/DEBT.md) | Registre de dette technique, suivi au fil des audits |
 | [BUILD.md](docs/BUILD.md) | Prérequis, publication AOT, pièges |
+| [docs/design/](docs/design/) | Specs de conception et plans d'implémentation, par lot |
 | [rules/security/](rules/security/) | Les 82 contrôles |
 
 La feuille de route consigne aussi ce qui a été **écarté**, avec le motif. C'est là
