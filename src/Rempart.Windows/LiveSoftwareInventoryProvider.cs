@@ -77,7 +77,8 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
 
                 software.Add(new InstalledSoftware(
                     name, Text(path, "DisplayVersion"), Text(path, "Publisher"),
-                    SoftwareSource.Uninstall, Provisioned: false, SurvivesFeatureUpdate: true));
+                    SoftwareSource.Uninstall, Provisioned: false, SurvivesFeatureUpdate: true,
+                    Identifier: key));
             }
         }
     }
@@ -96,7 +97,8 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
                 Provisioned: isProvisioned,
                 // Un paquet provisionné revient après une mise à jour de fonctionnalité ;
                 // un paquet seulement installé par l'utilisateur peut disparaître.
-                SurvivesFeatureUpdate: isProvisioned));
+                SurvivesFeatureUpdate: isProvisioned,
+                Identifier: AppxPackageName.FamilyName(fullName)));
         }
     }
 

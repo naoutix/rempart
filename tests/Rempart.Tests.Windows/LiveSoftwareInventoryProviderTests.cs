@@ -21,4 +21,15 @@ public sealed class LiveSoftwareInventoryProviderTests
         // Toute installation de Windows porte des entrées de désinstallation.
         Assert.Contains(software, entry => entry.Source == SoftwareSource.Uninstall);
     }
+
+    [Fact]
+    public void Appx_entries_carry_a_package_family_name_as_identifier()
+    {
+        var software = new LiveSoftwareInventoryProvider().Read();
+        var appx = software.Where(s => s.Source == SoftwareSource.Appx).ToList();
+
+        // Sur toute machine Windows moderne il y a des paquets Appx, et chacun a un PFN.
+        Assert.NotEmpty(appx);
+        Assert.All(appx, s => Assert.False(string.IsNullOrWhiteSpace(s.Identifier)));
+    }
 }
