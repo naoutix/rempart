@@ -23,7 +23,22 @@ public sealed record ScheduledTask(
     string? Author,
     string? UserId,
     string? RunLevel,
-    IReadOnlyList<TaskAction> Actions);
+    IReadOnlyList<TaskAction> Actions,
+
+    /// <summary>
+    /// Value of <c>Settings/DeleteExpiredTaskAfter</c>, or null when the setting is
+    /// absent — the common case.
+    /// </summary>
+    string? DeleteExpiredTaskAfter = null,
+
+    /// <summary>Whether at least one trigger carries an <c>EndBoundary</c>.</summary>
+    /// <remarks>
+    /// Both raw facts are reported rather than a single "will disappear" flag: a
+    /// provider describes, it does not conclude. Windows removes a task on its own only
+    /// when the two hold together, and that rule belongs in the core, where it can be
+    /// tested without a scheduler.
+    /// </remarks>
+    bool HasExpiringTrigger = false);
 
 public sealed record ScheduledTaskRead(
     ReadStatus Status,

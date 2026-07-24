@@ -56,11 +56,63 @@ public sealed class ListeningPortsCollector : IFindingCollector
         var findings = new List<Finding>();
         foreach (var group in groups)
         {
-            findings.Add(Judge(
-                group.First(), ownerByPid, group.Count(), firewall, judgements, providers.Signatures));
+            var finding = Judge(
+                group.First(), ownerByPid, group.Count(), firewall, judgements, providers.Signatures);
+
+            findings.Add(MarkIfEphemeral(finding, group.Key.Port));
         }
 
         return findings;
+    }
+
+    /// <summary>
+    /// First port of the range Windows hands out to sockets that did not ask for a
+    /// specific number.
+    ///
+    /// <para>
+    /// The default since Vista, and the value observed on the test machine
+    /// (<c>netsh int ipv4 show dynamicport</c>: 49152, 16384 ports, TCP and UDP alike).
+    /// It is configurable, and this constant does not read that configuration — a
+    /// machine with a custom range simply gets a slightly noisier comparison, never a
+    /// wrong statement.
+    /// </para>
+    /// </summary>
+    private const int FirstEphemeralPort = 49152;
+
+    /// <summary>
+    /// Flags a benign socket in the dynamic range so <c>rempart diff</c> does not report
+    /// it as movement.
+    ///
+    /// <para>
+    /// A browser holds several of these and the operating system renumbers them
+    /// constantly: two scans seconds apart differ on nothing else. Left unmarked, every
+    /// comparison would open on that churn, and a comparison that always shows movement
+    /// stops being read.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Only when benign.</b> A port that was judged notable or suspicious keeps the
+    /// ordinary treatment, whatever its number: an unsigned binary reachable from a
+    /// public network is news every single time, and the point of this marker is to
+    /// silence noise, never a judgement.
+    /// </para>
+    /// </summary>
+    private static Finding MarkIfEphemeral(Finding finding, int port)
+    {
+        if (finding.Severity != FindingSeverity.Benign || port < FirstEphemeralPort)
+        {
+            return finding;
+        }
+
+        return finding with
+        {
+            Details = new Dictionary<string, string>(finding.Details, StringComparer.Ordinal)
+            {
+                [FindingDetails.Ephemeral] =
+                    "Port de la plage dynamique : le système en attribue un autre à chaque "
+                    + "ouverture. Son numéro n'identifie rien de stable.",
+            },
+        };
     }
 
     private static Finding Judge(

@@ -51,7 +51,8 @@ public sealed class AutorunsCollector : IFindingCollector
             {
                 if (value.ToString() is { Length: > 0 } command)
                 {
-                    findings.Add(Examine($"{key}\\{name}", command, providers.Signatures));
+                    findings.Add(Examine(
+                        $"{key}\\{name}", command, providers.Signatures, TransientReason(key)));
                 }
             }
         }
@@ -152,7 +153,21 @@ public sealed class AutorunsCollector : IFindingCollector
         return Examine(folder, path, signatures);
     }
 
-    private static Finding Examine(string source, string command, ISignatureProvider signatures)
+    /// <summary>
+    /// Why a <c>RunOnce</c> entry is expected to vanish on its own.
+    ///
+    /// Windows runs these at the next boot and deletes them. Two scans on either side of
+    /// a restart therefore differ without anything having happened, and <c>rempart
+    /// diff</c> must not present that as a change of posture. Decided here, where the
+    /// mechanism is known, rather than by the diff reading source paths.
+    /// </summary>
+    private static string? TransientReason(string key) =>
+        key.EndsWith(@"\RunOnce", StringComparison.OrdinalIgnoreCase)
+            ? "Entrée RunOnce : Windows l'exécute au prochain démarrage puis la supprime."
+            : null;
+
+    private static Finding Examine(
+        string source, string command, ISignatureProvider signatures, string? transient = null)
     {
         var path = ExtractExecutablePath(command);
         var judgement = SignatureLadder.Judge(path, signatures);
@@ -161,6 +176,11 @@ public sealed class AutorunsCollector : IFindingCollector
         {
             ["commande"] = command,
         };
+
+        if (transient is not null)
+        {
+            details[FindingDetails.Transient] = transient;
+        }
 
         SignatureLadder.Describe(judgement.Signature, details);
 

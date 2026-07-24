@@ -143,6 +143,6 @@ cd $env:TEMP\test
 .\rempart.exe scan --from t.json
 ```
 
-Expected size: about 10.4 MB (it grows with the audited surfaces; 9.4 MB before the
+Expected size: about 10.9 MB (it grows with the audited surfaces; 9.4 MB before the
 reports of M6, 2.6 MB at milestone M0). The `.pdb` files in the `publish` directory
 are debug symbols and are not needed at run time.
