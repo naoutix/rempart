@@ -45,10 +45,11 @@ the interfaces. The same code runs against a real machine or against a JSON snap
 > This diagram is the **target**. Implemented today: inventory, security rules,
 > persistence (autoruns, tasks, drivers, WMI, processes, LSA, COM, …), network
 > (listening ports cross-checked with the firewall, DNS resolvers, hosts file, proxy
-> and PAC, Wi-Fi profiles), and software inventory with the bloatware catalog.
-> Still to come: browser extensions, hygiene, the hardware add-on, and `diff` /
-> `report` on the CLI side — see [ROADMAP.md](ROADMAP.md) (French). The update
-> channel, not shown here, has its own diagram below.
+> and PAC, Wi-Fi profiles), software inventory with the bloatware catalog, and
+> browser extensions with their granted permissions.
+> Still to come: hygiene, the hardware add-on, and `diff` / `report` on the CLI
+> side — see [ROADMAP.md](ROADMAP.md) (French). The update channel, not shown here,
+> has its own diagram below.
 
 ## Execution flow
 

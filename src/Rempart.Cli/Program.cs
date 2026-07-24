@@ -82,7 +82,8 @@ static int Scan(string[] args)
             hostsFile: new SnapshotHostsFileProvider(snapshot),
             proxy: new SnapshotProxyProvider(snapshot),
             wifi: new SnapshotWifiProfileProvider(snapshot),
-            softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot));
+            softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot),
+            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -105,7 +106,8 @@ static int Scan(string[] args)
             hostsFile: new LiveHostsFileProvider(),
             proxy: new LiveProxyProvider(),
             wifi: new LiveWifiProfileProvider(),
-            softwareInventory: new LiveSoftwareInventoryProvider());
+            softwareInventory: new LiveSoftwareInventoryProvider(),
+            browserExtensions: new LiveBrowserExtensionProvider());
         origin = UtcNow();
     }
 
@@ -216,7 +218,9 @@ static int Capture(string[] args)
         proxy: new RecordingProxyProvider(new LiveProxyProvider(), snapshot),
         wifi: new RecordingWifiProfileProvider(new LiveWifiProfileProvider(), snapshot),
         softwareInventory: new RecordingSoftwareInventoryProvider(
-            new LiveSoftwareInventoryProvider(), snapshot));
+            new LiveSoftwareInventoryProvider(), snapshot),
+        browserExtensions: new RecordingBrowserExtensionProvider(
+            new LiveBrowserExtensionProvider(), snapshot));
 
     // The full engine, rules included: a fixture must be able to replay everything a
     // scan does, otherwise it would only test half the path. The update store is

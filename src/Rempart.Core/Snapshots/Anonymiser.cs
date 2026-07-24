@@ -164,6 +164,15 @@ public static class Anonymiser
             snapshot.Wifi = [.. wifi.Select(profile => profile with { Name = Hash(profile.Name) })];
         }
 
+        if (snapshot.BrowserExtensions is { Count: > 0 } extensions)
+        {
+            // The profile directory name carries Firefox's per-install salt — an
+            // installation identifier, masked like the hostname. The extension itself
+            // is what the audit is about; it stays readable.
+            snapshot.BrowserExtensions =
+                [.. extensions.Select(e => e with { Profile = Hash(e.Profile) })];
+        }
+
         snapshot.Anonymised = true;
         return snapshot;
     }

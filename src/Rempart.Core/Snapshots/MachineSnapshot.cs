@@ -83,6 +83,9 @@ public sealed class MachineSnapshot
 
     /// <summary>Installed software, or null if the snapshot predates its collection.</summary>
     public List<InstalledSoftware>? Software { get; set; }
+
+    /// <summary>Browser extensions, or null if the snapshot predates their collection.</summary>
+    public List<BrowserExtension>? BrowserExtensions { get; set; }
 }
 
 public static class SnapshotKeys
