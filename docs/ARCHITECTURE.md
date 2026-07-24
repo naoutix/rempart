@@ -47,10 +47,10 @@ the interfaces. The same code runs against a real machine or against a JSON snap
 > (listening ports cross-checked with the firewall, DNS resolvers, hosts file, proxy
 > and PAC, Wi-Fi profiles), software inventory with the bloatware catalog,
 > browser extensions with their granted permissions, reclaimable space in the
-> component store, and the three report formats with `rempart report`.
-> Still to come: hygiene, the hardware add-on, and `diff` — see
-> [ROADMAP.md](ROADMAP.md) (French). The update channel, not shown here, has its own
-> diagram below.
+> component store, the three report formats with `rempart report`, and fleet work —
+> `rempart diff` and the aggregation page.
+> Still to come: hygiene and the hardware add-on — see [ROADMAP.md](ROADMAP.md)
+> (French). The update channel, not shown here, has its own diagram below.
 
 ## Execution flow
 
@@ -124,15 +124,16 @@ local file or HTTP transport. Same abstraction as the providers, applied to down
 ```
 rempart/
 ├── src/
-│   ├── Rempart.Cli/            # CLI: scan, report, capture, explain, synthesise,
-│   │                           #   keygen, sign, seal, fetch-loldrivers, update,
-│   │                           #   diagnose-*, version
+│   ├── Rempart.Cli/            # CLI: scan, report, diff, index, capture, explain,
+│   │                           #   synthesise, keygen, sign, seal, fetch-loldrivers,
+│   │                           #   update, diagnose-*, version
 │   ├── Rempart.Core/
 │   │   ├── Collectors/         # ICollector: describes the machine via known fields
 │   │   ├── Findings/           # IFindingCollector: enumerates persistence (autoruns,
 │   │   │                       #   tasks, drivers, WMI, processes, LSA, COM…) and network
 │   │   │                       #   (ports, DNS, hosts) + SignatureLadder
 │   │   ├── Engine/             # orchestration, field semantics, scoring
+│   │   ├── Diff/               # comparing two scans, pure
 │   │   ├── Json/               # source-generated serialization (AOT)
 │   │   ├── Packaging/          # the USB stick's signed integrity seal
 │   │   ├── Reports/            # pure ScanResult → HTML · Markdown · JSON renderers
@@ -160,9 +161,37 @@ present — autorun programs, tasks, drivers, listening ports — and judges eac
 The two never mix in the score: a 94 % configuration must not hide an unsigned kernel
 driver or a network-exposed port.
 
-Directories planned by the roadmap but not created yet — HTML report, hardware add-on,
-remediation profiles, image layer — are described in [ROADMAP.md](ROADMAP.md) rather
-than announced here as if they existed.
+Directories planned by the roadmap but not created yet — hardware add-on, remediation
+profiles, image layer — are described in [ROADMAP.md](ROADMAP.md) rather than announced
+here as if they existed.
+
+## Comparing scans
+
+`rempart diff` reads two JSON reports, never a machine: neither has to be present, and
+the comparison runs anywhere. Three concepts, compared three ways, because they answer
+different questions — verdicts by rule identifier, findings by what they designate,
+inventory fields as context.
+
+**A verdict that became unreadable is not a verdict that started failing.** An audit
+losing sight of a control calls for elevation; a control that fell calls for a fix.
+Merging the two would bury the first under the second, and the first is the one nobody
+would otherwise notice.
+
+Movement the system causes by itself leaves the posture delta, and is listed rather than
+dropped. Two mechanisms, deliberately distinct:
+
+| Marker | Meaning | What it excuses |
+|---|---|---|
+| `transitoire` | Windows removes it on its own — a consumed `RunOnce`, a task deleted once expired | its disappearance only; one appearing is news |
+| `éphémère` | its identity churns by design — a socket in the dynamic port range | both directions: the one that vanished and the one that appeared are the same fact |
+
+Both are set by the collector, which knows the mechanism, never inferred by the diff from
+a source path. Neither is applied to a finding that was judged anything other than
+benign: they silence noise, never a judgement.
+
+Two reports built from different catalogs are still compared — refusing would make the
+command useless the day after any update — with the gap stated and the rules present on
+one side only listed as such.
 
 ## Reports
 
