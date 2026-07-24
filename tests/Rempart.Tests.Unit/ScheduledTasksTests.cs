@@ -44,6 +44,58 @@ public class ScheduledTasksTests
             signatures: signatures,
             scheduledTasks: new FakeScheduledTaskProvider(read)));
 
+    /// <summary>
+    /// Windows removes a task by itself only when it is told to delete it once expired
+    /// <b>and</b> a trigger actually ends. Either fact alone changes nothing: a task with
+    /// an end boundary but no delete setting simply stops firing and stays listed.
+    ///
+    /// <para>
+    /// Covered by a fabricated task rather than a real one: the test machine carries 196
+    /// scheduled tasks and not one of them has either setting — cross-checked with
+    /// <c>Get-ScheduledTask</c> on 2026-07-24. The zero was verified, not assumed, but it
+    /// leaves this branch without a real example.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("PT0S", true, true)]
+    [InlineData("P1D", true, true)]
+    [InlineData(null, true, false)]
+    [InlineData("PT0S", false, false)]
+    [InlineData("", true, false)]
+    public void A_task_windows_deletes_on_expiry_is_marked_as_transient(
+        string? deleteExpiredAfter, bool expiringTrigger, bool expectedMark)
+    {
+        var task = new ScheduledTask(
+            @"\Ponctuelle", @"\Ponctuelle", Enabled: true, "ready", "Contoso", "S-1-5-18",
+            null, [Exec(@"C:\tools\once.exe")], deleteExpiredAfter, expiringTrigger);
+
+        var finding = Assert.Single(Collect(
+            ScheduledTaskRead.Found([task]),
+            new FakeSignatureProvider().With(@"C:\tools\once.exe", SignatureStatus.Unsigned)));
+
+        Assert.Equal(expectedMark, finding.Details.ContainsKey(FindingDetails.Transient));
+    }
+
+    /// <summary>
+    /// The mark says the task may vanish on its own; it must not soften the judgement.
+    /// An unsigned binary launched by a task that deletes itself afterwards is exactly
+    /// as suspicious — arguably more.
+    /// </summary>
+    [Fact]
+    public void Being_transient_does_not_lower_the_severity()
+    {
+        var task = new ScheduledTask(
+            @"\Ponctuelle", @"\Ponctuelle", Enabled: true, "ready", null, null, null,
+            [Exec(@"C:\tools\once.exe")], "PT0S", HasExpiringTrigger: true);
+
+        var finding = Assert.Single(Collect(
+            ScheduledTaskRead.Found([task]),
+            new FakeSignatureProvider().With(@"C:\tools\once.exe", SignatureStatus.Unsigned)));
+
+        Assert.Equal(FindingSeverity.Suspicious, finding.Severity);
+        Assert.Contains(FindingDetails.Transient, finding.Details.Keys);
+    }
+
     [Fact]
     public void Unsigned_action_is_suspicious()
     {

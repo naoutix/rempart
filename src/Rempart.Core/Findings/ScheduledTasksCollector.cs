@@ -143,6 +143,18 @@ public sealed class ScheduledTasksCollector : IFindingCollector
             reasons.Add("Tâche désactivée : elle ne s'exécute pas en l'état.");
         }
 
+        // Windows removes a task by itself only when both hold: it is told to delete it
+        // once expired, and a trigger actually has an end. Either alone changes nothing —
+        // a task with an end boundary but no delete setting simply stops firing and
+        // stays listed. Marking it lets rempart diff treat its disappearance as expected
+        // instead of as a change of posture.
+        if (task.DeleteExpiredTaskAfter is { Length: > 0 } && task.HasExpiringTrigger)
+        {
+            details[FindingDetails.Transient] =
+                "Tâche supprimée par Windows après expiration de son déclencheur "
+                + $"(DeleteExpiredTaskAfter = {task.DeleteExpiredTaskAfter}).";
+        }
+
         return new Finding("scheduled-task", task.Path, target, severity, reasons, details);
     }
 

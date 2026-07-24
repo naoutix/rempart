@@ -403,7 +403,49 @@ seconde voie d'injection au lieu de la sécuriser.
 ### M7 · Flotte
 `rempart diff a.json b.json`, baseline de référence, page d'agrégation des rapports.
 
-**Fait quand** l'écart de posture entre deux machines est lisible d'un coup d'œil.
+- [x] `rempart diff` — moteur pur `Rempart.Core/Diff/`, alimenté par le JSON de M6 :
+      aucune des deux machines n'a besoin d'être là, et la comparaison ne demande pas
+      Windows. Trois concepts, trois comparaisons, parce qu'ils ne répondent pas à la
+      même question — verdicts par identifiant de règle, constats par ce qu'ils
+      désignent, champs d'inventaire en contexte.
+- [x] **Un verdict devenu illisible n'est pas un verdict qui échoue.** C'est la
+      distinction pour laquelle tout le classement existe : un audit qui perd de vue un
+      contrôle appelle une élévation, un contrôle qui tombe appelle une correction. Les
+      confondre enterrerait le premier sous le second — et le premier est celui que
+      personne ne remarquerait autrement.
+- [x] Baseline conventionnelle : `rempart diff <rapport.json>` sans second argument
+      compare à `baseline.json` posé à côté du binaire, comme le magasin et `rules/`.
+- [x] `rempart index [dossier]` — page de parc autonome, ordonnée par ce qu'il reste à
+      faire : score le plus bas d'abord, et un rapport **sans score en tête** — une
+      machine qu'on n'a pas pu noter n'est pas une machine saine. Les rapports issus de
+      catalogues différents sont signalés : leurs pourcentages ne sont pas sur la même
+      échelle.
+- [x] Les deux transitoires annoncés en M3 sont traités **à la source** : les
+      collecteurs posent une clé de détail, le diff la lit. `RunOnce` d'un côté ; de
+      l'autre, la vraie condition n'est pas « déclencheur unique » mais
+      `DeleteExpiredTaskAfter` **et** un déclencheur avec date de fin — les deux
+      ensemble, seuls Windows supprime la tâche. `ScheduledTask` porte désormais ces
+      deux faits bruts, le jugement restant dans Core.
+
+**Trouvé en chemin — un troisième transitoire, que seule l'exécution a révélé.** Deux
+scans à quatorze secondes d'écart sur la machine de test différaient de trois sockets UDP
+de Chrome, et de rien d'autre. Les ports de la plage dynamique (49152–65535, valeur
+relevée par `netsh int ipv4 show dynamicport`) sont renumérotés à chaque ouverture.
+
+Ce n'est pas le même phénomène que `RunOnce` et la distinction compte : une entrée
+`RunOnce` qui *apparaît* est une nouvelle — c'est ainsi qu'on fait exécuter du code au
+prochain démarrage — alors qu'un port éphémère qui disparaît et un qui apparaît sont le
+même fait sous un autre numéro. D'où deux clés distinctes, `transitoire` et `éphémère` :
+la première n'excuse que la disparition, la seconde les deux sens. N'excuser qu'un côté
+aurait divisé le bruit par deux en laissant le rapport faux.
+
+Le marquage ne s'applique qu'aux constats **déjà jugés bénins** : un binaire non attesté
+joignable sur un port haut est une nouvelle à chaque fois. Cette clé fait taire du bruit,
+jamais un jugement.
+
+**Fait quand** l'écart de posture entre deux machines est lisible d'un coup d'œil. ✅
+Deux scans consécutifs rendent « aucun écart de posture, N mouvements attendus » au lieu
+de trois lignes de ports Chrome.
 
 ---
 
