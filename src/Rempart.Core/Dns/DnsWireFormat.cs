@@ -3,27 +3,27 @@ using System.Buffers.Binary;
 namespace Rempart.Core.Dns;
 
 /// <summary>
-/// Construit une requête DNS au format wire (RFC 1035) et valide une réponse.
+/// Builds a DNS query in wire format (RFC 1035) and validates a response.
 ///
 /// <para>
-/// Le même paquet sert DoT (envoyé sur une socket TLS, préfixé de sa longueur) et DoH
-/// (posté en <c>application/dns-message</c>, RFC 8484). Pur, sans réflexion — AOT-safe.
+/// The same packet serves DoT (sent over a TLS socket, length-prefixed) and DoH
+/// (posted as <c>application/dns-message</c>, RFC 8484). Pure, no reflection — AOT-safe.
 /// </para>
 /// </summary>
 public static class DnsWireFormat
 {
-    /// <summary>Requête A pour <paramref name="name"/>, récursion demandée.</summary>
+    /// <summary>An A query for <paramref name="name"/>, recursion desired.</summary>
     public static byte[] BuildQuery(string name, ushort id)
     {
         var labels = name.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        var qnameLength = labels.Sum(label => label.Length + 1) + 1;   // chaque label préfixé + racine
+        var qnameLength = labels.Sum(label => label.Length + 1) + 1;   // each label prefixed + root
         var packet = new byte[12 + qnameLength + 4];
         var span = packet.AsSpan();
 
         BinaryPrimitives.WriteUInt16BigEndian(span, id);
-        BinaryPrimitives.WriteUInt16BigEndian(span[2..], 0x0100);   // drapeaux : requête standard, RD
+        BinaryPrimitives.WriteUInt16BigEndian(span[2..], 0x0100);   // flags: standard query, RD
         BinaryPrimitives.WriteUInt16BigEndian(span[4..], 1);        // QDCOUNT = 1
-        // ANCOUNT / NSCOUNT / ARCOUNT restent à 0.
+        // ANCOUNT / NSCOUNT / ARCOUNT stay at 0.
 
         var offset = 12;
         foreach (var label in labels)
@@ -35,7 +35,7 @@ public static class DnsWireFormat
             }
         }
 
-        packet[offset++] = 0;   // racine
+        packet[offset++] = 0;   // root
 
         BinaryPrimitives.WriteUInt16BigEndian(span[offset..], 1);   // QTYPE = A
         offset += 2;
@@ -45,9 +45,9 @@ public static class DnsWireFormat
     }
 
     /// <summary>
-    /// Vrai si <paramref name="response"/> est une réponse DNS au même identifiant que
-    /// <paramref name="query"/> — assez pour attester qu'un résolveur a répondu. Ne lève
-    /// jamais : un paquet tronqué rend simplement <c>false</c>.
+    /// True if <paramref name="response"/> is a DNS response carrying the same identifier
+    /// as <paramref name="query"/> — enough to attest that a resolver answered. Never
+    /// throws: a truncated packet simply yields <c>false</c>.
     /// </summary>
     public static bool IsValidResponse(byte[] query, byte[] response)
     {
@@ -56,7 +56,7 @@ public static class DnsWireFormat
             return false;
         }
 
-        // Même identifiant (2 premiers octets) et bit QR (réponse) posé.
+        // Same identifier (first 2 bytes) and QR (response) bit set.
         return response[0] == query[0]
             && response[1] == query[1]
             && (response[2] & 0x80) != 0;

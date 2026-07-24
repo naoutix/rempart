@@ -4,9 +4,9 @@ using Rempart.Core.Rules;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Un contrôle qui ne vaut que dans un contexte précis produit du bruit partout
-/// ailleurs, et le bruit disqualifie un outil d'audit plus sûrement qu'un contrôle
-/// manquant : on cesse de lire des alertes dont la moitié ne s'applique pas.
+/// A check that only makes sense in a specific context produces noise everywhere
+/// else, and noise undermines an audit tool: alerts stop being read when half of
+/// them do not apply.
 /// </summary>
 public sealed class ApplicabilityTests
 {
@@ -30,7 +30,7 @@ public sealed class ApplicabilityTests
     [Fact]
     public void A_registry_condition_gates_the_rule()
     {
-        // Cas réel : NLA ne vaut que si RDP est activé.
+        // Real case: NLA only matters if RDP is enabled.
         var rule = Rule(new Applicability(Registry: new CheckSpec(
             CheckKind.Registry, Key, "Enabled", CheckOperator.Equals, "1", "0")));
 
@@ -51,8 +51,8 @@ public sealed class ApplicabilityTests
     [Fact]
     public void An_unreadable_condition_does_not_hide_the_rule()
     {
-        // Mieux vaut évaluer et rendre un verdict que masquer un contrôle sur une
-        // incertitude d'applicabilité : une règle escamotée ne se remarque pas.
+        // Better to evaluate and return a verdict than to hide a check over an
+        // applicability uncertainty: a suppressed rule goes unnoticed.
         var rule = Rule(new Applicability(Registry: new CheckSpec(
             CheckKind.Registry, Key, "Enabled", CheckOperator.Equals, "1", "0")));
 
@@ -64,8 +64,8 @@ public sealed class ApplicabilityTests
     [Fact]
     public void Not_applicable_verdicts_leave_the_score_untouched()
     {
-        // Compter ces règles comme des échecs pénaliserait une machine pour ne pas
-        // être ce qu'elle n'a jamais eu à être.
+        // Counting these rules as failures would penalize a machine for a
+        // context that does not apply to it.
         var alone = Scoring.Compute([Verdict(VerdictStatus.Pass)]);
         var withNotApplicable = Scoring.Compute([
             Verdict(VerdictStatus.Pass),
@@ -79,8 +79,8 @@ public sealed class ApplicabilityTests
     [Fact]
     public void Not_applicable_is_not_a_coverage_gap()
     {
-        // Contrairement à Unknown : ici on sait, et la réponse est qu'il n'y avait
-        // rien à vérifier. Le rapport ne doit pas se déclarer partiel pour autant.
+        // Unlike Unknown: here we do know, and the answer is that there was
+        // nothing to verify. The report must not declare itself partial for it.
         var card = Scoring.Compute([
             Verdict(VerdictStatus.Pass),
             Verdict(VerdictStatus.NotApplicable),
@@ -94,8 +94,8 @@ public sealed class ApplicabilityTests
     [Fact]
     public void An_empty_applies_when_block_is_rejected()
     {
-        // Un bloc vide laisse croire à une condition alors que la règle s'applique
-        // partout : l'intention de l'auteur serait perdue en silence.
+        // An empty block suggests a condition while the rule actually applies
+        // everywhere: the author's intent would be silently lost.
         var yaml = """
             - id: TEST-001
               title: Un contrôle

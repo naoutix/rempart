@@ -4,20 +4,20 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Énumère les processus en cours via WMI (<c>Win32_Process</c>).
+/// Enumerates running processes via WMI (<c>Win32_Process</c>).
 ///
 /// <para>
-/// Même choix que pour les pilotes : WMI donne chemin, parent et ligne de commande en
-/// une requête, sans P/Invoke à la chaîne (toolhelp, puis ouverture de chaque processus
-/// pour son chemin, puis le PEB pour la ligne de commande). La ligne de commande d'un
-/// processus appartenant à un autre utilisateur peut rester vide hors élévation — c'est
-/// une lacune de droits, pas une absence, et le collecteur ne l'interprète pas autrement.
+/// Same choice as for drivers: WMI provides path, parent, and command line in a single
+/// query, without a chain of P/Invoke calls (toolhelp, then opening each process for
+/// its path, then the PEB for the command line). The command line of a process owned
+/// by another user can stay empty without elevation — that is a permissions gap, not
+/// an absence, and the collector does not interpret it any other way.
 /// </para>
 ///
 /// <para>
-/// Les processus sans chemin — <c>System</c>, <c>Registry</c>, la compression mémoire —
-/// sont écartés : ce sont des pseudo-processus du noyau, sans fichier à juger. Les
-/// retenir n'ajouterait que du bruit invérifiable.
+/// Processes without a path — <c>System</c>, <c>Registry</c>, memory compression — are
+/// skipped: they are kernel pseudo-processes with no file to assess. Keeping them
+/// would only add unverifiable noise.
 /// </para>
 /// </summary>
 public sealed class LiveProcessProvider(IWmiProvider wmi) : IProcessProvider

@@ -3,21 +3,21 @@ using System.Text.RegularExpressions;
 namespace Rempart.Core.Pac;
 
 /// <summary>
-/// Extrait les proxys vers lesquels un script PAC route, par lecture statique — jamais par
-/// exécution.
+/// Extracts the proxies a PAC script routes to, by static reading — never by
+/// execution.
 ///
 /// <para>
-/// Un PAC est du JavaScript (<c>FindProxyForURL</c>) qui rend des chaînes du type
-/// <c>"PROXY host:port"</c>, <c>"SOCKS host:port"</c>, <c>"HTTPS host:port"</c> ou
-/// <c>"DIRECT"</c>. On n'exécute pas le script — ce serait embarquer un moteur JS et lui
-/// donner un script hostile à évaluer. On relève les points de terminaison qu'il nomme :
-/// c'est déjà l'information qui compte, vers où le trafic peut partir.
+/// A PAC is JavaScript (<c>FindProxyForURL</c>) returning strings of the form
+/// <c>"PROXY host:port"</c>, <c>"SOCKS host:port"</c>, <c>"HTTPS host:port"</c> or
+/// <c>"DIRECT"</c>. The script is not executed — that would mean embedding a JS engine
+/// and handing it a hostile script to evaluate. The endpoints it names are collected:
+/// that is already the information that matters, where the traffic can go.
 /// </para>
 /// </summary>
 public static partial class PacDirectiveExtractor
 {
-    // Un mot-clé de routage, un espace, puis « hôte:port ». « https:// » n'a pas d'espace
-    // avant l'hôte : il ne matche pas, un lien en commentaire n'est donc pas pris pour une
+    // A routing keyword, a space, then "host:port". "https://" has no space before the
+    // host: it does not match, so a link inside a comment is not mistaken for a
     // directive.
     [GeneratedRegex(
         @"\b(?:PROXY|HTTPS|SOCKS5|SOCKS)\s+([A-Za-z0-9.\-_]+:\d{1,5})",

@@ -5,37 +5,34 @@ using Rempart.Core.Json;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// Vérifie un manifeste contre les clés publiques épinglées dans ce binaire.
+/// Verifies a manifest against the public keys pinned in this binary.
 ///
 /// <para>
-/// C'est le point unique où le projet décide de faire confiance à des données qu'il
-/// n'a pas compilées. L'ADR-002 le formule ainsi : les règles définissent ce que
-/// « sécurisé » signifie, donc quiconque les remplace silencieusement ne casse pas
-/// l'outil, il le fait <b>mentir</b>. Un scan rendrait 100 % sur une machine ouverte,
-/// et personne ne chercherait.
+/// This is the single point where the project decides to trust data it did not compile.
+/// As ADR-002 puts it: the rules define what "secure" means, so anyone who silently
+/// replaces them does not break the tool, they make it <b>lie</b>. A scan would report
+/// 100% on a wide-open machine, and nobody would investigate.
 /// </para>
 ///
 /// <para>
-/// ECDSA P-256 plutôt qu'Ed25519, qui aurait été le choix naturel : .NET 10 n'expose
-/// pas Ed25519 comme type public. ML-DSA et SLH-DSA, post-quantiques, existent mais
-/// sont marqués expérimentaux (<c>SYSLIB5006</c> : « susceptible d'être modifié ou
-/// supprimé »). Bâtir un canal de confiance sur une API que Microsoft se réserve de
-/// retirer serait un mauvais échange pour un outil dont l'intérêt est de ne pas
-/// casser. P-256 est stable, disponible partout, et ses signatures font 64 octets
-/// fixes.
+/// ECDSA P-256 rather than Ed25519, which would have been the natural choice: .NET 10
+/// does not expose Ed25519 as a public type. The post-quantum ML-DSA and SLH-DSA exist
+/// but are marked experimental (<c>SYSLIB5006</c>: "subject to change or removal").
+/// Building a trust channel on an API Microsoft reserves the right to remove would be a
+/// bad trade for a tool whose whole point is not breaking. P-256 is stable, available
+/// everywhere, and its signatures are a fixed 64 bytes.
 /// </para>
 /// </summary>
 public sealed class ManifestVerifier
 {
     /// <summary>
-    /// Clés publiques acceptées, au format SubjectPublicKeyInfo encodé en base64,
-    /// indexées par leur empreinte.
+    /// Accepted public keys, as base64-encoded SubjectPublicKeyInfo, indexed by their
+    /// fingerprint.
     ///
-    /// Deux au maximum, et c'est une contrainte de l'ADR-002 (D16) et non une limite
-    /// technique : la rotation exige un chevauchement — publier avec la nouvelle clé,
-    /// laisser l'ancienne valide le temps que les binaires en circulation soient
-    /// remplacés, puis la retirer. Sans ce chevauchement, toute rotation casserait les
-    /// installations existantes.
+    /// Two at most — a constraint from ADR-002 (D16), not a technical limit: rotation
+    /// requires an overlap — publish with the new key, keep the old one valid until the
+    /// binaries in circulation are replaced, then remove it. Without that overlap, any
+    /// rotation would break existing installations.
     /// </summary>
     private readonly IReadOnlyDictionary<string, string> keys;
 
@@ -45,9 +42,9 @@ public sealed class ManifestVerifier
     }
 
     /// <summary>
-    /// Empreinte d'une clé publique : les douze premiers caractères du SHA-256 de son
-    /// encodage SPKI. Même forme que l'empreinte du catalogue de règles, pour que les
-    /// deux se lisent pareil dans un rapport.
+    /// Fingerprint of a public key: the first twelve characters of the SHA-256 of its
+    /// SPKI encoding. Same shape as the rule catalog fingerprint, so both read the same
+    /// way in a report.
     /// </summary>
     public static string KeyId(byte[] subjectPublicKeyInfo) =>
         Convert.ToHexStringLower(SHA256.HashData(subjectPublicKeyInfo))[..12];
@@ -62,10 +59,10 @@ public sealed class ManifestVerifier
             signed = JsonSerializer.Deserialize(
                 manifestJson, RempartJsonContext.Default.SignedManifest);
 
-            // Les champs sont déclarés non-nullables, mais un record n'impose rien à
-            // la désérialisation : `{}` produit un objet dont tous les champs sont
-            // null. Le vérifier explicitement — sans quoi un fichier vide fait planter
-            // le processus au lieu d'être refusé, et il arrive par le réseau.
+            // The fields are declared non-nullable, but a record enforces nothing during
+            // deserialization: `{}` produces an object whose fields are all null. Check
+            // explicitly — otherwise an empty file crashes the process instead of being
+            // rejected, and this file arrives over the network.
             if (signed?.Payload is null || signed.Signatures is null
                 || signed.Signatures.Count == 0)
             {
@@ -81,9 +78,9 @@ public sealed class ManifestVerifier
                 $"Manifeste illisible : {ex.Message}");
         }
 
-        // Une signature d'une clé connue existe-t-elle seulement ? Distinguer ce cas
-        // évite d'annoncer une falsification là où il n'y a qu'un binaire trop ancien
-        // pour connaître la clé courante.
+        // Is there any signature from a known key at all? Distinguishing this case
+        // avoids reporting tampering when the binary is merely too old to know the
+        // current key.
         var known = signed.Signatures.Where(s => keys.ContainsKey(s.KeyId)).ToList();
 
         if (known.Count == 0)
@@ -102,7 +99,7 @@ public sealed class ManifestVerifier
                 continue;
             }
 
-            // Signature valide : et seulement maintenant on analyse le contenu.
+            // Valid signature: only now is the content parsed.
             try
             {
                 var payload = JsonSerializer.Deserialize(
@@ -119,9 +116,9 @@ public sealed class ManifestVerifier
             }
             catch (JsonException ex)
             {
-                // Signature bonne, contenu incompréhensible : l'éditeur a publié
-                // quelque chose que ce binaire ne sait pas lire. Ce n'est pas une
-                // attaque, et le dire évite une fausse alerte.
+                // Valid signature, unreadable content: the publisher shipped something
+                // this binary cannot parse. That is not an attack, and saying so avoids
+                // a false alarm.
                 return Fail(ManifestStatus.Malformed,
                     $"Charge utile correctement signée mais illisible par cette version : " +
                     $"{ex.Message}");
@@ -146,20 +143,20 @@ public sealed class ManifestVerifier
         }
         catch (Exception ex) when (ex is CryptographicException or FormatException)
         {
-            // Une clé ou une signature mal formée n'est pas une signature valide.
-            // Elle ne doit pas non plus interrompre l'examen des autres signatures :
-            // pendant une rotation, le manifeste en porte plusieurs.
+            // A malformed key or signature is not a valid signature. It must not abort
+            // checking the remaining signatures either: during a rotation the manifest
+            // carries several.
             return false;
         }
     }
 
     /// <summary>
-    /// Vérifie qu'un fichier reçu est bien celui que le manifeste décrit.
+    /// Checks that a received file is the one the manifest describes.
     ///
-    /// Séparé de la vérification de signature parce que ce sont deux questions
-    /// distinctes : le manifeste dit-il vrai, et ai-je bien reçu ce qu'il annonce.
-    /// Un manifeste authentique accompagné d'un fichier corrompu doit se voir comme
-    /// tel, et non comme une signature invalide.
+    /// Separate from signature verification because these are two distinct questions:
+    /// is the manifest truthful, and did we receive what it declares. An authentic
+    /// manifest paired with a corrupted file must be reported as exactly that, not as
+    /// an invalid signature.
     /// </summary>
     public static bool FileMatches(ManifestEntry entry, byte[] content)
     {
@@ -170,8 +167,8 @@ public sealed class ManifestVerifier
 
         var actual = Convert.ToHexStringLower(SHA256.HashData(content));
 
-        // Comparaison à temps constant : par principe, le code qui décide d'une
-        // confiance ne renseigne pas sur l'écart entre l'attendu et le reçu.
+        // Constant-time comparison: as a principle, code that makes a trust decision
+        // must not leak how the received value differs from the expected one.
         return CryptographicOperations.FixedTimeEquals(
             System.Text.Encoding.ASCII.GetBytes(actual),
             System.Text.Encoding.ASCII.GetBytes(entry.Sha256.ToLowerInvariant()));

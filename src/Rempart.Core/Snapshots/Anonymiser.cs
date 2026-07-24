@@ -5,17 +5,17 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Snapshots;
 
 /// <summary>
-/// Remplace les identifiants machine par des empreintes stables.
+/// Replaces machine identifiers with stable digests.
 ///
-/// Actif par défaut à la capture : les fixtures finissent versionnées, et un instantané
-/// brut porte hostname, numéro de série et propriétaire enregistré. Le hachage reste
-/// stable, donc deux captures de la même machine restent comparables.
+/// On by default at capture time: fixtures end up under version control, and a raw
+/// snapshot carries hostname, serial number and registered owner. The hash is stable,
+/// so two captures of the same machine remain comparable.
 /// </summary>
 public static class Anonymiser
 {
     private const string Prefix = "anon:";
 
-    /// <summary>Noms de valeurs dont le contenu identifie la machine ou son détenteur.</summary>
+    /// <summary>Value names whose content identifies the machine or its owner.</summary>
     private static readonly string[] SensitiveValueFragments =
     [
         "serial",
@@ -37,9 +37,9 @@ public static class Anonymiser
 
             var valueName = key[(key.LastIndexOf("||", StringComparison.Ordinal) + 2)..];
 
-            // Le nom de compte se glisse aussi dans des valeurs parfaitement anodines :
-            // une entrée Run qui pointe vers %LOCALAPPDATA% s'enregistre en chemin
-            // complet, donc avec le prénom de quelqu'un.
+            // The account name also sneaks into perfectly innocuous values: a Run
+            // entry pointing at %LOCALAPPDATA% is stored as a full path, and thus
+            // carries someone's first name.
             var scrubbed = IsSensitive(valueName) ? Hash(text) : ScrubProfile(text);
 
             if (!string.Equals(scrubbed, text, StringComparison.Ordinal))
@@ -51,9 +51,9 @@ public static class Anonymiser
         snapshot.Signatures = snapshot.Signatures
             .ToDictionary(entry => ScrubProfile(entry.Key), entry => entry.Value);
 
-        // Les valeurs WMI portent des chemins : Win32_Service rend le chemin de chaque
-        // service, et un service installé sous un profil y nomme un compte. L'anonymiseur
-        // les ignorait, et ces chemins fuyaient donc dans les fixtures versionnées.
+        // WMI values carry paths: Win32_Service returns the path of every service,
+        // and a service installed under a profile names an account there. The
+        // anonymiser used to skip them, so those paths leaked into versioned fixtures.
         snapshot.Wmi = snapshot.Wmi.ToDictionary(
             entry => entry.Key,
             entry => entry.Value with
@@ -104,8 +104,8 @@ public static class Anonymiser
 
         if (snapshot.Drivers is { Count: > 0 } drivers)
         {
-            // Les chemins de pilotes sont des chemins systeme, mais un pilote tiers peut
-            // se loger sous un profil utilisateur : on scrube par prudence, comme partout.
+            // Driver paths are system paths, but a third-party driver can live under
+            // a user profile: scrubbed out of caution, as everywhere else.
             snapshot.Drivers =
             [
                 .. drivers.Select(d => d with { Path = ScrubProfile(d.Path) }),
@@ -114,9 +114,9 @@ public static class Anonymiser
 
         if (snapshot.Firewall is { Rules.Count: > 0 } firewall)
         {
-            // Le chemin d'application d'une règle porte parfois un profil utilisateur —
-            // six règles le faisaient sur la machine de référence. Le SID du propriétaire
-            // (LUOwn), lui, n'est pas conservé à l'analyse, donc rien à en scruber.
+            // A rule's application path sometimes carries a user profile — six rules
+            // did on the reference machine. The owner SID (LUOwn), however, is not
+            // kept at parse time, so there is nothing to scrub there.
             snapshot.Firewall = firewall with
             {
                 Rules =
@@ -130,14 +130,14 @@ public static class Anonymiser
 
         if (snapshot.Processes is { Count: > 0 } processes)
         {
-            // Le chemin de l'exécutable est un chemin propre : on y hache le compte.
+            // The executable path is a clean path: the account segment is hashed.
             //
-            // La ligne de commande, elle, est vidée — pas nettoyée. Elle porte le nom de
-            // compte sous des formes qu'un remplacement de « \Users\x\ » ne voit pas : un
-            // chemin URL-encodé (« %5CUsers%5Cx%5C »), un secret passé en argument, ou la
-            // commande même de la session qui a lancé la capture. Prétendre l'anonymiser
-            // serait faux ; une capture qui se dit anonymisée doit l'être. Un scan en
-            // direct la montre toujours — c'est la capture destinée à voyager qui la perd.
+            // The command line, however, is emptied — not cleaned. It carries the
+            // account name in forms a "\Users\x\" replacement cannot see: a
+            // URL-encoded path ("%5CUsers%5Cx%5C"), a secret passed as an argument, or
+            // the very command of the session that launched the capture. Claiming to
+            // anonymise it would be a lie; a capture that calls itself anonymised must
+            // be. A live scan still shows it — only the capture meant to travel loses it.
             snapshot.Processes =
             [
                 .. processes.Select(p => p with
@@ -159,8 +159,8 @@ public static class Anonymiser
 
         if (snapshot.Wifi is { Count: > 0 } wifi)
         {
-            // Le SSID nomme un lieu — domicile, employeur, café. On le hache ; la sécurité
-            // du profil, elle, reste lisible, c'est elle qu'une fixture doit exercer.
+            // The SSID names a place — home, employer, café. It gets hashed; the
+            // profile's security stays readable, as that is what a fixture must exercise.
             snapshot.Wifi = [.. wifi.Select(profile => profile with { Name = Hash(profile.Name) })];
         }
 
@@ -169,8 +169,8 @@ public static class Anonymiser
     }
 
     /// <summary>
-    /// Hache l'hôte d'un serveur et d'un PAC, en préservant schéma, port et localité :
-    /// le rejeu du collecteur doit rendre le même verdict qu'avant anonymisation.
+    /// Hashes the host of a server and of a PAC, preserving scheme, port and locality:
+    /// replaying the collector must yield the same verdict as before anonymisation.
     /// </summary>
     private static ProxyScope ScrubScope(ProxyScope scope) => scope with
     {
@@ -186,7 +186,7 @@ public static class Anonymiser
         }
 
         var colon = server.LastIndexOf(':');
-        // Un port en fin de chaîne (chiffres après le dernier « : ») reste lisible.
+        // A trailing port (digits after the last ":") stays readable.
         return colon > 0 && server[(colon + 1)..].All(char.IsDigit)
             ? Hash(server[..colon]) + server[colon..]
             : Hash(server);
@@ -210,41 +210,41 @@ public static class Anonymiser
         || value is "::1";
 
     /// <summary>
-    /// Hache ce qui désigne une personne, laisse le reste lisible.
+    /// Hashes what designates a person, leaves the rest readable.
     ///
-    /// Une tâche planifiée nomme son auteur et le compte sous lequel elle tourne. Les
-    /// deux sont tantôt anodins — « Microsoft Corporation », <c>S-1-5-18</c> qui est le
-    /// compte système — tantôt directement identifiants : la forme
-    /// <c>MACHINE\utilisateur</c>, ou un SID de compte local.
+    /// A scheduled task names its author and the account it runs under. Both are
+    /// sometimes harmless — "Microsoft Corporation", <c>S-1-5-18</c> which is the
+    /// system account — and sometimes directly identifying: the
+    /// <c>MACHINE\user</c> form, or a local account SID.
     ///
-    /// Tout hacher protégerait autant et coûterait la lisibilité des fixtures : on ne
-    /// distinguerait plus une tâche du système d'une tâche d'utilisateur, ce qui est
-    /// justement ce qu'on veut pouvoir juger. La distinction est donc explicite.
+    /// Hashing everything would protect just as much but cost fixture readability: a
+    /// system task could no longer be told apart from a user task, which is precisely
+    /// what we want to be able to judge. The distinction is therefore explicit.
     /// </summary>
     /// <summary>
-    /// Comptes de profil qui ne désignent personne : ils existent à l'identique sur
-    /// toute installation de Windows.
+    /// Profile accounts that designate nobody: they exist identically on every
+    /// Windows installation.
     /// </summary>
     private static readonly string[] ImpersonalProfiles =
         ["public", "default", "default user", "all users"];
 
     /// <summary>
-    /// Remplace le nom de compte dans un chemin de profil.
+    /// Replaces the account name in a profile path.
     ///
-    /// <c>C:\Users\prénom\AppData\...</c> nomme quelqu'un. Ces chemins servent de clés
-    /// dans l'instantané — signatures vérifiées, répertoires énumérés — et se
-    /// retrouvent aussi dans les valeurs de registre <c>Run</c>.
+    /// <c>C:\Users\firstname\AppData\...</c> names someone. These paths serve as keys in
+    /// the snapshot — verified signatures, enumerated directories — and also show up
+    /// in <c>Run</c> registry values.
     ///
-    /// Seul le segment du compte est haché : le reste du chemin dit quelle application
-    /// se lance au démarrage, et c'est exactement ce qu'une fixture doit conserver.
+    /// Only the account segment is hashed: the rest of the path says which application
+    /// starts at boot, and that is exactly what a fixture must preserve.
     /// </summary>
     internal static string ScrubProfile(string path)
     {
         const string Marker = @"\Users\";
 
-        // Toutes les occurrences, pas seulement la première : une ligne de commande peut
-        // porter plusieurs fois le même chemin de profil — l'entrée et la sortie, par
-        // exemple — et n'en hacher qu'une laisserait le nom de compte lisible ailleurs.
+        // Every occurrence, not just the first: a command line can carry the same
+        // profile path several times — input and output, for instance — and hashing
+        // only one would leave the account name readable elsewhere.
         var index = path.IndexOf(Marker, StringComparison.OrdinalIgnoreCase);
         if (index < 0)
         {
@@ -282,12 +282,12 @@ public static class Anonymiser
     }
 
     /// <summary>
-    /// Remplace les SID de compte enfouis dans un chemin, sans toucher au reste.
+    /// Replaces account SIDs buried in a path, leaving the rest untouched.
     ///
-    /// Certaines applications créent un dossier de tâches par utilisateur et le
-    /// nomment par son SID : <c>\SoftLanding\S-1-5-21-…-1002\…</c>. Hacher le chemin
-    /// entier rendrait la fixture illisible — on ne saurait plus quelle application a
-    /// posé quoi — alors que seul le segment identifiant pose problème.
+    /// Some applications create a per-user task folder and name it after the SID:
+    /// <c>\SoftLanding\S-1-5-21-…-1002\…</c>. Hashing the whole path would make the
+    /// fixture unreadable — one could no longer tell which application put what —
+    /// when only the identifying segment is a problem.
     /// </summary>
     private static string ScrubSegments(string path) =>
         path.Contains("S-1-5-21-", StringComparison.OrdinalIgnoreCase)
@@ -301,14 +301,13 @@ public static class Anonymiser
     {
         null or "" => value,
 
-        // S-1-5-21 précède les SID des comptes créés sur la machine ou le domaine :
-        // derrière chacun il y a quelqu'un. Les autorités bien connues — S-1-5-18
-        // pour le système, S-1-5-19 et S-1-5-20 pour les services — ne désignent
-        // personne et restent lisibles.
+        // S-1-5-21 prefixes the SIDs of accounts created on the machine or domain:
+        // behind each one there is a person. The well-known authorities — S-1-5-18
+        // for the system, S-1-5-19 and S-1-5-20 for services — designate nobody
+        // and stay readable.
         _ when value.StartsWith("S-1-5-21-", StringComparison.OrdinalIgnoreCase) => Hash(value),
 
-        // Forme DOMAINE\utilisateur : porte à la fois le nom de la machine et celui du
-        // compte.
+        // DOMAIN\user form: carries both the machine name and the account name.
         _ when value.Contains('\\') => Hash(value),
 
         _ => value,
@@ -318,7 +317,7 @@ public static class Anonymiser
         SensitiveValueFragments.Any(fragment =>
             valueName.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Empreinte tronquée : suffisante pour comparer, insuffisante pour identifier.</summary>
+    /// <summary>Truncated digest: enough to compare, not enough to identify.</summary>
     public static string Hash(string input)
     {
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(input));

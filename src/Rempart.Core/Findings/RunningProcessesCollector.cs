@@ -3,22 +3,21 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Processus en cours d'exécution.
+/// Running processes.
 ///
 /// <para>
-/// La question est la même que pour les autres surfaces : ce qui s'exécute, qu'est-ce
-/// qui atteste de son origine ? Sur une machine durcie, un processus non signé n'a rien
-/// à y faire — c'est le premier signe d'un binaire déposé. Le jugement est celui de
-/// <see cref="SignatureLadder"/>, la même échelle que les démarrages, les tâches et les
-/// pilotes : une même absence de signature ne doit pas être suspecte ici et anodine
-/// ailleurs.
+/// The question is the same as for the other surfaces: for what executes, what attests
+/// to its origin? On a hardened machine, an unsigned process does not belong — it is
+/// the first sign of a dropped binary. The judgement is that of
+/// <see cref="SignatureLadder"/>, the same scale as autoruns, tasks and drivers: the
+/// same missing signature must not be suspicious here and harmless elsewhere.
 /// </para>
 ///
 /// <para>
-/// Un même exécutable tourne souvent en plusieurs instances — une douzaine de
-/// <c>svchost.exe</c>, plusieurs <c>chrome.exe</c>. Les juger un par un répéterait la
-/// même vérification et noierait le rapport sous des constats identiques. On regroupe
-/// donc par binaire, jugé une fois, avec le nombre d'instances.
+/// The same executable often runs as several instances — a dozen <c>svchost.exe</c>,
+/// several <c>chrome.exe</c>. Judging them one by one would repeat the same
+/// verification and flood the report with identical findings. Processes are therefore
+/// grouped by binary, judged once, with the instance count.
 /// </para>
 /// </summary>
 public sealed class RunningProcessesCollector : IFindingCollector
@@ -48,9 +47,9 @@ public sealed class RunningProcessesCollector : IFindingCollector
                 details["parent"] = representative.ParentPid.ToString();
             }
 
-            // Une ligne de commande, prise sur la première instance qui en a une : hors
-            // élévation, celles des autres utilisateurs restent vides, et c'est une
-            // lacune de droits, pas une absence.
+            // Command line, taken from the first instance that has one: without
+            // elevation, those of other users' processes stay empty, and that is a
+            // permissions gap, not an actual absence.
             if (group.Select(p => p.CommandLine).FirstOrDefault(c => c.Length > 0) is { } command)
             {
                 details["commande"] = command;

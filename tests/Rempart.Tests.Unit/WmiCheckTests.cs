@@ -23,8 +23,8 @@ public sealed class WmiCheckTests
     [Fact]
     public void Every_instance_must_conform()
     {
-        // Un seul disque en clair suffit a exposer ce qu'il porte : le controle porte
-        // sur tous les volumes, pas sur le premier.
+        // A single unencrypted disk exposes what it holds: the check covers all
+        // volumes, not just the first one.
         var verdict = Evaluate(FakeWmiProvider.With("1", "0"));
 
         Assert.Equal(VerdictStatus.Fail, verdict.Status);
@@ -34,8 +34,8 @@ public sealed class WmiCheckTests
     [Fact]
     public void Access_denied_yields_unknown_never_a_failure()
     {
-        // L'espace de noms BitLocker exige l'elevation. Sans droits, conclure
-        // reprocherait a la machine ce que le scan n'a pas pu regarder.
+        // The BitLocker namespace requires elevation. Without rights, a verdict
+        // would blame the machine for what the scan could not look at.
         var verdict = Evaluate(new FakeWmiProvider(WmiRead.AccessDenied));
 
         Assert.Equal(VerdictStatus.Unknown, verdict.Status);
@@ -45,8 +45,8 @@ public sealed class WmiCheckTests
     [Fact]
     public void No_instance_is_unverifiable_rather_than_non_compliant()
     {
-        // BitLocker absent d'une edition Famille n'est pas une non-conformite,
-        // c'est une absence de sujet.
+        // BitLocker missing on a Home edition is not a non-compliance; there is
+        // simply nothing to check.
         Assert.Equal(VerdictStatus.Unknown, Evaluate(new FakeWmiProvider(WmiRead.NotFound)).Status);
     }
 

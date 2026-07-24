@@ -5,8 +5,9 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Implémentation réelle sur le registre Windows. Seule couche du projet à connaître
-/// <c>Microsoft.Win32</c> — tout le reste travaille contre <see cref="IRegistryProvider"/>.
+/// Real implementation over the Windows registry. The only layer of the project that
+/// knows <c>Microsoft.Win32</c> — everything else works against
+/// <see cref="IRegistryProvider"/>.
 /// </summary>
 public sealed class LiveRegistryProvider : IRegistryProvider
 {
@@ -79,8 +80,8 @@ public sealed class LiveRegistryProvider : IRegistryProvider
         }
         catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException)
         {
-            // Un refus rend une liste vide plutôt qu'une exception : l'énumération
-            // des autres emplacements doit se poursuivre.
+            // A denial returns an empty list rather than an exception: enumeration
+            // of the other locations must continue.
         }
 
         return values;
@@ -95,8 +96,8 @@ public sealed class LiveRegistryProvider : IRegistryProvider
         }
         catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException)
         {
-            // Un refus rend une liste vide, comme pour les valeurs : les autres
-            // emplacements doivent continuer d'être énumérés.
+            // A denial returns an empty list, as for values: the other locations
+            // must still be enumerated.
             return [];
         }
     }

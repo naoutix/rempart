@@ -24,9 +24,9 @@ public class FirewallRuleParseTests
     [Fact]
     public void A_missing_profile_means_all_profiles()
     {
-        // Sans champ Profile, la règle s'applique à tous les profils — un fait à ne pas
-        // confondre avec « aucun ». Représenté par une liste vide, traité comme « Public
-        // compris » à l'évaluation.
+        // Without a Profile field, the rule applies to all profiles — a fact not to be
+        // confused with "none". Represented as an empty list, treated as "Public
+        // included" at evaluation.
         var rule = FirewallRule.Parse("v2.31|Action=Allow|Active=TRUE|Dir=In|LPort=80|");
 
         Assert.NotNull(rule);
@@ -36,7 +36,7 @@ public class FirewallRuleParseTests
     [Fact]
     public void A_version_header_alone_is_not_a_usable_rule()
     {
-        // Sans champ Dir, la chaîne ne décrit pas un sens de circulation : rien à évaluer.
+        // Without a Dir field, the string describes no traffic direction: nothing to evaluate.
         Assert.Null(FirewallRule.Parse("v2.31|"));
         Assert.Null(FirewallRule.Parse(""));
     }
@@ -60,7 +60,7 @@ public class FirewallReachabilityTests
     private static string Allow(int port, string extra = "") =>
         $"v2.31|Action=Allow|Active=TRUE|Dir=In|Protocol=6|LPort={port}|Profile=Public|{extra}";
 
-    /// <summary>Un pare-feu non lu ne tranche pas : la règle croisée se retire.</summary>
+    /// <summary>An unread firewall settles nothing: the cross-checking rule steps aside.</summary>
     [Fact]
     public void An_unread_state_answers_unknown()
     {
@@ -68,7 +68,7 @@ public class FirewallReachabilityTests
             FirewallState.Unread.InboundReachability("TCP", 445, null));
     }
 
-    /// <summary>Pare-feu éteint : tout ce qui écoute est joignable.</summary>
+    /// <summary>Firewall off: everything that listens is reachable.</summary>
     [Fact]
     public void A_disabled_firewall_makes_everything_reachable()
     {
@@ -77,7 +77,7 @@ public class FirewallReachabilityTests
         Assert.Equal(FirewallReachability.Reachable, state.InboundReachability("TCP", 445, null));
     }
 
-    /// <summary>Défaut entrant bloquant et aucune règle : non joignable.</summary>
+    /// <summary>Blocking inbound default and no rule: not reachable.</summary>
     [Fact]
     public void With_no_matching_rule_the_default_inbound_block_wins()
     {
@@ -90,7 +90,7 @@ public class FirewallReachabilityTests
         Assert.Equal(FirewallReachability.Reachable, With(Allow(445)).InboundReachability("TCP", 445, null));
     }
 
-    /// <summary>Un blocage l'emporte sur une autorisation, comme dans Windows.</summary>
+    /// <summary>A block wins over an allow, as it does in Windows.</summary>
     [Fact]
     public void A_block_rule_overrides_an_allow_rule()
     {
@@ -102,9 +102,9 @@ public class FirewallReachabilityTests
     }
 
     /// <summary>
-    /// Le champ Profile se répète au lieu de se combiner ; le profil Public y est reconnu
-    /// même noyé parmi d'autres. Un dictionnaire naïf n'en garderait qu'un, au petit bonheur
-    /// de l'ordre.
+    /// The Profile field repeats rather than combining; the Public profile is recognised
+    /// even buried among others. A naive dictionary would keep only one of them, at the
+    /// mercy of ordering.
     /// </summary>
     [Fact]
     public void A_repeated_profile_field_is_read_in_full()
@@ -117,9 +117,9 @@ public class FirewallReachabilityTests
     }
 
     /// <summary>
-    /// Une règle sans port ni application — en pratique une règle d'app empaquetée, portée
-    /// par un identifiant de paquet qu'on ne sait pas rapprocher d'un chemin — n'ouvre pas
-    /// tous les ports. La compter classerait à tort chaque port système comme joignable.
+    /// A rule with neither port nor application — in practice a packaged-app rule, carried
+    /// by a package identifier we cannot map back to a path — does not open every port.
+    /// Counting it would wrongly classify each system port as reachable.
     /// </summary>
     [Fact]
     public void An_app_agnostic_any_port_rule_does_not_open_arbitrary_ports()
@@ -131,7 +131,7 @@ public class FirewallReachabilityTests
             state.InboundReachability("UDP", 5353, @"C:\Windows\System32\svchost.exe"));
     }
 
-    /// <summary>Une règle limitée au profil Domaine ne s'applique pas en Public.</summary>
+    /// <summary>A rule scoped to the Domain profile does not apply on Public.</summary>
     [Fact]
     public void A_rule_scoped_to_another_profile_does_not_apply()
     {
@@ -140,7 +140,7 @@ public class FirewallReachabilityTests
         Assert.Equal(FirewallReachability.Blocked, state.InboundReachability("TCP", 445, null));
     }
 
-    /// <summary>Une règle inactive ne compte pas.</summary>
+    /// <summary>An inactive rule does not count.</summary>
     [Fact]
     public void An_inactive_allow_does_not_open_the_port()
     {
@@ -159,8 +159,8 @@ public class FirewallReachabilityTests
     }
 
     /// <summary>
-    /// Un mot-clé de port dynamique (« RPC ») ne se résout pas en numéro : on ne prétend pas
-    /// qu'il autorise un port précis, pour ne pas inventer une exposition.
+    /// A dynamic-port keyword ("RPC") does not resolve to a number: we do not claim it
+    /// allows a specific port, so as not to invent an exposure.
     /// </summary>
     [Fact]
     public void A_keyword_port_does_not_match_a_specific_number()
@@ -171,8 +171,8 @@ public class FirewallReachabilityTests
     }
 
     /// <summary>
-    /// Une règle liée à une application ne vaut que pour elle — et son chemin se compare
-    /// après développement des variables d'environnement.
+    /// A rule bound to an application counts only for that application — and its path is
+    /// compared after environment variables are expanded.
     /// </summary>
     [Fact]
     public void An_app_scoped_rule_matches_only_its_own_binary()
@@ -186,8 +186,8 @@ public class FirewallReachabilityTests
     }
 
     /// <summary>
-    /// Propriétaire inconnu face à une règle liée à une application : on ne peut pas
-    /// confirmer qu'elle s'applique, on ne le suppose pas.
+    /// Unknown owner against an app-bound rule: we cannot confirm it applies, so we do
+    /// not assume it does.
     /// </summary>
     [Fact]
     public void An_app_scoped_rule_does_not_apply_when_the_owner_is_unknown()

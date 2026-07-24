@@ -2,24 +2,24 @@ using Rempart.Core.Rules;
 
 namespace Rempart.Core.Updates;
 
-/// <summary>Le sort d'un jeu de données du manifeste, une fois confronté à ce qu'on a reçu.</summary>
+/// <summary>The outcome for one manifest dataset, after checking it against what was received.</summary>
 public sealed record DatasetPreview(
     string Name,
     string Version,
     string Kind,
     bool Verified,
     string? Problem,
-    /// <summary>Différentiel, pour un jeu de règles.</summary>
+    /// <summary>Diff, for a rules dataset.</summary>
     CatalogDiff? Diff = null,
-    /// <summary>Nombre d'entrées, pour une liste de pilotes.</summary>
+    /// <summary>Entry count, for a driver blocklist.</summary>
     int DriverCount = 0);
 
 /// <summary>
-/// Ce qu'une mise à jour ferait, sans l'avoir faite.
+/// What an update would do, without having done it.
 ///
-/// D14 l'exige : <c>update</c> télécharge, vérifie, puis montre ce qui change avant
-/// d'appliquer. Cet objet est ce « ce qui change » — produit sans rien écrire, pour
-/// qu'un refus après lecture ne laisse aucune trace.
+/// Required by D14: <c>update</c> downloads, verifies, then shows what changes before
+/// applying. This object is that "what changes" — produced without writing anything, so
+/// that declining after reading it leaves no trace.
 /// </summary>
 public sealed record UpdatePreview(
     ManifestStatus Status,
@@ -30,30 +30,30 @@ public sealed record UpdatePreview(
     public bool Trusted => Status == ManifestStatus.Trusted;
 
     /// <summary>
-    /// Un manifeste de confiance ne suffit pas : chaque fichier qu'il décrit doit aussi
-    /// correspondre à son empreinte. Un seul qui manque à l'appel interdit d'appliquer —
-    /// on ne pose pas la moitié d'une mise à jour.
+    /// A trusted manifest is not enough: every file it describes must also match its
+    /// hash. A single missing or failing one blocks applying — half an update is never
+    /// applied.
     /// </summary>
     public bool ReadyToApply => Trusted && Datasets.Count > 0 && Datasets.All(d => d.Verified);
 }
 
 /// <summary>
-/// Prépare une mise à jour : vérifie le manifeste et chaque jeu de données, puis établit
-/// le différentiel — sans rien écrire.
+/// Prepares an update: verifies the manifest and every dataset, then computes the diff —
+/// without writing anything.
 ///
 /// <para>
-/// La lecture des octets est injectée plutôt que faite ici : le même code prépare une
-/// mise à jour qu'elle vienne d'un fichier local (le cas de la clé USB, D11) ou plus
-/// tard du réseau, et se teste sans ni l'un ni l'autre. C'est la règle des providers
-/// (ADR-001, D5) appliquée à la mise à jour.
+/// Reading the bytes is injected rather than done here: the same code prepares an update
+/// whether it comes from a local file (the USB stick case, D11) or later from the
+/// network, and it can be tested with neither. This is the provider rule (ADR-001, D5)
+/// applied to updates.
 /// </para>
 /// </summary>
 public static class UpdatePlanner
 {
     /// <param name="readDataset">
-    /// Résout le nom d'un jeu de données en ses octets, ou <c>null</c> s'il est
-    /// introuvable. Un fichier absent est un problème du jeu de données, pas une panne
-    /// de la préparation : les autres continuent d'être examinés.
+    /// Resolves a dataset name to its bytes, or <c>null</c> if it cannot be found. A
+    /// missing file is a problem with that dataset, not a failure of the preparation:
+    /// the other datasets are still examined.
     /// </param>
     public static UpdatePreview Prepare(
         string manifestJson,
@@ -65,8 +65,8 @@ public static class UpdatePlanner
 
         if (!verdict.IsTrusted || verdict.Payload is null)
         {
-            // Manifeste non fiable : on ne regarde même pas les jeux de données. Leur
-            // intégrité ne veut rien dire si ce qui les décrit n'est pas authentique.
+            // Untrusted manifest: the datasets are not examined at all. Their integrity
+            // means nothing if what describes them is not authentic.
             return new UpdatePreview(verdict.Status, verdict.Explanation, null, []);
         }
 
@@ -93,9 +93,9 @@ public static class UpdatePlanner
 
         if (!ManifestVerifier.FileMatches(entry, bytes))
         {
-            // Le manifeste est authentique mais le fichier ne correspond pas : reçu
-            // corrompu ou substitué. Distinct d'une signature invalide, et à traiter
-            // comme tel — ne rien appliquer, mais ne pas crier à la falsification.
+            // The manifest is authentic but the file does not match: what was received
+            // is corrupted or substituted. Distinct from an invalid signature, and
+            // handled as such — apply nothing, but do not report it as tampering.
             return Unverified(entry,
                 "Empreinte ou taille ne correspond pas au manifeste : fichier corrompu " +
                 "ou incomplet.");
@@ -115,9 +115,9 @@ public static class UpdatePlanner
                     entry.Name, entry.Version, entry.Kind, Verified: true, null,
                     DriverCount: DriverBlocklist.Parse(text).Count),
 
-                // Type inconnu de cette version : ni règles, ni pilotes. Un manifeste
-                // plus récent que le binaire. On ne devine pas, on refuse — et on le dit,
-                // pour que la réponse soit « mettre le binaire à jour », pas « corrompu ».
+                // Kind unknown to this version: neither rules nor drivers. The manifest
+                // is newer than the binary. Do not guess; refuse — and say so, so the
+                // takeaway is "update the binary", not "corrupted".
                 _ => Unverified(entry,
                     $"Type de jeu de données inconnu de cette version : « {entry.Kind} ». " +
                     "Installer une version plus récente."),
@@ -125,9 +125,8 @@ public static class UpdatePlanner
         }
         catch (Exception ex) when (ex is RuleFormatException or System.Text.Json.JsonException)
         {
-            // Fichier authentique et intègre, mais que cette version ne sait pas lire.
-            // Ce n'est pas une attaque : le dire plutôt que de laisser croire à une
-            // corruption.
+            // The file is authentic and intact, but this version cannot parse it. Not
+            // an attack: say so rather than let it look like corruption.
             return Unverified(entry, $"Jeu de données illisible par cette version : {ex.Message}");
         }
     }

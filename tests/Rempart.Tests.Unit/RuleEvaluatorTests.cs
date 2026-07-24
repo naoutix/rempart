@@ -8,19 +8,18 @@ public sealed class RuleEvaluatorTests
     private const string Key = @"HKLM\SOFTWARE\Test";
 
     /// <summary>
-    /// Le comportement le plus important du moteur, et celui qui manquait à la première
-    /// version : une clé absente ne signifie pas « non conforme ». Sur Windows, elle
-    /// signifie « le défaut s'applique », et le défaut est souvent l'état souhaité.
-    /// Sans cela l'outil crierait au feu sur des machines saines, et ses alertes
-    /// cesseraient d'être lues.
+    /// The engine's most important behavior, missing from the first version: an
+    /// absent key does not mean "non-compliant". On Windows it means "the default
+    /// applies", and the default is often the desired state. Without this the tool
+    /// would raise false alarms on healthy machines.
     /// </summary>
     public sealed class WhenTheValueIsAbsent
     {
         [Fact]
         public void A_secure_windows_default_passes()
         {
-            // Cas réel : WDigest. Absent depuis Windows 8.1, donc pas de mot de passe
-            // en clair en mémoire — l'état recherché.
+            // Real case: WDigest. Absent since Windows 8.1, so no cleartext
+            // password in memory — the desired state.
             var rule = Rule(CheckOperator.NotEquals, expect: "1", windowsDefault: "0");
 
             Assert.Equal(VerdictStatus.Pass, Evaluate(rule, new FakeRegistryProvider()).Status);
@@ -29,7 +28,7 @@ public sealed class RuleEvaluatorTests
         [Fact]
         public void An_insecure_windows_default_fails()
         {
-            // Cas réel : LLMNR. Stratégie non configurée signifie LLMNR actif.
+            // Real case: LLMNR. Policy not configured means LLMNR is active.
             var rule = Rule(CheckOperator.Equals, expect: "0", windowsDefault: "1");
 
             Assert.Equal(VerdictStatus.Fail, Evaluate(rule, new FakeRegistryProvider()).Status);
@@ -42,7 +41,7 @@ public sealed class RuleEvaluatorTests
 
             var observed = Evaluate(rule, new FakeRegistryProvider()).Observed;
 
-            // Sans cette mention, on croirait l'outil incapable de lire la clé.
+            // Without this note, the output would suggest the tool failed to read the key.
             Assert.Contains("absent", observed!, StringComparison.Ordinal);
             Assert.Contains("1", observed!, StringComparison.Ordinal);
         }
@@ -76,8 +75,8 @@ public sealed class RuleEvaluatorTests
     [Fact]
     public void AtLeast_accepts_a_stronger_setting_than_required()
     {
-        // Cas réel : RunAsPPL vaut 1 (avec verrou UEFI) ou 2 (sans). Les deux protègent
-        // LSASS. Exiger l'égalité rejetterait une machine correctement configurée.
+        // Real case: RunAsPPL is 1 (with UEFI lock) or 2 (without). Both protect
+        // LSASS. Requiring equality would reject a correctly configured machine.
         var registry = new FakeRegistryProvider().WithNumber(Key, "Flag", 2);
 
         Assert.Equal(VerdictStatus.Pass,
@@ -87,7 +86,7 @@ public sealed class RuleEvaluatorTests
     [Fact]
     public void Access_denied_yields_unknown_never_a_pass_or_a_fail()
     {
-        // Ni conforme ni non conforme. Un audit qui trancherait ici mentirait.
+        // Neither compliant nor non-compliant. The audit must not pick a side here.
         var registry = new FakeRegistryProvider().WithAccessDenied(Key, "Flag");
 
         var verdict = Evaluate(Rule(CheckOperator.Equals, "1", "0"), registry);
@@ -99,7 +98,7 @@ public sealed class RuleEvaluatorTests
     [Fact]
     public void Key_existence_checks_ignore_the_windows_default()
     {
-        // Ces opérateurs portent sur la présence même, pas sur une valeur effective.
+        // These operators test key presence itself, not an effective value.
         var rule = KeyRule(CheckOperator.Absent);
 
         Assert.Equal(VerdictStatus.Pass, Evaluate(rule, new FakeRegistryProvider()).Status);

@@ -3,9 +3,9 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Un collecteur de constats énumère ce qui est présent ; un collecteur classique
-/// décrit des champs connus d'avance. La différence tient à ce qu'on cherche : une
-/// configuration se lit par son nom, une persistance se découvre.
+/// A finding collector enumerates whatever is present; a regular collector describes
+/// fields known in advance. The difference lies in what is being looked for: a
+/// configuration is read by its name, a persistence has to be discovered.
 /// </summary>
 public interface IFindingCollector
 {
@@ -15,15 +15,15 @@ public interface IFindingCollector
 }
 
 /// <summary>
-/// Programmes lancés au démarrage.
+/// Programs launched at startup.
 ///
-/// C'est le premier endroit qu'on regarde sur une machine suspecte, et le premier
-/// qu'un attaquant utilise : y déposer une entrée survit au redémarrage sans exiger
-/// de droits particuliers.
+/// This is the first place to look on a suspicious machine, and the first one an
+/// attacker uses: an entry dropped there survives a reboot without requiring any
+/// particular privilege.
 ///
-/// Le jugement porte sur la signature, pas sur le nom ni le chemin — les deux
-/// s'imitent trivialement, un binaire nommé « OneDriveSetup.exe » dans un dossier
-/// utilisateur n'a rien de Microsoft.
+/// The judgement rests on the signature, not on the name or the path — both are
+/// trivially imitated, and a binary named "OneDriveSetup.exe" in a user folder has
+/// nothing of Microsoft.
 /// </summary>
 public sealed class AutorunsCollector : IFindingCollector
 {
@@ -34,8 +34,8 @@ public sealed class AutorunsCollector : IFindingCollector
         @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
         @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",
 
-        // Vue 32 bits sur un système 64 bits : emplacement distinct, souvent oublié
-        // des outils qui n'énumèrent que la vue native.
+        // 32-bit view on a 64-bit system: a distinct location, often missed by tools
+        // that only enumerate the native view.
         @"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run",
     ];
 
@@ -73,24 +73,24 @@ public sealed class AutorunsCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Dossiers de démarrage, machine puis utilisateur. Leur contenu s'exécute à
-    /// l'ouverture de session sans qu'aucune clé de registre ne le mentionne — un
-    /// audit qui n'inspecterait que le registre les manquerait entièrement.
+    /// Startup folders, machine then user. Their content runs at logon without any
+    /// registry key mentioning it — an audit that only inspected the registry would
+    /// miss them entirely.
     ///
     /// <para>
-    /// Les chemins sont lus dans le registre (<c>Shell Folders</c>) plutôt que calculés
-    /// via <c>Environment</c> : le dossier utilisateur porte le nom de compte, propre à la
-    /// machine, et <c>Environment.GetFolderPath</c> le résoudrait selon l'hôte du rejeu —
-    /// sur Linux en CI, un chemin POSIX qui ne correspond plus à la clé capturée. Lue dans
-    /// le registre, la valeur est capturée puis rejouée à l'identique, comme tout le reste.
+    /// The paths are read from the registry (<c>Shell Folders</c>) rather than computed
+    /// via <c>Environment</c>: the user folder carries the account name, specific to the
+    /// machine, and <c>Environment.GetFolderPath</c> would resolve it on the replay host —
+    /// on Linux in CI, a POSIX path that no longer matches the captured key. Read from the
+    /// registry, the value is captured then replayed identically, like everything else.
     /// </para>
     /// </summary>
     private static IEnumerable<string> StartupFolders(IRegistryProvider registry)
     {
-        // Lu par ListValues plutôt que ReadValue : sur un instantané antérieur à cette
-        // collecte, ReadValue lève « lecture non enregistrée » et interromprait le
-        // collecteur, alors que ListValues rend une liste vide — la fixture ancienne reste
-        // rejouable, elle produit simplement moins de constats.
+        // Read via ListValues rather than ReadValue: on a snapshot taken before this
+        // collection existed, ReadValue throws "unrecorded read" and would abort the
+        // collector, whereas ListValues returns an empty list — the old fixture stays
+        // replayable, it simply yields fewer findings.
         if (Value(registry,
                 @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
                 "Common Startup") is { Length: > 0 } machine)
@@ -110,14 +110,14 @@ public sealed class AutorunsCollector : IFindingCollector
         registry.ListValues(keyPath).TryGetValue(valueName, out var value) ? value.Text : null;
 
     /// <summary>
-    /// <c>desktop.ini</c> décrit l'apparence du dossier ; il ne s'exécute pas. Le
-    /// signaler ajouterait du bruit sur toute machine, ce qui est la manière la plus
-    /// sûre de faire cesser la lecture d'un rapport.
+    /// <c>desktop.ini</c> describes the folder's appearance; it does not execute.
+    /// Reporting it would add noise on every machine, which is the surest way to make
+    /// people stop reading a report.
     ///
-    /// Le nom de fichier est découpé à la main sur les deux séparateurs Windows plutôt
-    /// que par <c>Path.GetFileName</c> : sous Linux, celui-ci ne reconnaît pas le
-    /// contre-oblique et rendrait le chemin entier, laissant passer le <c>desktop.ini</c>
-    /// d'une capture Windows au rejeu.
+    /// The file name is split by hand on both Windows separators rather than through
+    /// <c>Path.GetFileName</c>: on Linux, the latter does not recognise the backslash
+    /// and would return the whole path, letting the <c>desktop.ini</c> of a Windows
+    /// capture slip through on replay.
     /// </summary>
     private static bool IsIgnored(string path) =>
         FileName(path).Equals("desktop.ini", StringComparison.OrdinalIgnoreCase);
@@ -129,10 +129,10 @@ public sealed class AutorunsCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Un raccourci ne s'exécute pas lui-même : il désigne autre chose. Le juger sur
-    /// sa propre signature serait faux — c'est sa cible qui compte, et la résoudre
-    /// demande de lire le format .lnk. Il est donc énuméré sans être jugé, et le
-    /// rapport dit pourquoi plutôt que de laisser croire à une vérification.
+    /// A shortcut does not execute by itself: it points at something else. Judging it
+    /// on its own signature would be wrong — its target is what matters, and resolving
+    /// it requires reading the .lnk format. It is therefore enumerated without being
+    /// judged, and the report says why rather than implying a verification took place.
     /// </summary>
     private static Finding ExamineStartupFile(
         string folder, string path, ISignatureProvider signatures)
@@ -169,12 +169,12 @@ public sealed class AutorunsCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Extrait le chemin de l'exécutable d'une ligne de commande.
+    /// Extracts the executable path from a command line.
     ///
-    /// Un chemin non entouré de guillemets et contenant des espaces est ambigu :
-    /// <c>C:\Program Files\App\a.exe</c> peut se lire comme <c>C:\Program.exe</c>.
-    /// C'est la faille du « chemin de service non-quoté », et elle vaut ici aussi.
-    /// On retient le préfixe le plus long qui désigne un fichier existant.
+    /// An unquoted path containing spaces is ambiguous:
+    /// <c>C:\Program Files\App\a.exe</c> can be read as <c>C:\Program.exe</c>.
+    /// This is the "unquoted service path" flaw, and it applies here as well.
+    /// We keep the longest prefix that names an existing file.
     /// </summary>
     internal static string ExtractExecutablePath(string command)
     {
@@ -186,7 +186,7 @@ public sealed class AutorunsCollector : IFindingCollector
             return closing > 0 ? trimmed[1..closing] : trimmed[1..];
         }
 
-        // Sans guillemets, on avance espace par espace jusqu'à trouver un fichier.
+        // Without quotes, advance space by space until a file is found.
         var parts = trimmed.Split(' ');
         for (var take = parts.Length; take >= 1; take--)
         {

@@ -3,30 +3,29 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Paquets chargés par l'autorité de sécurité locale (LSA).
+/// Packages loaded by the Local Security Authority (LSA).
 ///
 /// <para>
-/// LSA charge des DLL nommées dans le registre : fournisseurs d'authentification,
-/// paquets de sécurité (SSP), paquets de notification de mot de passe. Une DLL ajoutée
-/// à ces listes s'exécute dans le processus qui manipule les identifiants — c'est la
-/// technique d'un vol d'identifiants persistant (le <c>mimilib</c> de mimikatz s'y
-/// enregistre). Aucun outil grand public ne regarde là.
+/// LSA loads DLLs named in the registry: authentication providers, security packages
+/// (SSP), password notification packages. A DLL added to these lists executes inside
+/// the process that handles credentials — the technique of persistent credential theft
+/// (mimikatz's <c>mimilib</c> registers there). No consumer-grade tool looks there.
 /// </para>
 ///
 /// <para>
-/// Sur une machine saine, ces paquets sont tous signés par Microsoft. Le signal est
-/// donc une DLL non signée ou dont la signature ne vérifie pas — jugée par la même
-/// échelle que le reste (<see cref="SignatureLadder"/>). Un paquet tiers légitimement
-/// signé (carte à puce, par exemple) reste bénin : c'est l'absence de signature qui
-/// alerte, pas la simple présence.
+/// On a healthy machine, these packages are all signed by Microsoft. The signal is
+/// therefore an unsigned DLL, or one whose signature does not verify — judged on the
+/// same scale as everything else (<see cref="SignatureLadder"/>). A legitimately
+/// signed third-party package (smart card, for example) stays benign: the missing
+/// signature is the alert, not the mere presence.
 /// </para>
 /// </summary>
 public sealed class LsaPackagesCollector : IFindingCollector
 {
     private const string Lsa = @"HKLM\SYSTEM\CurrentControlSet\Control\Lsa";
 
-    // Newer Windows a déplacé les paquets de sécurité sous ce sous-clé : on lit les deux
-    // emplacements, sans quoi la surface serait manquée sur les builds récents.
+    // Newer Windows builds moved the security packages under this subkey: both
+    // locations are read, otherwise the surface would be missed on recent builds.
     private const string LsaOsConfig = @"HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig";
 
     private static readonly (string Key, string Value)[] Sources =
@@ -50,8 +49,8 @@ public sealed class LsaPackagesCollector : IFindingCollector
 
             if (read.Status == ReadStatus.AccessDenied)
             {
-                // Ne pas se taire : une liste illisible n'est pas une liste vide, et
-                // c'est justement là qu'un paquet malveillant se logerait.
+                // Report the failure: an unreadable list is not an empty list, and it
+                // is exactly where a malicious package would sit.
                 findings.Add(new Finding("lsa-package", $"Lsa\\{value}", "—",
                     FindingSeverity.Notable,
                     ["Liste refusée à la lecture. Relancer en administrateur : un paquet " +
@@ -65,17 +64,17 @@ public sealed class LsaPackagesCollector : IFindingCollector
                 continue;
             }
 
-            // REG_MULTI_SZ est rendu joint par des sauts de ligne par le provider ;
-            // certains paquets peuvent aussi apparaître separés par des espaces.
+            // The provider returns REG_MULTI_SZ joined with newlines; some packages
+            // can also appear separated by spaces.
             foreach (var raw in text.Split(['\n', '\r', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                // Windows note une liste vide par une valeur littérale « "" » : après
-                // retrait des guillemets il ne reste rien. Ce n'est pas un paquet, et le
-                // résoudre en « "".dll » faisait ressortir un introuvable inventé.
+                // Windows records an empty list as a literal « "" » value: once the
+                // quotes are stripped, nothing remains. That is not a package, and
+                // resolving it to « "".dll » used to surface an invented not-found.
                 var package = raw.Trim('"');
                 if (package.Length == 0 || !seen.Add(package))
                 {
-                    // Marqueur de liste vide, ou paquet déjà jugé à un autre emplacement.
+                    // Empty-list marker, or a package already judged at another location.
                     continue;
                 }
 
@@ -99,10 +98,10 @@ public sealed class LsaPackagesCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Un nom de paquet LSA est une DLL de System32, sans chemin ni toujours d'extension.
-    /// Résolu en dur — <c>C:\Windows\System32\&lt;nom&gt;.dll</c> — sans toucher au disque
-    /// ni à <c>System.IO.Path</c>, pour que capture et rejeu produisent le même chemin
-    /// quelle que soit la machine.
+    /// An LSA package name is a System32 DLL, with no path and not always an extension.
+    /// Resolved hardcoded — <c>C:\Windows\System32\&lt;name&gt;.dll</c> — without touching
+    /// the disk or <c>System.IO.Path</c>, so that capture and replay produce the same
+    /// path whatever the machine.
     /// </summary>
     private static string Resolve(string package)
     {

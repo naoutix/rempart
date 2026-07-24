@@ -3,14 +3,14 @@ using Rempart.Core.Findings;
 namespace Rempart.Core.Pac;
 
 /// <summary>
-/// Enrichit les constats proxy du routage réel de leur script PAC — un appel réseau, et
-/// uniquement quand l'utilisateur le demande (ADR-001, D9), jamais en rejeu.
+/// Enriches proxy findings with the actual routing of their PAC script — a network call,
+/// and only when the user asks for it (ADR-001, D9), never during replay.
 ///
 /// <para>
-/// Seuls les constats déjà signalés et porteurs d'une URL de PAC sont récupérés. Un proxy
-/// imposé par stratégie de groupe (bénin) ne l'est pas : son PAC d'entreprise route
-/// légitimement vers un proxy interne, et le récupérer ne ferait que confirmer l'attendu.
-/// C'est un complément aux constats, pas une seconde passe d'analyse.
+/// Only findings already flagged and carrying a PAC URL are fetched. A proxy imposed by
+/// group policy (benign) is not: its corporate PAC legitimately routes to an internal
+/// proxy, and fetching it would only confirm the expected. This is a complement to the
+/// findings, not a second analysis pass.
 /// </para>
 /// </summary>
 public static class PacEnrichment
@@ -34,9 +34,9 @@ public static class PacEnrichment
             entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
         details["pac-route"] = analysis.Summary;
 
-        // Un PAC qui route vers un hôte externe reçoit le trafic de la machine : le soupçon
-        // se confirme, on hisse à suspect. Une route locale, ou une récupération en échec,
-        // n'aggrave rien — « injoignable » n'est pas « inoffensif ».
+        // A PAC routing to an external host receives the machine's traffic: the suspicion
+        // is confirmed, so the finding is raised to suspicious. A local route, or a failed
+        // fetch, aggravates nothing — "unreachable" is not "harmless".
         var external = analysis.Proxies.Where(IsExternal).ToList();
         if (external.Count > 0 && finding.Severity < FindingSeverity.Suspicious)
         {

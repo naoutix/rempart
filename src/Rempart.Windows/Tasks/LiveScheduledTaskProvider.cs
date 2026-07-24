@@ -7,22 +7,21 @@ using Rempart.Windows.Wmi;
 namespace Rempart.Windows.Tasks;
 
 /// <summary>
-/// Énumère les tâches planifiées par l'API COM du planificateur.
+/// Enumerates scheduled tasks through the Task Scheduler COM API.
 ///
 /// <para>
-/// Les tâches vivent aussi sous forme de fichiers XML dans
-/// <c>%SystemRoot%\System32\Tasks</c>, et les lire aurait évité tout ce COM. Deux
-/// raisons de ne pas le faire : le planificateur tient l'état d'activation réel dans
-/// le registre, qu'un fichier sur disque peut contredire ; et surtout, une tâche dont
-/// on retire l'entrée de registre disparaît de l'ordonnanceur sans que son fichier
-/// s'efface. Lire les fichiers rendrait donc des tâches qui ne s'exécutent pas, et
-/// c'est exactement l'inverse du service rendu.
+/// Tasks also exist as XML files in <c>%SystemRoot%\System32\Tasks</c>, and reading
+/// them would have avoided all this COM. Two reasons not to: the scheduler keeps the
+/// real enabled state in the registry, which a file on disk can contradict; and above
+/// all, a task whose registry entry is removed disappears from the scheduler without
+/// its file being deleted. Reading the files would therefore return tasks that do not
+/// run, the exact opposite of what this provider is for.
 /// </para>
 ///
 /// <para>
-/// L'énumération non élevée voit les tâches de l'utilisateur et la plupart des tâches
-/// système ; certains dossiers restent refusés. Un refus est consigné et
-/// l'énumération continue : un inventaire partiel et honnête vaut mieux qu'aucun.
+/// Non-elevated enumeration sees the user's tasks and most system tasks; some folders
+/// remain denied. A denial is recorded and enumeration continues: a partial, honest
+/// inventory is better than none.
 /// </para>
 /// </summary>
 public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskProvider
@@ -31,8 +30,8 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
     private const int ClsctxLocalServer = 4;
 
     /// <summary>
-    /// Garde-fou contre une arborescence cyclique ou absurde. Les dossiers réels ne
-    /// dépassent pas trois ou quatre niveaux ; au-delà on arrête plutôt que de tourner.
+    /// Guard against a cyclic or absurd folder tree. Real folder trees do not exceed
+    /// three or four levels; past that, stop rather than loop.
     /// </summary>
     private const int MaxDepth = 16;
 
@@ -55,8 +54,8 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
             {
                 0x80070005 => ScheduledTaskRead.AccessDenied,
 
-                // Une défaillance ne doit pas se déguiser en refus d'accès : cette
-                // confusion a déjà fait conclure à tort qu'une élévation suffirait.
+                // A failure must not masquerade as access denied: that confusion
+                // already led to the wrong conclusion that elevation would be enough.
                 _ => ScheduledTaskRead.Failed($"COM 0x{(uint)ex.HResult:X8} : {ex.Message}"),
             };
         }
@@ -113,9 +112,9 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
     }
 
     /// <summary>
-    /// Parcourt un dossier et ses sous-dossiers. Un dossier illisible est ignoré sans
-    /// interrompre les autres : la plupart des tâches vivent sous
-    /// <c>\Microsoft\Windows</c>, en perdre une branche ne doit pas coûter le reste.
+    /// Walks a folder and its subfolders. An unreadable folder is skipped without
+    /// interrupting the others: most tasks live under <c>\Microsoft\Windows</c>, and
+    /// losing one branch must not cost the rest.
     /// </summary>
     private static void Walk(ITaskFolder folder, List<ScheduledTask> tasks, int depth)
     {
@@ -154,7 +153,7 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
         }
     }
 
-    /// <summary>Un VARIANT entier : les collections COM s'indexent à partir de 1.</summary>
+    /// <summary>An integer VARIANT: COM collections are indexed starting at 1.</summary>
     private static Variant Index(int value) =>
         new() { Vt = VariantType.I4, Data = (IntPtr)value };
 
@@ -174,8 +173,8 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
         var runLevel = (string?)null;
         var actions = (IReadOnlyList<TaskAction>)[];
 
-        // Une définition illisible ne doit pas faire disparaître la tâche de
-        // l'inventaire : on la rend sans ses actions plutôt que pas du tout.
+        // An unreadable definition must not remove the task from the inventory:
+        // return it without its actions rather than not at all.
         if (task.get_Xml(out var xml) >= 0 && !string.IsNullOrEmpty(xml))
         {
             try
@@ -190,8 +189,9 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
             }
             catch (System.Xml.XmlException)
             {
-                // Signalé par l'absence d'actions, pas par un silence : le collecteur
-                // en fait un constat « non jugée » plutôt qu'une tâche sans action.
+                // Signaled by the absence of actions, not silently: the collector
+                // turns it into a "not assessed" finding rather than a task with no
+                // action.
             }
         }
 
@@ -221,9 +221,9 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
             }
             else
             {
-                // ComHandler, SendEmail, ShowMessage : formes héritées, encore
-                // présentes sur des machines réelles. Énumérées sans cible de
-                // fichier — le collecteur ne prétendra pas en vérifier la signature.
+                // ComHandler, SendEmail, ShowMessage: legacy action types, still
+                // present on real machines. Enumerated without a file target — the
+                // collector will not pretend to verify their signature.
                 actions.Add(new TaskAction(element.Name.LocalName, string.Empty, string.Empty));
             }
         }
@@ -232,25 +232,26 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
     }
 
     /// <summary>
-    /// Résout le chemin d'un exécutable tel que le planificateur le ferait.
+    /// Resolves an executable path the way the scheduler would.
     ///
     /// <para>
-    /// Deux écritures à traiter. Les variables d'environnement d'abord : les tâches du
-    /// système écrivent <c>%windir%\system32\...</c>, et sans expansion aucune
-    /// vérification ne trouverait le fichier.
+    /// Two notations to handle. Environment variables first: system tasks write
+    /// <c>%windir%\system32\...</c>, and without expansion no verification would find
+    /// the file.
     /// </para>
     ///
     /// <para>
-    /// Le nom nu ensuite — <c>sc.exe</c>, <c>BthUdTask.exe</c> — que le planificateur
-    /// résout à l'exécution. Ne pas le résoudre ici a produit deux constats « le
-    /// fichier visé n'existe pas » sur des binaires parfaitement présents dans
-    /// System32. C'est une lacune de résolution déguisée en fait sur la machine, et
-    /// c'est précisément ce que ce projet refuse de laisser passer.
+    /// Then the bare name — <c>sc.exe</c>, <c>BthUdTask.exe</c> — which the scheduler
+    /// resolves at run time. Not resolving it here produced two "target file does not
+    /// exist" findings on binaries that were present in System32. That is a resolution
+    /// gap disguised as a fact about the machine, which this project must not let
+    /// through.
     /// </para>
     ///
     /// <para>
-    /// Un nom qui reste introuvable est rendu tel quel, sans dossier : le collecteur y
-    /// lit qu'il n'a pas su résoudre, et le dit, plutôt que d'accuser le fichier.
+    /// A name that still cannot be found is returned as is, without a directory: the
+    /// collector reads that as "could not resolve" and says so, rather than blaming
+    /// the file.
     /// </para>
     /// </summary>
     private static string Expand(string command)
@@ -288,7 +289,7 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
             }
             catch (ArgumentException)
             {
-                // Une entree de PATH mal formee ne doit pas arreter la recherche.
+                // A malformed PATH entry must not stop the search.
             }
         }
 
@@ -309,8 +310,8 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
     }
 
     /// <summary>
-    /// <c>TASK_STATE</c>. Rendu en texte parce que l'instantané le sérialise et qu'un
-    /// entier nu dans une fixture ne se relit pas.
+    /// <c>TASK_STATE</c>. Rendered as text because the snapshot serializes it, and a
+    /// bare integer in a fixture cannot be read back meaningfully.
     /// </summary>
     private static string StateName(int state) => state switch
     {

@@ -2,19 +2,19 @@ namespace Rempart.Core.Providers;
 
 public enum SignatureStatus
 {
-    /// <summary>Signature valide, chaîne de confiance vérifiée.</summary>
+    /// <summary>Valid signature, trust chain verified.</summary>
     Valid,
 
-    /// <summary>Aucune signature.</summary>
+    /// <summary>No signature.</summary>
     Unsigned,
 
-    /// <summary>Signée, mais la vérification échoue — expirée, révoquée, altérée.</summary>
+    /// <summary>Signed, but verification fails — expired, revoked, or tampered.</summary>
     Invalid,
 
-    /// <summary>Le fichier n'existe pas au chemin indiqué.</summary>
+    /// <summary>The file does not exist at the given path.</summary>
     FileNotFound,
 
-    /// <summary>La vérification n'a pas pu aboutir. Ni valide, ni invalide.</summary>
+    /// <summary>Verification could not complete. Neither valid nor invalid.</summary>
     Unknown,
 }
 
@@ -24,16 +24,15 @@ public sealed record FileSignature(
     string? Sha256 = null);
 
 /// <summary>
-/// Vérifie la signature Authenticode d'un fichier.
+/// Verifies the Authenticode signature of a file.
 ///
-/// C'est le seul moyen de distinguer un binaire légitime lancé au démarrage d'un
-/// programme déposé là par un tiers. Un chemin et un nom ne prouvent rien : les deux
-/// s'imitent trivialement.
+/// This is the only way to distinguish a legitimate binary launched at startup from a
+/// program planted there by a third party. A path and a name prove nothing: both are
+/// trivial to imitate.
 ///
-/// Une vérification qui échoue rend <see cref="SignatureStatus.Unknown"/>, jamais
-/// <see cref="SignatureStatus.Unsigned"/> : confondre « je n'ai pas pu vérifier » avec
-/// « ce n'est pas signé » produirait des alertes fausses sur les machines les moins
-/// auditables — l'inverse exact de ce qu'on cherche.
+/// A verification that fails returns <see cref="SignatureStatus.Unknown"/>, never
+/// <see cref="SignatureStatus.Unsigned"/>: conflating "could not verify" with "not
+/// signed" would produce false alerts on the machines that are hardest to audit.
 /// </summary>
 public interface ISignatureProvider
 {

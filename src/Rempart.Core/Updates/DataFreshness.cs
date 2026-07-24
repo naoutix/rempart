@@ -3,11 +3,11 @@ using System.Globalization;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// L'âge des données au moment du scan.
+/// The age of the data at scan time.
 ///
-/// <see cref="Unknown"/> compte autant que le reste : une date qu'on ne sait pas lire
-/// ne doit pas passer pour une donnée fraîche. C'est le même principe que partout
-/// ailleurs — une panne ne se déguise pas en résultat favorable.
+/// <see cref="Unknown"/> matters as much as the rest: a date we cannot parse must not
+/// pass for fresh data. Same principle as everywhere else in the project — a failure
+/// must not be presented as a favorable result.
 /// </summary>
 public sealed record DataAge(
     string AsOfUtc,
@@ -17,18 +17,18 @@ public sealed record DataAge(
     int ThresholdDays);
 
 /// <summary>
-/// Calcule depuis combien de temps les données évaluées datent.
+/// Computes how old the evaluated data is.
 ///
 /// <para>
-/// L'ADR-002 (D15) l'exige dans chaque rapport : un binaire vieux de six mois audite
-/// avec des règles de six mois, et rien ne le signalait. L'empreinte du catalogue
-/// disait <em>quoi</em> ; l'âge dit <em>quand</em>.
+/// ADR-002 (D15) requires this in every report: a six-month-old binary audits with
+/// six-month-old rules, and nothing used to signal it. The catalog fingerprint said
+/// <em>what</em>; the age says <em>when</em>.
 /// </para>
 ///
 /// <para>
-/// Le seuil d'alerte est provisoire — l'ADR le note « arbitraire tant qu'on n'a pas
-/// observé la cadence réelle ». Cent quatre-vingts jours, soit l'ordre des six mois
-/// cités par la décision, à revoir une fois la fréquence de publication connue.
+/// The alert threshold is provisional — the ADR calls it "arbitrary until the actual
+/// cadence has been observed". 180 days, matching the six-month order of magnitude cited
+/// by the decision, to be revisited once the publication frequency is known.
 /// </para>
 /// </summary>
 public static class DataFreshness
@@ -39,15 +39,15 @@ public static class DataFreshness
     {
         if (!TryParse(asOfUtc, out var asOf) || !TryParse(nowUtc, out var now))
         {
-            // Ni fraîche ni périmée : illisible. Le rapport le dira tel quel plutôt que
-            // de laisser croire à une donnée à jour.
+            // Neither fresh nor stale: unreadable. The report states it as such rather
+            // than implying the data is up to date.
             return new DataAge(asOfUtc, 0, Stale: false, Unknown: true, thresholdDays);
         }
 
-        // Un instantané rejoué porte une heure figée, souvent antérieure à la date des
-        // données embarquées : l'âge y est négatif et n'a pas de sens. On le plafonne à
-        // zéro — « au moins aussi récente que le scan » — plutôt que d'afficher un
-        // nombre de jours négatif que personne ne saurait interpréter.
+        // A replayed snapshot carries a frozen clock, often earlier than the date of the
+        // embedded data: the age comes out negative there and is meaningless. Clamp it
+        // to zero — "at least as recent as the scan" — rather than display a negative
+        // day count nobody could interpret.
         var days = (int)Math.Floor((now - asOf).TotalDays);
         if (days < 0)
         {

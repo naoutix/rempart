@@ -10,56 +10,56 @@ public enum Severity
 }
 
 /// <summary>
-/// Comment comparer la valeur observée à celle attendue. Volontairement pauvre :
-/// une règle doit rester lisible par quelqu'un qui n'écrit pas de code.
+/// How to compare the observed value to the expected one. Deliberately minimal:
+/// a rule must stay readable by someone who does not write code.
 /// </summary>
 public enum CheckOperator
 {
-    /// <summary>Égalité stricte.</summary>
+    /// <summary>Strict equality.</summary>
     Equals,
 
-    /// <summary>Différence stricte.</summary>
+    /// <summary>Strict inequality.</summary>
     NotEquals,
 
-    /// <summary>Valeur numérique supérieure ou égale — planchers de configuration.</summary>
+    /// <summary>Numeric value greater than or equal — configuration floors.</summary>
     AtLeast,
 
-    /// <summary>Valeur numérique inférieure ou égale — plafonds, comme un nombre
-    /// d'administrateurs locaux.</summary>
+    /// <summary>Numeric value less than or equal — ceilings, such as a local
+    /// administrator count.</summary>
     AtMost,
 
-    /// <summary>La valeur existe, quelle qu'elle soit.</summary>
+    /// <summary>The value exists, whatever it is.</summary>
     Exists,
 
-    /// <summary>La valeur n'existe pas.</summary>
+    /// <summary>The value does not exist.</summary>
     Absent,
 }
 
 public enum CheckKind
 {
-    /// <summary>Valeur de registre.</summary>
+    /// <summary>Registry value.</summary>
     Registry,
 
-    /// <summary>Existence d'une clé de registre.</summary>
+    /// <summary>Existence of a registry key.</summary>
     RegistryKey,
 
     /// <summary>
-    /// État ou mode de démarrage d'un service Windows. <c>path</c> porte le nom du
-    /// service, <c>value</c> vaut « state » ou « startMode ».
+    /// State or start mode of a Windows service. <c>path</c> holds the service name,
+    /// <c>value</c> is "state" or "startMode".
     /// </summary>
     Service,
 
     /// <summary>
-    /// Fait de politique locale — mot de passe, verrouillage, comptes. <c>path</c>
-    /// porte le nom du fait, par exemple « password.minLength ».
+    /// Local policy fact — password, lockout, accounts. <c>path</c> holds the fact
+    /// name, for example "password.minLength".
     /// </summary>
     Policy,
 
     /// <summary>
-    /// Propriété WMI. <c>path</c> porte « espaceDeNoms:Classe », <c>value</c> le nom
-    /// de la propriété. Seul moyen d'établir certains états — chiffrement effectif
-    /// d'un volume, état courant de Defender — que ni le registre ni les API Win32
-    /// ne rendent.
+    /// WMI property. <c>path</c> holds "namespace:Class", <c>value</c> the property
+    /// name. Only way to establish some states — effective encryption of a volume,
+    /// current Defender state — that neither the registry nor the Win32 APIs
+    /// expose.
     /// </summary>
     Wmi,
 }
@@ -72,24 +72,24 @@ public sealed record CheckSpec(
     string? Expected,
 
     /// <summary>
-    /// Valeur appliquée par Windows quand la clé est absente.
+    /// Value Windows applies when the key is absent.
     ///
-    /// Sur le registre Windows, l'absence n'est pas une anomalie : c'est le cas
-    /// courant, et le comportement effectif dépend d'un défaut documenté. Traiter
-    /// toute absence comme un échec produit des alertes fausses en masse — WDigest
-    /// absent signifie « pas de mot de passe en clair », NoAutoUpdate absent signifie
-    /// « mises à jour actives ». Les deux sont l'état souhaité.
+    /// In the Windows registry, absence is not an anomaly: it is the common case, and
+    /// the effective behavior depends on a documented default. Treating every absence
+    /// as a failure produces false alerts in bulk — WDigest absent means "no cleartext
+    /// passwords", NoAutoUpdate absent means "updates enabled". Both are the desired
+    /// state.
     ///
-    /// Obligatoire pour tout opérateur de comparaison : le chargement échoue sinon.
-    /// Renseigner ce champ force l'auteur de la règle à connaître le défaut Windows,
-    /// qui est précisément ce qui rend la règle juste.
+    /// Required for every comparison operator: loading fails otherwise. Filling in
+    /// this field forces the rule author to know the Windows default, which is
+    /// precisely what makes the rule correct.
     /// </summary>
     string? WindowsDefault);
 
 /// <summary>
-/// Ce que coûte une remédiation. Inerte en v1 : aucun provider en écriture n'existe
-/// avant M9. Renseignée dès maintenant pour que l'information soit écrite au moment
-/// où l'on comprend la règle, et non reconstituée un an plus tard.
+/// What a remediation costs. Inert in v1: no write provider exists before M9. Filled
+/// in now so the information is written while the rule is understood, not
+/// reconstructed a year later.
 /// </summary>
 public enum Reversibility
 {
@@ -100,46 +100,46 @@ public enum Reversibility
 }
 
 /// <summary>
-/// Ce que coûte l'application d'une règle, décomposé plutôt que laissé en texte libre.
+/// What applying a rule costs, broken into fields rather than left as free text.
 ///
-/// Un champ unique « impact » se remplit vite de généralités — « peut avoir des effets
-/// de bord » — qui ne permettent aucune décision. Les trois questions ci-dessous sont
-/// celles qu'on se pose réellement avant d'appliquer un durcissement sur un parc :
-/// qu'est-ce qui cesse de marcher, qui est concerné, comment le savoir à l'avance.
+/// A single "impact" field quickly fills with generalities — "may have side effects" —
+/// that support no decision. The three questions below are the ones actually asked
+/// before applying hardening across a fleet: what stops working, who is affected,
+/// how to know in advance.
 ///
-/// Les deux premières sont obligatoires. « Rien » est une réponse recevable — mais
-/// elle doit être écrite, pas déduite d'un champ vide.
+/// The first two are required. "Nothing" is an acceptable answer — but it must be
+/// written down, not inferred from an empty field.
 /// </summary>
 public sealed record Remediation(
     Reversibility Reversibility,
 
-    /// <summary>Ce qui cesse de fonctionner après application.</summary>
+    /// <summary>What stops working after application.</summary>
     string Breaks,
 
-    /// <summary>Dans quels cas, et sur quel type de machine.</summary>
+    /// <summary>In which cases, and on what kind of machine.</summary>
     string Affects,
 
-    /// <summary>Comment vérifier avant d'appliquer. Optionnel.</summary>
+    /// <summary>How to check before applying. Optional.</summary>
     string? VerifyBefore);
 
 /// <summary>
-/// Conditions sous lesquelles une règle a un sens.
+/// Conditions under which a rule makes sense.
 ///
-/// Sans elles, un contrôle qui ne vaut que dans un contexte précis produit du bruit
-/// partout ailleurs — et le bruit disqualifie un outil d'audit plus sûrement qu'un
-/// contrôle manquant. Interdire la fusion des règles de pare-feu locales protège une
-/// machine sous stratégie de groupe ; sur un poste autonome, la même action supprime
-/// les règles créées par les applications sans rien apporter.
+/// Without them, a check that is only valid in a specific context produces noise
+/// everywhere else — and noise discredits an audit tool more surely than a missing
+/// check. Forbidding local firewall rule merging protects a machine under Group
+/// Policy; on a standalone workstation, the same action removes rules created by
+/// applications and brings nothing.
 ///
-/// Toutes les conditions renseignées doivent être vraies.
+/// All specified conditions must be true.
 /// </summary>
 public sealed record Applicability(
-    /// <summary>Exige (ou exclut) une machine jointe à un domaine.</summary>
+    /// <summary>Requires (or excludes) a domain-joined machine.</summary>
     bool? DomainJoined = null,
 
     /// <summary>
-    /// Condition portant sur le registre — typiquement l'activation d'une
-    /// fonctionnalité dont dépend le contrôle. NLA n'a de sens que si RDP est actif.
+    /// Registry-based condition — typically whether a feature the check depends on
+    /// is enabled. NLA only makes sense if RDP is enabled.
     /// </summary>
     CheckSpec? Registry = null)
 {

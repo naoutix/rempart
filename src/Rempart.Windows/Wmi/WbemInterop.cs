@@ -4,16 +4,16 @@ using System.Runtime.InteropServices.Marshalling;
 namespace Rempart.Windows.Wmi;
 
 /// <summary>
-/// Interfaces COM de WMI, déclarées pour le générateur d'interop de .NET.
+/// WMI's COM interfaces, declared for the .NET interop generator.
 ///
-/// <c>GeneratedComInterface</c> produit le code de transition à la compilation, sans
-/// réflexion à l'exécution : c'est ce qui rend WMI accessible sous Native AOT, là où
-/// <c>System.Management</c> ne l'est pas. La question était ouverte depuis M0.
+/// <c>GeneratedComInterface</c> produces the thunking code at compile time, with no
+/// reflection at runtime: this is what makes WMI reachable under Native AOT, where
+/// <c>System.Management</c> is not. The question had been open since M0.
 ///
-/// Seules les méthodes réellement employées sont déclarées ; les autres sont
-/// remplacées par des emplacements vides pour conserver l'ordre de la table virtuelle,
-/// dont dépend l'appel. Retirer un emplacement décalerait tous les suivants et
-/// appellerait la mauvaise fonction — un plantage, ou pire, un résultat faux.
+/// Only the methods actually used are declared; the others are replaced by empty
+/// slots to preserve the vtable order the calls depend on. Removing a slot would
+/// shift every following one and call the wrong function — a crash, or worse, a
+/// wrong result.
 /// </summary>
 [GeneratedComInterface]
 [Guid("dc12a687-737f-11cf-884d-00aa004b2e24")]
@@ -98,9 +98,9 @@ internal partial interface IWbemClassObject
 {
     void GetQualifierSet_Unused();
 
-    // VARIANT passe par une structure blittable decodee a la main : l'interop
-    // generee a la compilation ne sait exprimer ni VARIANT ni SAFEARRAY, et c'est
-    // la seule voie qui reste compatible Native AOT.
+    // VARIANT goes through a blittable struct decoded by hand: compile-time
+    // generated interop can express neither VARIANT nor SAFEARRAY, and this is
+    // the only path that stays Native AOT-compatible.
     [PreserveSig]
     int Get(
         [MarshalAs(UnmanagedType.LPWStr)] string name,
@@ -111,9 +111,9 @@ internal partial interface IWbemClassObject
 }
 
 /// <summary>
-/// Disposition d'un VARIANT en x64 : type sur deux octets, trois champs reserves,
-/// puis la donnee alignee sur huit octets. Declaree plutot que parcourue a coups de
-/// decalages calcules — un calcul manuel s'etait deja trompe ailleurs dans ce projet.
+/// Layout of a VARIANT on x64: a two-byte type, three reserved fields, then the
+/// data aligned on eight bytes. Declared rather than walked with computed offsets —
+/// a manual calculation had already gone wrong elsewhere in this project.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct Variant

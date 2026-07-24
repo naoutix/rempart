@@ -8,8 +8,8 @@ using Rempart.Core.Updates;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Transport factice : sert des octets connus à des URL connues. Un « serveur » de
-/// test, sans réseau — la règle des providers appliquée au téléchargement.
+/// Fake transport: serves known bytes at known URLs. A test "server" with no
+/// network — the provider rule applied to downloads.
 /// </summary>
 internal sealed class FakeTransport : IUpdateTransport
 {
@@ -72,9 +72,9 @@ public class RemoteUpdateTests
     }
 
     /// <summary>
-    /// Le trajet réseau complet : télécharger le manifeste et son jeu de données,
-    /// vérifier, prévisualiser. Le résultat est identique à celui d'un fichier local —
-    /// c'est tout l'intérêt d'un transport injecté.
+    /// The full network path: download the manifest and its dataset, verify,
+    /// preview. The result is identical to a local file's — the point of an
+    /// injected transport.
     /// </summary>
     [Fact]
     public void A_downloaded_manifest_verifies_and_previews_like_a_local_one()
@@ -94,14 +94,14 @@ public class RemoteUpdateTests
         Assert.True(fetch!.Preview.ReadyToApply);
         Assert.Equal(["WIN-REMOTE-001"], Assert.Single(fetch.Preview.Datasets).Diff!.Added);
 
-        // Les octets vérifiés sont retenus, pour appliquer sans retélécharger.
+        // The verified bytes are kept, to apply without re-downloading.
         Assert.True(fetch.DatasetBytes.ContainsKey("regles.yaml"));
         Assert.Equal(manifest, fetch.ManifestBytes);
     }
 
     /// <summary>
-    /// Le manifeste injoignable est un échec de transport, distinct d'un manifeste
-    /// refusé : c'est le réseau qui a manqué, pas la confiance. Le dire tel quel.
+    /// An unreachable manifest is a transport failure, distinct from a refused
+    /// manifest: the network failed, not the trust check. Report it as such.
     /// </summary>
     [Fact]
     public void An_unreachable_manifest_is_a_transport_error_not_a_refusal()
@@ -115,8 +115,8 @@ public class RemoteUpdateTests
     }
 
     /// <summary>
-    /// La base est jointe à la ressource sans doubler ni oublier le séparateur, quelle
-    /// que soit la présence d'un slash final.
+    /// The base URL is joined to the resource without doubling or dropping the
+    /// separator, whether or not a trailing slash is present.
     /// </summary>
     [Theory]
     [InlineData("https://h/rempart")]
@@ -137,9 +137,9 @@ public class RemoteUpdateTests
     }
 
     /// <summary>
-    /// Le transport ne rend rien de confiance : un manifeste téléchargé signé par une
-    /// clé inconnue est refusé exactement comme un fichier local le serait. HTTPS
-    /// n'atteste de rien (ADR-002, option C écartée).
+    /// The transport confers no trust: a downloaded manifest signed by an
+    /// unknown key is refused exactly like a local file would be. HTTPS attests
+    /// to nothing (ADR-002, option C rejected).
     /// </summary>
     [Fact]
     public void A_downloaded_manifest_signed_by_a_stranger_is_still_refused()

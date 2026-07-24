@@ -2,21 +2,21 @@ using Rempart.Core.Findings;
 
 namespace Rempart.Core.Reputation;
 
-/// <summary>La réputation d'une empreinte auprès d'un service tiers.</summary>
+/// <summary>The reputation of a hash with a third-party service.</summary>
 public sealed record HashReputation(int Malicious, int Total);
 
 /// <summary>
-/// Ce qu'une consultation a rendu : une réputation quand le service connaît l'empreinte,
-/// et toujours un résumé lisible — « 0/72 », « inconnu », « clé refusée ».
+/// What a lookup returned: a reputation when the service knows the hash, and always a
+/// readable summary — « 0/72 », « inconnu », « clé refusée ».
 ///
-/// <see cref="Reputation"/> nul ne veut pas dire « sûr » : le fichier peut être inconnu
-/// du service, ou la consultation avoir échoué. Le résumé dit lequel.
+/// A null <see cref="Reputation"/> does not mean "safe": the file may be unknown to the
+/// service, or the lookup may have failed. The summary says which.
 /// </summary>
 public sealed record ReputationResult(HashReputation? Reputation, string Summary);
 
 /// <summary>
-/// Consulte la réputation d'une empreinte. Abstrait pour que l'enrichissement se teste
-/// sans réseau ni clé d'API (ADR-001, D5) : une source factice rend des verdicts connus.
+/// Looks up the reputation of a hash. Abstracted so the enrichment can be tested without
+/// network access or API key (ADR-001, D5): a fake source returns known verdicts.
 /// </summary>
 public interface IReputationSource
 {
@@ -24,14 +24,14 @@ public interface IReputationSource
 }
 
 /// <summary>
-/// Enrichit les constats de la réputation de leur binaire — le seul enrichissement qui
-/// sorte sur le réseau, et uniquement quand l'utilisateur le demande (ADR-001, D9).
+/// Enriches findings with the reputation of their binary — the only enrichment that goes
+/// out to the network, and only when the user asks for it (ADR-001, D9).
 ///
 /// <para>
-/// Seuls les constats déjà signalés et porteurs d'une empreinte sont consultés. Un
-/// binaire bénin et signé ne l'est pas : sa signature atteste déjà de son origine, et
-/// interroger des centaines de fichiers sains épuiserait le quota d'API sans rien
-/// apprendre. C'est un complément aux constats, pas une seconde passe d'analyse.
+/// Only findings already flagged and carrying a hash are looked up. A benign, signed
+/// binary is not: its signature already attests to its origin, and querying hundreds of
+/// healthy files would exhaust the API quota without learning anything. This is a
+/// complement to the findings, not a second analysis pass.
 /// </para>
 /// </summary>
 public static class FindingEnrichment
@@ -55,9 +55,9 @@ public static class FindingEnrichment
             entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
         details["virustotal"] = result.Summary;
 
-        // Une détection confirme un soupçon : on hisse à suspect et on le dit en tête des
-        // raisons. Une empreinte inconnue ou une consultation en échec n'abaisse rien —
-        // « inconnu de VirusTotal » n'est pas « sain ».
+        // A detection confirms a suspicion: the finding is raised to suspicious and this
+        // is stated first among the reasons. An unknown hash or a failed lookup lowers
+        // nothing — "unknown to VirusTotal" is not "clean".
         if (result.Reputation is { Malicious: > 0 } reputation)
         {
             return finding with

@@ -5,19 +5,19 @@ using System.Text.Json;
 namespace Rempart.Core.Reputation;
 
 /// <summary>
-/// Consulte VirusTotal (API v3) pour la réputation d'une empreinte.
+/// Queries VirusTotal (API v3) for the reputation of a hash.
 ///
 /// <para>
-/// Compatible Native AOT — <c>HttpClient</c> et <c>JsonDocument</c> ne demandent pas de
-/// réflexion. La clé d'API voyage dans l'en-tête <c>x-apikey</c>, jamais dans l'URL : une
-/// URL se retrouve dans les journaux, un en-tête beaucoup moins.
+/// Native AOT compatible — <c>HttpClient</c> and <c>JsonDocument</c> require no
+/// reflection. The API key travels in the <c>x-apikey</c> header, never in the URL: a
+/// URL ends up in logs, a header far less so.
 /// </para>
 ///
 /// <para>
-/// Chaque code de réponse a sa lecture, et aucune ne se déguise en « sain » : 404 dit que
-/// le fichier est inconnu du service (pas qu'il est propre), 401 une clé refusée, 429 le
-/// quota atteint. Confondre l'un avec « rien à signaler » serait le défaut que ce projet
-/// traque partout.
+/// Every response code has its own reading, and none masquerades as "clean": 404 says
+/// the file is unknown to the service (not that it is clean), 401 a rejected key, 429 an
+/// exhausted quota. Mistaking any of these for "nothing to report" would be the very
+/// flaw this project hunts everywhere.
 /// </para>
 /// </summary>
 public sealed class VirusTotalReputation : IReputationSource, IDisposable
@@ -56,9 +56,9 @@ public sealed class VirusTotalReputation : IReputationSource, IDisposable
     }
 
     /// <summary>
-    /// Lit <c>last_analysis_stats</c>. Le total est la somme de tous les compteurs —
-    /// détecté, propre, non détecté, en échec — sans en présumer les noms : un compteur
-    /// ajouté par VirusTotal compte, il n'est pas ignoré.
+    /// Reads <c>last_analysis_stats</c>. The total is the sum of every counter —
+    /// detected, clean, undetected, failed — without assuming their names: a counter
+    /// added by VirusTotal counts, it is not ignored.
     /// </summary>
     internal static ReputationResult Parse(string json)
     {

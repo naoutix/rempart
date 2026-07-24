@@ -6,16 +6,16 @@ namespace Rempart.Tests.Unit;
 public class UnquotedServicePathTests
 {
     [Theory]
-    // Non quoté, espace dans le chemin de l'exécutable → vulnérable.
+    // Unquoted, space in the executable path → vulnerable.
     [InlineData(@"C:\Program Files\Éditeur\svc.exe", true)]
     [InlineData(@"C:\Program Files\App\svc.exe -k pool", true)]
-    // Entre guillemets → sûr, quel que soit l'espace.
+    // Quoted → safe, whatever the spaces.
     [InlineData("\"C:\\Program Files\\App\\svc.exe\"", false)]
-    // Espace seulement dans les arguments, pas dans le chemin → sûr.
+    // Space only in the arguments, not in the path → safe.
     [InlineData(@"C:\Windows\system32\svchost.exe -k netsvcs -p", false)]
-    // Aucun espace → sûr.
+    // No space at all → safe.
     [InlineData(@"C:\Windows\system32\lsass.exe", false)]
-    // Pas d'exécutable .exe (pilote, forme inhabituelle) → hors périmètre.
+    // No .exe executable (driver, unusual form) → out of scope.
     [InlineData(@"C:\Windows\system32\drivers\pilote.sys", false)]
     [InlineData("", false)]
     public void The_detection_flags_only_a_genuine_unquoted_path(string pathName, bool vulnerable)
@@ -63,8 +63,8 @@ public class UnquotedServicePathTests
     }
 
     /// <summary>
-    /// Une énumération refusée n'est pas une absence de service vulnérable : c'est un
-    /// trou dans l'audit, et il se dit.
+    /// A denied enumeration is not an absence of vulnerable services: it is a hole in
+    /// the audit, and it gets said.
     /// </summary>
     [Fact]
     public void An_access_denied_enumeration_is_reported()

@@ -3,9 +3,9 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// La lecture DNS parcourt les interfaces du registre et découpe les listes de résolveurs.
-/// Un chemin de clé faux rendrait une liste vide sans que rien ne le signale ; ce test
-/// exerce la vraie lecture.
+/// The DNS read walks the interface keys in the registry and splits the resolver lists.
+/// A wrong key path would return an empty list without any signal; this test exercises
+/// the real read.
 /// </summary>
 public sealed class LiveDnsProviderTests
 {
@@ -19,8 +19,8 @@ public sealed class LiveDnsProviderTests
         {
             Assert.False(string.IsNullOrWhiteSpace(iface.Id));
 
-            // Un découpage faux collerait plusieurs adresses en une : chaque résolveur doit
-            // ressembler à une adresse isolée, sans séparateur résiduel.
+            // A wrong split would glue several addresses into one: each resolver must
+            // look like a single address, with no leftover separator.
             foreach (var server in iface.StaticServers.Concat(iface.DhcpServers))
             {
                 Assert.DoesNotContain(' ', server);
@@ -31,9 +31,9 @@ public sealed class LiveDnsProviderTests
 }
 
 /// <summary>
-/// Le fichier hosts est à un emplacement fixe. Un chemin faux rendrait « aucune
-/// correspondance » là où le fichier existe — ce test vérifie qu'on lit bien le vrai
-/// fichier, qui porte toujours son en-tête de commentaires.
+/// The hosts file lives at a fixed location. A wrong path would report "no match" even
+/// though the file exists — this test checks that the real file is read; it always
+/// carries a comment header.
 /// </summary>
 public sealed class LiveHostsFileProviderTests
 {
@@ -42,8 +42,8 @@ public sealed class LiveHostsFileProviderTests
     {
         var lines = new LiveHostsFileProvider().ReadLines();
 
-        // Le fichier hosts livré par Windows n'est jamais vide : il porte un en-tête de
-        // commentaires. Une liste vide trahirait un chemin faux.
+        // The hosts file shipped with Windows is never empty: it carries a comment
+        // header. An empty list would mean a wrong path.
         Assert.NotEmpty(lines);
         Assert.Contains(lines, line => line.TrimStart().StartsWith('#'));
     }

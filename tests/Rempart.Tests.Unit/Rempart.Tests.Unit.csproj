@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Rempart.Tests.Unit</RootNamespace>
     <IsPackable>false</IsPackable>
-    <!-- Les tests tournent hors Windows : ils ne touchent que Rempart.Core. -->
+    <!-- These tests run off Windows: they only touch Rempart.Core. -->
     <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 

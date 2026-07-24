@@ -3,8 +3,8 @@ using Rempart.Core.Rules;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// Le catalogue effectivement évalué, une fois le socle embarqué complété d'une mise à
-/// jour si elle est présente et de confiance.
+/// The catalog actually evaluated, once the embedded baseline has been extended with
+/// an update when one is present and trusted.
 /// </summary>
 public sealed record CatalogResolution(
     IReadOnlyList<Rule> Rules,
@@ -13,23 +13,22 @@ public sealed record CatalogResolution(
     string AsOfUtc,
 
     /// <summary>
-    /// Ce qu'il faut dire du magasin dans le rapport, ou <c>null</c> s'il n'y en a pas.
-    /// Une mise à jour appliquée se voit ; une mise à jour refusée aussi — jamais en
-    /// silence (ADR-002, D17).
+    /// What the report must say about the store, or <c>null</c> when there is nothing
+    /// to say. An applied update is visible; a refused one too — never in silence
+    /// (ADR-002, D17).
     /// </summary>
     string? UpdateNote);
 
 /// <summary>
-/// Le magasin de données mises à jour : ce qu'écrit <c>rempart update --apply</c>, et
-/// ce que relit chaque scan.
+/// The updated-data store: what <c>rempart update --apply</c> writes, and what every
+/// scan reads back.
 ///
 /// <para>
-/// Point central de l'ADR-002. Deux invariants le gouvernent. <b>D13</b> : rien n'est
-/// chargé sans vérification — le scan re-vérifie signature et empreintes à chaque
-/// lecture, il ne fait pas confiance à ce qu'un <c>--apply</c> antérieur a écrit ; un
-/// fichier du magasin altéré depuis est donc rejeté, pas chargé. <b>D12</b> : le socle
-/// embarqué est un plancher — la mise à jour peut corriger ou ajouter un contrôle,
-/// jamais en retirer un.
+/// Centrepiece of ADR-002. Two invariants govern it. <b>D13</b>: nothing is loaded
+/// without verification — the scan re-checks signature and hashes on every read; it
+/// does not trust what an earlier <c>--apply</c> wrote, so a store file tampered with
+/// since then is rejected, not loaded. <b>D12</b>: the embedded baseline is a floor —
+/// an update may fix or add a check, never remove one.
 /// </para>
 /// </summary>
 public static class UpdateStore
@@ -37,10 +36,10 @@ public static class UpdateStore
     public const string ManifestFileName = "manifest.json";
 
     /// <summary>
-    /// Recopie un manifeste vérifié et ses jeux de données dans le magasin.
+    /// Copies a verified manifest and its datasets into the store.
     ///
-    /// Ne re-vérifie pas : l'appelant vient de le faire (<see cref="UpdatePlanner"/>).
-    /// Le scan, lui, re-vérifiera — c'est là qu'est la garantie, pas ici.
+    /// Does not re-verify: the caller just did (<see cref="UpdatePlanner"/>). The
+    /// scan will re-verify — that is where the guarantee lives, not here.
     /// </summary>
     public static void Apply(string sourceManifestPath, string storeDirectory, IEnumerable<string> datasetNames)
     {
@@ -61,10 +60,10 @@ public static class UpdateStore
     }
 
     /// <summary>
-    /// Écrit un manifeste vérifié et ses jeux de données depuis des octets — le cas du
-    /// téléchargement, où il n'y a pas de dossier source à copier. Les octets sont ceux
-    /// que la préparation vient de vérifier, jamais retéléchargés : le scan les
-    /// re-vérifiera de toute façon.
+    /// Writes a verified manifest and its datasets from bytes — the download case,
+    /// where there is no source folder to copy from. The bytes are the ones the
+    /// preparation step just verified, never re-downloaded: the scan will re-verify
+    /// them anyway.
     /// </summary>
     public static void Write(
         string storeDirectory, byte[] manifest, IReadOnlyDictionary<string, byte[]> datasets)
@@ -79,12 +78,12 @@ public static class UpdateStore
     }
 
     /// <summary>
-    /// Résout le catalogue à évaluer : le socle, complété par la mise à jour du magasin
-    /// si elle vérifie.
+    /// Resolves the catalog to evaluate: the baseline, extended with the store's
+    /// update when it verifies.
     /// </summary>
     /// <param name="baseRules">
-    /// Le socle — règles embarquées, éventuellement additionnées des règles
-    /// <c>--rules</c>. La mise à jour se pose par-dessus, sans jamais en retirer.
+    /// The baseline — embedded rules, possibly joined by the <c>--rules</c> ones.
+    /// The update layers on top, never removing any.
     /// </param>
     public static CatalogResolution Resolve(
         string storeDirectory, IReadOnlyList<Rule> baseRules, ManifestVerifier verifier)
@@ -93,8 +92,8 @@ public static class UpdateStore
 
         if (!File.Exists(manifestPath))
         {
-            // Cas normal hors-ligne : pas de magasin, pas de note. Le binaire seul reste
-            // pleinement utilisable (D12).
+            // The normal offline case: no store, no note. The binary alone stays
+            // fully usable (D12).
             return new CatalogResolution(baseRules, DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, null);
         }
 
@@ -102,8 +101,8 @@ public static class UpdateStore
 
         if (!verdict.IsTrusted || verdict.Payload is null)
         {
-            // Une mise à jour refusée ne s'applique pas — et ne se tait pas. Le socle
-            // tient, le rapport dit pourquoi la mise à jour n'a pas été retenue.
+            // A refused update is not applied — and is not silent either. The baseline
+            // holds, and the report says why the update was not retained.
             return Refused(baseRules,
                 $"Mise à jour présente mais refusée ({verdict.Status}) : {verdict.Explanation} " +
                 "Socle embarqué conservé.");
@@ -120,10 +119,9 @@ public static class UpdateStore
 
             if (bytes is null || !ManifestVerifier.FileMatches(entry, bytes))
             {
-                // Un seul jeu de données qui manque ou ne correspond plus, et l'on ne
-                // pose rien : on n'applique pas la moitié d'une mise à jour. Le fichier
-                // a pu être altéré après l'écriture — c'est exactement ce que la
-                // re-vérification attrape.
+                // One dataset missing or no longer matching, and nothing is installed:
+                // half an update is never applied. The file may have been tampered
+                // with after being written — exactly what re-verification catches.
                 return Refused(baseRules,
                     $"Mise à jour présente mais un jeu de données ({entry.Name}) ne correspond " +
                     "plus à son empreinte : altéré ou incomplet. Socle embarqué conservé.");
@@ -148,8 +146,8 @@ public static class UpdateStore
                         break;
 
                     default:
-                        // Type qu'une version plus récente comprend, pas celle-ci : refuser
-                        // tout, plutôt que d'appliquer ce qu'on sait lire et taire le reste.
+                        // A kind a newer version understands, not this one: refuse it
+                        // all, rather than apply what we can read and silence the rest.
                         return Refused(baseRules,
                             $"Mise à jour d'un type inconnu ({entry.Kind}) : installer une " +
                             "version plus récente. Socle embarqué conservé.");
@@ -177,13 +175,13 @@ public static class UpdateStore
         new(baseRules, DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, note);
 
     /// <summary>
-    /// Fusionne la mise à jour dans le socle (D12).
+    /// Merges the update into the baseline (D12).
     ///
-    /// Une règle entrante de même identifiant remplace celle du socle — une correction ;
-    /// une règle entrante inédite s'ajoute. Aucune règle du socle ne disparaît, même si
-    /// la mise à jour ne la mentionne pas : le plancher tient. L'ordre du socle est
-    /// préservé pour que la liste des échecs d'un rapport reste stable d'une version à
-    /// l'autre.
+    /// An incoming rule with a known identifier replaces the baseline one — a fix; a
+    /// brand-new incoming rule is appended. No baseline rule ever disappears, even
+    /// when the update does not mention it: the floor holds. Baseline order is
+    /// preserved so a report's list of failures stays stable from one version to
+    /// the next.
     /// </summary>
     private static IReadOnlyList<Rule> Merge(
         IReadOnlyList<Rule> baseRules, IReadOnlyList<Rule> incoming)
@@ -222,9 +220,9 @@ public static class UpdateStore
             $"Nom de jeu de données hors du dossier : {name}");
 
     /// <summary>
-    /// Résout un nom dans un dossier, ou <c>null</c> s'il s'en échappe. Un nom comme
-    /// « ..\\.. » ne doit pas devenir un chemin arbitraire — le séparateur final évite
-    /// aussi de confondre le dossier avec un frère au nom voisin.
+    /// Resolves a name inside a folder, or <c>null</c> when it escapes it. A name
+    /// like « ..\\.. » must not become an arbitrary path — the trailing separator
+    /// also avoids mistaking the folder for a sibling with a close name.
     /// </summary>
     private static string? TryWithin(string directory, string name)
     {

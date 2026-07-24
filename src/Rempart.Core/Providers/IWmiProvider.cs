@@ -1,10 +1,10 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Une instance WMI réduite à ses propriétés scalaires, rendues en texte.
+/// A WMI instance reduced to its scalar properties, rendered as text.
 ///
-/// Le moteur de règles compare des chaînes ; typer davantage n'apporterait rien et
-/// obligerait chaque règle à connaître le type CIM de la propriété qu'elle interroge.
+/// The rule engine compares strings; stronger typing would add nothing and would force
+/// each rule to know the CIM type of the property it queries.
 /// </summary>
 public sealed record WmiInstance(IReadOnlyDictionary<string, string> Properties)
 {
@@ -17,11 +17,11 @@ public sealed record WmiRead(
     IReadOnlyList<WmiInstance> Instances,
 
     /// <summary>
-    /// Raison de l'échec, quand il ne s'agit pas d'un refus d'accès légitime.
+    /// Failure reason, when the failure is not a genuine access denial.
     ///
-    /// Une première version rendait « accès refusé » pour toute défaillance, ce qui
-    /// rendait un bug indiscernable d'un manque de droits — et a effectivement conduit
-    /// à un mauvais diagnostic. Une défaillance interne doit se voir.
+    /// An earlier version returned "access denied" for every failure, which made a bug
+    /// indistinguishable from missing privileges — and did lead to a wrong diagnosis.
+    /// Internal failures must be visible.
     /// </summary>
     string? Diagnostic = null)
 {
@@ -36,22 +36,21 @@ public sealed record WmiRead(
 }
 
 /// <summary>
-/// Interroge WMI. Reste le seul moyen d'établir certains états que ni le registre ni
-/// les API Win32 ne rendent : chiffrement effectif d'un volume, état courant de
-/// Defender.
+/// Queries WMI. Still the only way to establish some states that neither the registry
+/// nor the Win32 APIs expose: effective volume encryption, current Defender state.
 ///
-/// La plupart de ces espaces de noms exigent l'élévation. Un refus doit se traduire
-/// par « non vérifiable », jamais par une non-conformité : le scan n'a pas pu
-/// regarder, la machine n'est pas en cause.
+/// Most of these namespaces require elevation. A denial must map to "not verifiable",
+/// never to non-compliance: the scan could not look, which says nothing about the
+/// machine.
 /// </summary>
 public interface IWmiProvider
 {
-    /// <param name="namespacePath">Par exemple <c>root\CIMV2\Security\MicrosoftVolumeEncryption</c>.</param>
-    /// <param name="className">Classe à énumérer.</param>
+    /// <param name="namespacePath">For example <c>root\CIMV2\Security\MicrosoftVolumeEncryption</c>.</param>
+    /// <param name="className">Class to enumerate.</param>
     /// <param name="properties">
-    /// Propriétés à lire, nommées par l'appelant. Les énumérer demanderait un
-    /// SAFEARRAY, que l'interop compatible AOT ne sait pas exprimer — et une règle
-    /// sait de toute façon quelle propriété elle interroge.
+    /// Properties to read, named by the caller. Enumerating them would require a
+    /// SAFEARRAY, which AOT-compatible interop cannot express — and a rule knows which
+    /// property it queries anyway.
     /// </param>
     WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties);
 }

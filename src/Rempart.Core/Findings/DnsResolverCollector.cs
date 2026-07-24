@@ -3,15 +3,15 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Résolveurs DNS configurés, par interface.
+/// Configured DNS resolvers, per interface.
 ///
 /// <para>
-/// Un résolveur reçu du DHCP est celui du réseau : on l'inventorie sans le juger. Un
-/// résolveur posé statiquement est un choix — et le détournement DNS opère là, en
-/// écrivant un serveur qu'il contrôle par-dessus celui du réseau. On relève donc les
-/// résolveurs statiques que l'on ne reconnaît pas ; ceux d'un résolveur public connu, ou
-/// d'un résolveur local (la boucle, un filtre installé exprès), restent bénins — c'est une
-/// configuration délibérée courante sur une machine durcie.
+/// A resolver received from DHCP is the network's: it is inventoried without judgement.
+/// A statically set resolver is a choice — and DNS hijacking operates right there, by
+/// writing a server the attacker controls over the network's one. We therefore flag
+/// static resolvers we do not recognise; those of a well-known public resolver, or of a
+/// local one (the loopback, a filter installed on purpose), stay benign — a common
+/// deliberate configuration on a hardened machine.
 /// </para>
 /// </summary>
 public sealed class DnsResolverCollector : IFindingCollector
@@ -19,9 +19,9 @@ public sealed class DnsResolverCollector : IFindingCollector
     public string Name => "dns-resolver";
 
     /// <summary>
-    /// Résolveurs publics dont l'usage délibéré est répandu. Un résolveur statique qui n'en
-    /// est pas mérite un regard ; la liste ne prétend pas à l'exhaustivité, seulement à
-    /// couvrir les choix légitimes les plus fréquents.
+    /// Public resolvers whose deliberate use is widespread. A static resolver not among
+    /// them deserves a look; the list does not claim to be exhaustive, only to cover the
+    /// most frequent legitimate choices.
     /// </summary>
     private static readonly HashSet<string> WellKnownResolvers = new(StringComparer.Ordinal)
     {

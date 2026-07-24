@@ -1,19 +1,19 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Une action de tâche planifiée : le programme lancé et ses arguments.
+/// A scheduled task action: the program launched and its arguments.
 ///
-/// Une tâche peut en porter plusieurs, et certaines n'en portent aucune d'exécutable —
-/// envoi de courriel, message, gestionnaire COM. Ces formes héritées existent encore
-/// sur des machines réelles ; les taire reviendrait à dire qu'une tâche est sans action.
+/// A task can carry several actions, and some carry no executable one — send email,
+/// show message, COM handler. These legacy forms still exist on real machines; omitting
+/// them would make such a task look like it has no action at all.
 /// </summary>
 public sealed record TaskAction(string Kind, string Path, string Arguments);
 
 /// <summary>
-/// Une tâche planifiée, réduite à ce qu'un audit doit en savoir.
+/// A scheduled task, reduced to what an audit needs to know.
 ///
-/// L'état d'activation en fait partie : une tâche désactivée ne s'exécute pas, et le
-/// rapport doit pouvoir le dire plutôt que de laisser croire au contraire.
+/// The enabled state is part of it: a disabled task does not run, and the report must
+/// be able to say so instead of implying otherwise.
 /// </summary>
 public sealed record ScheduledTask(
     string Path,
@@ -30,11 +30,11 @@ public sealed record ScheduledTaskRead(
     IReadOnlyList<ScheduledTask> Tasks,
 
     /// <summary>
-    /// Raison de l'échec quand il ne s'agit pas d'un refus d'accès légitime.
+    /// Failure reason, when the failure is not a genuine access denial.
     ///
-    /// Même motif que <see cref="WmiRead.Diagnostic"/> : rendre « accès refusé » pour
-    /// toute défaillance rend un bug indiscernable d'un manque de droits. Cela a déjà
-    /// coûté deux lots sur ce projet.
+    /// Same rationale as <see cref="WmiRead.Diagnostic"/>: returning "access denied"
+    /// for every failure makes a bug indistinguishable from missing privileges. That
+    /// mistake has already cost time in two milestones of this project.
     /// </summary>
     string? Diagnostic = null)
 {
@@ -48,15 +48,14 @@ public sealed record ScheduledTaskRead(
 }
 
 /// <summary>
-/// Énumère les tâches planifiées.
+/// Enumerates scheduled tasks.
 ///
-/// C'est la plus grande surface de persistance de Windows : une tâche survit au
-/// redémarrage, se déclenche sur un horaire, un événement ou une ouverture de session,
-/// et n'apparaît dans aucune des clés <c>Run</c> qu'inspecte le collecteur de
-/// démarrage automatique.
+/// This is the largest persistence surface on Windows: a task survives reboot, triggers
+/// on a schedule, an event, or a logon, and appears in none of the <c>Run</c> keys the
+/// autostart collector inspects.
 ///
-/// Abstrait comme le reste (ADR-001, D5) : sans cela, aucun test ne pourrait porter
-/// sur le jugement sans une machine dans l'état voulu.
+/// Abstracted like the rest (ADR-001, D5): without this, no test could exercise the
+/// judgment without a machine in the required state.
 /// </summary>
 public interface IScheduledTaskProvider
 {

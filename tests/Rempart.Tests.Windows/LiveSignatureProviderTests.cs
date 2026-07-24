@@ -4,9 +4,9 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Contre de vrais binaires. La verification Authenticode est ce qui distingue un
-/// programme legitime lance au demarrage d'un executable depose la par un tiers :
-/// un chemin et un nom s'imitent trivialement, une signature non.
+/// Against real binaries. Authenticode verification is what distinguishes a legitimate
+/// program launched at startup from an executable dropped there by a third party: a
+/// path and a name are trivial to imitate, a signature is not.
 /// </summary>
 public sealed class LiveSignatureProviderTests
 {
@@ -28,13 +28,12 @@ public sealed class LiveSignatureProviderTests
     [InlineData("SecurityHealthSystray.exe")]
     public void A_catalog_signed_binary_verifies_as_valid(string name)
     {
-        // Le test qui compte. Ces binaires ne portent aucune signature embarquee :
-        // la leur vit dans un catalogue .cat separe. Une verification qui n'examine
-        // que le fichier les declare non signes -- et classe alors la quasi-totalite
-        // des demarrages automatiques d'un Windows sain comme suspects.
+        // The important test. These binaries carry no embedded signature: theirs lives
+        // in a separate .cat catalog. A verification that only examines the file
+        // reports them as unsigned -- and then classifies nearly every automatic
+        // startup entry of a healthy Windows as suspect.
         //
-        // C'est exactement ce qu'a produit la premiere version, et ce qui a empeche
-        // de la livrer.
+        // The first version did exactly that, which blocked its release.
         var path = Path.Combine(Environment.SystemDirectory, name);
 
         if (!File.Exists(path))
@@ -48,11 +47,11 @@ public sealed class LiveSignatureProviderTests
     [Fact]
     public void A_catalog_signed_binary_has_no_embedded_publisher()
     {
-        // Les binaires systeme sont signes par catalogue, pas par certificat
-        // embarque : WinVerifyTrust les valide, mais il n'y a rien a lire dans le
-        // fichier. L'editeur reste donc renseigne pour les binaires tiers, qui
-        // portent presque toujours une signature embarquee -- et ce sont eux qui
-        // comptent dans une enumeration de demarrages automatiques.
+        // System binaries are catalog-signed, not signed with an embedded certificate:
+        // WinVerifyTrust validates them, but there is nothing to read in the file. The
+        // publisher therefore stays populated for third-party binaries, which almost
+        // always carry an embedded signature -- and those are the ones that matter in
+        // an enumeration of automatic startup entries.
         var result = signatures.Verify(Path.Combine(
             Environment.SystemDirectory, "kernel32.dll"));
 
@@ -63,8 +62,8 @@ public sealed class LiveSignatureProviderTests
     [Fact]
     public void An_unsigned_file_is_reported_unsigned_not_unknown()
     {
-        // La distinction porte tout le constat : « pas signe » est un fait,
-        // « je n'ai pas pu verifier » est une lacune.
+        // The whole finding rests on this distinction: "not signed" is a fact,
+        // "could not verify" is a gap.
         var path = Path.Combine(Path.GetTempPath(), $"rempart-{Guid.NewGuid():N}.exe");
         File.WriteAllBytes(path, [0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00]);
 
@@ -81,8 +80,8 @@ public sealed class LiveSignatureProviderTests
     [Fact]
     public void A_missing_file_is_distinguished_from_an_unsigned_one()
     {
-        // Une entree de demarrage pointant vers un fichier absent est elle-meme un
-        // constat : reste d'une desinstallation, ou cible d'un detournement futur.
+        // A startup entry pointing to a missing file is itself a finding: leftover
+        // from an uninstall, or the target of a future hijack.
         Assert.Equal(SignatureStatus.FileNotFound,
             signatures.Verify(@"C:\CeFichierNExistePas\rien.exe").Status);
     }
@@ -98,9 +97,9 @@ public sealed class LiveSignatureProviderTests
     [Fact]
     public void Repeated_verifications_do_not_exhaust_state()
     {
-        // WinVerifyTrust alloue un etat que seul un second appel libere. Un oubli ne
-        // se voit pas sur un fichier isole, mais epuise l'enumeration complete des
-        // demarrages automatiques.
+        // WinVerifyTrust allocates state that only a second call releases. Forgetting
+        // it is invisible on a single file but exhausts the full enumeration of
+        // automatic startup entries.
         var path = Path.Combine(Environment.SystemDirectory, "kernel32.dll");
 
         for (var i = 0; i < 60; i++)

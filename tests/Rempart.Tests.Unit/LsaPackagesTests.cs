@@ -13,8 +13,8 @@ public class LsaPackagesTests
             registry, new FakeSystemInfoProvider(), signatures: signatures));
 
     /// <summary>
-    /// Les paquets par défaut sont signés par Microsoft : bénins. Sur une machine saine,
-    /// rien à examiner.
+    /// The default packages are signed by Microsoft: benign. On a healthy machine,
+    /// nothing to review.
     /// </summary>
     [Fact]
     public void Signed_default_packages_are_benign()
@@ -31,8 +31,8 @@ public class LsaPackagesTests
     }
 
     /// <summary>
-    /// Une DLL non signée dans un paquet de sécurité est suspecte : c'est la marque d'un
-    /// vol d'identifiants persistant (un <c>mimilib</c> enregistré comme SSP).
+    /// An unsigned DLL among the security packages is suspicious: it is the hallmark of
+    /// persistent credential theft (a <c>mimilib</c> registered as an SSP).
     /// </summary>
     [Fact]
     public void An_unsigned_package_is_suspicious()
@@ -47,8 +47,8 @@ public class LsaPackagesTests
     }
 
     /// <summary>
-    /// Windows note une liste vide par la valeur littérale <c>""</c>. Ce n'est pas un
-    /// paquet : aucun constat, et surtout pas un <c>"".dll</c> introuvable inventé.
+    /// Windows records an empty list as the literal value <c>""</c>. That is not a
+    /// package: no finding, and above all no invented, unfindable <c>"".dll</c>.
     /// </summary>
     [Fact]
     public void The_empty_list_marker_produces_no_finding()
@@ -60,8 +60,8 @@ public class LsaPackagesTests
     }
 
     /// <summary>
-    /// Plusieurs paquets dans une valeur multi-chaîne sont jugés chacun. Le provider les
-    /// rend joints par des sauts de ligne.
+    /// Several packages in a multi-string value are each judged on their own. The
+    /// provider returns them joined by newlines.
     /// </summary>
     [Fact]
     public void Multiple_packages_in_a_multistring_are_each_judged()
@@ -81,8 +81,8 @@ public class LsaPackagesTests
     }
 
     /// <summary>
-    /// Une liste refusée à la lecture n'est pas une liste vide : c'est justement là qu'un
-    /// paquet ajouté se cacherait. On le dit, on ne se tait pas.
+    /// A list whose read was denied is not an empty list: that is exactly where an added
+    /// package would hide. We say so, we do not stay silent.
     /// </summary>
     [Fact]
     public void An_access_denied_list_is_reported_never_silent()

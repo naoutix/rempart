@@ -35,10 +35,10 @@ public class AutorunsTests
             registry, new FakeSystemInfoProvider(), signatures: signatures, files: files));
 
     /// <summary>
-    /// Les dossiers de démarrage viennent du registre (<c>Shell Folders</c>), pas de
-    /// <c>Environment</c> : un exécutable qui y est déposé est énuméré et jugé sur sa
-    /// signature. Ce test s'exécute aussi sur le runner Linux de la CI — il prouve que la
-    /// résolution ne dépend pas de l'hôte.
+    /// Startup folders come from the registry (<c>Shell Folders</c>), not from
+    /// <c>Environment</c>: an executable dropped there is enumerated and judged on its
+    /// signature. This test also runs on the CI Linux runner — it proves the resolution
+    /// does not depend on the host.
     /// </summary>
     [Fact]
     public void Startup_folders_are_resolved_from_the_registry()
@@ -56,10 +56,10 @@ public class AutorunsTests
     }
 
     /// <summary>
-    /// <c>desktop.ini</c> est filtré, y compris quand son chemin porte des contre-obliques
-    /// Windows. C'est la régression que corrige le lot : <c>Path.GetFileName</c> ne
-    /// reconnaît pas le <c>\</c> sur Linux et laisserait passer le fichier au rejeu. Ce
-    /// test échouerait avec l'ancienne implémentation dépendante de l'hôte.
+    /// <c>desktop.ini</c> is filtered out, including when its path carries Windows
+    /// backslashes. This is the regression this batch fixes: <c>Path.GetFileName</c> does
+    /// not recognise <c>\</c> on Linux and would let the file through on replay. This
+    /// test would fail with the old host-dependent implementation.
     /// </summary>
     [Fact]
     public void Desktop_ini_is_filtered_even_with_a_windows_path()
@@ -73,8 +73,8 @@ public class AutorunsTests
     }
 
     /// <summary>
-    /// Un raccourci est énuméré sans être jugé : sa cible n'est pas résolue, on ne prétend
-    /// pas vérifier ce qu'il lance.
+    /// A shortcut is enumerated without a verdict: its target is not resolved, and we do
+    /// not pretend to verify what it launches.
     /// </summary>
     [Fact]
     public void A_shortcut_is_listed_without_a_signature_verdict()
@@ -91,8 +91,8 @@ public class AutorunsTests
     }
 
     /// <summary>
-    /// Sans valeur <c>Shell Folders</c> dans le registre, aucun dossier de démarrage n'est
-    /// parcouru — pas d'invention de chemin, seules les clés Run comptent.
+    /// Without a <c>Shell Folders</c> value in the registry, no startup folder is
+    /// scanned — no path gets invented, only the Run keys count.
     /// </summary>
     [Fact]
     public void Absent_shell_folder_values_scan_no_startup_folder()

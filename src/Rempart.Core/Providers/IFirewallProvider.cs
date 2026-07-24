@@ -1,41 +1,41 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Une règle de pare-feu Windows, réduite à ce qui décide de l'atteignabilité d'un port.
+/// A Windows firewall rule, reduced to what decides a port's reachability.
 ///
 /// <para>
-/// Les règles sont stockées sous forme de chaînes <c>Clé=Valeur</c> séparées par des
-/// barres verticales. On n'en retient que les champs qui pèsent sur la question : cette
-/// règle laisse-t-elle entrer une connexion vers ce port, sur ce profil ? Le nom affiché,
-/// la description, le contexte d'intégration n'y changent rien.
+/// Rules are stored as pipe-separated <c>Key=Value</c> strings. Only the fields that
+/// bear on the question are kept: does this rule let a connection in to this port, on
+/// this profile? The display name, description, and integration context do not affect
+/// that.
 /// </para>
 /// </summary>
 public sealed record FirewallRule(
     bool Active,
 
-    /// <summary>« In » ou « Out ». Seul l'entrant expose.</summary>
+    /// <summary>"In" or "Out". Only inbound exposes.</summary>
     string Direction,
 
-    /// <summary>« Allow » ou « Block ». Un blocage l'emporte sur une autorisation.</summary>
+    /// <summary>"Allow" or "Block". A block wins over an allow.</summary>
     string Action,
 
-    /// <summary>Numéro de protocole IANA — 6 pour TCP, 17 pour UDP. Nul = tout protocole.</summary>
+    /// <summary>IANA protocol number — 6 for TCP, 17 for UDP. Null = any protocol.</summary>
     int? Protocol,
 
-    /// <summary>Spécification de port local brute — « 445 », « 80,443 », « 1000-2000 »,
-    /// ou un mot-clé (« RPC »). Nul = tout port.</summary>
+    /// <summary>Raw local port specification — "445", "80,443", "1000-2000", or a
+    /// keyword ("RPC"). Null = any port.</summary>
     string? LocalPorts,
 
-    /// <summary>Profils où la règle s'applique. Vide = tous les profils.</summary>
+    /// <summary>Profiles where the rule applies. Empty = all profiles.</summary>
     IReadOnlyList<string> Profiles,
 
-    /// <summary>Chemin de l'application concernée, variables d'environnement comprises.
-    /// Nul = toute application.</summary>
+    /// <summary>Path of the targeted application, environment variables included.
+    /// Null = any application.</summary>
     string? App)
 {
     /// <summary>
-    /// Analyse une chaîne de règle du registre. Rend null quand la chaîne n'est pas une
-    /// règle exploitable — en-tête de version seul, champ direction absent.
+    /// Parses a rule string from the registry. Returns null when the string is not a
+    /// usable rule — version header only, or missing direction field.
     /// </summary>
     public static FirewallRule? Parse(string raw)
     {
@@ -46,9 +46,9 @@ public sealed record FirewallRule(
 
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // Le champ Profile se répète — « Profile=Domain|Profile=Private|Profile=Public » —
-        // au lieu de se combiner en une seule valeur. Un dictionnaire n'en garderait que le
-        // dernier et perdrait les autres : on accumule à part.
+        // The Profile field repeats — "Profile=Domain|Profile=Private|Profile=Public" —
+        // instead of combining into a single value. A dictionary would keep only the last
+        // one and lose the others, so profiles are accumulated separately.
         var profiles = new List<string>();
 
         foreach (var part in raw.Split('|'))

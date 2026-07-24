@@ -6,7 +6,7 @@
     <RootNamespace>Rempart.Cli</RootNamespace>
     <AssemblyName>rempart</AssemblyName>
 
-    <!-- Livrable : un binaire unique, sans runtime a installer (ADR-001, D1). -->
+    <!-- Deliverable: a single binary, no runtime to install (ADR-001, D1). -->
     <PublishAot>true</PublishAot>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

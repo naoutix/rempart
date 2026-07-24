@@ -4,16 +4,16 @@ namespace Rempart.Core.Collectors;
 
 public enum CollectorStatus
 {
-    /// <summary>Collecte complète.</summary>
+    /// <summary>Complete collection.</summary>
     Ok,
 
-    /// <summary>Collecte partielle, faute de droits. Jamais silencieux (ADR-001).</summary>
+    /// <summary>Partial collection due to missing privileges. Never silent (ADR-001).</summary>
     InsufficientPrivileges,
 
-    /// <summary>La donnée n'existe pas sur cette machine (matériel ou édition absente).</summary>
+    /// <summary>The data does not exist on this machine (hardware or edition absent).</summary>
     Unavailable,
 
-    /// <summary>Le collecteur a échoué. Le scan continue : un collecteur n'en bloque pas un autre.</summary>
+    /// <summary>The collector failed. The scan continues: one collector does not block another.</summary>
     Failed,
 }
 
@@ -24,8 +24,8 @@ public sealed record CollectorResult(
     List<string> Diagnostics);
 
 /// <summary>
-/// Un collecteur lit l'état de la machine à travers <see cref="ProviderSet"/> et n'en
-/// tire aucune conclusion : l'évaluation appartient au moteur de règles (M1).
+/// A collector reads machine state through <see cref="ProviderSet"/> and draws no
+/// conclusion from it: evaluation belongs to the rule engine (M1).
 /// </summary>
 public interface ICollector
 {

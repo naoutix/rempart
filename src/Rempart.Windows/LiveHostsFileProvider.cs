@@ -3,13 +3,13 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Lit le fichier <c>hosts</c> sur le disque.
+/// Reads the <c>hosts</c> file from disk.
 ///
 /// <para>
-/// Son emplacement est fixe — <c>%SystemRoot%\System32\drivers\etc\hosts</c>. Un fichier
-/// absent ou illisible rend une liste vide plutôt qu'une erreur : le scan des autres
-/// surfaces doit se poursuivre, et « pas de fichier hosts » se juge comme « aucune
-/// correspondance », pas comme un échec.
+/// Its location is fixed — <c>%SystemRoot%\System32\drivers\etc\hosts</c>. A missing or
+/// unreadable file returns an empty list instead of an error: the scan of the other
+/// surfaces must continue, and "no hosts file" is treated as "no entries", not as a
+/// failure.
 /// </para>
 /// </summary>
 public sealed class LiveHostsFileProvider : IHostsFileProvider

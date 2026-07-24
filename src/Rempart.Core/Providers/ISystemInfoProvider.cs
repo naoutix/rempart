@@ -10,25 +10,25 @@ public sealed record SystemInfo(
     string FirmwareType,
 
     /// <summary>
-    /// Machine jointe à un domaine Active Directory.
+    /// Machine joined to an Active Directory domain.
     ///
-    /// Sert de condition d'applicabilité : plusieurs durcissements n'ont de sens que
-    /// sous stratégie de groupe centrale, et les appliquer sur un poste autonome
-    /// retire des fonctionnalités sans rien apporter.
+    /// Serves as an applicability condition: several hardenings only make sense under
+    /// central group policy, and applying them to a standalone workstation removes
+    /// functionality without gaining anything.
     /// </summary>
     bool IsDomainJoined = false);
 
 /// <summary>
-/// Informations système qui ne viennent pas du registre. Abstrait pour la même raison
-/// que <see cref="IRegistryProvider"/> : un instantané doit pouvoir être rejoué à
-/// l'identique, y compris pour des valeurs volatiles comme l'uptime.
+/// System information that does not come from the registry. Abstracted for the same
+/// reason as <see cref="IRegistryProvider"/>: a snapshot must be replayable exactly,
+/// including for volatile values such as uptime.
 /// </summary>
 public interface ISystemInfoProvider
 {
     SystemInfo Read();
 }
 
-/// <summary>Les providers dont disposent collecteurs et règles.</summary>
+/// <summary>The providers available to collectors and rules.</summary>
 public sealed class ProviderSet(
     IRegistryProvider registry,
     ISystemInfoProvider systemInfo,
@@ -53,57 +53,57 @@ public sealed class ProviderSet(
     public ISystemInfoProvider SystemInfo { get; } = systemInfo;
 
     /// <summary>
-    /// Absent tant qu'aucun appelant n'en fournit : les contrôles portant sur les
-    /// services rendent alors « non vérifiable » plutôt que d'échouer. Un provider
-    /// manquant est une lacune de couverture, pas une non-conformité de la machine.
+    /// Absent until a caller supplies one: checks that look at services then yield
+    /// "not verifiable" instead of failing. A missing provider is a coverage gap,
+    /// not a non-compliance of the machine.
     /// </summary>
     public IServiceStateProvider Services { get; } = services ?? UnavailableServices.Instance;
 
-    /// <summary>Même principe : absent, les contrôles de politique restent sans verdict.</summary>
+    /// <summary>Same principle: absent, policy checks are left without a verdict.</summary>
     public ISecurityPolicyProvider Policy { get; } = policy ?? UnavailablePolicy.Instance;
 
-    /// <summary>Même principe : absent, les contrôles WMI restent sans verdict.</summary>
+    /// <summary>Same principle: absent, WMI checks are left without a verdict.</summary>
     public IWmiProvider Wmi { get; } = wmi ?? UnavailableWmi.Instance;
 
-    /// <summary>Absent, toute signature reste indéterminée — jamais « non signé ».</summary>
+    /// <summary>Absent, every signature stays undetermined — never "unsigned".</summary>
     public ISignatureProvider Signatures { get; } = signatures ?? UnavailableSignatures.Instance;
 
-    /// <summary>Absent, aucun dossier n'est énuméré — pas d'invention de contenu.</summary>
+    /// <summary>Absent, no directory is enumerated — no content is invented.</summary>
     public IFileSystemProvider Files { get; } = files ?? EmptyFileSystem.Instance;
 
     /// <summary>
-    /// Absent, l'énumération rend « refusée » et non « aucune tâche ». Rendre une
-    /// liste vide ferait passer une absence de provider pour un planificateur propre.
+    /// Absent, enumeration yields "denied" rather than "no tasks". Returning an
+    /// empty list would make a missing provider look like a clean scheduler.
     /// </summary>
     public IScheduledTaskProvider ScheduledTasks { get; } =
         scheduledTasks ?? UnavailableScheduledTasks.Instance;
 
-    /// <summary>Absent, aucun pilote n'est énuméré — pas d'invention de chargement.</summary>
+    /// <summary>Absent, no driver is enumerated — no loading is invented.</summary>
     public IDriverProvider Drivers { get; } = drivers ?? EmptyDrivers.Instance;
 
-    /// <summary>Absent, aucun processus n'est énuméré — pas d'invention d'exécution.</summary>
+    /// <summary>Absent, no process is enumerated — no execution is invented.</summary>
     public IProcessProvider Processes { get; } = processes ?? EmptyProcesses.Instance;
 
-    /// <summary>Absent, aucun port n'est énuméré — pas d'invention d'écoute.</summary>
+    /// <summary>Absent, no port is enumerated — no listening is invented.</summary>
     public IListeningPortProvider ListeningPorts { get; } =
         listeningPorts ?? EmptyListeningPorts.Instance;
 
-    /// <summary>Absent, l'état du pare-feu reste « inconnu » — la règle croisée se retire.</summary>
+    /// <summary>Absent, the firewall state stays "unknown" — the cross-check rule stands down.</summary>
     public IFirewallProvider Firewall { get; } = firewall ?? UnreadFirewall.Instance;
 
-    /// <summary>Absent, aucune interface DNS n'est énumérée — pas d'invention de résolveur.</summary>
+    /// <summary>Absent, no DNS interface is enumerated — no resolver is invented.</summary>
     public IDnsProvider Dns { get; } = dns ?? EmptyDns.Instance;
 
-    /// <summary>Absent, le fichier hosts est vu vide — pas d'invention de correspondance.</summary>
+    /// <summary>Absent, the hosts file is seen as empty — no mapping is invented.</summary>
     public IHostsFileProvider HostsFile { get; } = hostsFile ?? EmptyHostsFile.Instance;
 
-    /// <summary>Absent, aucune configuration proxy n'est inventée — config vide.</summary>
+    /// <summary>Absent, no proxy configuration is invented — empty config.</summary>
     public IProxyProvider Proxy { get; } = proxy ?? EmptyProxy.Instance;
 
-    /// <summary>Absent, aucun profil Wi-Fi n'est énuméré — pas d'invention de réseau.</summary>
+    /// <summary>Absent, no Wi-Fi profile is enumerated — no network is invented.</summary>
     public IWifiProfileProvider Wifi { get; } = wifi ?? EmptyWifi.Instance;
 
-    /// <summary>Absent, aucun logiciel n'est énuméré — pas d'invention d'inventaire.</summary>
+    /// <summary>Absent, no software is enumerated — no inventory is invented.</summary>
     public ISoftwareInventoryProvider SoftwareInventory { get; } =
         softwareInventory ?? EmptySoftwareInventory.Instance;
 }
@@ -208,7 +208,7 @@ internal sealed class UnavailablePolicy : ISecurityPolicyProvider
     public PolicyFacts Read() => PolicyFacts.AccessDenied;
 }
 
-/// <summary>Répond « accès refusé » à toute question : aucune conclusion n'en sort.</summary>
+/// <summary>Answers "access denied" to every question: no conclusion can be drawn from it.</summary>
 internal sealed class UnavailableServices : IServiceStateProvider
 {
     public static readonly UnavailableServices Instance = new();

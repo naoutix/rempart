@@ -1,9 +1,9 @@
 name: CI
 
-# Les actions tierces sont epinglees par empreinte de commit, pas par tag mouvant :
-# un tag comme @v4 ou :latest peut etre reecrit en amont, ce qui reintroduirait du code
-# non revu dans une chaine qui, pour un outil de securite, se doit d'etre reproductible.
-# Le commentaire garde la version lisible ; Dependabot bump l'empreinte (.github/dependabot.yml).
+# Third-party actions are pinned by commit hash, not by movable tag: a tag such as
+# @v4 or :latest can be rewritten upstream, which would reintroduce unreviewed code
+# into a chain that, for a security tool, must stay reproducible.
+# The comment keeps the version readable; Dependabot bumps the hash (.github/dependabot.yml).
 
 on:
   push:
@@ -17,8 +17,8 @@ env:
 
 jobs:
   lint-workflows:
-    # Un workflow invalide echoue au demarrage, sans job et sans log lisible.
-    # Le valider ici evite de diagnostiquer a l'aveugle. Meme controle en local
+    # An invalid workflow fails at startup, with no job and no readable log.
+    # Validating it here avoids diagnosing blind. Same check runs locally
     # via scripts/verify.ps1.
     runs-on: ubuntu-latest
     steps:
@@ -28,8 +28,8 @@ jobs:
           args: -color
 
   test:
-    # Les tests ne touchent que Rempart.Core et rejouent des instantanés :
-    # ils n'ont besoin d'aucune machine Windows.
+    # These tests only touch Rempart.Core and replay snapshots:
+    # they need no Windows machine.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,13 +38,13 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Tests unitaires et sur fixtures
+      - name: Unit and fixture-replay tests
         run: dotnet test tests/Rempart.Tests.Unit --configuration Release
 
   test-windows:
-    # La couche Rempart.Windows -- P/Invoke, registre -- ne peut se tester que sur
-    # Windows. Une signature P/Invoke fausse ne se voit pas a la compilation : elle
-    # rend une valeur plausible et silencieusement erronee.
+    # The Rempart.Windows layer -- P/Invoke, registry -- can only be tested on
+    # Windows. A wrong P/Invoke signature is invisible at compile time: it returns
+    # a plausible, silently wrong value.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,12 +53,12 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Tests contre le vrai registre et les API systeme
+      - name: Tests against the real registry and system APIs
         run: dotnet test tests/Rempart.Tests.Windows --configuration Release
 
   publish-aot:
-    # Vérifie le livrable réel : un binaire unique, sans runtime à installer.
-    # Les runners Windows portent déjà le linker MSVC qu'exige Native AOT.
+    # Verifies the actual deliverable: a single binary, no runtime to install.
+    # Windows runners already carry the MSVC linker that Native AOT requires.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -67,49 +67,49 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publication Native AOT
+      - name: Native AOT publish
         run: dotnet publish src/Rempart.Cli --configuration Release
 
-      - name: Vérifier que le binaire tourne sans dépendance
+      - name: Check the binary runs without dependencies
         shell: pwsh
         run: |
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
-          if (-not (Test-Path $exe)) { throw "Binaire absent : $exe" }
+          if (-not (Test-Path $exe)) { throw "Binary missing: $exe" }
           $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
-          Write-Host "rempart.exe = $size Mo"
+          Write-Host "rempart.exe = $size MB"
           & $exe version
-          if ($LASTEXITCODE -ne 0) { throw "rempart version a echoue" }
+          if ($LASTEXITCODE -ne 0) { throw "rempart version failed" }
 
-      - name: Scan réel sur le runner
+      - name: Real scan on the runner
         shell: pwsh
         run: |
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
           & $exe scan
-          # 0 = succes, 3 = droits insuffisants (acceptable sur un runner).
-          if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan a echoue ($LASTEXITCODE)" }
+          # 0 = success, 3 = insufficient rights (acceptable on a runner).
+          if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan failed ($LASTEXITCODE)" }
 
-      - name: WMI repond depuis le binaire AOT
+      - name: WMI responds from the AOT binary
         shell: pwsh
         run: |
-          # Les tests Windows s'executent en JIT, ou l'interop COM se comporte
-          # differemment. Un bug d'interop a deja rendu WMI inoperant dans le binaire
-          # publie sans que rien ne le signale : le scan sortait en 0 et tous les
-          # controles WMI rendaient « non verifiable ».
+          # The Windows tests run under JIT, where COM interop behaves differently.
+          # An interop bug once left WMI dead in the published binary with nothing
+          # reporting it: the scan exited 0 and every WMI check came back
+          # « non verifiable ».
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
           & $exe diagnose-wmi
-          if ($LASTEXITCODE -ne 0) { throw "WMI ne repond pas depuis le binaire AOT" }
+          if ($LASTEXITCODE -ne 0) { throw "WMI does not respond from the AOT binary" }
 
-      - name: Le planificateur repond depuis le binaire AOT
+      - name: Task Scheduler responds from the AOT binary
         shell: pwsh
         run: |
-          # Meme risque que WMI, et pour la meme raison : l'interop COM du
-          # planificateur est generee a la compilation et ses interfaces derivent
-          # d'IDispatch. Un decalage d'un emplacement de table virtuelle ne se voit
-          # ni a la compilation ni en JIT -- seulement ici. Un scan qui ne trouverait
-          # aucune tache rendrait un rapport d'apparence saine.
+          # Same risk as WMI, and for the same reason: the Task Scheduler COM
+          # interop is generated at compile time and its interfaces derive from
+          # IDispatch. A one-slot vtable offset shows up neither at compile time
+          # nor under JIT -- only here. A scan finding no tasks at all would
+          # render a healthy-looking report.
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
           & $exe diagnose-tasks
-          if ($LASTEXITCODE -ne 0) { throw "Le planificateur ne repond pas depuis le binaire AOT" }
+          if ($LASTEXITCODE -ne 0) { throw "Task Scheduler does not respond from the AOT binary" }
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -117,9 +117,9 @@ jobs:
           path: src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe
 
   fixtures-anonymised:
-    # Garde-fou dédié : une capture brute versionnée par inadvertance exposerait
-    # l'inventaire d'une machine réelle. Le test existe aussi dans la suite, mais
-    # un job distinct rend l'échec lisible sans ouvrir les logs.
+    # Dedicated guardrail: a raw capture committed by mistake would expose a real
+    # machine's inventory. The test also exists in the suite, but a separate job
+    # makes the failure readable without opening the logs.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -128,7 +128,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Vérifier l'anonymisation des fixtures
+      - name: Check fixture anonymisation
         run: >
           dotnet test tests/Rempart.Tests.Unit --configuration Release
           --filter "FullyQualifiedName~Anonymised_fixtures_carry_no_machine_name"

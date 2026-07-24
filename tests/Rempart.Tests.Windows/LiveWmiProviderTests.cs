@@ -4,9 +4,9 @@ using Rempart.Windows.Wmi;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Contre le vrai WMI. Répond à la question ouverte depuis M0 : System.Management ne
-/// survit pas à Native AOT, mais les interfaces COM de WMI restent accessibles par
-/// l'interop générée à la compilation.
+/// Against the real WMI. Answers the question open since M0: System.Management does not
+/// survive Native AOT, but the WMI COM interfaces stay accessible through interop
+/// generated at compile time.
 /// </summary>
 public sealed class LiveWmiProviderTests
 {
@@ -26,8 +26,8 @@ public sealed class LiveWmiProviderTests
     [Fact]
     public void Decodes_a_numeric_property()
     {
-        // Un décodage de VARIANT erroné rendrait une valeur plausible mais fausse :
-        // c'est le mode de défaillance qu'il faut exclure.
+        // A wrong VARIANT decode would return a plausible but wrong value: that is
+        // the failure mode to rule out.
         var read = wmi.Query(@"root\CIMV2", "Win32_ComputerSystem", ["NumberOfProcessors"]);
 
         Assert.Equal(ReadStatus.Found, read.Status);
@@ -53,8 +53,8 @@ public sealed class LiveWmiProviderTests
     [Fact]
     public void Repeated_queries_stay_stable_and_do_not_leak()
     {
-        // Chaque lecture alloue des BSTR et des interfaces COM. Un oubli de
-        // libération ne se voit pas sur un appel isolé, mais épuise un scan complet.
+        // Each read allocates BSTRs and COM interfaces. A missing release is invisible
+        // on a single call but exhausts a full scan.
         var first = wmi.Query(@"root\CIMV2", "Win32_OperatingSystem", ["Caption"]);
 
         for (var i = 0; i < 30; i++)
@@ -67,8 +67,9 @@ public sealed class LiveWmiProviderTests
     [Fact]
     public void BitLocker_status_is_read_or_cleanly_refused()
     {
-        // L'espace de noms BitLocker exige l'élévation. Sans droits, le refus doit
-        // être net : le moteur en fera « non vérifiable », jamais une non-conformité.
+        // The BitLocker namespace requires elevation. Without rights, the denial must
+        // be clean: the engine turns it into "not verifiable", never into a
+        // non-compliance.
         var read = wmi.Query(
             @"root\CIMV2\Security\MicrosoftVolumeEncryption",
             "Win32_EncryptableVolume",

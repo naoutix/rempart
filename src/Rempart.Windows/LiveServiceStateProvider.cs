@@ -4,15 +4,16 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Interroge le gestionnaire de services par <c>advapi32</c>.
+/// Queries the service control manager via <c>advapi32</c>.
 ///
-/// Le mode de démarrage se lirait au registre, mais pas l'état courant : un service
-/// déclaré automatique peut être arrêté, parce qu'il a échoué ou qu'on l'a stoppé. Pour
-/// Windows Update ou le pare-feu, c'est précisément cet écart qu'un audit doit établir.
+/// The start mode could be read from the registry, but not the current state: a
+/// service declared automatic can be stopped, because it failed or someone stopped it.
+/// For Windows Update or the firewall, that gap is exactly what an audit must
+/// establish.
 ///
-/// Les structures natives ne sont pas marshalées : seuls deux entiers à décalage fixe
-/// nous intéressent dans chacune, et les lire dans un tampon d'octets évite toute
-/// question de disposition mémoire — donc toute erreur silencieuse sous Native AOT.
+/// The native structs are not marshaled: only two integers at fixed offsets matter in
+/// each, and reading them from a byte buffer avoids any memory layout question — and
+/// with it any silent error under Native AOT.
 /// </summary>
 public sealed partial class LiveServiceStateProvider : IServiceStateProvider
 {
@@ -60,9 +61,9 @@ public sealed partial class LiveServiceStateProvider : IServiceStateProvider
             var service = OpenService(manager, serviceName, ServiceQueryStatus | ServiceQueryConfig);
             if (service == IntPtr.Zero)
             {
-                // Service absent et accès refusé appellent des suites différentes :
-                // désinstaller un service qui n'existe pas n'a pas de sens, et un
-                // refus signale un scan à relancer en administrateur.
+                // A missing service and denied access call for different follow-ups:
+                // uninstalling a service that does not exist makes no sense, and a
+                // denial signals that the scan should be rerun as administrator.
                 return Marshal.GetLastWin32Error() switch
                 {
                     ErrorServiceDoesNotExist => ServiceRead.NotInstalled,
@@ -90,7 +91,7 @@ public sealed partial class LiveServiceStateProvider : IServiceStateProvider
         }
     }
 
-    /// <summary>SERVICE_STATUS_PROCESS : dwCurrentState au décalage 4.</summary>
+    /// <summary>SERVICE_STATUS_PROCESS: dwCurrentState at offset 4.</summary>
     private static ServiceState? ReadState(IntPtr service)
     {
         var buffer = Allocate((byte[]? size, out int need) => QueryServiceStatusEx(
@@ -110,7 +111,7 @@ public sealed partial class LiveServiceStateProvider : IServiceStateProvider
         };
     }
 
-    /// <summary>QUERY_SERVICE_CONFIG : dwStartType au décalage 4.</summary>
+    /// <summary>QUERY_SERVICE_CONFIG: dwStartType at offset 4.</summary>
     private static ServiceStartMode? ReadStartMode(IntPtr service)
     {
         var buffer = Allocate((byte[]? size, out int need) => QueryServiceConfig(
@@ -133,8 +134,8 @@ public sealed partial class LiveServiceStateProvider : IServiceStateProvider
     }
 
     /// <summary>
-    /// Appel en deux temps, comme l'exige l'API : une première fois pour connaître la
-    /// taille nécessaire, une seconde avec le tampon dimensionné.
+    /// Two-step call, as the API requires: once to learn the required size, then again
+    /// with a buffer of that size.
     /// </summary>
     private static byte[]? Allocate(TryQuery query, out int size)
     {

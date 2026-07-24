@@ -34,20 +34,20 @@ public class PortTests
             listeningPorts: new FakeListeningPortProvider(ports),
             firewall: new FakeFirewallProvider(firewall)));
 
-    /// <summary>Un pare-feu actif qui autorise en entrée le port donné sur Public.</summary>
+    /// <summary>An active firewall that allows the given port inbound on Public.</summary>
     private static FirewallState Allows(string protocol, int port) =>
         new([new FirewallRule(true, "In", "Allow",
                 protocol == "TCP" ? 6 : 17, port.ToString(), ["Public"], null)],
             PublicFirewallEnabled: true, PublicDefaultInboundAllow: false);
 
-    /// <summary>Un pare-feu actif sans règle : le défaut entrant bloque tout.</summary>
+    /// <summary>An active firewall with no rule: the inbound default blocks everything.</summary>
     private static FirewallState BlocksAll =>
         new([], PublicFirewallEnabled: true, PublicDefaultInboundAllow: false);
 
     /// <summary>
-    /// Un binaire non signé qui écoute sur <c>0.0.0.0</c> est suspect : un port ouvert au
-    /// réseau par un programme dont rien n'atteste l'origine est la forme d'une porte
-    /// dérobée. C'est le constat qui fait la valeur du collecteur.
+    /// An unsigned binary listening on <c>0.0.0.0</c> is suspicious: a port opened to the
+    /// network by a program whose origin nothing attests has the shape of a backdoor.
+    /// This is the finding that gives the collector its value.
     /// </summary>
     [Fact]
     public void An_unsigned_binary_reachable_from_public_is_suspicious()
@@ -65,10 +65,10 @@ public class PortTests
     }
 
     /// <summary>
-    /// Le cœur du critère de sortie : le même binaire non signé sur <c>0.0.0.0</c>, mais que
-    /// le pare-feu ne laisse pas entrer, n'est pas classé comme un port réellement exposé. Il
-    /// est inventorié en bénin — le port est ouvert localement, pas joignable de l'extérieur.
-    /// Le binaire non signé, lui, reste relevé par le collecteur de processus.
+    /// The heart of the exit criterion: the same unsigned binary on <c>0.0.0.0</c>, but one
+    /// the firewall does not let in, is not classified as a genuinely exposed port. It is
+    /// inventoried as benign — the port is open locally, not reachable from outside. The
+    /// unsigned binary itself is still picked up by the process collector.
     /// </summary>
     [Fact]
     public void An_unsigned_binary_blocked_by_the_firewall_is_not_exposed()
@@ -85,9 +85,9 @@ public class PortTests
     }
 
     /// <summary>
-    /// Un service signé joignable depuis Public est notable, pas suspect : sa signature
-    /// atteste de son origine, mais un port réellement exposé mérite tout de même un regard —
-    /// c'est là que se décide une surface d'attaque.
+    /// A signed service reachable from Public is notable, not suspicious: its signature
+    /// attests its origin, but a genuinely exposed port still deserves a look — this is
+    /// where an attack surface is decided.
     /// </summary>
     [Fact]
     public void A_signed_service_reachable_from_public_is_notable()
@@ -104,8 +104,8 @@ public class PortTests
     }
 
     /// <summary>
-    /// Le même service signé, mais bloqué par le pare-feu, redevient bénin : le port existe,
-    /// il n'est pas atteignable.
+    /// The same signed service, but blocked by the firewall, drops back to benign: the port
+    /// exists, it is not reachable.
     /// </summary>
     [Fact]
     public void A_signed_service_blocked_by_the_firewall_is_benign()
@@ -120,9 +120,9 @@ public class PortTests
     }
 
     /// <summary>
-    /// Sans état de pare-feu — une capture antérieure à sa collecte — la règle croisée se
-    /// retire et le collecteur retombe sur la signature seule : un binaire non signé exposé
-    /// reste suspect. On ne prétend pas trancher l'atteignabilité qu'on n'a pas mesurée.
+    /// Without firewall state — a capture predating its collection — the cross-check steps
+    /// aside and the collector falls back on the signature alone: an unsigned exposed binary
+    /// stays suspicious. We do not pretend to settle a reachability we never measured.
     /// </summary>
     [Fact]
     public void Without_firewall_data_an_unsigned_exposed_binary_stays_suspicious()
@@ -137,9 +137,9 @@ public class PortTests
     }
 
     /// <summary>
-    /// Un binaire non signé qui n'écoute que la boucle locale n'est pas hissé : il n'expose
-    /// rien au réseau. Le binaire lui-même est l'affaire du collecteur de processus ; le
-    /// redoubler ici brouillerait la question de l'exposition.
+    /// An unsigned binary listening only on loopback is not escalated: it exposes nothing
+    /// to the network. The binary itself is the process collector's business; repeating it
+    /// here would muddy the question of exposure.
     /// </summary>
     [Fact]
     public void An_unsigned_binary_on_loopback_is_not_escalated()
@@ -155,9 +155,9 @@ public class PortTests
     }
 
     /// <summary>
-    /// Le même point d'écoute tenu par plusieurs instances d'un binaire — quatre Chrome sur
-    /// mDNS — ne fait qu'un constat, avec le nombre d'instances. Deux adresses de bind
-    /// distinctes, en revanche, restent deux constats : c'est l'adresse qui porte l'exposition.
+    /// The same listening endpoint held by several instances of a binary — four Chromes on
+    /// mDNS — makes a single finding, with the instance count. Two distinct bind addresses,
+    /// however, remain two findings: the address is what carries the exposure.
     /// </summary>
     [Fact]
     public void Identical_listeners_collapse_to_one_finding()
@@ -180,11 +180,11 @@ public class PortTests
     }
 
     /// <summary>
-    /// Un port exposé dont le propriétaire ne se résout pas — le processus System, ou un
-    /// service hors de portée sans élévation — est inventorié, gravité bénigne. On ne peut
-    /// pas juger sa signature, et l'absence de preuve n'est pas une preuve : sur un scan non
-    /// élevé, presque tous les services système sont dans ce cas, et les hisser tous
-    /// noierait le seul signal qui compte. L'exposition reste consignée dans les détails.
+    /// An exposed port whose owner cannot be resolved — the System process, or a service
+    /// out of reach without elevation — is inventoried at benign severity. We cannot judge
+    /// its signature, and absence of evidence is not evidence: on a non-elevated scan,
+    /// nearly every system service is in this case, and escalating them all would drown
+    /// the only signal that matters. The exposure stays recorded in the details.
     /// </summary>
     [Fact]
     public void An_exposed_port_with_no_resolvable_owner_is_benign_inventory()

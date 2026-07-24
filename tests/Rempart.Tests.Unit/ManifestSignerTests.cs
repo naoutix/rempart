@@ -8,11 +8,11 @@ namespace Rempart.Tests.Unit;
 public class ManifestSignerTests
 {
     /// <summary>
-    /// Le test qui ferme la boucle. Signer et vérifier s'accordent-ils sur le même
-    /// format de signature, le même octet près ? On ne le suppose pas : on génère une
-    /// vraie paire (comme <c>keygen</c>), on signe (comme <c>sign</c>), on vérifie
-    /// (comme <c>update</c>). Si les deux côtés divergeaient d'un rien — format de
-    /// signature, sérialisation — ce test casserait.
+    /// The test that closes the loop. Signing and verification must agree on the
+    /// exact signature format, to the byte. Not assumed: generate a real pair
+    /// (like <c>keygen</c>), sign (like <c>sign</c>), verify (like <c>update</c>).
+    /// If the two sides diverged in anything — signature format, serialization —
+    /// this test would break.
     /// </summary>
     [Fact]
     public void A_manifest_signed_here_verifies_there()
@@ -39,9 +39,9 @@ public class ManifestSignerTests
     }
 
     /// <summary>
-    /// Modifier la charge utile après signature invalide celle-ci : la preuve, du côté
-    /// producteur cette fois, que la signature porte bien sur les octets et non sur une
-    /// vague idée du contenu.
+    /// Modifying the payload after signing invalidates the signature: proof, on
+    /// the producer side this time, that the signature covers the bytes and not
+    /// a loose notion of the content.
     /// </summary>
     [Fact]
     public void Tampering_after_signing_breaks_verification()
@@ -52,7 +52,7 @@ public class ManifestSignerTests
             [ManifestSigner.Describe("d", "x"u8.ToArray())]);
         var manifest = ManifestSigner.Sign(payload, key);
 
-        // On garde la signature, on remplace la charge utile.
+        // Keep the signature, replace the payload.
         var forged = manifest with
         {
             Payload = Convert.ToBase64String(
@@ -70,8 +70,8 @@ public class ManifestSignerTests
     }
 
     /// <summary>
-    /// La version d'un jeu de données dérive de son contenu : même contenu, même
-    /// version ; contenu différent, version différente. Rien à incrémenter à la main.
+    /// A dataset version derives from its content: same content, same version;
+    /// different content, different version. Nothing to increment by hand.
     /// </summary>
     [Fact]
     public void Dataset_version_follows_the_content()
@@ -86,18 +86,18 @@ public class ManifestSignerTests
     }
 
     /// <summary>
-    /// La cérémonie complète, de bout en bout : générer une clé (keygen), signer une
-    /// mise à jour de règles (sign), la déposer, puis la résoudre comme le fait un scan
-    /// (update + store). C'est le trajet réel d'une donnée, prouvé sans jamais la vraie
-    /// clé de production.
+    /// The full ceremony, end to end: generate a key (keygen), sign a rules
+    /// update (sign), deposit it, then resolve it the way a scan does
+    /// (update + store). The real path of a piece of data, proven without ever
+    /// using the real production key.
     /// </summary>
     [Fact]
     public void The_whole_ceremony_generate_sign_apply_resolve()
     {
-        // 1. keygen — sur une machine hors ligne.
+        // 1. keygen — on an offline machine.
         var pair = PublisherKey.Generate("phrase de passe correcte");
 
-        // 2. sign — avec la clé privée déchiffrée.
+        // 2. sign — with the decrypted private key.
         var rule = """
             - id: WIN-NEW-001
               title: Ajouté par mise à jour
@@ -124,11 +124,11 @@ public class ManifestSignerTests
                 key);
         }
 
-        // 3. Le binaire cible n'épingle que cette clé publique.
+        // 3. The target binary pins only this public key.
         var verifier = new ManifestVerifier(
             new Dictionary<string, string> { [pair.KeyId] = pair.PublicKey });
 
-        // 4. update — le manifeste et son jeu de données sont vérifiés et différenciés.
+        // 4. update — the manifest and its dataset are verified and diffed.
         var preview = UpdatePlanner.Prepare(
             Rempart.Core.Json.RempartJson.Serialise(manifest),
             verifier,

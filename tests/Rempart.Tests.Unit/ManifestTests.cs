@@ -7,9 +7,9 @@ using Rempart.Core.Updates;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Un éditeur de manifestes, pour les tests uniquement. La vraie clé privée ne touche
-/// jamais une machine de développement (ADR-002, D16) — ce qui est aussi la raison
-/// pour laquelle ces tests fabriquent la leur à chaque exécution.
+/// A manifest publisher, for tests only. The real private key never touches a
+/// development machine (ADR-002, D16) — which is also why these tests generate
+/// their own key on every run.
 /// </summary>
 internal sealed class TestPublisher : IDisposable
 {
@@ -59,12 +59,13 @@ public class ManifestTests
     }
 
     /// <summary>
-    /// Le cas qui justifie tout ce code. Un attaquant qui contrôle le dépôt peut
-    /// remplacer le contenu ; il ne peut pas produire la signature qui va avec.
+    /// The case that justifies all this code. An attacker who controls the
+    /// repository can replace the content; they cannot produce the matching
+    /// signature.
     ///
-    /// Sans cette vérification, il pourrait publier un catalogue vide : chaque scan
-    /// rendrait 100 % sur une machine ouverte, et personne n'irait chercher — c'est
-    /// précisément ce qu'un rapport vert est censé dispenser de faire.
+    /// Without this check they could publish an empty catalog: every scan would
+    /// report 100% on an exposed machine, and nobody would investigate a green
+    /// report.
     /// </summary>
     [Fact]
     public void Tampering_with_the_payload_after_signature_is_refused()
@@ -72,7 +73,7 @@ public class ManifestTests
         using var publisher = new TestPublisher();
         var signature = publisher.Sign(Payload(version: "1.0.0"));
 
-        // La signature de l'original, collée sur une charge utile différente.
+        // The original's signature, pasted onto a different payload.
         var verdict = new ManifestVerifier(
                 new Dictionary<string, string> { [publisher.KeyId] = publisher.PublicKey })
             .Verify(Wrap(Payload(version: "6.6.6"),
@@ -83,8 +84,8 @@ public class ManifestTests
     }
 
     /// <summary>
-    /// Signer avec sa propre clé ne suffit pas : encore faut-il que ce binaire la
-    /// connaisse. C'est ce qui distingue « signé » de « signé par l'éditeur ».
+    /// Signing with one's own key is not enough: this binary must also know it.
+    /// That is the difference between "signed" and "signed by the publisher".
     /// </summary>
     [Fact]
     public void A_manifest_signed_by_a_stranger_is_refused()
@@ -101,9 +102,9 @@ public class ManifestTests
     }
 
     /// <summary>
-    /// L'inconnu ne peut pas non plus se faire passer pour l'éditeur en revendiquant
-    /// son empreinte de clé : c'est la clé publique épinglée qui vérifie, jamais
-    /// l'identifiant annoncé.
+    /// A stranger cannot impersonate the publisher by claiming their key
+    /// fingerprint either: verification uses the pinned public key, never the
+    /// declared identifier.
     /// </summary>
     [Fact]
     public void Claiming_a_trusted_key_id_without_the_key_is_refused()
@@ -120,9 +121,9 @@ public class ManifestTests
     }
 
     /// <summary>
-    /// La rotation exige que les deux clés soient acceptées en même temps (D16). Sans
-    /// ce chevauchement, publier avec une nouvelle clé casserait toutes les
-    /// installations existantes d'un coup.
+    /// Rotation requires both keys to be accepted at the same time (D16). Without
+    /// this overlap, publishing with a new key would break every existing
+    /// installation at once.
     /// </summary>
     [Fact]
     public void During_rotation_both_keys_are_accepted()
@@ -135,11 +136,11 @@ public class ManifestTests
             new ManifestSignature(oldKey.KeyId, oldKey.Sign(payload)),
             new ManifestSignature(newKey.KeyId, newKey.Sign(payload)));
 
-        // Un binaire ancien ne connaît que l'ancienne clé.
+        // An old binary only knows the old key.
         var old = new ManifestVerifier(
             new Dictionary<string, string> { [oldKey.KeyId] = oldKey.PublicKey }).Verify(manifest);
 
-        // Un binaire récent connaît les deux.
+        // A recent binary knows both.
         var recent = new ManifestVerifier(new Dictionary<string, string>
         {
             [oldKey.KeyId] = oldKey.PublicKey,
@@ -151,9 +152,9 @@ public class ManifestTests
     }
 
     /// <summary>
-    /// Une signature illisible parmi plusieurs ne doit pas emporter les autres :
-    /// pendant une rotation, un manifeste en porte deux, et l'une peut venir d'une
-    /// version d'outil qu'on ne connaît pas.
+    /// One unreadable signature among several must not invalidate the others:
+    /// during a rotation a manifest carries two, and one may come from a tool
+    /// version we do not know.
     /// </summary>
     [Fact]
     public void A_malformed_signature_does_not_hide_a_valid_one()
@@ -186,9 +187,9 @@ public class ManifestTests
     }
 
     /// <summary>
-    /// Un manifeste authentique accompagné d'un fichier corrompu doit se voir comme
-    /// tel : ce sont deux questions distinctes, et les confondre ferait annoncer une
-    /// falsification là où il n'y a qu'un téléchargement interrompu.
+    /// An authentic manifest with a corrupted file must be reported as exactly
+    /// that: they are two distinct questions, and conflating them would report
+    /// tampering where there is only an interrupted download.
     /// </summary>
     [Fact]
     public void A_file_that_does_not_match_its_entry_is_refused()
@@ -200,8 +201,8 @@ public class ManifestTests
     }
 
     /// <summary>
-    /// Même empreinte annoncée mais taille différente : refusé sans même hacher. Une
-    /// incohérence interne au manifeste est déjà une raison de ne rien charger.
+    /// Same declared hash but a different size: refused without even hashing. An
+    /// internal inconsistency in the manifest is already a reason to load nothing.
     /// </summary>
     [Fact]
     public void A_file_of_the_wrong_size_is_refused_before_hashing()

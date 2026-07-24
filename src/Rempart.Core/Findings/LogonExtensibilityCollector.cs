@@ -3,23 +3,23 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Points d'extension chargés à l'ouverture de session ou injectés dans chaque processus.
+/// Extension points loaded at logon or injected into every process.
 ///
 /// <para>
-/// Ni des clés <c>Run</c>, ni des tâches : ces emplacements font exécuter du code sans
-/// figurer dans les surfaces qu'un outil grand public inspecte. Chacun a une valeur par
-/// défaut connue — <c>userinit.exe</c>, <c>explorer.exe</c>, une liste vide — et c'est
-/// l'écart à ce défaut, ou un binaire référencé qui n'est pas signé, qui est le signal.
+/// Neither <c>Run</c> keys nor tasks: these locations execute code without appearing
+/// in the surfaces a consumer-grade tool inspects. Each has a known default value —
+/// <c>userinit.exe</c>, <c>explorer.exe</c>, an empty list — and the signal is the
+/// deviation from that default, or a referenced binary that is not signed.
 /// </para>
 ///
 /// <para>
-/// Trois emplacements, tous sous <c>HKLM</c>, lisibles sans élévation :
+/// Three locations, all under <c>HKLM</c>, readable without elevation:
 /// </para>
 /// <list type="bullet">
-///   <item><c>Winlogon\Userinit</c> — programmes lancés juste après l'ouverture de session.</item>
-///   <item><c>Winlogon\Shell</c> — l'interpréteur graphique, <c>explorer.exe</c> par défaut.</item>
-///   <item><c>AppInit_DLLs</c> — DLL chargées dans tout processus graphique. Vide par défaut,
-///     et sa seule présence mérite un regard : c'est un point d'injection universel.</item>
+///   <item><c>Winlogon\Userinit</c> — programs launched right after logon.</item>
+///   <item><c>Winlogon\Shell</c> — the graphical shell, <c>explorer.exe</c> by default.</item>
+///   <item><c>AppInit_DLLs</c> — DLLs loaded into every GUI process. Empty by default,
+///     and its mere presence deserves review: it is a universal injection point.</item>
 /// </list>
 /// </summary>
 public sealed class LogonExtensibilityCollector : IFindingCollector
@@ -47,10 +47,10 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Une valeur Winlogon peut lister plusieurs exécutables séparés par des virgules —
-    /// <c>Userinit</c> en porte une en fin de valeur par défaut. Chacun est jugé ; celui
-    /// qui n'est pas le programme attendu à cet emplacement est signalé même signé, car
-    /// c'est l'ajout qui compte, pas seulement l'origine.
+    /// A Winlogon value can list several executables separated by commas —
+    /// <c>Userinit</c> has a trailing comma in its default value. Each is judged; an
+    /// entry that is not the expected program for the location is reported even when
+    /// signed, because the addition matters, not only the origin.
     /// </summary>
     private static void CollectWinlogon(
         ProviderSet providers, List<Finding> findings, string valueName, string expected)
@@ -83,10 +83,10 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
     }
 
     /// <summary>
-    /// <c>AppInit_DLLs</c> injecte ses DLL dans tout processus graphique. Sur une machine
-    /// moderne, la valeur est vide ; une DLL présente est notable quelle que soit sa
-    /// signature — le mécanisme lui-même est un levier d'injection, largement abandonné
-    /// hors logiciels hérités.
+    /// <c>AppInit_DLLs</c> injects its DLLs into every GUI process. On a modern
+    /// machine the value is empty; a DLL present there is notable whatever its
+    /// signature — the mechanism itself is an injection lever, largely abandoned
+    /// outside legacy software.
     /// </summary>
     private static void CollectAppInit(ProviderSet providers, List<Finding> findings)
     {
@@ -125,8 +125,8 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Élève un constat à un plancher de gravité et ajoute une raison, sans jamais
-    /// l'abaisser : un binaire déjà suspect par sa signature le reste.
+    /// Raises a finding to a severity floor and adds a reason, without ever lowering
+    /// it: a binary already suspicious because of its signature stays suspicious.
     /// </summary>
     private static Finding Escalate(Finding finding, FindingSeverity floor, string reason) =>
         finding with
@@ -136,10 +136,10 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
         };
 
     /// <summary>
-    /// Nom de fichier d'un chemin, en découpant sur les deux séparateurs à la main.
-    /// <c>Path.GetFileName</c> emploie le séparateur de l'hôte : sous Linux, il ne
-    /// reconnaît pas le <c>\</c> d'un chemin Windows et rend le chemin entier — ce qui
-    /// faisait diverger le rejeu en CI du golden capturé sous Windows.
+    /// File name of a path, splitting on both separators by hand.
+    /// <c>Path.GetFileName</c> uses the host's separator: on Linux it does not
+    /// recognize the <c>\</c> of a Windows path and returns the whole path — which
+    /// made the CI replay diverge from the golden captured on Windows.
     /// </summary>
     private static string FileName(string path)
     {
@@ -147,7 +147,7 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
         return separator >= 0 ? path[(separator + 1)..] : path;
     }
 
-    /// <summary>Retire les guillemets et ne garde que le chemin de l'exécutable d'une entrée.</summary>
+    /// <summary>Strips quotes and keeps only the executable path of an entry.</summary>
     private static string ExtractExecutable(string entry)
     {
         var trimmed = entry.Trim().Trim('"');
@@ -156,22 +156,22 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Résout un nom nu vers son emplacement Windows canonique. Un chemin déjà complet
-    /// est rendu tel quel.
+    /// Resolves a bare name to its canonical Windows location. An already complete
+    /// path is returned as-is.
     ///
     /// <para>
-    /// <c>explorer.exe</c> vit dans le dossier Windows, pas System32 : le supposer en
-    /// System32 faisait ressortir le shell « fichier introuvable ». Mais la résolution
-    /// ne peut pas <b>interroger le système de fichiers</b> — <c>File.Exists</c> et le
-    /// dossier Windows réel dépendent de l'hôte, et un instantané capturé sous Windows
-    /// se rejoue en CI sous Linux, où la même valeur se résoudrait autrement. Ce fut
-    /// exactement le piège du séparateur des pilotes.
+    /// <c>explorer.exe</c> lives in the Windows folder, not System32: assuming
+    /// System32 made the shell come out as "file not found". But resolution cannot
+    /// <b>query the file system</b> — <c>File.Exists</c> and the actual Windows folder
+    /// depend on the host, and a snapshot captured on Windows is replayed in CI on
+    /// Linux, where the same value would resolve differently. This was exactly the
+    /// separator trap hit with the drivers.
     /// </para>
     ///
     /// <para>
-    /// La convention est donc écrite en dur — <c>explorer.exe</c> au dossier Windows, le
-    /// reste en System32 — sans aucun accès disque, pour que capture et rejeu produisent
-    /// le même chemin quelle que soit la machine qui les exécute.
+    /// The convention is therefore hard-coded — <c>explorer.exe</c> in the Windows
+    /// folder, everything else in System32 — with no disk access, so capture and
+    /// replay produce the same path whatever machine runs them.
     /// </para>
     /// </summary>
     private static string Resolve(string reference)

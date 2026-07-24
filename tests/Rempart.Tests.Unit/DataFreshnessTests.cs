@@ -33,9 +33,9 @@ public class DataFreshnessTests
     }
 
     /// <summary>
-    /// Un instantané rejoué porte une heure figée, souvent antérieure à la date des
-    /// données. L'âge y serait négatif ; il est plafonné à zéro plutôt qu'affiché tel
-    /// quel — « au moins aussi récente que le scan » se lit, « -201 jours » non.
+    /// A replayed snapshot carries a frozen time, often earlier than the data
+    /// date. The age would be negative; it is clamped to zero rather than shown
+    /// as-is — "at least as recent as the scan" is readable, "-201 days" is not.
     /// </summary>
     [Fact]
     public void Data_newer_than_the_scan_clamps_to_zero_never_negative()
@@ -48,8 +48,8 @@ public class DataFreshnessTests
     }
 
     /// <summary>
-    /// Une date qu'on ne sait pas lire ne doit pas passer pour une donnée fraîche :
-    /// c'est le même principe que <c>Unknown ≠ Fail</c>, appliqué à l'ancienneté.
+    /// An unreadable date must not pass for fresh data: same principle as
+    /// <c>Unknown ≠ Fail</c>, applied to age.
     /// </summary>
     [Theory]
     [InlineData("pas une date", "2026-07-01T00:00:00Z")]
@@ -63,8 +63,8 @@ public class DataFreshnessTests
     }
 
     /// <summary>
-    /// La date embarquée doit être lisible par le calculateur d'âge : une constante mal
-    /// formée ferait rendre « inconnu » à chaque scan, sans que rien ne l'explique.
+    /// The embedded date must be readable by the age calculator: a malformed
+    /// constant would yield "unknown" on every scan, with nothing to explain it.
     /// </summary>
     [Fact]
     public void The_embedded_reference_date_is_parseable()
