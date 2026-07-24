@@ -339,8 +339,8 @@ Remediation ships in a later milestone; its data format is already settled:
 | Critical components untouchable | Hard-coded blocklist + property test over all profiles in CI |
 | No network leakage | External calls are opt-in per run; offline by default |
 | No silent failure | Every collector reports `insufficient_privileges` rather than omitting |
-| Verifiable rollback | JSON journal on the stick + VM test: apply → rollback → assert initial state |
-| Irreversible actions isolated | `/ResetBase` and equivalents: never in a profile, individually confirmed |
+| Verifiable rollback *(planned, M9)* | JSON journal on the stick + VM test: apply → rollback → assert initial state |
+| Irreversible actions isolated *(planned, M9)* | `/ResetBase` and equivalents: never in a profile, individually confirmed |
 
 ## Test strategy
 

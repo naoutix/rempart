@@ -49,7 +49,8 @@ Edit a YAML file in [`rules/security/`](rules/security/), then:
 
 ```powershell
 ./scripts/regenerate-fixtures.ps1   # if the rule reads keys absent from fixtures
-dotnet test                         # fails once, to re-read the references
+dotnet test                         # fails once while it rewrites the golden
+                                    #   references — review the diff, then commit
 ```
 
 To iterate without recompiling:
