@@ -19,7 +19,8 @@ from a USB stick.
   and saved Wi-Fi profiles.
 - **Software inventory** — installed software from four sources (Uninstall registry,
   Appx/MSIX, App Paths, Chocolatey), cross-checked against a signed bloatware
-  catalog.
+  catalog; browser extensions (Chrome, Edge, Brave, Firefox) with the permissions
+  they were actually granted, sideloads flagged.
 
 The scan is read-only and works offline. The only two features that touch the
 network — VirusTotal lookups and active DoH/DoT probing — are opt-in flags, never

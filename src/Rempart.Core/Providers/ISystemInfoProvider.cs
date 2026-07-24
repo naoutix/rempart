@@ -46,7 +46,8 @@ public sealed class ProviderSet(
     IHostsFileProvider? hostsFile = null,
     IProxyProvider? proxy = null,
     IWifiProfileProvider? wifi = null,
-    ISoftwareInventoryProvider? softwareInventory = null)
+    ISoftwareInventoryProvider? softwareInventory = null,
+    IBrowserExtensionProvider? browserExtensions = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -106,6 +107,10 @@ public sealed class ProviderSet(
     /// <summary>Absent, no software is enumerated — no inventory is invented.</summary>
     public ISoftwareInventoryProvider SoftwareInventory { get; } =
         softwareInventory ?? EmptySoftwareInventory.Instance;
+
+    /// <summary>Absent, no extension is enumerated — no install is invented.</summary>
+    public IBrowserExtensionProvider BrowserExtensions { get; } =
+        browserExtensions ?? EmptyBrowserExtensions.Instance;
 }
 
 internal sealed class EmptyDns : IDnsProvider
@@ -141,6 +146,13 @@ internal sealed class EmptySoftwareInventory : ISoftwareInventoryProvider
     public static readonly EmptySoftwareInventory Instance = new();
 
     public IReadOnlyList<InstalledSoftware> Read() => [];
+}
+
+internal sealed class EmptyBrowserExtensions : IBrowserExtensionProvider
+{
+    public static readonly EmptyBrowserExtensions Instance = new();
+
+    public IReadOnlyList<BrowserExtension> Read() => [];
 }
 
 internal sealed class UnreadFirewall : IFirewallProvider

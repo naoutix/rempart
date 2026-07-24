@@ -284,12 +284,12 @@ niveau qu'un port réellement exposé. ✅ Le critère est atteint : SMB (445) e
 ouverts mais bloqués en Public, retombent en bénin ; seuls les services qu'une règle
 active laisse entrer sont relevés.
 
-### M5 · Logiciels & bloatware
+### M5 · Logiciels & bloatware — ✅ terminé
 Inventaire (MSI, Appx, winget, Chocolatey, portables), extensions navigateur avec
 leurs permissions, catalogue bloatware classé par risque.
 
-Découpé en trois sous-lots : **M5a** inventaire (fait), **M5b** catalogue bloatware,
-**M5c** extensions navigateur.
+Découpé en trois sous-lots : **M5a** inventaire, **M5b** catalogue bloatware,
+**M5c** extensions navigateur — tous trois livrés.
 
 - [x] **M5a — inventaire logiciel.** Collecteur `software` sur quatre sources
       autoritatives : Uninstall (registre, 3 racines — updates et composants système
@@ -313,7 +313,23 @@ Découpé en trois sous-lots : **M5a** inventaire (fait), **M5b** catalogue bloa
       pour d'autres machines où le paquet est réellement présent.
 - [x] Canal de rafraîchissement du catalogue — **déjà tranché** : le canal signé d'ADR-002,
       comme LOLDrivers (ADR-001 le renvoyait à ADR-002)
-- [ ] **M5c — extensions navigateur** avec leurs permissions
+- [x] **M5c — extensions navigateur** avec leurs permissions effectives. Parseurs purs
+      (Chromium : manifeste + `Secure Preferences` ; Firefox : `extensions.json`),
+      constat `browser-extension` par extension. La provenance décide du palier :
+      sideload (`location` 2/3/4, ou non signée) → Suspicious ; accès large ou
+      permission forte (`debugger`, `nativeMessaging`, `proxy`) depuis le magasin →
+      Notable — un gestionnaire de mots de passe légitime cumule `<all_urls>` +
+      `nativeMessaging`, le marquer Suspicious crierait au loup. Vérifié sur machine
+      réelle : 22 extensions (Chrome + 3 profils Edge), noms `__MSG__` résolus,
+      composants exclus, états désactivés détectés, zéro faux Suspicious.
+
+**Trouvé en chemin (M5c).** `from_webstore` est inutilisable comme signal de sideload :
+sur Edge, les extensions du magasin Microsoft portent `from_webstore: false` — seul
+`location` distingue une installation externe. Et `state` n'existe plus dans les
+Chromium récents : l'état activé/désactivé se lit dans `disable_reasons`. Les deux
+relevés viennent de l'inspection des fichiers réels, pas de la documentation — voir la
+spec du 2026-07-24. Firefox : parseur testé sur fixtures fabriquées, à confirmer sur
+une machine qui l'a.
 
 **Fait quand** le catalogue est validé sur une machine OEM réelle, pas sur une VM.
 

@@ -306,6 +306,19 @@ public sealed class SnapshotWifiProfileProvider(MachineSnapshot snapshot) : IWif
     public IReadOnlyList<WifiProfile> Read() => snapshot.Wifi ?? [];
 }
 
+public sealed class RecordingBrowserExtensionProvider(
+    IBrowserExtensionProvider inner, MachineSnapshot snapshot) : IBrowserExtensionProvider
+{
+    public IReadOnlyList<BrowserExtension> Read() => snapshot.BrowserExtensions ??= [.. inner.Read()];
+}
+
+public sealed class SnapshotBrowserExtensionProvider(MachineSnapshot snapshot)
+    : IBrowserExtensionProvider
+{
+    // Absent from an earlier capture: empty list, the fixture stays replayable.
+    public IReadOnlyList<BrowserExtension> Read() => snapshot.BrowserExtensions ?? [];
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {
