@@ -64,6 +64,11 @@ données : catalogue au 2026-07-21, 2 jours
                 de fonctionnalité si provisionné.
 ```
 
+Key French terms in the output: *règles* = rules · *données* = data freshness ·
+*à corriger* = to fix · *conformes / échecs / non vérifiés / hors périmètre* =
+compliant / failing / unverified / out of scope · *constats* = findings ·
+*à examiner* = worth reviewing.
+
 Every rule can explain itself — why it exists, what fixing it breaks, and how to
 check beforehand:
 
@@ -87,16 +92,24 @@ Correction — réversibilité : Trivial
 
 ## Quick start
 
-There is no packaged release yet. Build from source:
+Runs on 64-bit Windows; the rule set is written against Windows 11 defaults.
+There is no packaged release yet — build from source with the
+[.NET SDK 10](docs/BUILD.md):
 
 ```bash
 git clone https://github.com/naoutix/rempart
+dotnet run --project src/Rempart.Cli -- scan   # fastest way to try it
+```
+
+Producing the single self-contained `rempart.exe` is a Native AOT publish, which
+additionally needs the C++ Build Tools ([BUILD.md](docs/BUILD.md)):
+
+```bash
 dotnet publish src/Rempart.Cli -c Release
 # → src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe
 ```
 
-Requires the [.NET SDK 10](docs/BUILD.md); the C++ Build Tools are only needed for
-the Native AOT publish step. Then:
+Then:
 
 ```text
 rempart scan             # audit the machine; run elevated for the full view
@@ -177,8 +190,8 @@ rule, the test layout, and the known build pitfalls.
 | | |
 |---|---|
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Invariants, adding a rule, tests, workflow |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) (French, translation in progress) | Diagrams, rule format, test strategy |
-| [BUILD.md](docs/BUILD.md) (French, translation in progress) | Prerequisites, AOT publish, build pitfalls |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrams, rule format, test strategy |
+| [BUILD.md](docs/BUILD.md) | Prerequisites, AOT publish, build pitfalls |
 | [ROADMAP.md](docs/ROADMAP.md) (French) | Milestones, including what was deferred and why |
 | [DEBT.md](docs/DEBT.md) (French) | Technical debt register |
 | [ADRs](docs/adr/) (French) | Decision records: stack, update channel, firewall via registry, … |
