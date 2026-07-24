@@ -6,16 +6,16 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows.Wmi;
 
 /// <summary>
-/// Client WMI bâti sur l'interop COM générée à la compilation.
+/// WMI client built on COM interop generated at compile time.
 ///
-/// Répond à la question laissée ouverte depuis M0 : <c>System.Management</c> ne
-/// survit pas à Native AOT, mais WMI reste accessible en passant directement par ses
-/// interfaces COM. Aucune réflexion à l'exécution, donc aucun avertissement de
-/// trim ni surprise après publication.
+/// Answers the question left open since M0: <c>System.Management</c> does not
+/// survive Native AOT, but WMI stays reachable by going straight to its COM
+/// interfaces. No reflection at runtime, hence no trim warning and no surprise
+/// after publishing.
 ///
-/// La plupart des espaces de noms visés exigent l'élévation. Un refus se traduit par
-/// <see cref="ReadStatus.AccessDenied"/>, que le moteur rend en « non vérifiable » :
-/// le scan n'a pas pu regarder, la machine n'est pas en cause.
+/// Most of the namespaces we target require elevation. A refusal maps to
+/// <see cref="ReadStatus.AccessDenied"/>, which the engine renders as
+/// « non vérifiable »: the scan could not look, the machine is not at fault.
 /// </summary>
 public sealed unsafe partial class LiveWmiProvider : IWmiProvider
 {
@@ -41,8 +41,8 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
         int authnLevel, int impLevel, IntPtr authInfo, int capabilities);
 
     /// <summary>
-    /// L'initialisation de la sécurité COM ne vaut qu'une fois par processus, et
-    /// échouer une seconde fois est normal — d'où le résultat ignoré.
+    /// COM security initialisation only counts once per process, and failing a
+    /// second time is normal — hence the ignored result.
     /// </summary>
     private static readonly bool SecurityInitialised = InitialiseSecurity();
 
@@ -71,9 +71,9 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
         }
         catch (COMException ex)
         {
-            // 0x80041003 WBEM_E_ACCESS_DENIED, 0x80070005 E_ACCESSDENIED :
-            // le scan n'est pas élevé. 0x8004100E : l'espace de noms n'existe pas,
-            // ce qui arrive sur une édition de Windows dépourvue de la fonctionnalité.
+            // 0x80041003 WBEM_E_ACCESS_DENIED, 0x80070005 E_ACCESSDENIED:
+            // the scan is not elevated. 0x8004100E: the namespace does not exist,
+            // which happens on a Windows edition lacking the feature.
             return (uint)ex.HResult switch
             {
                 0x80041003 or 0x80070005 => WmiRead.AccessDenied,
@@ -83,9 +83,9 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
         }
         catch (Exception ex)
         {
-            // Une défaillance ne doit pas interrompre le scan, mais elle ne doit pas
-            // non plus se déguiser en refus d'accès : c'est cette confusion qui avait
-            // fait conclure à tort qu'une élévation suffirait.
+            // A failure must not interrupt the scan, but neither must it disguise
+            // itself as an access denial: that confusion is what once led to the
+            // wrong conclusion that elevation would be enough.
             return WmiRead.Failed($"{ex.GetType().Name} : {ex.Message}");
         }
     }
@@ -101,9 +101,9 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
             throw new COMException($"ConnectServer({namespacePath})", connect);
         }
 
-        // Le blanket précise l'identité de l'appelant. Il n'est indispensable qu'aux
-        // connexions distantes : en local, CoInitializeSecurity suffit. Son échec ne
-        // doit donc pas condamner la requête.
+        // The blanket specifies the caller's identity. It is only essential for
+        // remote connections: locally, CoInitializeSecurity is enough. Its failure
+        // must therefore not doom the query.
         TrySetBlanket(services);
 
         var query = $"SELECT * FROM {className}";
@@ -157,7 +157,7 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
             }
             finally
             {
-                // Un BSTR non libere fuit a chaque lecture, donc a chaque scan.
+                // An unreleased BSTR leaks on every read, hence on every scan.
                 VariantClear(ref variant);
             }
         }
@@ -166,9 +166,9 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
     }
 
     /// <summary>
-    /// Seuls les types que WMI rend pour les proprietes interrogees. Un type non
-    /// couvert est ignore plutot que rendu approximativement : mieux vaut une
-    /// propriete absente, donc un verdict « non verifiable », qu'une valeur fausse.
+    /// Only the types WMI returns for the properties we query. An uncovered type is
+    /// ignored rather than rendered approximately: better an absent property, hence
+    /// a « non vérifiable » verdict, than a wrong value.
     /// </summary>
     private static string? Decode(Variant variant) => variant.Vt switch
     {
@@ -189,15 +189,15 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
     };
 
     /// <summary>
-    /// <c>Marshal.GetIUnknownForObject</c> exige le support COM intégré du runtime,
-    /// absent sous Native AOT : il y lève systématiquement.
+    /// <c>Marshal.GetIUnknownForObject</c> requires the runtime's built-in COM
+    /// support, absent under Native AOT: there it always throws.
     ///
-    /// C'est le bug qui a rendu WMI inopérant dans le binaire publié. L'exception
-    /// remontait au catch général, traduite en « accès refusé » — donc tous les
-    /// contrôles WMI rendaient « non vérifiable », y compris élevé, sans que rien ne
-    /// distingue ce bug d'un manque de droits.
+    /// This is the bug that left WMI dead in the published binary. The exception
+    /// bubbled up to the catch-all, translated into "access denied" — so every WMI
+    /// check rendered « non vérifiable », even elevated, with nothing to tell this
+    /// bug apart from missing rights.
     ///
-    /// La requête fonctionne sans blanket en local : l'échec est ignoré.
+    /// The query works without a blanket locally: the failure is ignored.
     /// </summary>
     private static void TrySetBlanket(object proxy)
     {
@@ -216,15 +216,15 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
         }
         catch (Exception)
         {
-            // Sans effet en local : la connexion garde l'identité du processus.
+            // No effect locally: the connection keeps the process identity.
         }
     }
 
     /// <summary>
-    /// Instanciation par CoCreateInstance plutot que par Type.GetTypeFromCLSID :
-    /// cette derniere passe par la reflexion et le compilateur AOT la refuse. Le
-    /// garde-fou IsAotCompatible l'a signale a la compilation, la ou le probleme
-    /// ne serait autrement apparu qu'apres publication.
+    /// Instantiated through CoCreateInstance rather than Type.GetTypeFromCLSID: the
+    /// latter goes through reflection and the AOT compiler refuses it. The
+    /// IsAotCompatible guard flagged it at compile time, where the problem would
+    /// otherwise only have surfaced after publishing.
     /// </summary>
     private static IWbemLocator CreateLocator()
     {

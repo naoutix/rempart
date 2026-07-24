@@ -10,8 +10,8 @@ using Rempart.Core.Updates;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Le canal ne transporte plus seulement des règles. Ces tests couvrent le routage par
-/// type — règles vs pilotes — et le refus d'un type inconnu.
+/// The channel no longer carries rules alone. These tests cover routing by kind —
+/// rules vs drivers — and the refusal of an unknown kind.
 /// </summary>
 public sealed class DatasetTypingTests : IDisposable
 {
@@ -21,8 +21,8 @@ public sealed class DatasetTypingTests : IDisposable
     private string Store => Path.Combine(root, "store");
 
     /// <summary>
-    /// Publie un jeu de données typé et l'applique au magasin, prêt à être résolu comme
-    /// le ferait un scan. Renvoie le vérificateur armé de la clé de l'éditeur.
+    /// Publishes a typed dataset and applies it to the store, ready to be resolved the
+    /// way a scan would. Returns the verifier armed with the publisher's key.
     /// </summary>
     private ManifestVerifier PublishAndApply(
         TestPublisher publisher, string name, string content, string? kind)
@@ -48,9 +48,9 @@ public sealed class DatasetTypingTests : IDisposable
     }
 
     /// <summary>
-    /// Le trajet complet d'une liste de pilotes : signée, appliquée, résolue, et un
-    /// pilote chargé dont l'empreinte y figure ressort suspect. C'est ce que le typage
-    /// débloque — la vraie donnée LOLDrivers, livrée par le même canal que les règles.
+    /// The full journey of a driver blocklist: signed, applied, resolved, and a loaded
+    /// driver whose hash it lists comes out suspicious. This is what typing unlocks —
+    /// the real LOLDrivers data, delivered through the same channel as the rules.
     /// </summary>
     [Fact]
     public void A_signed_driver_blocklist_flows_through_and_flags_a_loaded_driver()
@@ -66,11 +66,11 @@ public sealed class DatasetTypingTests : IDisposable
         var verifier = PublishAndApply(publisher, "loldrivers.json", blocklistJson, kind: null);
         var resolution = UpdateStore.Resolve(Store, RuleCatalog.Load(), verifier);
 
-        // Le magasin a chargé la liste, et le socle de règles est intact (D12).
+        // The store loaded the list, and the rule baseline is intact (D12).
         Assert.Equal(1, resolution.Blocklist.Count);
         Assert.Contains("pilotes surveillés", resolution.UpdateNote);
 
-        // Un pilote chargé dont l'empreinte est dans la liste ressort suspect.
+        // A loaded driver whose hash is in the list comes out suspicious.
         var findings = new LoadedDriversCollector(resolution.Blocklist).Collect(new ProviderSet(
             new FakeRegistryProvider(),
             new FakeSystemInfoProvider(),
@@ -85,8 +85,8 @@ public sealed class DatasetTypingTests : IDisposable
     }
 
     /// <summary>
-    /// Le type est deviné à l'extension : un <c>.json</c> est une liste de pilotes, un
-    /// <c>.yaml</c> des règles. L'éditeur n'a rien à déclarer dans le cas courant.
+    /// The kind is inferred from the extension: a <c>.json</c> is a driver blocklist, a
+    /// <c>.yaml</c> is rules. The publisher has nothing to declare in the common case.
     /// </summary>
     [Fact]
     public void The_kind_is_inferred_from_the_extension()
@@ -97,29 +97,29 @@ public sealed class DatasetTypingTests : IDisposable
     }
 
     /// <summary>
-    /// Un manifeste d'un type qu'une vieille version ne connaît pas est refusé, pas
-    /// deviné : la réponse doit être « mettre le binaire à jour », jamais un chargement
-    /// partiel silencieux. Le socle tient (D12).
+    /// A manifest of a kind an old version does not know is refused, not guessed at:
+    /// the answer must be "update the binary", never a silent partial load. The
+    /// baseline holds (D12).
     /// </summary>
     [Fact]
     public void An_unknown_kind_is_refused_and_the_floor_holds()
     {
         using var publisher = new TestPublisher();
-        // « bloatware » est devenu un type connu (M5b) : un vrai type futur, encore
-        // inconnu de ce binaire, pour que le test continue d'exercer le refus voulu.
+        // "bloatware" has become a known kind (M5b): use a genuinely future kind, still
+        // unknown to this binary, so the test keeps exercising the intended refusal.
         var verifier = PublishAndApply(publisher, "cve.dat", "des données futures", kind: "signatures-malveillantes");
 
         var resolution = UpdateStore.Resolve(Store, RuleCatalog.Load(), verifier);
 
-        Assert.Equal(RuleCatalog.Load().Count, resolution.Rules.Count); // socle intact
+        Assert.Equal(RuleCatalog.Load().Count, resolution.Rules.Count); // baseline intact
         Assert.Equal(0, resolution.Blocklist.Count);
         Assert.Contains("type inconnu", resolution.UpdateNote);
     }
 
     /// <summary>
-    /// Un manifeste d'avant le typage n'a pas de champ <c>kind</c> : il doit se lire
-    /// comme des règles, ce qu'il était. C'est la compatibilité ascendante que le
-    /// défaut de <see cref="ManifestEntry.Kind"/> garantit.
+    /// A manifest predating typing has no <c>kind</c> field: it must read as rules,
+    /// which is what it was. This is the backward compatibility the default of
+    /// <see cref="ManifestEntry.Kind"/> guarantees.
     /// </summary>
     [Fact]
     public void A_manifest_without_a_kind_field_deserialises_as_rules()

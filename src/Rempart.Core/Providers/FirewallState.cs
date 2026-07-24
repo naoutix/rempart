@@ -1,34 +1,34 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Verdict d'atteignabilité d'un port entrant à travers le pare-feu.
+/// Reachability verdict for an inbound port through the firewall.
 /// </summary>
 public enum FirewallReachability
 {
-    /// <summary>Le pare-feu n'a pas pu être lu : on ne tranche pas à sa place.</summary>
+    /// <summary>The firewall could not be read: no verdict is made in its place.</summary>
     Unknown,
 
-    /// <summary>Une règle active laisse entrer, ou le pare-feu est éteint.</summary>
+    /// <summary>An active rule allows inbound traffic, or the firewall is off.</summary>
     Reachable,
 
-    /// <summary>Aucune règle ne laisse entrer, ou un blocage l'emporte.</summary>
+    /// <summary>No rule allows inbound traffic, or a block rule wins.</summary>
     Blocked,
 }
 
 /// <summary>
-/// L'état du pare-feu qui décide si un port en écoute est réellement joignable.
+/// The firewall state that decides whether a listening port is actually reachable.
 ///
 /// <para>
-/// La question du lot M4 : un port ouvert mais que le pare-feu bloque n'est pas exposé
-/// comme un port que le pare-feu laisse entrer. Le profil <b>Public</b> est celui qui
-/// compte — le cas du réseau non maîtrisé, où la machine se retrouve dès qu'elle rejoint
-/// un Wi-Fi ouvert. Un port autorisé en Public est exposé quoi qu'il arrive.
+/// The question of milestone M4: an open port that the firewall blocks is not exposed
+/// the way a port the firewall lets in is. The <b>Public</b> profile is the one that
+/// matters — the untrusted-network case, which the machine is in as soon as it joins an
+/// open Wi-Fi. A port allowed on Public is exposed in every scenario.
 /// </para>
 ///
 /// <para>
-/// Le défaut entrant de Windows est le blocage : sans règle d'autorisation qui corresponde,
-/// un port n'est pas joignable. C'est ce qui rend le signal exploitable — la plupart des
-/// ports système en écoute ne portent aucune règle et retombent en « bloqué ».
+/// The Windows inbound default is block: without a matching allow rule, a port is not
+/// reachable. This is what makes the signal usable — most listening system ports carry
+/// no rule and fall back to "blocked".
 /// </para>
 /// </summary>
 public sealed record FirewallState(
@@ -36,23 +36,23 @@ public sealed record FirewallState(
     bool PublicFirewallEnabled,
     bool PublicDefaultInboundAllow)
 {
-    /// <summary>État vide : le pare-feu n'a pas été lu. Toute question rend « inconnu ».</summary>
+    /// <summary>Empty state: the firewall was not read. Every query returns "unknown".</summary>
     public static readonly FirewallState Unread = new([], PublicFirewallEnabled: false, false)
     {
         Readable = false,
     };
 
-    /// <summary>Faux quand l'état provient de <see cref="Unread"/> : aucune conclusion.</summary>
+    /// <summary>False when the state comes from <see cref="Unread"/>: no conclusions.</summary>
     public bool Readable { get; init; } = true;
 
     /// <summary>
-    /// Un port en écoute est-il joignable en entrée sur le profil Public ?
+    /// Is a listening port reachable inbound on the Public profile?
     ///
     /// <para>
-    /// Le pare-feu éteint laisse tout passer. Sinon, parmi les règles qui s'appliquent
-    /// vraiment à ce port — bon sens de circulation, bon profil, bon protocole, bon port,
-    /// bonne application — un blocage l'emporte sur une autorisation, et l'absence de toute
-    /// règle retombe sur le défaut entrant, le blocage.
+    /// A disabled firewall lets everything through. Otherwise, among the rules that
+    /// actually apply to this port — matching direction, profile, protocol, port, and
+    /// application — a block rule wins over an allow rule, and the absence of any rule
+    /// falls back to the inbound default, block.
     /// </para>
     /// </summary>
     public FirewallReachability InboundReachability(string protocol, int port, string? appPath)
@@ -98,24 +98,24 @@ public sealed record FirewallState(
             return false;
         }
 
-        // Profil vide = tous les profils, Public compris.
+        // Empty profile list = all profiles, including Public.
         if (rule.Profiles.Count > 0
             && !rule.Profiles.Contains("Public", StringComparer.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        // Protocole nul = tout protocole.
+        // Null protocol = any protocol.
         if (rule.Protocol is { } ruleProtocol && ruleProtocol != protocolNumber)
         {
             return false;
         }
 
-        // Règle sans port : elle vaut pour tout port, mais seulement liée à une application
-        // précise. Une règle sans port ni application est en pratique une règle d'app
-        // empaquetée — portée par un identifiant de paquet qu'on ne sait pas rapprocher d'un
-        // chemin — et la compter ouvrirait à tort tous les ports. On ne la retient donc que
-        // si son application correspond au propriétaire connu du port.
+        // Rule without ports: it applies to any port, but only when tied to a specific
+        // application. A rule with neither port nor application is in practice a
+        // packaged-app rule — carried by a package identifier that cannot be mapped to a
+        // path — and counting it would wrongly open every port. It is therefore only kept
+        // when its application matches the known owner of the port.
         if (rule.LocalPorts is null)
         {
             return rule.App is not null && AppMatches(rule.App, appPath);
@@ -130,11 +130,11 @@ public sealed record FirewallState(
     }
 
     /// <summary>
-    /// Le port tombe-t-il dans la spécification de la règle ? Une spécification nulle vaut
-    /// « tout port ». Les mots-clés — « RPC », « RPC-EPMap » — désignent des ports
-    /// dynamiques qu'on ne sait pas résoudre ici : on ne prétend pas qu'ils correspondent,
-    /// pour ne pas inventer une autorisation. Le port réel reste alors jugé sur les autres
-    /// règles, à défaut sur le blocage par défaut.
+    /// Does the port fall within the rule's port specification? A null specification
+    /// means "any port". Keywords — "RPC", "RPC-EPMap" — designate dynamic ports that
+    /// cannot be resolved here: they are not treated as matches, to avoid inventing an
+    /// allowance. The actual port is then judged on the other rules, or failing that on
+    /// the default block.
     /// </summary>
     private static bool PortMatches(string? spec, int port)
     {
@@ -165,10 +165,10 @@ public sealed record FirewallState(
     }
 
     /// <summary>
-    /// La règle vise-t-elle l'application propriétaire du port ? Une règle sans champ
-    /// application vaut « toute application ». Une règle qui en porte un ne s'applique qu'à
-    /// lui : si l'on ne connaît pas le propriétaire — un port système hors de portée sans
-    /// élévation — on ne peut pas confirmer qu'elle s'applique, et on ne le suppose pas.
+    /// Does the rule target the application that owns the port? A rule without an
+    /// application field means "any application". A rule that carries one applies only
+    /// to that application: if the owner is unknown — a system port out of reach
+    /// without elevation — the match cannot be confirmed, and is not assumed.
     /// </summary>
     private static bool AppMatches(string? ruleApp, string? appPath)
     {
@@ -186,9 +186,9 @@ public sealed record FirewallState(
     }
 
     /// <summary>
-    /// Développe les variables d'environnement d'un chemin de règle vers leur valeur fixe.
-    /// Fait à la main, sans lire l'environnement de la machine : le rejeu d'une capture doit
-    /// donner le même verdict partout, pas dépendre de l'hôte qui le relit.
+    /// Expands environment variables in a rule path to fixed values. Done by hand,
+    /// without reading the machine's environment: replaying a capture must yield the
+    /// same verdict everywhere, not depend on the host that reads it back.
     /// </summary>
     private static string Expand(string path)
     {
@@ -214,9 +214,9 @@ public sealed record FirewallState(
 }
 
 /// <summary>
-/// Lit l'état du pare-feu. Abstrait comme le reste (ADR-001, D5) : la règle croisée — un
-/// port exposé et autorisé en entrée sur Public — se teste sur un état donné, sans toucher
-/// au pare-feu de la machine.
+/// Reads the firewall state. Abstracted like the rest (ADR-001, D5): the cross-check
+/// rule — a port both exposed and allowed inbound on Public — is tested against a given
+/// state, without touching the machine's firewall.
 /// </summary>
 public interface IFirewallProvider
 {

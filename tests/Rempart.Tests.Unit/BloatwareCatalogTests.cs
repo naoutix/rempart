@@ -37,7 +37,7 @@ public class BloatwareCatalogTests
     [Fact]
     public void A_pfn_entry_does_not_match_a_uninstall_entry_of_the_same_string()
     {
-        // Source-gated : un PFN ne s'apparie qu'à un Appx.
+        // Source-gated: a PFN only matches an Appx.
         Assert.Null(Catalog(Entry("B1", BloatwareMatch.Pfn, "shared-id"))
             .Match(Uninstall("shared-id")));
     }
@@ -124,9 +124,9 @@ public class BloatwareCatalogTests
             Catalog(Entry("B1", BloatwareMatch.Name, "old")),
             Catalog(Entry("B1", BloatwareMatch.Name, "new"), Entry("B2", BloatwareMatch.Name, "extra")));
 
-        Assert.Equal("B1", merged.Match(Uninstall("k", name: "new tool"))?.Id);   // surchargé
-        Assert.Null(merged.Match(Uninstall("k", name: "old tool")));               // ancien motif parti
-        Assert.Equal("B2", merged.Match(Uninstall("k", name: "extra tool"))?.Id);  // ajout
+        Assert.Equal("B1", merged.Match(Uninstall("k", name: "new tool"))?.Id);   // overridden
+        Assert.Null(merged.Match(Uninstall("k", name: "old tool")));               // old pattern gone
+        Assert.Equal("B2", merged.Match(Uninstall("k", name: "extra tool"))?.Id);  // added
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class BloatwareCatalogTests
     [Fact]
     public void The_embedded_baseline_matches_a_known_provisioned_appx()
     {
-        // Xbox Game Bar : Appx Microsoft provisionné, cas type de bloatware qui revient.
+        // Xbox Game Bar: a provisioned Microsoft Appx, the textbook bloatware that returns.
         var hit = BloatwareCatalog.Embedded.Match(new InstalledSoftware(
             "Xbox Game Bar", null, null, SoftwareSource.Appx, true, true,
             "Microsoft.XboxGamingOverlay_8wekyb3d8bbwe"));

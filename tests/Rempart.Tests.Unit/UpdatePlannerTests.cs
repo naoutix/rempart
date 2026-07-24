@@ -28,8 +28,8 @@ public class UpdatePlannerTests
     private static IReadOnlyList<Rule> Current() => RuleLoader.Load(BaseRule);
 
     /// <summary>
-    /// Assemble un manifeste signé et le lecteur de jeux de données qui va avec, pour
-    /// que la préparation voie exactement ce qu'elle verrait sur disque.
+    /// Assembles a signed manifest and its matching dataset reader, so that the
+    /// preparation sees exactly what it would see on disk.
     /// </summary>
     private static (string Manifest, Func<string, byte[]?> Read, ManifestVerifier Verifier)
         Publish(TestPublisher publisher, string datasetName, string yaml)
@@ -88,8 +88,9 @@ public class UpdatePlannerTests
     }
 
     /// <summary>
-    /// Changer un seuil modifie le contrôle ; reformuler la justification, non. Le
-    /// différentiel se juge sur l'empreinte par règle, la même que celle du rapport.
+    /// Changing a threshold modifies the check; rewording the rationale does not.
+    /// The diff is based on the per-rule fingerprint, the same one used in the
+    /// report.
     /// </summary>
     [Fact]
     public void A_changed_threshold_is_a_modification_but_a_reworded_rationale_is_not()
@@ -110,16 +111,16 @@ public class UpdatePlannerTests
     }
 
     /// <summary>
-    /// Le socle est un plancher (D12) : un contrôle embarqué absent de la mise à jour
-    /// n'est pas « retiré », il reste. Le différentiel ne l'annonce donc pas comme un
-    /// changement.
+    /// The embedded baseline is a floor (D12): an embedded check absent from the
+    /// update is not "removed", it stays. The diff therefore does not report it
+    /// as a change.
     /// </summary>
     [Fact]
     public void A_rule_the_update_omits_is_not_reported_as_removed()
     {
         using var publisher = new TestPublisher();
 
-        // La mise à jour ne contient qu'une règle nouvelle, et tait la règle embarquée.
+        // The update contains only one new rule and omits the embedded rule.
         var onlyNew = """
             - id: WIN-TEST-999
               title: Nouveau
@@ -141,13 +142,12 @@ public class UpdatePlannerTests
 
         Assert.Equal(["WIN-TEST-999"], diff.Added);
         Assert.Empty(diff.Modified);
-        // WIN-TEST-001 embarquée n'apparaît nulle part : ni retirée, ni comptée.
+        // Embedded WIN-TEST-001 appears nowhere: neither removed nor counted.
     }
 
     /// <summary>
-    /// Un manifeste authentique mais dont un fichier ne correspond pas à son empreinte :
-    /// jeu de données non vérifié, mise à jour non applicable. Distinct d'une signature
-    /// invalide.
+    /// An authentic manifest whose file does not match its hash: dataset not
+    /// verified, update not applicable. Distinct from an invalid signature.
     /// </summary>
     [Fact]
     public void A_dataset_that_does_not_match_its_hash_blocks_the_update()
@@ -155,7 +155,7 @@ public class UpdatePlannerTests
         using var publisher = new TestPublisher();
         var (manifest, _, verifier) = Publish(publisher, "regles.yaml", BaseRule);
 
-        // Le lecteur rend un contenu différent de celui qu'a signé le manifeste.
+        // The reader returns content different from what the manifest signed.
         byte[]? tampered(string name) => Encoding.UTF8.GetBytes("- id: FAUX");
 
         var preview = UpdatePlanner.Prepare(manifest, verifier, tampered, Current());
@@ -179,8 +179,8 @@ public class UpdatePlannerTests
     }
 
     /// <summary>
-    /// Un manifeste signé par une clé inconnue n'est même pas examiné pour ses données :
-    /// leur intégrité ne veut rien dire si ce qui les décrit n'est pas authentique.
+    /// A manifest signed by an unknown key is not even inspected for its data:
+    /// data integrity means nothing if what describes it is not authentic.
     /// </summary>
     [Fact]
     public void An_untrusted_manifest_is_not_inspected_further()
@@ -189,7 +189,7 @@ public class UpdatePlannerTests
         using var stranger = new TestPublisher();
         var (manifest, read, _) = Publish(publisher, "regles.yaml", BaseRule);
 
-        // Vérificateur qui ne connaît que l'inconnu, pas l'éditeur du manifeste.
+        // Verifier that only knows the stranger, not the manifest's publisher.
         var verifier = new ManifestVerifier(
             new Dictionary<string, string> { [stranger.KeyId] = stranger.PublicKey });
 
@@ -201,8 +201,8 @@ public class UpdatePlannerTests
     }
 
     /// <summary>
-    /// Fichier authentique et intègre, mais que cette version ne sait pas lire : dit
-    /// illisible, pas corrompu. Ce n'est pas une attaque.
+    /// An authentic, intact file this version cannot parse: reported unreadable,
+    /// not corrupted. It is not an attack.
     /// </summary>
     [Fact]
     public void A_verified_but_unparseable_dataset_is_reported_as_unreadable()

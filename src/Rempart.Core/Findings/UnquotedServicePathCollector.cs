@@ -3,22 +3,22 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Services dont le chemin d'exécutable n'est pas entre guillemets et contient un espace.
+/// Services whose executable path is not quoted and contains a space.
 ///
 /// <para>
-/// Quand un service déclare <c>C:\Program Files\Éditeur\svc.exe</c> sans guillemets,
-/// Windows essaie d'abord <c>C:\Program.exe</c>, puis <c>C:\Program Files\Éditeur.exe</c>,
-/// avant le vrai fichier. Un tiers qui peut écrire à l'un de ces emplacements
-/// intermédiaires y dépose son binaire, qui s'exécute avec le compte du service —
-/// souvent <c>SYSTEM</c>. C'est une élévation de privilèges classique, et corriger
-/// tient à ajouter des guillemets.
+/// When a service declares <c>C:\Program Files\Vendor\svc.exe</c> without quotes,
+/// Windows first tries <c>C:\Program.exe</c>, then <c>C:\Program Files\Vendor.exe</c>,
+/// before the real file. A third party able to write to one of those intermediate
+/// locations drops its binary there, and it runs under the service account — often
+/// <c>SYSTEM</c>. It is a classic privilege escalation, and the fix amounts to
+/// adding quotes.
 /// </para>
 ///
 /// <para>
-/// Le constat est <see cref="FindingSeverity.Notable"/>, pas suspect : l'exploitabilité
-/// dépend de la possibilité d'écrire dans un dossier intermédiaire, que ce collecteur ne
-/// vérifie pas encore. Il signale la faiblesse — un durcissement recommandé — sans
-/// affirmer une exploitation qu'il n'a pas établie.
+/// The finding is <see cref="FindingSeverity.Notable"/>, not suspicious: exploitability
+/// depends on being able to write into an intermediate folder, which this collector does
+/// not verify yet. It reports the weakness — a recommended hardening — without claiming
+/// an exploitation it has not established.
 /// </para>
 /// </summary>
 public sealed class UnquotedServicePathCollector : IFindingCollector
@@ -71,14 +71,14 @@ public sealed class UnquotedServicePathCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Vrai si le chemin de l'exécutable — la partie avant les arguments — n'est pas
-    /// entre guillemets et contient un espace.
+    /// True when the executable path — the part before the arguments — is not quoted
+    /// and contains a space.
     ///
     /// <para>
-    /// Le chemin est délimité par le premier <c>.exe</c> : ce qui suit sont des arguments,
-    /// et un espace dans les arguments ne rend pas le service vulnérable. Un chemin déjà
-    /// entre guillemets, ou sans exécutable <c>.exe</c> (pilote, forme inhabituelle), ne
-    /// l'est pas non plus.
+    /// The path is delimited by the first <c>.exe</c>: what follows are arguments, and
+    /// a space in the arguments does not make the service vulnerable. Neither does a
+    /// path already quoted, or one without a <c>.exe</c> executable (a driver, an
+    /// unusual form).
     /// </para>
     /// </summary>
     internal static bool IsUnquotedWithSpace(string pathName)

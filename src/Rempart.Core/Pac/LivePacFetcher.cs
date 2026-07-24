@@ -3,13 +3,13 @@ using System.Net.Http;
 namespace Rempart.Core.Pac;
 
 /// <summary>
-/// Récupère un script PAC par HTTP et en extrait le routage.
+/// Fetches a PAC script over HTTP and extracts its routing.
 ///
 /// <para>
-/// Compatible Native AOT — <c>HttpClient</c> ne demande pas de réflexion, comme
-/// <c>VirusTotalReputation</c>. Chaque issue a sa lecture et aucune ne se déguise en
-/// « inoffensif » : un 404 dit que le PAC est absent, un timeout qu'il est injoignable,
-/// pas qu'il est sain. Le script n'est jamais exécuté — seul son texte est lu.
+/// Native AOT compatible — <c>HttpClient</c> requires no reflection, like
+/// <c>VirusTotalReputation</c>. Every outcome has its own reading and none masquerades
+/// as "harmless": a 404 says the PAC is absent, a timeout that it is unreachable — not
+/// that it is clean. The script is never executed — only its text is read.
 /// </para>
 /// </summary>
 public sealed class LivePacFetcher : IPacFetcher, IDisposable

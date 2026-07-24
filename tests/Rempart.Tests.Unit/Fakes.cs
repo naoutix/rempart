@@ -3,9 +3,9 @@ using Rempart.Core.Providers;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Registre simulé. Existe parce que les collecteurs ne connaissent que
-/// <see cref="IRegistryProvider"/> (ADR-001, D5) — sans cette abstraction, chaque test
-/// exigerait une machine Windows dans l'état voulu.
+/// Simulated registry. Exists because collectors only know
+/// <see cref="IRegistryProvider"/> (ADR-001, D5) — without this abstraction, every test
+/// would require a Windows machine in the desired state.
 /// </summary>
 internal sealed class FakeRegistryProvider : IRegistryProvider
 {

@@ -6,18 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Seule l'API bas niveau (YamlStream) est utilisee : elle parcourt l'arbre sans
-         reflexion sur nos types, donc compatible Native AOT sans generateur de source.
-         Le mapping est ecrit a la main dans RuleLoader, ce qui permet des messages
-         d'erreur exploitables sur un fichier destine a etre edite souvent. -->
+    <!-- Only the low-level API (YamlStream) is used: it walks the tree without
+         reflection over our types, so it is Native AOT-compatible without a source
+         generator. The mapping is hand-written in RuleLoader, which allows actionable
+         error messages on a file meant to be edited often. -->
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Les regles YAML sont embarquees : le binaire doit rester autonome sur cle USB. -->
+    <!-- The YAML rules are embedded: the binary must stay self-sufficient on a USB stick. -->
     <EmbeddedResource Include="..\..\rules\**\*.yaml" LinkBase="rules" />
 
-    <!-- Socle bloatware embarqué : identifiants Appx stables, complété par un catalogue signé. -->
+    <!-- Embedded bloatware baseline: stable Appx identifiers, extended by a signed catalog. -->
     <EmbeddedResource Include="data\bloatware-baseline.json" LinkBase="data" />
   </ItemGroup>
 

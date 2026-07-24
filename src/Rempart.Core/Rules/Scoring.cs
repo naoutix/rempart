@@ -6,7 +6,7 @@ public sealed record DomainScore(
     int Failed,
     int Unknown,
     int NotApplicable,
-    /// <summary>Null quand rien n'a pu être évalué — un score de 0 laisserait croire à un échec.</summary>
+    /// <summary>Null when nothing could be evaluated — a score of 0 would suggest a failure.</summary>
     int? Score);
 
 public sealed record ScoreCard(
@@ -15,25 +15,25 @@ public sealed record ScoreCard(
     int TotalUnknown)
 {
     /// <summary>
-    /// Un score calculé sur une machine où beaucoup de contrôles n'ont pas pu être lus
-    /// n'est pas comparable à un score complet. Le rapport doit le dire.
+    /// A score computed on a machine where many checks could not be read is not
+    /// comparable to a complete score. The report must say so.
     /// </summary>
     public bool IsPartial => TotalUnknown > 0;
 }
 
 /// <summary>
-/// Agrège des verdicts en scores.
+/// Aggregates verdicts into scores.
 ///
-/// Deux partis pris. Les verdicts <see cref="VerdictStatus.Unknown"/> sortent du calcul
-/// au lieu d'être comptés comme réussis : un contrôle qu'on n'a pas pu lire n'est pas un
-/// contrôle satisfait. Et un domaine entièrement illisible vaut <c>null</c>, pas zéro —
-/// « je ne sais pas » et « c'est mauvais » appellent des actions différentes.
+/// Two deliberate choices. <see cref="VerdictStatus.Unknown"/> verdicts are excluded from
+/// the computation instead of being counted as passed: a check that could not be read is
+/// not a satisfied check. And a fully unreadable domain scores <c>null</c>, not zero —
+/// "I don't know" and "it's bad" call for different actions.
 /// </summary>
 public static class Scoring
 {
     /// <summary>
-    /// Pondération par sévérité. Non linéaire : dix réglages mineurs ne compensent pas
-    /// une faiblesse critique. <c>Info</c> pèse zéro — ces règles documentent sans juger.
+    /// Weight per severity. Non-linear: ten minor settings do not offset one critical
+    /// weakness. <c>Info</c> weighs zero — those rules document without judging.
     /// </summary>
     private static int Weight(Severity severity) => severity switch
     {
@@ -66,9 +66,9 @@ public static class Scoring
 
     private static int? Percentage(IEnumerable<Verdict> verdicts)
     {
-        // Unknown sort du calcul faute de savoir ; NotApplicable en sort parce qu'il
-        // n'y avait rien à vérifier. Compter ce dernier comme un échec pénaliserait une
-        // machine pour ne pas être ce qu'elle n'a jamais eu à être.
+        // Unknown is excluded because nothing is known; NotApplicable is excluded because
+        // there was nothing to check. Counting the latter as a failure would penalize a
+        // machine for a configuration it was never supposed to have.
         var evaluated = verdicts
             .Where(v => v.Status is VerdictStatus.Pass or VerdictStatus.Fail)
             .ToList();
@@ -76,8 +76,8 @@ public static class Scoring
         var possible = evaluated.Sum(v => Weight(v.Severity));
         if (possible == 0)
         {
-            // Soit rien n'a pu être évalué, soit toutes les règles sont informatives.
-            // Dans les deux cas, un chiffre serait trompeur.
+            // Either nothing could be evaluated, or all rules are informational.
+            // In both cases a number would be misleading.
             return null;
         }
 

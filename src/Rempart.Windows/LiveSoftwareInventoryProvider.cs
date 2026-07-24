@@ -4,13 +4,14 @@ using Rempart.Core.Software;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Agrège l'inventaire logiciel de ses quatre sources autoritatives.
+/// Aggregates the software inventory from its four authoritative sources.
 ///
 /// <para>
-/// Uninstall, Appx et App Paths sont lus au registre via <see cref="IRegistryProvider"/>,
-/// donc rejouables. Chocolatey énumère des dossiers, ce que l'abstraction de fichiers ne
-/// fait pas : la lecture est directe, mais son résultat décodé part au snapshot comme le
-/// reste (patron A2). Le collecteur ne voit que des <see cref="InstalledSoftware"/>.
+/// Uninstall, Appx, and App Paths are read from the registry via
+/// <see cref="IRegistryProvider"/>, so they are replayable. Chocolatey enumerates
+/// directories, which the file abstraction does not do: the read is direct, but its
+/// decoded result goes into the snapshot like the rest (pattern A2). The collector
+/// only sees <see cref="InstalledSoftware"/> instances.
 /// </para>
 /// </summary>
 public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
@@ -66,9 +67,9 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
                 var path = $@"{root}\{key}";
                 var name = Text(path, "DisplayName");
 
-                // Sans nom d'affichage, c'est une mise à jour ou un correctif, pas un
-                // logiciel à part entière ; on l'écarte. Un composant système masqué
-                // (SystemComponent=1) l'est aussi : ce n'est pas installé par l'utilisateur.
+                // Without a display name it is an update or a hotfix, not a standalone
+                // application; skip it. A hidden system component (SystemComponent=1)
+                // is skipped too: it was not installed by the user.
                 if (string.IsNullOrWhiteSpace(name)
                     || registry.ReadValue(path, "SystemComponent").Value?.Number == 1)
                 {
@@ -95,8 +96,8 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
             software.Add(new InstalledSoftware(
                 name, version, Publisher: null, SoftwareSource.Appx,
                 Provisioned: isProvisioned,
-                // Un paquet provisionné revient après une mise à jour de fonctionnalité ;
-                // un paquet seulement installé par l'utilisateur peut disparaître.
+                // A provisioned package comes back after a feature update; a package
+                // installed only by the user can disappear.
                 SurvivesFeatureUpdate: isProvisioned,
                 Identifier: AppxPackageName.FamilyName(fullName)));
         }
@@ -130,7 +131,7 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
-            // Refusé ou illisible : on n'invente rien, les autres sources restent collectées.
+            // Denied or unreadable: nothing is fabricated, the other sources are still collected.
         }
     }
 

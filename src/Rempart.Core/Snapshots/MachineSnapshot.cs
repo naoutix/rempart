@@ -3,9 +3,9 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Snapshots;
 
 /// <summary>
-/// État brut d'une machine, rejouable hors-ligne. Chaque machine auditée devient une
-/// fixture de test permanente — une VM vierge n'a aucun bloatware OEM, les machines
-/// réelles sont le seul banc de test valable.
+/// Raw state of a machine, replayable offline. Every audited machine becomes a
+/// permanent test fixture — a pristine VM has no OEM bloatware, so real machines are
+/// the only valid test bench.
 /// </summary>
 public sealed class MachineSnapshot
 {
@@ -16,72 +16,72 @@ public sealed class MachineSnapshot
     public string CapturedAtUtc { get; set; } = string.Empty;
 
     /// <summary>
-    /// Vrai si hostname, numéros de série et propriétaire ont été remplacés par des
-    /// empreintes. Les fixtures versionnées doivent l'être (voir .gitignore).
+    /// True if hostname, serial numbers and owner have been replaced with digests.
+    /// Versioned fixtures must be (see .gitignore).
     /// </summary>
     public bool Anonymised { get; set; }
 
-    /// <summary>Clé : <c>chemin||nomDeValeur</c>. Voir <see cref="SnapshotKeys"/>.</summary>
+    /// <summary>Key: <c>keyPath||valueName</c>. See <see cref="SnapshotKeys"/>.</summary>
     public Dictionary<string, RegistryRead> Registry { get; set; } = [];
 
     public SystemInfo? SystemInfo { get; set; }
 
-    /// <summary>Clé : nom du service.</summary>
+    /// <summary>Key: service name.</summary>
     public Dictionary<string, ServiceRead> Services { get; set; } = [];
 
-    /// <summary>Faits de politique locale, ou null s'ils n'ont pas pu être lus.</summary>
+    /// <summary>Local policy facts, or null if they could not be read.</summary>
     public PolicyFacts? Policy { get; set; }
 
-    /// <summary>Clé : <c>espaceDeNoms:Classe||propriétés</c>.</summary>
+    /// <summary>Key: <c>namespace:Class||properties</c>.</summary>
     public Dictionary<string, WmiRead> Wmi { get; set; } = [];
 
     /// <summary>
-    /// Noms des valeurs présentes dans une clé énumérée. Distinct de
-    /// <see cref="Registry"/>, qui ne dit rien de ce qu'on n'a pas cherché.
+    /// Names of the values present in an enumerated key. Distinct from
+    /// <see cref="Registry"/>, which says nothing about what was never looked up.
     /// </summary>
     public Dictionary<string, List<string>> RegistryLists { get; set; } = [];
 
-    /// <summary>Noms des sous-clés d'une clé énumérée. Distinct de <see cref="RegistryLists"/>,
-    /// qui porte les noms de valeurs.</summary>
+    /// <summary>Names of the subkeys of an enumerated key. Distinct from
+    /// <see cref="RegistryLists"/>, which carries value names.</summary>
     public Dictionary<string, List<string>> SubKeyLists { get; set; } = [];
 
-    /// <summary>Signatures vérifiées, indexées par chemin de fichier.</summary>
+    /// <summary>Verified signatures, indexed by file path.</summary>
     public Dictionary<string, FileSignature> Signatures { get; set; } = [];
 
-    /// <summary>Contenu des répertoires énumérés.</summary>
+    /// <summary>Contents of the enumerated directories.</summary>
     public Dictionary<string, List<string>> Directories { get; set; } = [];
 
     /// <summary>
-    /// Tâches planifiées, ou null si l'instantané est antérieur à leur collecte. Le
-    /// null compte : il distingue « pas encore capturé » de « planificateur vide ».
+    /// Scheduled tasks, or null if the snapshot predates their collection. The null
+    /// matters: it distinguishes "not yet captured" from "empty scheduler".
     /// </summary>
     public ScheduledTaskRead? ScheduledTasks { get; set; }
 
-    /// <summary>Pilotes noyau chargés, ou null si l'instantané précède leur collecte.</summary>
+    /// <summary>Loaded kernel drivers, or null if the snapshot predates their collection.</summary>
     public List<LoadedDriver>? Drivers { get; set; }
 
-    /// <summary>Processus en cours, ou null si l'instantané précède leur collecte.</summary>
+    /// <summary>Running processes, or null if the snapshot predates their collection.</summary>
     public List<RunningProcess>? Processes { get; set; }
 
-    /// <summary>Points d'écoute réseau, ou null si l'instantané précède leur collecte.</summary>
+    /// <summary>Network listening endpoints, or null if the snapshot predates their collection.</summary>
     public List<ListeningPort>? ListeningPorts { get; set; }
 
-    /// <summary>État du pare-feu, ou null si l'instantané précède sa collecte.</summary>
+    /// <summary>Firewall state, or null if the snapshot predates its collection.</summary>
     public FirewallState? Firewall { get; set; }
 
-    /// <summary>Configuration DNS par interface, ou null si l'instantané la précède.</summary>
+    /// <summary>Per-interface DNS configuration, or null if the snapshot predates it.</summary>
     public List<DnsInterface>? Dns { get; set; }
 
-    /// <summary>Lignes du fichier hosts, ou null si l'instantané précède sa collecte.</summary>
+    /// <summary>Lines of the hosts file, or null if the snapshot predates its collection.</summary>
     public List<string>? HostsFile { get; set; }
 
-    /// <summary>Configuration proxy décodée, ou null si l'instantané précède sa collecte.</summary>
+    /// <summary>Decoded proxy configuration, or null if the snapshot predates its collection.</summary>
     public ProxyConfiguration? Proxy { get; set; }
 
-    /// <summary>Profils Wi-Fi enregistrés, ou null si l'instantané précède leur collecte.</summary>
+    /// <summary>Saved Wi-Fi profiles, or null if the snapshot predates their collection.</summary>
     public List<WifiProfile>? Wifi { get; set; }
 
-    /// <summary>Logiciels installés, ou null si l'instantané précède leur collecte.</summary>
+    /// <summary>Installed software, or null if the snapshot predates its collection.</summary>
     public List<InstalledSoftware>? Software { get; set; }
 }
 
@@ -89,7 +89,7 @@ public static class SnapshotKeys
 {
     private const string Separator = "||";
 
-    /// <summary>Marqueur de test d'existence, distinct de toute valeur nommée réelle.</summary>
+    /// <summary>Existence-check marker, distinct from any real named value.</summary>
     public const string ExistenceMarker = "#exists";
 
     public static string Value(string keyPath, string valueName) =>

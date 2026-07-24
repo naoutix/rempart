@@ -3,7 +3,7 @@ using Rempart.Core.Reputation;
 
 namespace Rempart.Tests.Unit;
 
-/// <summary>Source de réputation factice : rend un verdict fixé par empreinte.</summary>
+/// <summary>Fake reputation source: returns a verdict fixed per hash.</summary>
 internal sealed class FakeReputation(Dictionary<string, ReputationResult> byHash) : IReputationSource
 {
     public ReputationResult Lookup(string sha256) =>
@@ -18,8 +18,9 @@ public class VirusTotalTests
             new Dictionary<string, string>(StringComparer.Ordinal) { ["sha256"] = sha256 });
 
     /// <summary>
-    /// Une détection VirusTotal confirme un soupçon : le constat passe à suspect et le
-    /// motif s'inscrit en tête. C'est un complément qui aggrave, jamais qui rassure.
+    /// A VirusTotal detection confirms a suspicion: the finding escalates to
+    /// suspicious and the reason goes first. An enrichment that aggravates,
+    /// never one that reassures.
     /// </summary>
     [Fact]
     public void A_detection_escalates_the_finding_to_suspicious()
@@ -38,8 +39,8 @@ public class VirusTotalTests
     }
 
     /// <summary>
-    /// Une empreinte propre est notée, mais n'abaisse pas le constat : un binaire non
-    /// signé qu'aucun moteur ne connaît reste non signé.
+    /// A clean hash is noted, but does not lower the finding: an unsigned binary
+    /// that no engine knows about is still unsigned.
     /// </summary>
     [Fact]
     public void A_clean_hash_annotates_without_lowering_severity()
@@ -57,9 +58,9 @@ public class VirusTotalTests
     }
 
     /// <summary>
-    /// « Inconnu de VirusTotal » n'est pas « sain » : c'est noté tel quel, sans rien
-    /// changer à la gravité. Confondre l'absence de donnée avec l'absence de menace serait
-    /// le défaut que ce projet traque.
+    /// « Inconnu de VirusTotal » is not "clean": it is noted as such, changing
+    /// nothing about the severity. Mistaking missing data for an absent threat
+    /// would be the very flaw this project hunts.
     /// </summary>
     [Fact]
     public void An_unknown_hash_is_noted_as_unknown_not_clean()
@@ -72,8 +73,8 @@ public class VirusTotalTests
     }
 
     /// <summary>
-    /// Un constat bénin et signé n'est pas consulté : sa signature atteste déjà de son
-    /// origine, et interroger tout le parc épuiserait le quota d'API.
+    /// A benign, signed finding is not looked up: its signature already vouches
+    /// for its origin, and querying the whole fleet would exhaust the API quota.
     /// </summary>
     [Fact]
     public void Benign_findings_are_not_looked_up()
@@ -81,7 +82,7 @@ public class VirusTotalTests
         var benign = new Finding("process", "ok.exe", @"C:\ok.exe", FindingSeverity.Benign, [],
             new Dictionary<string, string>(StringComparer.Ordinal) { ["sha256"] = "dd" });
 
-        // Une source qui lèverait si on l'appelait : la preuve qu'on ne l'appelle pas.
+        // A source that would show up in Details if it were consulted: proof it is not.
         var throwing = new FakeReputation(new());
 
         var enriched = Assert.Single(FindingEnrichment.WithReputation([benign], throwing));
@@ -90,8 +91,8 @@ public class VirusTotalTests
     }
 
     /// <summary>
-    /// La réponse VirusTotal v3 est lue par navigation JSON. Le total est la somme de tous
-    /// les compteurs, sans en présumer les noms.
+    /// The VirusTotal v3 response is read by JSON navigation. The total is the sum
+    /// of all counters, without presuming their names.
     /// </summary>
     [Fact]
     public void The_v3_response_is_parsed_into_malicious_and_total()

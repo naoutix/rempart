@@ -6,9 +6,9 @@ using Rempart.Core.Snapshots;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Le critère de sortie de M0 : un scan rejoué depuis un instantané doit produire
-/// exactement la même sortie que le scan qui l'a produit. Sans cette garantie,
-/// les fixtures ne valent rien comme banc de test.
+/// M0 exit criterion: a scan replayed from a snapshot must produce exactly the
+/// same output as the scan that produced it. Without this guarantee, fixtures
+/// are useless as a test bench.
 /// </summary>
 public sealed class SnapshotReplayTests
 {
@@ -22,7 +22,7 @@ public sealed class SnapshotReplayTests
             new RecordingRegistryProvider(live, snapshot),
             new RecordingSystemInfoProvider(new FakeSystemInfoProvider(), snapshot)));
 
-        // Passage par le JSON : c'est la forme sous laquelle une fixture est versionnée.
+        // Round-trip through JSON: that is the form in which a fixture is versioned.
         var replayed = Collect(FromJson(RempartJson.Serialise(snapshot)));
 
         Assert.Equal(recorded.Status, replayed.Status);
@@ -38,7 +38,7 @@ public sealed class SnapshotReplayTests
 
         provider.ReadValue(@"HKLM\SOFTWARE\Absent", "Rien");
 
-        // Sans cela, le rejeu divergerait précisément sur les cas qu'on veut tester.
+        // Without this, replay would diverge on exactly the cases we want to test.
         var read = Assert.Contains(@"HKLM\SOFTWARE\Absent||Rien", snapshot.Registry);
         Assert.Equal(ReadStatus.NotFound, read.Status);
     }

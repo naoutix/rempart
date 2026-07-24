@@ -1,17 +1,17 @@
 ﻿<#
 .SYNOPSIS
-    Rejoue localement ce que fait la CI.
+    Replays locally what CI does.
 
 .DESCRIPTION
-    Ne remplace pas GitHub Actions : `act` le ferait fidèlement, mais exige Docker.
-    Ce script exécute les mêmes commandes, sur cette machine, sans conteneur.
+    Does not replace GitHub Actions: `act` would do that faithfully, but requires Docker.
+    This script runs the same commands, on this machine, without a container.
 
-    Ce qu'il couvre en plus de la CI : la vérification que le binaire fonctionne
-    réellement seul, hors de son dossier de build — la promesse de la clé USB.
+    What it covers beyond CI: checking that the binary actually works on its own,
+    outside its build folder — the USB-stick promise.
 
 .PARAMETER SkipPublish
-    Saute la publication AOT, qui exige les Build Tools C++ et prend plusieurs minutes.
-    Utile pour une boucle rapide pendant le développement.
+    Skips the AOT publish, which requires the C++ Build Tools and takes several minutes.
+    Useful for a fast loop during development.
 
 .EXAMPLE
     ./scripts/verify.ps1
@@ -29,9 +29,9 @@ Push-Location $root
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_NOLOGO = '1'
 
-# Les cibles du compilateur AOT invoquent vswhere.exe sans chemin absolu et
-# l'installeur Visual Studio ne l'ajoute pas au PATH. Sans cela, la publication
-# échoue après plusieurs minutes sur un message qui accuse à tort link.exe.
+# The AOT compiler targets invoke vswhere.exe without an absolute path and the
+# Visual Studio installer does not add it to PATH. Without this, the publish fails
+# after several minutes with a message that wrongly blames link.exe.
 $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 if ((Test-Path "$vsInstaller\vswhere.exe") -and ($env:PATH -notlike "*$vsInstaller*")) {
     $env:PATH += ";$vsInstaller"
@@ -69,10 +69,10 @@ Step 'Workflows' {
 }
 
 Step 'Tests' {
-    # Windows PowerShell 5.1 transforme la sortie d'erreur d'un executable natif en
-    # erreur terminante des lors que ErrorActionPreference vaut Stop. Sans cette
-    # parenthese, le script s'interrompt sur la premiere ligne ecrite par xUnit et
-    # n'atteint jamais le diagnostic ci-dessous.
+    # Windows PowerShell 5.1 turns a native executable's stderr output into a
+    # terminating error whenever ErrorActionPreference is Stop. Without this
+    # save-and-restore, the script stops on the first line xUnit writes and never
+    # reaches the diagnostic below.
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
@@ -84,11 +84,10 @@ Step 'Tests' {
 
     if ($LASTEXITCODE -eq 0) { return }
 
-    # Smart App Control refuse les assemblys non signees selon un verdict de
-    # reputation rendu par Microsoft pour chaque empreinte. Rien ne permet de le
-    # prevoir ni de le forcer localement : certains fichiers passent, d'autres non.
-    # Le journal d'integrite du code le dit sans ambiguite, la ou le message de xUnit
-    # ressemble a une regression.
+    # Smart App Control rejects unsigned assemblies based on a reputation verdict
+    # issued by Microsoft for each hash. There is no way to predict or force it
+    # locally: some files pass, others do not. The Code Integrity log states it
+    # unambiguously, whereas the xUnit message looks like a regression.
     $blocked = Get-WinEvent -LogName 'Microsoft-Windows-CodeIntegrity/Operational' `
         -MaxEvents 40 -ErrorAction SilentlyContinue |
         Where-Object { $_.Id -eq 3077 -and $_.Message -like '*Rempart*' } |
@@ -117,7 +116,7 @@ if (-not $SkipPublish) {
 
     Step 'Binaire isole' {
 
-        # Le coeur de la promesse : un exe seul, sans runtime ni fichier voisin.
+        # The core of the promise: a standalone exe, no runtime, no neighboring files.
         $exe = Join-Path $root 'src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe'
         $sandbox = Join-Path $env:TEMP "rempart-verify-$PID"
 
@@ -130,7 +129,7 @@ if (-not $SkipPublish) {
                 if ($LASTEXITCODE -ne 0) { throw "rempart version a echoue" }
 
                 & .\rempart.exe scan | Out-Null
-                # 0 = succes, 3 = droits insuffisants — acceptable hors elevation.
+                # 0 = success, 3 = insufficient rights — acceptable without elevation.
                 if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan a echoue ($LASTEXITCODE)" }
 
                 & .\rempart.exe capture --out t.capture.json | Out-Null

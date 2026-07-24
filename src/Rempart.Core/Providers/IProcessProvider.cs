@@ -1,12 +1,12 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Un processus en cours, réduit à ce qu'un audit doit en savoir.
+/// A running process, reduced to what an audit needs to know.
 ///
-/// La ligne de commande en fait partie : deux processus lancés depuis le même binaire
-/// peuvent faire des choses opposées selon leurs arguments, et c'est souvent là que se
-/// lit une intention. Le parent aussi — un interpréteur lancé par une suite bureautique
-/// n'a pas la même signification que lancé par un terminal.
+/// The command line is included: two processes started from the same binary can do
+/// opposite things depending on their arguments, and intent often shows there. The
+/// parent PID too — an interpreter launched by an office suite means something
+/// different from one launched by a terminal.
 /// </summary>
 public sealed record RunningProcess(
     int Pid,
@@ -16,12 +16,12 @@ public sealed record RunningProcess(
     string CommandLine);
 
 /// <summary>
-/// Énumère les processus en cours d'exécution.
+/// Enumerates running processes.
 ///
 /// <para>
-/// Abstrait comme le reste (ADR-001, D5) : le jugement — un binaire non signé qui
-/// tourne, lancé depuis un emplacement inhabituel — se teste sur une liste donnée, sans
-/// une machine dans l'état voulu.
+/// Abstracted like the rest (ADR-001, D5): the judgment — an unsigned binary running
+/// from an unusual location — is tested against a given list, without a machine in the
+/// required state.
 /// </para>
 /// </summary>
 public interface IProcessProvider

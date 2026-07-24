@@ -5,16 +5,15 @@ namespace Rempart.Core.Rules;
 public sealed class RuleFormatException(string message) : Exception(message);
 
 /// <summary>
-/// Charge les règles depuis YAML.
+/// Loads rules from YAML.
 ///
-/// Le mapping est écrit à la main, sur l'API bas niveau de YamlDotNet : aucune réflexion,
-/// donc compatible Native AOT sans générateur de source. Le bénéfice principal est
-/// ailleurs — la validation est stricte et située, et rapporte la ligne fautive. Un
-/// fichier de règles se relit et s'édite souvent ; un message comme « impossible de
-/// convertir » y serait inutilisable.
+/// The mapping is hand-written on YamlDotNet's low-level API: no reflection, so it is
+/// Native AOT compatible without a source generator. The main benefit is elsewhere —
+/// validation is strict, local, and reports the offending line. A rules file gets
+/// reread and edited often; a message like "cannot convert" would be useless there.
 ///
-/// Tout écart fait échouer le chargement. Une règle mal formée qu'on ignorerait
-/// silencieusement produirait un audit qui paraît complet en ayant sauté un contrôle.
+/// Any deviation fails the load. A malformed rule that was silently ignored would
+/// produce an audit that looks complete while having skipped a check.
 /// </summary>
 public static class RuleLoader
 {
@@ -97,8 +96,8 @@ public static class RuleLoader
             ? ReadCheck(nested, $"{context}, appliesWhen")
             : null;
 
-        // Un bloc vide laisse croire à une condition alors que la règle s'applique
-        // partout. Mieux vaut refuser le fichier que livrer une intention perdue.
+        // An empty block suggests there is a condition while the rule actually applies
+        // everywhere. Better to reject the file than to ship a lost intent.
         var applicability = new Applicability(domainJoined, registry);
         if (applicability.IsUnconditional)
         {
@@ -119,8 +118,8 @@ public static class RuleLoader
         var expected = OptionalText(map, "expect");
         var windowsDefault = OptionalText(map, "windowsDefault");
 
-        // Un opérateur de comparaison sans valeur attendue passerait le chargement et
-        // produirait un verdict arbitraire à l'exécution. Mieux vaut refuser le fichier.
+        // A comparison operator without an expected value would pass loading and produce
+        // an arbitrary verdict at run time. Better to reject the file.
         var comparison = op is CheckOperator.Equals or CheckOperator.NotEquals
             or CheckOperator.AtLeast or CheckOperator.AtMost;
         if (comparison && expected is null)
@@ -129,11 +128,11 @@ public static class RuleLoader
                 $"{context} : l'opérateur « {op} » exige un champ « expect ».");
         }
 
-        // Exigence délibérément stricte. Sur le registre Windows, une clé absente est
-        // le cas courant, pas l'exception : sans défaut déclaré, la règle produirait
-        // un verdict au hasard sur la majorité des machines.
-        // Sans objet pour un service : son état est directement observable, il n'y a
-        // pas de « valeur qu'applique Windows quand la clé est absente ».
+        // Deliberately strict requirement. In the Windows registry, an absent key is
+        // the common case, not the exception: without a declared default, the rule
+        // would produce a random verdict on most machines.
+        // Not relevant for a service: its state is directly observable, there is no
+        // "value Windows applies when the key is absent".
         if (comparison && windowsDefault is null
             && kind is not (CheckKind.Service or CheckKind.Policy or CheckKind.Wmi))
         {
@@ -182,8 +181,8 @@ public static class RuleLoader
 
     private static Remediation ReadRemediation(YamlMappingNode map, string context)
     {
-        // « impact » était un champ libre unique. Il attirait les généralités du type
-        // « peut avoir des effets de bord », sur lesquelles aucune décision ne se prend.
+        // "impact" used to be a single free-text field. It attracted generalities like
+        // "may have side effects", on which no decision can be made.
         if (TryGet(map, "impact") is not null)
         {
             throw new RuleFormatException(
@@ -199,7 +198,7 @@ public static class RuleLoader
             VerifyBefore: OptionalText(map, "verifyBefore"));
     }
 
-    // ─ Accès typés ────────────────────────────────────────────────────────────────
+    // ─ Typed accessors ────────────────────────────────────────────────────────────
 
     private static YamlMappingNode Mapping(YamlNode node, string context) =>
         node as YamlMappingNode

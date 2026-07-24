@@ -20,7 +20,7 @@ public class DnsResolverTests
             new FakeRegistryProvider(), new FakeSystemInfoProvider(),
             dns: new FakeDnsProvider(interfaces)));
 
-    /// <summary>Un résolveur reçu du DHCP est celui du réseau : inventorié, pas jugé.</summary>
+    /// <summary>A resolver received from DHCP is the network's: inventoried, not judged.</summary>
     [Fact]
     public void A_dhcp_resolver_is_benign_inventory()
     {
@@ -30,7 +30,7 @@ public class DnsResolverTests
         Assert.Equal("DHCP", finding.Details["origine"]);
     }
 
-    /// <summary>Un résolveur statique reconnu — Cloudflare, Google — est un choix délibéré courant.</summary>
+    /// <summary>A recognised static resolver — Cloudflare, Google — is a common deliberate choice.</summary>
     [Fact]
     public void A_well_known_static_resolver_is_benign()
     {
@@ -38,7 +38,7 @@ public class DnsResolverTests
             Assert.Single(Collect(new DnsInterface("if0", ["1.1.1.1"], []))).Severity);
     }
 
-    /// <summary>Un résolveur local — la boucle, un filtre installé exprès — reste bénin.</summary>
+    /// <summary>A local resolver — loopback, a filter installed on purpose — stays benign.</summary>
     [Fact]
     public void A_loopback_static_resolver_is_benign()
     {
@@ -47,8 +47,8 @@ public class DnsResolverTests
     }
 
     /// <summary>
-    /// Un résolveur statique inconnu est relevé : un serveur posé par-dessus celui du réseau
-    /// est le levier même d'un détournement DNS.
+    /// An unrecognised static resolver is flagged: a server laid over the network's own
+    /// is the very lever of a DNS hijack.
     /// </summary>
     [Fact]
     public void An_unrecognised_static_resolver_is_notable()
@@ -60,8 +60,8 @@ public class DnsResolverTests
     }
 
     /// <summary>
-    /// Un mélange de résolveurs, dont un inconnu, est relevé : il suffit d'une adresse non
-    /// reconnue pour justifier le regard, et c'est elle que le motif nomme.
+    /// A mix of resolvers with one unknown among them is flagged: a single unrecognised
+    /// address is enough to warrant a look, and it is the one the reason names.
     /// </summary>
     [Fact]
     public void A_mix_with_one_unrecognised_resolver_is_notable()
@@ -73,7 +73,7 @@ public class DnsResolverTests
         Assert.DoesNotContain("1.1.1.1", finding.Reasons.Single());
     }
 
-    /// <summary>Une interface sans résolveur ne produit rien : rien à inventorier.</summary>
+    /// <summary>An interface without resolvers produces nothing: nothing to inventory.</summary>
     [Fact]
     public void An_interface_without_resolvers_yields_nothing()
     {
@@ -88,7 +88,7 @@ public class HostsFileTests
             new FakeRegistryProvider(), new FakeSystemInfoProvider(),
             hostsFile: new FakeHostsFileProvider(lines)));
 
-    /// <summary>Le fichier hosts par défaut n'a que des commentaires : rien à relever.</summary>
+    /// <summary>The default hosts file has nothing but comments: nothing to flag.</summary>
     [Fact]
     public void A_default_hosts_file_yields_nothing()
     {
@@ -96,8 +96,8 @@ public class HostsFileTests
     }
 
     /// <summary>
-    /// Une redirection vers une adresse routable court-circuite le DNS vers une machine
-    /// choisie : elle est relevée, une à une.
+    /// A redirect to a routable address short-circuits DNS toward a chosen machine:
+    /// each one is flagged individually.
     /// </summary>
     [Fact]
     public void A_redirect_to_a_routable_address_is_notable()
@@ -110,8 +110,8 @@ public class HostsFileTests
     }
 
     /// <summary>
-    /// Rediriger un domaine sensible — une mise à jour, une authentification — est suspect :
-    /// c'est la forme même du détournement.
+    /// Redirecting a sensitive domain — an update, an authentication — is suspicious:
+    /// it is the very shape of a hijack.
     /// </summary>
     [Fact]
     public void A_redirect_of_a_sensitive_domain_is_suspicious()
@@ -122,8 +122,8 @@ public class HostsFileTests
     }
 
     /// <summary>
-    /// Les blocages se comptent par milliers dans une liste anti-publicité : ils sont
-    /// agrégés en un seul constat, avec leur nombre.
+    /// Blocking entries number in the thousands in an ad-blocking list: they are
+    /// aggregated into a single finding, with their count.
     /// </summary>
     [Fact]
     public void Blocking_entries_are_aggregated_into_one_finding()
@@ -139,8 +139,8 @@ public class HostsFileTests
     }
 
     /// <summary>
-    /// Neutraliser une mise à jour ou une protection n'est pas un réglage anodin : empêcher
-    /// un correctif est une manœuvre, et l'agrégat passe alors à suspect.
+    /// Neutralising an update or a protection is no harmless tweak: preventing a fix is
+    /// a manoeuvre, and the aggregate then escalates to suspicious.
     /// </summary>
     [Fact]
     public void Blocking_a_critical_domain_escalates_to_suspicious()
@@ -152,7 +152,7 @@ public class HostsFileTests
         Assert.Equal(FindingSeverity.Suspicious, Assert.Single(findings).Severity);
     }
 
-    /// <summary>Une même ligne peut viser plusieurs hôtes vers une adresse : chacun compte.</summary>
+    /// <summary>One line can point several hosts at one address: each of them counts.</summary>
     [Fact]
     public void Multiple_hosts_on_one_line_each_count()
     {
@@ -161,7 +161,7 @@ public class HostsFileTests
         Assert.Equal("3", Assert.Single(findings).Details["domaines"]);
     }
 
-    /// <summary>Un commentaire en fin de ligne est retiré avant l'analyse.</summary>
+    /// <summary>A trailing comment is stripped before analysis.</summary>
     [Fact]
     public void An_inline_comment_is_stripped()
     {

@@ -3,14 +3,14 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Profils Wi-Fi enregistrés, jugés sur la robustesse de leur chiffrement.
+/// Saved Wi-Fi profiles, judged on the strength of their encryption.
 ///
 /// <para>
-/// Un réseau ouvert n'offre aucun chiffrement ; WEP est cryptographiquement cassé depuis
-/// vingt ans. Le danger monte d'un cran quand la connexion est <b>automatique</b> : la
-/// machine rejoint alors en silence tout point d'accès qui diffuse le SSID connu — un
-/// attaquant n'a qu'à monter un « evil twin » du même nom. Un profil ouvert manuel est
-/// notable ; en connexion automatique, il est suspect.
+/// An open network offers no encryption; WEP has been cryptographically broken for
+/// twenty years. The danger goes up a notch when the connection is <b>automatic</b>:
+/// the machine then silently joins any access point broadcasting the known SSID — an
+/// attacker merely has to stand up an "evil twin" of the same name. An open manual
+/// profile is notable; with automatic connection, it is suspicious.
 /// </para>
 /// </summary>
 public sealed class WifiProfileCollector : IFindingCollector
@@ -51,7 +51,7 @@ public sealed class WifiProfileCollector : IFindingCollector
     private static (FindingSeverity, IReadOnlyList<string>) Assess(
         string auth, string encryption, bool autoConnect)
     {
-        // WEP : chiffrement cassé, quel que soit le mode de connexion.
+        // WEP: broken encryption, whatever the connection mode.
         if (auth.Contains("WEP", StringComparison.Ordinal)
             || encryption == "WEP")
         {
@@ -59,8 +59,8 @@ public sealed class WifiProfileCollector : IFindingCollector
                 ["Chiffrement WEP — cassé depuis des années, une capture suffit à le lire."]);
         }
 
-        // Réseau ouvert : aucun chiffrement. Le mode de connexion fait la différence entre
-        // « à surveiller » et « exploitable en silence ».
+        // Open network: no encryption. The connection mode makes the difference between
+        // "worth watching" and "silently exploitable".
         if (auth is "OPEN" or "")
         {
             return autoConnect
@@ -71,7 +71,7 @@ public sealed class WifiProfileCollector : IFindingCollector
                     ["Réseau ouvert — le trafic n'est pas chiffré sur ce profil."]);
         }
 
-        // WPA de première génération ou TKIP : déprécié, à remplacer par WPA2/WPA3 + AES.
+        // First-generation WPA or TKIP: deprecated, to be replaced by WPA2/WPA3 + AES.
         if (auth == "WPAPSK" || encryption == "TKIP")
         {
             return (FindingSeverity.Notable,

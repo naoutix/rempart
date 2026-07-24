@@ -3,19 +3,18 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Abonnements WMI permanents.
+/// Permanent WMI event subscriptions.
 ///
-/// Une persistance sans fichier : rien dans les clés Run, rien dans les tâches
-/// planifiées, rien sur le disque à part le dépôt WMI lui-même. Elle survit au
-/// redémarrage et se déclenche sur un événement — ouverture de session, heure fixe,
-/// démarrage d'un processus.
+/// Fileless persistence: nothing in the Run keys, nothing in scheduled tasks, nothing
+/// on disk except the WMI repository itself. It survives reboot and triggers on an
+/// event — logon, fixed time, process start.
 ///
-/// Les outils grand public ne l'affichent pas. C'est précisément ce qui la rend
-/// intéressante pour un attaquant, et ce qui justifie de l'énumérer ici.
+/// Consumer-grade tools do not display it. That makes it attractive to an attacker,
+/// and is the reason it is enumerated here.
 ///
-/// Sur une machine de particulier, un abonnement permanent est rare. Sur un parc
-/// administré, il est courant — les agents de gestion en posent. Le collecteur
-/// signale donc sans accuser, sauf pour les consommateurs qui exécutent du code.
+/// On a personal machine, a permanent subscription is rare. On a managed fleet, it is
+/// common — management agents create them. The collector therefore reports without
+/// accusing, except for consumers that execute code.
 /// </summary>
 public sealed class WmiSubscriptionsCollector : IFindingCollector
 {
@@ -27,8 +26,8 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
     {
         var findings = new List<Finding>();
 
-        // Consommateurs qui executent du code. Ce sont eux qui portent la charge
-        // utile : un filtre seul ne fait rien.
+        // Consumers that execute code. They carry the payload: a filter alone does
+        // nothing.
         Collect(providers, findings, "CommandLineEventConsumer",
             ["Name", "CommandLineTemplate", "ExecutablePath"],
             "Exécute une ligne de commande à chaque déclenchement.");
@@ -37,9 +36,9 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
             ["Name", "ScriptFileName", "ScriptText"],
             "Exécute un script à chaque déclenchement, sans passer par un fichier.");
 
-        // Les filtres seuls ne s'executent pas, mais leur presence dit ce qui est
-        // surveille — et un filtre sans consommateur est un reste, ou une moitie
-        // d'installation.
+        // Filters alone do not execute, but their presence shows what is being
+        // watched — and a filter without a consumer is a leftover, or half of an
+        // installation.
         CollectFilters(providers, findings);
 
         return findings;
@@ -53,8 +52,8 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
 
         if (read.Status == ReadStatus.AccessDenied)
         {
-            // Ne pas se taire : un espace de noms illisible n'est pas un espace de
-            // noms vide, et c'est justement là que se cache ce qu'on cherche.
+            // Report the failure: an unreadable namespace is not an empty namespace,
+            // and it is exactly where what this collector looks for would hide.
             findings.Add(new Finding(
                 "wmi-subscription", $"{Namespace}:{className}", "—",
                 FindingSeverity.Notable,
@@ -82,9 +81,8 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Filtres livres avec Windows. Presents sur toute machine : les signaler a chaque
-    /// scan ajouterait du bruit permanent, et c'est le bruit qui fait qu'on cesse de
-    /// lire un rapport.
+    /// Filters shipped with Windows. Present on every machine: reporting them on each
+    /// scan would add permanent noise and make the report harder to read.
     /// </summary>
     private static readonly string[] BuiltIn =
     [

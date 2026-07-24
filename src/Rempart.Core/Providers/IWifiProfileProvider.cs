@@ -1,13 +1,13 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Un profil Wi-Fi enregistré : un réseau que la machine sait rejoindre.
+/// A saved Wi-Fi profile: a network the machine knows how to join.
 ///
 /// <para>
-/// Ce qui compte pour la sécurité : la robustesse du chiffrement, et si la machine s'y
-/// connecte <b>automatiquement</b>. Un profil ouvert ou WEP en connexion automatique est
-/// un vecteur d'usurpation d'AP (« evil twin ») : la machine rejoint en silence un point
-/// d'accès qui se fait passer pour le SSID connu.
+/// What matters for security: the strength of the encryption, and whether the machine
+/// connects <b>automatically</b>. An open or WEP profile with auto-connect is an AP
+/// spoofing ("evil twin") vector: the machine silently joins an access point that
+/// impersonates the known SSID.
 /// </para>
 /// </summary>
 public sealed record WifiProfile(
@@ -17,8 +17,8 @@ public sealed record WifiProfile(
     bool AutoConnect);
 
 /// <summary>
-/// Énumère les profils Wi-Fi enregistrés, déjà décodés. Abstrait comme le reste
-/// (ADR-001, D5) : le jugement se teste sur une liste donnée, sans carte Wi-Fi.
+/// Enumerates the saved Wi-Fi profiles, already decoded. Abstracted like the rest
+/// (ADR-001, D5): the judgment is tested against a given list, without a Wi-Fi adapter.
 /// </summary>
 public interface IWifiProfileProvider
 {

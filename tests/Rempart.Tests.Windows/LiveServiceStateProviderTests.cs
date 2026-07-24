@@ -4,11 +4,11 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Contre le vrai gestionnaire de services.
+/// Against the real service control manager.
 ///
-/// Trois appels natifs et un protocole d'allocation en deux temps : une erreur de
-/// décalage dans la lecture des tampons rendrait un état plausible mais faux, sur
-/// lequel des règles critiques se prononcent ensuite.
+/// Three native calls and a two-step allocation protocol: an offset error in the
+/// buffer reads would return a plausible but wrong state, which critical rules then
+/// act on.
 /// </summary>
 public sealed class LiveServiceStateProviderTests
 {
@@ -17,8 +17,8 @@ public sealed class LiveServiceStateProviderTests
     [Fact]
     public void Reads_a_service_windows_always_runs()
     {
-        // Le service de gestion des services lui-même : présent et démarré sur
-        // toute machine Windows en état de fonctionner.
+        // The task scheduling service: present and started on any Windows machine
+        // in working order.
         var read = services.Read("Schedule");
 
         Assert.Equal(ReadStatus.Found, read.Status);
@@ -30,16 +30,16 @@ public sealed class LiveServiceStateProviderTests
     {
         var read = services.Read("Schedule");
 
-        // Un décalage erroné dans le tampon rendrait « Unknown » en permanence, et
-        // toute règle sur le mode de démarrage deviendrait muette sans le dire.
+        // A wrong offset in the buffer would return "Unknown" permanently, and any
+        // rule on the start mode would go silent without saying so.
         Assert.NotEqual(ServiceStartMode.Unknown, read.Info!.StartMode);
     }
 
     [Fact]
     public void A_service_that_does_not_exist_is_reported_absent_not_denied()
     {
-        // La distinction porte des suites différentes : désinstaller un service
-        // absent n'a pas de sens, un refus appelle une relance en administrateur.
+        // The distinction drives different follow-ups: uninstalling an absent service
+        // makes no sense, a denial calls for a retry as administrator.
         var read = services.Read("CeServiceNExistePasDuTout");
 
         Assert.Equal(ReadStatus.NotFound, read.Status);
@@ -49,8 +49,8 @@ public sealed class LiveServiceStateProviderTests
     [Fact]
     public void A_stopped_service_is_reported_stopped()
     {
-        // RemoteRegistry est désactivé par défaut sur un poste de travail. Si la
-        // machine de test l'a activé, on vérifie au moins que l'état est lisible.
+        // RemoteRegistry is disabled by default on a workstation. If the test machine
+        // has enabled it, at least check that the state is readable.
         var read = services.Read("RemoteRegistry");
 
         if (read.Status == ReadStatus.Found)
@@ -62,8 +62,8 @@ public sealed class LiveServiceStateProviderTests
     [Fact]
     public void Repeated_reads_stay_consistent_and_do_not_exhaust_handles()
     {
-        // Chaque lecture ouvre deux handles natifs. Un oubli de fermeture ne se voit
-        // pas sur un appel isolé, mais épuise les ressources d'un scan complet.
+        // Each read opens two native handles. A missing close is invisible on a single
+        // call but exhausts the resources of a full scan.
         var first = services.Read("Schedule");
 
         for (var i = 0; i < 200; i++)

@@ -4,8 +4,8 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Test machine réelle : on ne connaît pas les réseaux enregistrés du runner, on vérifie
-/// que la lecture ne lève pas et que ce qui est rendu est cohérent.
+/// Real-machine test: the runner's saved networks are unknown, so we check that the read
+/// does not throw and that what it returns is consistent.
 /// </summary>
 public sealed class LiveWifiProfileProviderTests
 {
@@ -15,7 +15,7 @@ public sealed class LiveWifiProfileProviderTests
         var profiles = new LiveWifiProfileProvider().Read();
 
         Assert.NotNull(profiles);
-        // Un profil lu porte forcément un nom (sinon il est écarté).
+        // A profile that was read always carries a name (otherwise it is discarded).
         Assert.All(profiles, profile => Assert.False(string.IsNullOrEmpty(profile.Name)));
     }
 

@@ -4,21 +4,21 @@ namespace Rempart.Core.Rules;
 
 public enum VerdictStatus
 {
-    /// <summary>La machine est conforme.</summary>
+    /// <summary>The machine is compliant.</summary>
     Pass,
 
-    /// <summary>La machine n'est pas conforme.</summary>
+    /// <summary>The machine is not compliant.</summary>
     Fail,
 
     /// <summary>
-    /// Impossible de conclure — accès refusé. Ni conforme ni non conforme : un audit
-    /// qui compterait ces cas comme réussis mentirait par omission.
+    /// Could not conclude — access denied. Neither compliant nor non-compliant: an audit
+    /// counting these cases as passed would lie by omission.
     /// </summary>
     Unknown,
 
     /// <summary>
-    /// La règle ne concerne pas cette machine. Distinct de <see cref="Unknown"/> :
-    /// ici on sait, et la réponse est qu'il n'y a rien à vérifier.
+    /// The rule does not apply to this machine. Distinct from <see cref="Unknown"/>:
+    /// here the answer is known, and it is that there is nothing to check.
     /// </summary>
     NotApplicable,
 }
@@ -39,14 +39,14 @@ internal sealed class FixedSystemInfo(SystemInfo? info) : ISystemInfoProvider
 }
 
 /// <summary>
-/// Applique une règle à l'état de la machine. Ne juge pas au-delà de la règle :
-/// la sévérité, la formulation et la remédiation appartiennent au YAML.
+/// Applies a rule to the machine state. Does not judge beyond the rule: severity,
+/// wording, and remediation belong to the YAML.
 /// </summary>
 public static class RuleEvaluator
 {
     /// <summary>
-    /// Évalue une règle qui ne porte que sur le registre. Les contrôles de service
-    /// rendent alors « non vérifiable » — aucun provider ne peut y répondre.
+    /// Evaluates a rule that only targets the registry. Service checks then come back
+    /// "not verifiable" — no provider can answer them.
     /// </summary>
     public static Verdict Evaluate(Rule rule, IRegistryProvider registry, SystemInfo? system = null) =>
         Evaluate(rule, new ProviderSet(registry, new FixedSystemInfo(system)), system);
@@ -72,9 +72,9 @@ public static class RuleEvaluator
     }
 
     /// <summary>
-    /// Une condition non vérifiable — accès refusé, information système absente — est
-    /// tenue pour remplie : mieux vaut évaluer la règle et rendre un verdict que la
-    /// masquer sur une incertitude d'applicabilité. Une règle escamotée ne se remarque pas.
+    /// A condition that cannot be verified — access denied, system information missing —
+    /// is treated as met: better to evaluate the rule and return a verdict than to hide
+    /// it over an applicability uncertainty. A silently skipped rule goes unnoticed.
     /// </summary>
     private static bool Applies(Applicability condition, ProviderSet providers, SystemInfo? system)
     {
@@ -100,8 +100,8 @@ public static class RuleEvaluator
     {
         var pass = check.Operator switch
         {
-            // Ces deux opérateurs portent sur la présence même de la valeur : le défaut
-            // Windows n'a pas de sens ici.
+            // These two operators test the very presence of the value: the Windows
+            // default is meaningless here.
             CheckOperator.Exists => reading.Found is not null,
             CheckOperator.Absent => reading.Found is null,
 
@@ -121,8 +121,8 @@ public static class RuleEvaluator
         observed is not null && string.Equals(observed, expected, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Une valeur non numérique ne satisfait aucune comparaison d'ordre. Rendre faux
-    /// plutôt que lever : la règle échoue visiblement au lieu d'interrompre le scan.
+    /// A non-numeric value satisfies no ordering comparison. Return false rather than
+    /// throw: the rule fails visibly instead of aborting the scan.
     /// </summary>
     private static bool Compare(string? observed, string? expected, Func<long, long, bool> compare) =>
         long.TryParse(observed, out var actual)

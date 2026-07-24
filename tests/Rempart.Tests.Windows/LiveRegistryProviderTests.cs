@@ -4,15 +4,15 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Tests contre le vrai registre Windows.
+/// Tests against the real Windows registry.
 ///
-/// L'abstraction providers rend <c>Rempart.Core</c> testable partout — et concentre
-/// tout le risque non testé dans la couche qu'elle isole. Conversion des types de
-/// registre, résolution des ruches, distinction entre absence et refus d'accès :
-/// autant de comportements dont dépendent 62 règles, et qu'aucun test ne couvrait.
+/// The provider abstraction makes <c>Rempart.Core</c> testable everywhere — and
+/// concentrates all the untested risk in the layer it isolates. Registry type
+/// conversion, hive resolution, the distinction between absence and access denial:
+/// 62 rules depend on these behaviors, and no test covered them.
 ///
-/// Ces tests s'appuient sur des clés que Windows garantit — les inventer serait
-/// inutile, et en créer exigerait des droits qu'un scan n'a pas besoin d'avoir.
+/// These tests rely on keys Windows guarantees — inventing them is pointless, and
+/// creating keys would require rights a scan does not need.
 /// </summary>
 public sealed class LiveRegistryProviderTests
 {
@@ -32,8 +32,8 @@ public sealed class LiveRegistryProviderTests
     [Fact]
     public void Reads_a_dword_as_a_number()
     {
-        // UBR est un DWORD : la conversion doit remplir Number, pas Text. Une règle
-        // avec l'opérateur atLeast en dépend directement.
+        // UBR is a DWORD: the conversion must fill Number, not Text. A rule using the
+        // atLeast operator depends on this directly.
         var read = registry.ReadValue(CurrentVersion, "UBR");
 
         Assert.Equal(ReadStatus.Found, read.Status);
@@ -64,17 +64,17 @@ public sealed class LiveRegistryProviderTests
     [InlineData(@"HKEY_CURRENT_USER\Software")]
     public void Hive_prefixes_resolve_in_both_forms(string path)
     {
-        // Les règles écrivent HKLM, la documentation Microsoft écrit souvent la forme
-        // longue. Les deux doivent aboutir, sans quoi une règle recopiée depuis la
-        // documentation échouerait sans raison visible.
+        // Rules write HKLM; Microsoft documentation often writes the long form. Both
+        // must resolve, otherwise a rule copied from the documentation would fail with
+        // no visible reason.
         Assert.Equal(ReadStatus.Found, registry.KeyExists(path));
     }
 
     [Fact]
     public void An_unknown_hive_is_rejected_loudly()
     {
-        // Une faute de frappe dans un chemin de règle doit se voir immédiatement,
-        // et non produire un « non trouvé » qu'on prendrait pour un vrai verdict.
+        // A typo in a rule path must surface immediately, not produce a "not found"
+        // that would be taken for a real verdict.
         Assert.Throws<ArgumentException>(() => registry.KeyExists(@"HKXX\Rien"));
     }
 
@@ -94,9 +94,9 @@ public sealed class LiveRegistryProviderTests
     [Fact]
     public void Reading_the_security_hive_denies_access_rather_than_reporting_absence()
     {
-        // La distinction porte tout l'audit : « je n'ai pas pu lire » ne doit jamais
-        // devenir « la valeur n'est pas là », faute de quoi un scan non élevé rendrait
-        // un rapport faussement rassurant. HKLM\SAM est refusé même en administrateur.
+        // The whole audit rests on this distinction: "could not read" must never become
+        // "the value is not there", otherwise a non-elevated scan would produce a falsely
+        // reassuring report. HKLM\SAM is denied even as administrator.
         var status = registry.KeyExists(@"HKLM\SAM\SAM");
 
         Assert.True(status is ReadStatus.AccessDenied or ReadStatus.NotFound,

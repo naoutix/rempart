@@ -7,7 +7,7 @@ using Rempart.Core.Updates;
 
 namespace Rempart.Tests.Unit;
 
-/// <summary>Fournisseur de profils Wi-Fi factice, sur le modèle de FakeDnsProvider.</summary>
+/// <summary>Fake Wi-Fi profile provider, modelled on FakeDnsProvider.</summary>
 internal sealed class FakeWifiProfileProvider(params WifiProfile[] profiles) : IWifiProfileProvider
 {
     public IReadOnlyList<WifiProfile> Read() => profiles;
@@ -107,7 +107,7 @@ public class WifiAnonymisationTests
 
         Assert.StartsWith("anon:", profile.Name);
         Assert.DoesNotContain("Maison", profile.Name);
-        Assert.Equal("WPA2PSK", profile.Authentication);   // la sécurité reste jugeable
+        Assert.Equal("WPA2PSK", profile.Authentication);   // security stays assessable
     }
 }
 

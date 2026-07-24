@@ -3,11 +3,11 @@ using System.Security.Cryptography;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// La paire de clés d'éditeur : ce qui sort de la génération, et rien de plus.
+/// The publisher key pair: what key generation outputs, and nothing more.
 ///
-/// <see cref="EncryptedPrivateKey"/> est déjà chiffré par la phrase de passe quand
-/// cet objet existe. Il n'y a volontairement aucun moyen d'obtenir la clé privée en
-/// clair : le seul usage prévu est de l'écrire sur un support hors ligne.
+/// <see cref="EncryptedPrivateKey"/> is already encrypted with the passphrase by the
+/// time this object exists. There is deliberately no way to obtain the private key in
+/// cleartext: the only intended use is writing it to offline storage.
 /// </summary>
 public sealed record PublisherKeyPair(
     string EncryptedPrivateKey,
@@ -15,33 +15,30 @@ public sealed record PublisherKeyPair(
     string KeyId);
 
 /// <summary>
-/// Génère la paire de clés qui signera les manifestes.
+/// Generates the key pair that will sign manifests.
 ///
 /// <para>
-/// Vit dans le binaire parce que celui-ci est autonome et tient sur une clé USB : la
-/// génération doit pouvoir se faire sur une machine hors ligne, éventuellement une VM
-/// jetable, sans y installer quoi que ce soit. La procédure initiale de l'ADR-002
-/// passait par six lignes de PowerShell appelant .NET — elles ne fonctionnent pas sous
-/// Windows PowerShell 5.1, qui s'exécute sur .NET Framework et ignore
-/// <c>ExportPkcs8PrivateKey</c>. Sur une machine hors ligne, un script qui échoue est
-/// un script qu'on ne peut pas déboguer.
+/// Lives in the binary because the binary is self-contained and fits on a USB stick:
+/// generation must be possible on an offline machine, possibly a disposable VM, without
+/// installing anything on it. The initial ADR-002 procedure used six lines of PowerShell
+/// calling into .NET — they do not work on Windows PowerShell 5.1, which runs on .NET
+/// Framework and does not have <c>ExportPkcs8PrivateKey</c>. On an offline machine, a
+/// failing script is a script that cannot be debugged.
 /// </para>
 /// </summary>
 public static class PublisherKey
 {
     /// <summary>
-    /// Itérations de dérivation de la phrase de passe. Le coût est payé une fois à la
-    /// génération et une fois à chaque signature — jamais dans un scan. Le prendre
-    /// élevé est donc gratuit ici, et c'est ce qui sépare une clé USB perdue d'une clé
-    /// compromise.
+    /// Passphrase derivation iteration count. The cost is paid once at generation and
+    /// once per signing — never during a scan. A high value is therefore free here, and
+    /// it is what separates a lost USB stick from a compromised key.
     /// </summary>
     private const int Iterations = 600_000;
 
     /// <summary>
-    /// Le chiffrement n'est pas optionnel, et il n'y a pas de variante sans phrase de
-    /// passe. Une clé privée en clair sur un support amovible, c'est un support
-    /// amovible qui vaut la clé — or ces supports se perdent, se prêtent et se
-    /// laissent branchés.
+    /// Encryption is not optional, and there is no passphrase-less variant. A cleartext
+    /// private key on removable media makes the media worth as much as the key — and
+    /// such media gets lost, lent out, and left plugged in.
     /// </summary>
     public static PublisherKeyPair Generate(ReadOnlySpan<char> passphrase)
     {
@@ -66,9 +63,9 @@ public static class PublisherKey
     }
 
     /// <summary>
-    /// Relit une clé privée chiffrée. Sert à vérifier immédiatement après génération
-    /// que le fichier écrit est réutilisable — une clé qu'on ne peut pas relire ne se
-    /// découvre pas le jour où l'on doit publier.
+    /// Reads back an encrypted private key. Used immediately after generation to verify
+    /// that the written file is usable — an unreadable key should be discovered now, not
+    /// on the day a release must be published.
     /// </summary>
     public static string ReadPublicKeyOf(string encryptedPrivateKey, ReadOnlySpan<char> passphrase)
     {
@@ -77,8 +74,8 @@ public static class PublisherKey
     }
 
     /// <summary>
-    /// Ouvre une clé privée chiffrée pour signer. L'appelant en dispose — la clé ne doit
-    /// pas séjourner en mémoire plus longtemps que la signature qu'elle produit.
+    /// Opens an encrypted private key for signing. The caller must dispose it — the key
+    /// must not stay in memory longer than the signature it produces.
     /// </summary>
     public static ECDsa Open(string encryptedPrivateKey, ReadOnlySpan<char> passphrase)
     {

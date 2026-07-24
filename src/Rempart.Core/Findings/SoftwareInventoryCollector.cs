@@ -4,13 +4,13 @@ using Rempart.Core.Updates;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Inventaire des logiciels installés — un constat par entrée, bénin par défaut, escaladé
-/// si le catalogue bloatware (M5b) reconnaît l'entrée.
+/// Inventory of installed software — one finding per entry, benign by default, escalated
+/// when the bloatware catalog (M5b) recognises the entry.
 ///
 /// <para>
-/// L'inventaire seul énumère. Le catalogue vient par-dessus, sans réécrire ce collecteur :
-/// il ne peut qu'aggraver un constat, jamais l'inventer. Un logiciel non reconnu reste
-/// bénin. Calque de <see cref="LoadedDriversCollector"/> avec la liste de pilotes.
+/// The inventory alone enumerates. The catalog sits on top without rewriting this
+/// collector: it can only aggravate a finding, never invent one. Unrecognised software
+/// stays benign. Mirrors <see cref="LoadedDriversCollector"/> with the driver list.
 /// </para>
 /// </summary>
 public sealed class SoftwareInventoryCollector(BloatwareCatalog? catalog = null) : IFindingCollector
@@ -45,9 +45,9 @@ public sealed class SoftwareInventoryCollector(BloatwareCatalog? catalog = null)
             var severity = FindingSeverity.Benign;
             var reasons = new List<string>();
 
-            // Le catalogue ne peut qu'aggraver : un logiciel reconnu monte à Notable
-            // (indésirable) ou Suspicious (risque de sécurité). Le risque est mappé ici,
-            // dans le code — la donnée ne porte pas de gravité en dur.
+            // The catalog can only aggravate: recognised software rises to Notable
+            // (unwanted) or Suspicious (security risk). The risk is mapped here, in
+            // code — the data carries no hardcoded severity.
             if (this.catalog.Match(software) is { } hit)
             {
                 severity = hit.Risk == BloatwareRisk.SecurityRelevant

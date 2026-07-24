@@ -3,14 +3,14 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Configuration proxy et PAC de la machine, par portée.
+/// Proxy and PAC configuration of the machine, per scope.
 ///
 /// <para>
-/// Un proxy imposé par stratégie de groupe est le cas d'entreprise attendu : inventorié,
-/// pas alarmé. Un proxy posé sans contrainte intercepte le trafic ; un AutoConfigURL (PAC)
-/// réécrit tout le routage, et un PAC http hébergé hors du contrôle de la machine est la
-/// forme même d'un détournement. Aucun appel réseau : seule l'URL est jugée, jamais son
-/// contenu (ce sera un enrichissement opt-in, cf. PR-B).
+/// A proxy imposed by group policy is the expected enterprise case: inventoried, not
+/// alarmed on. A proxy set without such a constraint intercepts traffic; an AutoConfigURL
+/// (PAC) rewrites all routing, and an http PAC hosted outside the machine's control is
+/// the very shape of a hijack. No network call: only the URL is judged, never its
+/// content (that will be an opt-in enrichment, cf. PR-B).
 /// </para>
 /// </summary>
 public sealed class ProxyCollector : IFindingCollector
@@ -106,15 +106,15 @@ public sealed class ProxyCollector : IFindingCollector
 
     private static FindingSeverity JudgePac(string url, bool policyImposed)
     {
-        // Un PAC imposé par stratégie est le cas d'entreprise attendu.
+        // A PAC imposed by policy is the expected enterprise case.
         if (policyImposed)
         {
             return FindingSeverity.Benign;
         }
 
-        // http en clair vers un hôte externe : altérable en transit, hors du contrôle de
-        // la machine — la forme d'un détournement. https, ou un PAC local/file, reste à
-        // signaler sans être suspect.
+        // Cleartext http to an external host: alterable in transit, outside the machine's
+        // control — the shape of a hijack. https, or a local/file PAC, is still worth
+        // reporting without being suspicious.
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
             && string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
             && !IsLocalHost(uri.Host))

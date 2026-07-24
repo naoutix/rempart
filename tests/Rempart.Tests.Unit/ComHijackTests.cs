@@ -13,8 +13,8 @@ public class ComHijackTests
             registry, new FakeSystemInfoProvider(), signatures: signatures));
 
     /// <summary>
-    /// Un composant COM enregistré côté utilisateur est notable même signé : l'emplacement
-    /// inscriptible sans privilège en fait le vecteur, pas la nature du binaire.
+    /// A COM component registered per-user is notable even when signed: the location,
+    /// writable without privilege, is what makes the vector — not the nature of the binary.
     /// </summary>
     [Fact]
     public void A_per_user_com_server_is_notable_even_when_signed()
@@ -43,9 +43,9 @@ public class ComHijackTests
     }
 
     /// <summary>
-    /// Une valeur <c>LocalServer32</c> est une ligne de commande : le chemin quoté et ses
-    /// arguments doivent être démêlés, sans quoi l'exécutable ressort introuvable — un faux
-    /// positif observé en vrai sur l'entrée d'Adobe.
+    /// A <c>LocalServer32</c> value is a command line: the quoted path and its arguments
+    /// must be untangled, otherwise the executable comes out as missing — a false positive
+    /// observed in the wild on Adobe's entry.
     /// </summary>
     [Fact]
     public void A_local_server_command_line_is_reduced_to_its_executable()
@@ -64,9 +64,9 @@ public class ComHijackTests
     }
 
     /// <summary>
-    /// Une DLL sous WindowsApps est non signée au niveau fichier mais signée par son
-    /// paquet MSIX. Le constat reste notable — c'est un COM utilisateur — mais pas
-    /// suspect : Windows garantit que le paquet est vérifié.
+    /// A DLL under WindowsApps is unsigned at the file level but signed through its MSIX
+    /// package. The finding stays notable — it is a per-user COM — but not suspicious:
+    /// Windows guarantees the package is verified.
     /// </summary>
     [Fact]
     public void A_windowsapps_binary_is_not_treated_as_unsigned()
@@ -80,7 +80,7 @@ public class ComHijackTests
             .With(@"C:\Program Files\WindowsApps\Éditeur.App_1.0\app.exe", SignatureStatus.Unsigned);
 
         var finding = Assert.Single(Collect(registry, signatures));
-        // Notable via le plancher COM, mais pas suspect : la signature MSIX prime.
+        // Notable via the COM floor, but not suspicious: the MSIX signature prevails.
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Contains("MSIX", string.Join(" ", finding.Reasons));
     }

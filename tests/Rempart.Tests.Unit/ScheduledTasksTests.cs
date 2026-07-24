@@ -57,9 +57,9 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Windows livre plusieurs centaines de tâches signées. Si l'une d'elles ressortait
-    /// à examiner, le rapport deviendrait illisible et cesserait d'être lu — c'est le
-    /// bruit, pas le manque de couverture, qui tue un outil d'audit.
+    /// Windows ships several hundred signed tasks. If any of them surfaced for
+    /// review, the report would become unreadable and stop being read — noise,
+    /// not missing coverage, is what kills an audit tool.
     /// </summary>
     [Fact]
     public void Signed_action_is_benign()
@@ -72,9 +72,10 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// La signature est consignée même valide. Ne la noter que lorsqu'elle pose
-    /// problème rendrait « vérifiée et bonne » indiscernable de « jamais vérifiée » —
-    /// c'est la version silencieuse du défaut qui a rendu WMI inopérant deux lots.
+    /// The signature is recorded even when valid. Recording it only when it is a
+    /// problem would make "verified and good" indistinguishable from "never
+    /// verified" — the silent variant of the defect that left WMI inoperative
+    /// for two batches.
     /// </summary>
     [Fact]
     public void Valid_signature_is_recorded_not_only_failures()
@@ -90,10 +91,10 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Le planificateur résout <c>sc.exe</c> à l'exécution. Un nom que le provider n'a
-    /// pas su résoudre a produit, sur une vraie machine, deux constats « le fichier
-    /// visé n'existe pas » portant sur des binaires présents dans System32. Une lacune
-    /// de résolution ne doit pas se déguiser en fait sur la machine.
+    /// The scheduler resolves <c>sc.exe</c> at run time. A name the provider
+    /// failed to resolve produced, on a real machine, two "target file does not
+    /// exist" findings about binaries actually present in System32. A resolution
+    /// gap must not masquerade as a fact about the machine.
     /// </summary>
     [Fact]
     public void Unresolved_bare_name_is_reported_as_unresolved_not_as_missing_file()
@@ -111,8 +112,8 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Une tâche sans exécutable — gestionnaire COM — n'a pas de signature à vérifier.
-    /// Elle est énumérée en le disant, comme un raccourci du dossier de démarrage.
+    /// A task without an executable — a COM handler — has no signature to verify.
+    /// It is enumerated with that noted, like a startup-folder shortcut.
     /// </summary>
     [Fact]
     public void Com_handler_task_is_listed_without_being_judged()
@@ -129,8 +130,8 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Une tâche désactivée ne s'exécute pas, et le rapport doit le dire — mais le
-    /// constat demeure : ce qui est désactivé se réactive.
+    /// A disabled task does not run, and the report must say so — but the
+    /// finding stands: a disabled task can be re-enabled.
     /// </summary>
     [Fact]
     public void Disabled_task_keeps_its_severity_and_says_so()
@@ -147,8 +148,8 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Un planificateur illisible n'est pas un planificateur vide. Rendre zéro tâche en
-    /// silence ferait passer une panne pour une machine saine.
+    /// An unreadable scheduler is not an empty scheduler. Silently returning
+    /// zero tasks would make a failure look like a healthy machine.
     /// </summary>
     [Fact]
     public void Failed_enumeration_produces_a_finding_never_silence()
@@ -162,8 +163,8 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Absent d'une capture antérieure à ce lot : la fixture reste rejouable, et rend
-    /// un constat « non énuméré » plutôt qu'un planificateur vide.
+    /// Absent from a capture predating this batch: the fixture stays replayable
+    /// and yields a "not enumerated" finding rather than an empty scheduler.
     /// </summary>
     [Fact]
     public void Older_snapshot_replays_without_inventing_an_empty_scheduler()
@@ -193,9 +194,9 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Le compte système ne désigne personne. Le hacher coûterait la lisibilité des
-    /// fixtures sans rien protéger : on ne distinguerait plus une tâche du système
-    /// d'une tâche d'utilisateur, ce qui est justement ce qu'on veut juger.
+    /// The system account designates nobody. Hashing it would cost fixture
+    /// readability while protecting nothing: a system task would no longer be
+    /// distinguishable from a user task, which is exactly what needs judging.
     /// </summary>
     [Fact]
     public void Anonymiser_leaves_well_known_accounts_readable()
@@ -214,9 +215,9 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
-    /// Un instantané qui se déclare anonymisé doit l'être. Le nom de compte se glisse
-    /// dans les chemins de profil — clés de signatures, répertoires énumérés, valeurs
-    /// Run — et une capture partagée en confiance le transmettrait.
+    /// A snapshot that declares itself anonymised must be. The account name slips
+    /// into profile paths — signature keys, enumerated directories, Run values —
+    /// and a capture shared in confidence would pass it on.
     /// </summary>
     [Fact]
     public void Anonymiser_hashes_the_account_name_in_profile_paths()
@@ -237,14 +238,14 @@ public class ScheduledTasksTests
 
         Assert.DoesNotContain("leoar", RempartJson.Serialise(result), StringComparison.Ordinal);
 
-        // Le reste du chemin survit : c'est lui qui dit quelle application se lance.
+        // The rest of the path survives: it is what says which application launches.
         Assert.Contains(result.Signatures.Keys,
             k => k.EndsWith(@"\Discord\Update.exe", StringComparison.Ordinal));
     }
 
     /// <summary>
-    /// Ces profils existent à l'identique sur toute installation de Windows : les
-    /// hacher coûterait la lisibilité des fixtures sans rien protéger.
+    /// These profiles exist identically on every Windows installation: hashing
+    /// them would cost fixture readability while protecting nothing.
     /// </summary>
     [Theory]
     [InlineData(@"C:\Users\Public\Desktop\a.exe")]

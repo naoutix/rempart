@@ -15,7 +15,7 @@ public sealed partial class LiveSystemInfoProvider : ISystemInfoProvider
         Max = 3,
     }
 
-    /// <summary>Statut d'appartenance renvoyé par <c>NetGetJoinInformation</c>.</summary>
+    /// <summary>Join status returned by <c>NetGetJoinInformation</c>.</summary>
     private enum JoinStatus
     {
         Unknown = 0,
@@ -46,9 +46,9 @@ public sealed partial class LiveSystemInfoProvider : ISystemInfoProvider
         IsDomainJoined: ReadDomainJoined());
 
     /// <summary>
-    /// Interroge l'API plutôt que le registre : plusieurs valeurs de registre laissent
-    /// croire à une appartenance de domaine sur une machine autonome, notamment un
-    /// suffixe DNS renseigné à la main.
+    /// Queries the API rather than the registry: several registry values can suggest
+    /// domain membership on a standalone machine, notably a manually configured DNS
+    /// suffix.
     /// </summary>
     private static bool ReadDomainJoined()
     {
@@ -65,9 +65,9 @@ public sealed partial class LiveSystemInfoProvider : ISystemInfoProvider
         }
         catch (Exception)
         {
-            // Dans le doute, considérer la machine comme autonome : les règles
-            // conditionnées au domaine seront simplement marquées non applicables,
-            // ce qui est moins nuisible qu'un durcissement appliqué à tort.
+            // When in doubt, treat the machine as standalone: domain-conditioned
+            // rules will simply be marked not applicable, which is less harmful than
+            // hardening applied by mistake.
             return false;
         }
         finally
@@ -103,8 +103,8 @@ public sealed partial class LiveSystemInfoProvider : ISystemInfoProvider
         }
         catch (Exception)
         {
-            // Ne pas prétendre à l'élévation en cas de doute : le rapport signalera
-            // un scan restreint plutôt que de laisser croire à un inventaire complet.
+            // Do not claim elevation when in doubt: the report will indicate a
+            // restricted scan rather than suggest a complete inventory.
             return false;
         }
     }

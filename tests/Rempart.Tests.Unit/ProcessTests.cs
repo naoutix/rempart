@@ -23,8 +23,8 @@ public class ProcessTests
             processes: new FakeProcessProvider(processes)));
 
     /// <summary>
-    /// Un processus validement signé ne ressort pas : sur une machine saine, la quasi-
-    /// totalité l'est, et les lister à examiner rendrait le rapport illisible.
+    /// A validly signed process does not stand out: on a healthy machine, nearly all of
+    /// them are, and listing them for review would make the report unreadable.
     /// </summary>
     [Fact]
     public void A_signed_process_is_benign()
@@ -37,8 +37,8 @@ public class ProcessTests
     }
 
     /// <summary>
-    /// Un binaire non signé qui tourne est suspect, au même titre qu'un démarrage ou un
-    /// pilote non signé — l'échelle est commune.
+    /// A running unsigned binary is suspicious, on the same footing as an unsigned
+    /// startup entry or driver — the scale is shared.
     /// </summary>
     [Fact]
     public void An_unsigned_process_is_suspicious()
@@ -51,8 +51,8 @@ public class ProcessTests
     }
 
     /// <summary>
-    /// Un même exécutable en plusieurs instances donne un seul constat, jugé une fois,
-    /// avec le nombre d'instances. Douze <c>svchost.exe</c> ne sont pas douze constats.
+    /// The same executable in several instances yields a single finding, judged once,
+    /// with the instance count. Twelve <c>svchost.exe</c> are not twelve findings.
     /// </summary>
     [Fact]
     public void Instances_of_the_same_executable_collapse_to_one_finding()
@@ -66,14 +66,14 @@ public class ProcessTests
         var finding = Assert.Single(findings);
         Assert.Equal("3", finding.Details["instances"]);
 
-        // Pid et parent ne sont donnés que pour une instance unique : à plusieurs, ils
-        // n'identifient rien de stable.
+        // Pid and parent are only given for a single instance: with several, they
+        // identify nothing stable.
         Assert.False(finding.Details.ContainsKey("pid"));
     }
 
     /// <summary>
-    /// La ligne de commande est retenue, prise sur la première instance qui en porte une —
-    /// hors élévation, celle d'un autre utilisateur peut rester vide.
+    /// The command line is kept, taken from the first instance that carries one —
+    /// without elevation, another user's may come back empty.
     /// </summary>
     [Fact]
     public void The_command_line_is_kept_from_the_first_instance_that_has_one()
@@ -87,11 +87,11 @@ public class ProcessTests
     }
 
     /// <summary>
-    /// Le chemin de l'exécutable est un chemin propre : on y hache le compte. La ligne de
-    /// commande, elle, est vidée — pas nettoyée. Elle porte le compte sous des formes
-    /// qu'un remplacement de « \Users\x\ » ne voit pas : un chemin URL-encodé, un secret
-    /// en argument, ou la commande même de la session de capture. Prétendre l'anonymiser
-    /// serait faux.
+    /// The executable path is a clean path: the account name is hashed inside it. The
+    /// command line, though, is emptied — not scrubbed. It carries the account in forms
+    /// a "\Users\x\" replacement cannot see: a URL-encoded path, a secret passed as an
+    /// argument, or the very command of the capture session. Claiming to anonymise it
+    /// would be false.
     /// </summary>
     [Fact]
     public void Anonymiser_scrubs_the_path_and_empties_the_command_line()
@@ -102,7 +102,7 @@ public class ProcessTests
             Processes =
             [
                 new RunningProcess(1, 4, "tool.exe", @"C:\Users\leoar\tool.exe",
-                    // Compte sous forme URL-encodée : ScrubProfile ne le verrait pas.
+                    // Account in URL-encoded form: ScrubProfile would not see it.
                     @"tool.exe --path C:%5CUsers%5Cleoar%5Csecret --token abc123"),
             ],
         };

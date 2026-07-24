@@ -6,16 +6,16 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Vérification Authenticode par <c>WinVerifyTrust</c>.
+/// Authenticode verification via <c>WinVerifyTrust</c>.
 ///
-/// C'est l'API que Windows utilise lui-même : elle valide la chaîne de confiance, la
-/// péremption et la révocation, là où lire le certificat embarqué ne dirait que sa
-/// présence. Un binaire signé par un certificat expiré ou révoqué est bien signé —
-/// et n'est pas digne de confiance pour autant.
+/// This is the API Windows itself uses: it validates the trust chain, expiration, and
+/// revocation, whereas reading the embedded certificate would only prove its presence.
+/// A binary signed with an expired or revoked certificate is signed — and still not
+/// trustworthy.
 ///
-/// Une vérification qui n'aboutit pas rend <see cref="SignatureStatus.Unknown"/>,
-/// jamais <c>Unsigned</c> : confondre « je n'ai pas pu vérifier » avec « ce n'est pas
-/// signé » produirait des alertes fausses sur les machines les moins auditables.
+/// A verification that cannot complete returns <see cref="SignatureStatus.Unknown"/>,
+/// never <c>Unsigned</c>: conflating "could not verify" with "not signed" would
+/// produce false alerts on the least auditable machines.
 /// </summary>
 public sealed partial class LiveSignatureProvider : ISignatureProvider
 {
@@ -29,7 +29,7 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
     private const uint WtdStateActionClose = 2;
 
     // 0x800B0100 TRUST_E_NOSIGNATURE, 0x800B0003 TRUST_E_SUBJECT_FORM_UNKNOWN,
-    // 0x800B0001 TRUST_E_PROVIDER_UNKNOWN : aucune signature exploitable.
+    // 0x800B0001 TRUST_E_PROVIDER_UNKNOWN: no usable signature.
     private const int TrustNoSignature = unchecked((int)0x800B0100);
     private const int TrustSubjectFormUnknown = unchecked((int)0x800B0003);
     private const int TrustProviderUnknown = unchecked((int)0x800B0001);
@@ -82,25 +82,24 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
                 return new FileSignature(SignatureStatus.Valid, ReadPublisher(path), hash);
             }
 
-            // Pas de signature embarquée : la plupart des binaires Windows sont signés
-            // par catalogue. S'arrêter ici classerait cmd.exe comme non signé, et avec
-            // lui la quasi-totalité des démarrages automatiques d'un système sain.
+            // No embedded signature: most Windows binaries are catalog-signed.
+            // Stopping here would classify cmd.exe as unsigned, along with almost
+            // every autostart entry of a healthy system.
             if (embedded is TrustNoSignature or TrustSubjectFormUnknown or TrustProviderUnknown)
             {
                 return CatalogSignature.Verify(path) switch
                 {
                     0 => new FileSignature(SignatureStatus.Valid, ReadPublisher(path), hash),
 
-                    // Aucun catalogue ne référence ce fichier : il n'est signé
-                    // d'aucune manière.
+                    // No catalog references this file: it is not signed in any way.
                     null => new FileSignature(SignatureStatus.Unsigned, null, hash),
 
-                    // Un catalogue le couvre, mais ne valide pas.
+                    // A catalog covers it, but does not validate.
                     _ => new FileSignature(SignatureStatus.Invalid, null, hash),
                 };
             }
 
-            // Signée, mais la chaîne ne tient pas : expirée, révoquée, altérée.
+            // Signed, but the chain does not hold: expired, revoked, or tampered.
             return new FileSignature(SignatureStatus.Invalid, ReadPublisher(path), hash);
         }
         catch (Exception)
@@ -140,8 +139,8 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
                 var action = ActionGenericVerifyV2;
                 var result = WinVerifyTrust(IntPtr.Zero, ref action, ref data);
 
-                // Second appel obligatoire : sans lui, l'etat alloue par la
-                // verification fuit a chaque fichier examine.
+                // The second call is mandatory: without it, the state allocated by
+                // the verification leaks on every file examined.
                 data.StateAction = WtdStateActionClose;
                 WinVerifyTrust(IntPtr.Zero, ref action, ref data);
 
@@ -159,9 +158,8 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
     }
 
     /// <summary>
-    /// Nom de l'éditeur, lu sur le certificat embarqué. Sans valeur de preuve à lui
-    /// seul — c'est <c>WinVerifyTrust</c> qui tranche — mais c'est ce qui rend un
-    /// constat lisible.
+    /// Publisher name, read from the embedded certificate. It proves nothing on its
+    /// own — <c>WinVerifyTrust</c> decides — but it makes a finding readable.
     /// </summary>
     private static string? ReadPublisher(string path)
     {
@@ -185,8 +183,8 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
         }
         catch (Exception)
         {
-            // Fichier verrouillé ou illisible : l'empreinte manque, la signature
-            // reste vérifiable.
+            // Locked or unreadable file: the hash is missing, but the signature can
+            // still be verified.
             return null;
         }
     }

@@ -3,8 +3,8 @@ using Rempart.Core.Rules;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Le répertoire externe sert à itérer sur des règles sans recompiler, et à porter des
-/// contrôles propres à un parc. Il complète le catalogue livré, il ne le remplace pas.
+/// The external directory is for iterating on rules without recompiling, and for
+/// fleet-specific checks. It supplements the shipped catalog, it does not replace it.
 /// </summary>
 public sealed class ExternalRulesTests : IDisposable
 {
@@ -49,8 +49,8 @@ public sealed class ExternalRulesTests : IDisposable
     [Fact]
     public void An_external_rule_cannot_silently_redefine_a_shipped_one()
     {
-        // Une redéfinition tacite ferait diverger deux machines sans que rien
-        // ne l'indique dans le rapport.
+        // A tacit redefinition would make two machines diverge with nothing in
+        // the report to show it.
         Write("collision.yaml", Extra.Replace("LOCAL-001", "WIN-CRED-001"));
 
         var ex = Assert.Throws<RuleFormatException>(() => RuleCatalog.Load(directory));
@@ -81,8 +81,8 @@ public sealed class ExternalRulesTests : IDisposable
     [Fact]
     public void An_empty_directory_is_reported_rather_than_ignored()
     {
-        // Presque toujours une erreur de chemin. Passer outre donnerait un scan
-        // qui paraît complet en ayant chargé zéro règle supplémentaire.
+        // Almost always a path mistake. Ignoring it would give a scan that looks
+        // complete while having loaded zero extra rules.
         Assert.Throws<RuleFormatException>(() => RuleCatalog.Load(directory));
     }
 
@@ -99,8 +99,8 @@ public sealed class ExternalRulesTests : IDisposable
     [Fact]
     public void External_rules_are_held_to_the_protected_component_list()
     {
-        // C'est là que le garde-fou compte le plus : une règle externe n'a pas été
-        // relue en pull request.
+        // This is where the guardrail matters most: an external rule was never
+        // reviewed in a pull request.
         Write("dangereux.yaml", Extra
             .Replace(@"HKLM\SOFTWARE\Interne", @"HKLM\SYSTEM\CurrentControlSet\Services\wuauserv")
             + """

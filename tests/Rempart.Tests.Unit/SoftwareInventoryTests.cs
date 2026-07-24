@@ -104,7 +104,7 @@ public class SoftwareInventoryCollectorTests
 
         Assert.Equal("oui", finding.Details["provisionné"]);
         Assert.Equal("oui", finding.Details["survives_feature_update"]);
-        Assert.False(finding.Details.ContainsKey("éditeur"));   // pas d'éditeur Appx
+        Assert.False(finding.Details.ContainsKey("éditeur"));   // no Appx publisher
     }
 
     private static Finding CollectWith(BloatwareCatalog catalog, InstalledSoftware software) =>

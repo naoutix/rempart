@@ -3,8 +3,8 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Test machine réelle, sur le modèle de LiveDnsAndHostsProviderTests : on ne connaît pas
-/// la config proxy du runner, on vérifie qu'elle se lit sans lever et reste cohérente.
+/// Real-machine test, on the LiveDnsAndHostsProviderTests model: the runner's proxy
+/// config is unknown, so we check that it reads without throwing and stays consistent.
 /// </summary>
 public sealed class LiveProxyProviderTests
 {
@@ -13,7 +13,7 @@ public sealed class LiveProxyProviderTests
     {
         var config = new LiveProxyProvider().Read();
 
-        // Cohérence interne : un scope WinHTTP activé porte forcément un serveur décodé.
+        // Internal consistency: an enabled WinHTTP scope always carries a decoded server.
         Assert.NotNull(config);
         if (config.WinHttp.Enabled)
         {

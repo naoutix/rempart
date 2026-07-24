@@ -1,16 +1,16 @@
 namespace Rempart.Core.Dns;
 
-/// <summary>Les deux transports DNS chiffrés sondés.</summary>
+/// <summary>The two encrypted DNS transports probed.</summary>
 public enum DnsProbeProtocol
 {
-    /// <summary>DNS over HTTPS (RFC 8484), <c>/dns-query</c> en <c>application/dns-message</c>.</summary>
+    /// <summary>DNS over HTTPS (RFC 8484), <c>/dns-query</c> as <c>application/dns-message</c>.</summary>
     DoH,
 
     /// <summary>DNS over TLS (RFC 7858), port 853.</summary>
     DoT,
 }
 
-/// <summary>Résultat d'une sonde vers un résolveur, pour un protocole.</summary>
+/// <summary>The result of one probe against a resolver, for one protocol.</summary>
 public sealed record DnsProbeResult(
     string Resolver,
     DnsProbeProtocol Protocol,
@@ -18,12 +18,12 @@ public sealed record DnsProbeResult(
     int? LatencyMs,
     string? Error);
 
-/// <summary>Un résolveur chiffré connu — son nom et l'hôte servant DoH et DoT.</summary>
+/// <summary>A known encrypted resolver — its name and the host serving DoH and DoT.</summary>
 public sealed record EncryptedResolver(string Name, string Host);
 
 /// <summary>
-/// Sonde active des résolveurs DNS chiffrés. Abstrait comme le reste (ADR-001, D5) : le
-/// classement et les constats se testent sur des résultats donnés, sans réseau.
+/// Active probe of encrypted DNS resolvers. Abstracted like the rest (ADR-001, D5): the
+/// ranking and the findings are tested against given results, without network access.
 /// </summary>
 public interface IDnsProbe
 {
@@ -31,9 +31,9 @@ public interface IDnsProbe
 }
 
 /// <summary>
-/// Résolveurs vie-privée répandus, chacun exposant DoH (<c>/dns-query</c>) et DoT (853).
-/// La liste ne prétend pas à l'exhaustivité, seulement à couvrir les choix légitimes les
-/// plus fréquents — comme la liste de résolveurs connus du collecteur DNS.
+/// Widespread privacy-oriented resolvers, each exposing DoH (<c>/dns-query</c>) and DoT (853).
+/// The list does not claim to be exhaustive, only to cover the most common legitimate
+/// choices — like the known-resolver list of the DNS collector.
 /// </summary>
 public static class KnownResolvers
 {

@@ -3,21 +3,21 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Correspondances du fichier <c>hosts</c>.
+/// Mappings in the <c>hosts</c> file.
 ///
 /// <para>
-/// Le fichier <c>hosts</c> passe avant le DNS : ce qu'il déclare l'emporte. Deux gestes
-/// s'y lisent, opposés. Une <b>redirection</b> — un domaine pointé vers une adresse
-/// routable — court-circuite la résolution vers une machine choisie ; visant une mise à
-/// jour ou une authentification, c'est un détournement. Un <b>blocage</b> — un domaine
-/// pointé vers une adresse nulle — neutralise le domaine ; c'est le geste d'un bloqueur de
-/// publicités, anodin, sauf s'il neutralise justement une mise à jour ou une protection.
+/// The <c>hosts</c> file comes before DNS: whatever it declares wins. Two opposite
+/// gestures can be read there. A <b>redirection</b> — a domain pointed at a routable
+/// address — short-circuits resolution towards a chosen machine; aimed at an update or
+/// an authentication, it is a hijack. A <b>block</b> — a domain pointed at a null
+/// address — neutralises the domain; that is an ad blocker's gesture, harmless, unless
+/// what it neutralises happens to be an update or a protection.
 /// </para>
 ///
 /// <para>
-/// Les redirections sont rares et relevées une à une. Les blocages se comptent par
-/// milliers dans une liste anti-publicité : les énumérer noierait le rapport, on les
-/// agrège en un seul constat — sauf à toucher un domaine critique, qui rouvre le compte.
+/// Redirections are rare and reported one by one. Blocks number in the thousands in an
+/// ad-blocking list: enumerating them would drown the report, so they are aggregated
+/// into a single finding — unless a critical domain is hit, which reopens the count.
 /// </para>
 /// </summary>
 public sealed class HostsFileCollector : IFindingCollector
@@ -27,9 +27,9 @@ public sealed class HostsFileCollector : IFindingCollector
     private static readonly string[] NullRoutes = ["0.0.0.0", "127.0.0.1", "::1", "::"];
 
     /// <summary>
-    /// Fragments de domaines dont la neutralisation ou le détournement porte à conséquence :
-    /// mise à jour de Windows, protection, activation, authentification. Bloquer une mise à
-    /// jour empêche de corriger une faille ; rediriger une authentification la capte.
+    /// Fragments of domains whose neutralisation or hijacking has consequences: Windows
+    /// updates, protection, activation, authentication. Blocking an update prevents a
+    /// flaw from being fixed; redirecting an authentication captures it.
     /// </summary>
     private static readonly string[] CriticalFragments =
     [
@@ -59,7 +59,7 @@ public sealed class HostsFileCollector : IFindingCollector
                 continue;
             }
 
-            // Redirection vers une adresse routable : le geste qui détourne.
+            // Redirection to a routable address: the gesture that hijacks.
             findings.Add(new Finding("hosts-entry", "hosts", $"{host} → {ip}",
                 critical ? FindingSeverity.Suspicious : FindingSeverity.Notable,
                 [critical
@@ -110,8 +110,8 @@ public sealed class HostsFileCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Une ligne utile est « adresse hôte [hôte…] », le reste après un dièse étant un
-    /// commentaire. Une même ligne peut viser plusieurs hôtes vers une seule adresse.
+    /// A useful line is "address host [host…]", anything after a hash sign being a
+    /// comment. A single line can map several hosts to one address.
     /// </summary>
     private static IEnumerable<(string Ip, string Host)> Parse(IReadOnlyList<string> lines)
     {

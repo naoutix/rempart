@@ -4,8 +4,8 @@ namespace Rempart.Tests.Unit;
 
 public class LolDriversImportTests
 {
-    // La forme réelle de loldrivers.io, réduite à ce qu'on lit : catégorie, et des
-    // échantillons portant SHA256, Filename, etc. Clés en PascalCase, comme la source.
+    // The real shape of loldrivers.io, reduced to what we read: a category, and samples
+    // carrying SHA256, Filename, etc. Keys in PascalCase, as in the source.
     private const string Source = """
         [
           {
@@ -31,8 +31,8 @@ public class LolDriversImportTests
     {
         var file = LolDriversImport.Transform(Source, "2026-07-21T00:00:00Z");
 
-        // 3 empreintes valides : 2 du premier pilote, 1 du second. Les échantillons
-        // sans SHA256 ou avec une empreinte trop courte sont écartés.
+        // 3 valid hashes: 2 from the first driver, 1 from the second. Samples without a
+        // SHA256, or with a hash that is too short, are discarded.
         Assert.Equal(3, file.Drivers.Count);
         Assert.Equal("2026-07-21T00:00:00Z", file.AsOfUtc);
         Assert.Equal(LolDriversImport.SourceUrl, file.Source);
@@ -51,8 +51,8 @@ public class LolDriversImportTests
     }
 
     /// <summary>
-    /// Le nom retombe sur le premier champ non vide — Filename, puis OriginalFilename —
-    /// et à défaut sur un préfixe de l'empreinte. Jamais vide, jamais inventé.
+    /// The name falls back to the first non-empty field — Filename, then OriginalFilename —
+    /// and failing that to a prefix of the hash. Never empty, never invented.
     /// </summary>
     [Fact]
     public void The_name_falls_back_through_the_available_fields()
@@ -62,15 +62,15 @@ public class LolDriversImportTests
 
         Assert.Equal("capcom.sys",
             byHash["aa11bb22cc33dd44ee55ff66aa11bb22cc33dd44ee55ff66aa11bb22cc33dd44"]);
-        Assert.Equal("secours.sys", // Filename vide → OriginalFilename
+        Assert.Equal("secours.sys", // empty Filename → OriginalFilename
             byHash["1111111111111111111111111111111111111111111111111111111111111111"]);
-        Assert.Equal("222222222222", // aucun nom → préfixe de l'empreinte
+        Assert.Equal("222222222222", // no name → prefix of the hash
             byHash["2222222222222222222222222222222222222222222222222222222222222222"]);
     }
 
     /// <summary>
-    /// L'empreinte est normalisée en minuscules, pour que la correspondance au scan ne
-    /// dépende pas de la casse que la source a employée.
+    /// The hash is normalised to lowercase, so that matching at scan time does not
+    /// depend on the casing the source happened to use.
     /// </summary>
     [Fact]
     public void Hashes_are_lowercased()
@@ -81,7 +81,7 @@ public class LolDriversImportTests
     }
 
     /// <summary>
-    /// Une même empreinte présente dans deux entrées n'est cataloguée qu'une fois.
+    /// The same hash appearing in two entries is catalogued only once.
     /// </summary>
     [Fact]
     public void Duplicate_hashes_are_kept_once()

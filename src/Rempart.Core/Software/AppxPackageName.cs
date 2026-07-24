@@ -1,15 +1,15 @@
 namespace Rempart.Core.Software;
 
 /// <summary>
-/// Décompose un nom complet de paquet Appx.
+/// Decomposes an Appx package full name.
 ///
 /// <para>
-/// La forme canonique est <c>Nom_Version_Architecture_ResourceId_EmpreinteÉditeur</c>,
-/// segments joints par des tirets bas — p. ex.
-/// <c>AdobeNotificationClient_7.0.2.14_x64__enpm4xejd91yc</c>. Parse() en tire le nom et la
-/// version ; FamilyName() dérive l'identifiant stable du paquet (nom_hashÉditeur).
-/// Pur, sans réflexion. Ne lève jamais : un nom atypique (un GUID, des segments manquants)
-/// rend le nom complet tel quel, sans version.
+/// The canonical form is <c>Name_Version_Architecture_ResourceId_PublisherHash</c>,
+/// segments joined by underscores — e.g.
+/// <c>AdobeNotificationClient_7.0.2.14_x64__enpm4xejd91yc</c>. Parse() extracts the name
+/// and the version; FamilyName() derives the package's stable identifier
+/// (name_publisherHash). Pure, no reflection. Never throws: an atypical name (a GUID,
+/// missing segments) returns the full name as is, without a version.
 /// </para>
 /// </summary>
 public static class AppxPackageName
@@ -22,7 +22,7 @@ public static class AppxPackageName
             return (fullName, null);
         }
 
-        // La version est le deuxième segment quand il en a la forme (chiffres et points).
+        // The version is the second segment when it has version form (digits and dots).
         var version = parts[1].Length > 0 && parts[1].All(c => char.IsDigit(c) || c == '.')
             ? parts[1]
             : null;
@@ -31,10 +31,10 @@ public static class AppxPackageName
     }
 
     /// <summary>
-    /// Dérive le Package Family Name (<c>Nom_HashÉditeur</c>) d'un nom complet
-    /// <c>Nom_Version_Arch__HashÉditeur</c> : le nom (avant le premier <c>_</c>) et le
-    /// hash d'éditeur (après le dernier <c>_</c>). Un nom sans séparateur est rendu tel
-    /// quel — c'est déjà un identifiant.
+    /// Derives the Package Family Name (<c>Name_PublisherHash</c>) from a full name
+    /// <c>Name_Version_Arch__PublisherHash</c>: the name (before the first <c>_</c>) and
+    /// the publisher hash (after the last <c>_</c>). A name without separators is
+    /// returned as is — it is already an identifier.
     /// </summary>
     public static string FamilyName(string fullName)
     {

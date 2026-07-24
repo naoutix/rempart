@@ -30,10 +30,10 @@ internal sealed class FakeServiceProvider : IServiceStateProvider
 }
 
 /// <summary>
-/// Les contrôles de service disent ce que le registre ne peut pas : un service déclaré
-/// automatique peut se trouver arrêté. Pour Windows Update ou le pare-feu, la
-/// différence entre « censé tourner » et « tourne » est exactement ce qu'un audit
-/// doit établir.
+/// Service checks report what the registry cannot: a service declared automatic
+/// can still be stopped. For Windows Update or the firewall, the difference
+/// between "supposed to run" and "running" is exactly what an audit must
+/// establish.
 /// </summary>
 public sealed class ServiceCheckTests
 {
@@ -48,8 +48,8 @@ public sealed class ServiceCheckTests
     [Fact]
     public void A_service_configured_to_start_but_stopped_fails()
     {
-        // Le cas que le registre ne peut pas voir, et la raison d'être de ce type de
-        // contrôle : la configuration est correcte, la protection ne tourne pas.
+        // The case the registry cannot see, and the reason this check kind exists:
+        // the configuration is correct, but the protection is not running.
         var services = new FakeServiceProvider().With("mpssvc", ServiceState.Stopped, ServiceStartMode.Automatic);
 
         var verdict = Evaluate(StateRule("running"), services);
@@ -72,8 +72,8 @@ public sealed class ServiceCheckTests
     [Fact]
     public void Access_denied_yields_unknown_rather_than_a_verdict()
     {
-        // Sans élévation, le gestionnaire de services refuse certaines requêtes.
-        // Conclure serait mentir : on ne sait pas.
+        // Without elevation, the service control manager denies some queries.
+        // The state is unknown, so no pass/fail verdict must be produced.
         var services = new FakeServiceProvider().WithAccessDenied("mpssvc");
 
         var verdict = Evaluate(StateRule("running"), services);
@@ -98,8 +98,8 @@ public sealed class ServiceCheckTests
     [Fact]
     public void Without_a_service_provider_the_check_is_unverifiable_not_failing()
     {
-        // Un provider manquant est une lacune de couverture, pas une non-conformité
-        // de la machine. Le confondre pénaliserait un scan pour son propre outillage.
+        // A missing provider is a coverage gap, not a machine non-compliance.
+        // Conflating them would penalize a scan for its own tooling.
         var providers = new ProviderSet(new FakeRegistryProvider(), new FakeSystemInfoProvider());
 
         Assert.Equal(VerdictStatus.Unknown,
@@ -109,8 +109,8 @@ public sealed class ServiceCheckTests
     [Fact]
     public void A_service_check_needs_no_windows_default()
     {
-        // L'état d'un service est directement observable : il n'existe pas de « valeur
-        // qu'applique Windows quand la clé est absente ».
+        // A service state is directly observable: there is no "value Windows
+        // applies when the key is absent".
         var yaml = """
             - id: TEST-SVC
               title: Un service

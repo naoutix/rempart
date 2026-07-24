@@ -3,10 +3,10 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Snapshots;
 
 /// <summary>
-/// Enveloppe un provider réel et consigne chaque lecture dans un instantané.
+/// Wraps a real provider and records every read into a snapshot.
 ///
-/// La capture est donc un sous-produit du scan, pas une liste de clés maintenue à la main :
-/// une fixture ne peut pas être incomplète pour les collecteurs qui l'ont produite.
+/// Capture is thus a by-product of the scan, not a hand-maintained list of keys:
+/// a fixture cannot be incomplete for the collectors that produced it.
 /// </summary>
 public sealed class RecordingRegistryProvider(IRegistryProvider inner, MachineSnapshot snapshot)
     : IRegistryProvider
@@ -14,8 +14,8 @@ public sealed class RecordingRegistryProvider(IRegistryProvider inner, MachineSn
     public RegistryRead ReadValue(string keyPath, string valueName)
     {
         var read = inner.ReadValue(keyPath, valueName);
-        // Les lectures infructueuses sont consignées aussi : sans elles, le rejeu
-        // divergerait sur exactement les cas qu'on cherche à tester.
+        // Unsuccessful reads are recorded too: without them, replay would diverge
+        // on exactly the cases we are trying to test.
         snapshot.Registry[SnapshotKeys.Value(keyPath, valueName)] = read;
         return read;
     }
@@ -31,9 +31,9 @@ public sealed class RecordingRegistryProvider(IRegistryProvider inner, MachineSn
     {
         var values = inner.ListValues(keyPath);
 
-        // La liste des noms est enregistree a part : sans elle, le rejeu ne saurait
-        // pas quoi enumerer, et decouvrirait un emplacement vide au lieu du contenu
-        // qu'avait la machine.
+        // The list of names is recorded separately: without it, replay would not
+        // know what to enumerate, and would find an empty location instead of the
+        // content the machine had.
         snapshot.RegistryLists[keyPath] = [.. values.Keys];
 
         foreach (var (name, value) in values)
@@ -64,8 +64,8 @@ public sealed class RecordingSystemInfoProvider(ISystemInfoProvider inner, Machi
 }
 
 /// <summary>
-/// Levée quand un rejeu demande une donnée absente de l'instantané. Un échec bruyant
-/// est préférable à une valeur par défaut qui ferait passer un test pour la mauvaise raison.
+/// Thrown when a replay asks for data absent from the snapshot. A loud failure is
+/// preferable to a default value that would make a test pass for the wrong reason.
 /// </summary>
 public sealed class SnapshotIncompleteException(string message) : Exception(message);
 
@@ -93,9 +93,9 @@ public sealed class SnapshotRegistryProvider(MachineSnapshot snapshot) : IRegist
     {
         var values = new Dictionary<string, RegistryValue>(StringComparer.OrdinalIgnoreCase);
 
-        // Emplacement jamais enumere a la capture : rendre une liste vide plutot que
-        // lever. Une fixture anterieure a ce lot reste rejouable, elle produit
-        // simplement moins de constats.
+        // Location never enumerated at capture time: return an empty list rather
+        // than throw. A fixture predating this batch stays replayable, it simply
+        // produces fewer findings.
         if (!snapshot.RegistryLists.TryGetValue(keyPath, out var names))
         {
             return values;
@@ -146,8 +146,8 @@ public sealed class RecordingSecurityPolicyProvider(
 
 public sealed class SnapshotSecurityPolicyProvider(MachineSnapshot snapshot) : ISecurityPolicyProvider
 {
-    // Absent d'une capture ancienne : traité comme un refus, donc « non vérifiable ».
-    // Une fixture d'avant ce lot reste rejouable, elle rend simplement moins de verdicts.
+    // Absent from an old capture: treated as a denial, hence "not verifiable".
+    // A fixture predating this batch stays replayable, it simply yields fewer verdicts.
     public PolicyFacts Read() => snapshot.Policy ?? PolicyFacts.AccessDenied;
 }
 
@@ -202,8 +202,8 @@ public sealed class RecordingDriverProvider(
 
 public sealed class SnapshotDriverProvider(MachineSnapshot snapshot) : IDriverProvider
 {
-    // Absent d'une capture anterieure : liste vide, la fixture reste rejouable et
-    // produit simplement moins de constats.
+    // Absent from an earlier capture: empty list, the fixture stays replayable and
+    // simply produces fewer findings.
     public IReadOnlyList<LoadedDriver> Enumerate() => snapshot.Drivers ?? [];
 }
 
@@ -228,8 +228,8 @@ public sealed class RecordingListeningPortProvider(
 
 public sealed class SnapshotListeningPortProvider(MachineSnapshot snapshot) : IListeningPortProvider
 {
-    // Absent d'une capture anterieure : liste vide, la fixture reste rejouable et
-    // produit simplement moins de constats.
+    // Absent from an earlier capture: empty list, the fixture stays replayable and
+    // simply produces fewer findings.
     public IReadOnlyList<ListeningPort> Enumerate() => snapshot.ListeningPorts ?? [];
 }
 
@@ -241,9 +241,9 @@ public sealed class RecordingFirewallProvider(
 
 public sealed class SnapshotFirewallProvider(MachineSnapshot snapshot) : IFirewallProvider
 {
-    // Absent d'une capture anterieure : etat non lu, donc « inconnu ». La regle croisee
-    // se retire alors sans rien affirmer, et le collecteur retombe sur le jugement de
-    // signature seul.
+    // Absent from an earlier capture: state unread, hence "unknown". The cross-check
+    // rule then stands down without asserting anything, and the collector falls back
+    // to the signature judgement alone.
     public FirewallState Read() => snapshot.Firewall ?? FirewallState.Unread;
 }
 
@@ -254,7 +254,7 @@ public sealed class RecordingDnsProvider(IDnsProvider inner, MachineSnapshot sna
 
 public sealed class SnapshotDnsProvider(MachineSnapshot snapshot) : IDnsProvider
 {
-    // Absent d'une capture anterieure : liste vide, la fixture reste rejouable.
+    // Absent from an earlier capture: empty list, the fixture stays replayable.
     public IReadOnlyList<DnsInterface> Read() => snapshot.Dns ?? [];
 }
 
@@ -266,7 +266,7 @@ public sealed class RecordingHostsFileProvider(
 
 public sealed class SnapshotHostsFileProvider(MachineSnapshot snapshot) : IHostsFileProvider
 {
-    // Absent d'une capture anterieure : aucune ligne, la fixture reste rejouable.
+    // Absent from an earlier capture: no lines, the fixture stays replayable.
     public IReadOnlyList<string> ReadLines() => snapshot.HostsFile ?? [];
 }
 
@@ -277,8 +277,8 @@ public sealed class RecordingProxyProvider(IProxyProvider inner, MachineSnapshot
 
 public sealed class SnapshotProxyProvider(MachineSnapshot snapshot) : IProxyProvider
 {
-    // Absent d'une capture antérieure : config vide, la fixture reste rejouable et
-    // produit simplement aucun constat proxy.
+    // Absent from an earlier capture: empty config, the fixture stays replayable and
+    // simply produces no proxy findings.
     public ProxyConfiguration Read() => snapshot.Proxy ?? ProxyConfiguration.Empty;
 }
 
@@ -290,7 +290,7 @@ public sealed class RecordingSoftwareInventoryProvider(
 
 public sealed class SnapshotSoftwareInventoryProvider(MachineSnapshot snapshot) : ISoftwareInventoryProvider
 {
-    // Absent d'une capture antérieure : liste vide, la fixture reste rejouable.
+    // Absent from an earlier capture: empty list, the fixture stays replayable.
     public IReadOnlyList<InstalledSoftware> Read() => snapshot.Software ?? [];
 }
 
@@ -302,16 +302,16 @@ public sealed class RecordingWifiProfileProvider(
 
 public sealed class SnapshotWifiProfileProvider(MachineSnapshot snapshot) : IWifiProfileProvider
 {
-    // Absent d'une capture antérieure : liste vide, la fixture reste rejouable.
+    // Absent from an earlier capture: empty list, the fixture stays replayable.
     public IReadOnlyList<WifiProfile> Read() => snapshot.Wifi ?? [];
 }
 
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {
-    // Absent d'une capture anterieure : traite comme un refus, jamais comme une
-    // absence de taches. Une fixture d'avant ce lot reste rejouable, elle produit
-    // simplement un constat « non enumere » au lieu de l'inventaire.
+    // Absent from an earlier capture: treated as a denial, never as an absence of
+    // tasks. A fixture predating this batch stays replayable, it simply produces a
+    // "not enumerated" finding instead of the inventory.
     public ScheduledTaskRead Enumerate() =>
         snapshot.ScheduledTasks
         ?? ScheduledTaskRead.Failed("Tâches planifiées absentes de l'instantané.");
@@ -332,8 +332,8 @@ public sealed class RecordingWmiProvider(IWmiProvider inner, MachineSnapshot sna
 
 public sealed class SnapshotWmiProvider(MachineSnapshot snapshot) : IWmiProvider
 {
-    // Absent d'une capture anterieure : traite comme un refus, donc « non verifiable ».
-    // Une fixture d'avant ce lot reste rejouable, elle rend simplement moins de verdicts.
+    // Absent from an earlier capture: treated as a denial, hence "not verifiable".
+    // A fixture predating this batch stays replayable, it simply yields fewer verdicts.
     public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties) =>
         snapshot.Wmi.TryGetValue(
             RecordingWmiProvider.Key(namespacePath, className, properties), out var read)

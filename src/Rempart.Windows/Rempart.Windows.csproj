@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Seule couche liée à Windows : registre, P/Invoke, WMI à terme. -->
+    <!-- The only Windows-bound layer: registry, P/Invoke, eventually WMI. -->
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>Rempart.Windows</RootNamespace>
-    <!-- Requis par LibraryImport : le marshalling genere est la voie compatible AOT. -->
+    <!-- Required by LibraryImport: generated marshalling is the AOT-compatible path. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- Structures natives parcourues par pointeur : le compilateur calcule tailles
-         et decalages, la ou un calcul manuel s.etait deja trompe. -->
+    <!-- Native structs are walked by pointer: the compiler computes sizes and
+         offsets, where a manual calculation had already gone wrong once. -->
   </PropertyGroup>
 
   <ItemGroup>

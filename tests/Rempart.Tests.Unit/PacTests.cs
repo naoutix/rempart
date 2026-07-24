@@ -38,7 +38,7 @@ public class PacDirectiveExtractorTests
 
     [Fact]
     public void A_url_in_a_comment_is_not_a_directive() =>
-        // « https:// » n'est pas « HTTPS host:port » : pas d'espace, donc pas de directive.
+        // "https://" is not "HTTPS host:port": no space, hence no directive.
         Assert.Empty(PacDirectiveExtractor.ExtractProxies("// see https://docs.example/pac\nreturn \"DIRECT\";"));
 
     [Fact]
@@ -46,7 +46,7 @@ public class PacDirectiveExtractorTests
         Assert.Empty(PacDirectiveExtractor.ExtractProxies(null));
 }
 
-/// <summary>Récupérateur de PAC factice : rend une analyse fixée, sans réseau.</summary>
+/// <summary>Fake PAC fetcher: returns a fixed analysis, no network involved.</summary>
 internal sealed class FakePacFetcher(PacAnalysis analysis) : IPacFetcher
 {
     public PacAnalysis Fetch(string pacUrl) => analysis;
@@ -85,7 +85,7 @@ public class PacEnrichmentTests
             ProxyFinding(FindingSeverity.Benign, "http://wpad.corp/p.pac"),
             new PacAnalysis(["proxy.evil:8080"], "route vers proxy.evil:8080")));
 
-        // Bénin (proxy imposé par GPO) : on ne récupère pas, donc pas d'enrichissement.
+        // Benign (proxy imposed by GPO): we do not fetch, hence no enrichment.
         Assert.Equal(FindingSeverity.Benign, enriched.Severity);
         Assert.False(enriched.Details.ContainsKey("pac-route"));
     }

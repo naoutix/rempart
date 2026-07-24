@@ -3,22 +3,22 @@ using System.Text.Json;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// Transforme la liste officielle LOLDrivers en une <see cref="DriverBlocklistFile"/>
-/// prête à signer.
+/// Transforms the official LOLDrivers list into a <see cref="DriverBlocklistFile"/>
+/// ready for signing.
 ///
 /// <para>
-/// Côté publication, en ligne : l'outil va chercher la donnée, l'éditeur la signe. Ce
-/// n'est pas un raccourci sur la confiance — la source amont (loldrivers.io) est un
-/// choix de l'éditeur, et c'est <b>sa signature</b>, pas ce téléchargement, que les
-/// machines auditées vérifient. Le même principe qu'un mainteneur qui empaquette une
-/// source amont puis signe : il choisit ce en quoi il croit, et sa signature engage.
+/// Publisher-side, online: the tool fetches the data, the publisher signs it. This is
+/// no shortcut on trust — the upstream source (loldrivers.io) is the publisher's
+/// choice, and it is <b>their signature</b>, not this download, that audited machines
+/// verify. The same principle as a maintainer packaging an upstream source and then
+/// signing it: they choose what they believe in, and their signature commits them.
 /// </para>
 ///
 /// <para>
-/// Lu par <c>JsonDocument</c> plutôt que par des types générés : le schéma de la source
-/// est vaste (une trentaine de champs par échantillon) et n'appartient pas à ce projet.
-/// On n'y lit que ce dont on a besoin — empreinte, nom, catégorie — et un champ qui
-/// changerait ailleurs ne casse rien.
+/// Read with <c>JsonDocument</c> rather than generated types: the source schema is
+/// vast (some thirty fields per sample) and does not belong to this project. Only what
+/// is needed gets read — fingerprint, name, category — and a field changing elsewhere
+/// breaks nothing.
 /// </para>
 /// </summary>
 public static class LolDriversImport
@@ -26,10 +26,9 @@ public static class LolDriversImport
     public const string SourceUrl = "https://www.loldrivers.io/api/drivers.json";
 
     /// <summary>
-    /// Aplati les échantillons de chaque pilote en une liste d'empreintes uniques. Un
-    /// échantillon sans SHA-256 exploitable est écarté : une entrée qu'on ne peut pas
-    /// confronter à un pilote chargé n'a aucune valeur, et l'inventer en aurait une
-    /// négative.
+    /// Flattens each driver's samples into a list of unique fingerprints. A sample
+    /// without a usable SHA-256 is discarded: an entry that cannot be checked against
+    /// a loaded driver has no value, and inventing one would have a negative value.
     /// </summary>
     public static DriverBlocklistFile Transform(string rawJson, string asOfUtc)
     {
@@ -58,8 +57,8 @@ public static class LolDriversImport
                 var name = FirstNonEmpty(sample, "Filename", "OriginalFilename", "InternalName",
                     "Product") ?? sha[..12];
 
-                // La première occurrence d'une empreinte est gardée : une même empreinte
-                // ne se recatalogue pas.
+                // The first occurrence of a fingerprint is kept: the same fingerprint
+                // is never cataloged twice.
                 bySha.TryAdd(sha, new BlockedDriver(sha, Truncate(name, 120), category));
             }
         }

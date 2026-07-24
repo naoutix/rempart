@@ -15,7 +15,7 @@ public sealed class InventoryCollectorTests
 
         var result = Collect(registry);
 
-        // Un rapport qui cache ses trous est pire qu'un rapport incomplet.
+        // An access-denied read must surface in the status and diagnostics, not be silently dropped.
         Assert.Equal(CollectorStatus.InsufficientPrivileges, result.Status);
         Assert.Contains(result.Diagnostics, d => d.Contains("Accès refusé", StringComparison.Ordinal));
         Assert.Null(result.Fields["os.registryProductName"]);
@@ -24,9 +24,9 @@ public sealed class InventoryCollectorTests
     [Fact]
     public void Derived_os_name_comes_before_the_raw_registry_value()
     {
-        // Ordre d'affichage, pas cosmétique : « Windows 10 Pro » en premiere ligne
-        // sur une machine Windows 11 fait douter tout lecteur. La valeur dérivée
-        // ouvre la liste, la valeur brute la ferme.
+        // Display order matters: showing "Windows 10 Pro" as the first line on a
+        // Windows 11 machine is misleading. The derived value must come first and
+        // the raw registry value last.
         var registry = new FakeRegistryProvider()
             .WithText(CurrentVersion, "ProductName", "Windows 10 Pro")
             .WithText(CurrentVersion, "CurrentBuildNumber", "26200");
@@ -50,8 +50,8 @@ public sealed class InventoryCollectorTests
     [Fact]
     public void Absent_secure_boot_key_means_unsupported_not_disabled()
     {
-        // En démarrage Legacy/CSM la clé n'existe pas. « Absent » et « désactivé »
-        // appellent des remédiations différentes : les confondre induirait en erreur.
+        // Under Legacy/CSM boot the key does not exist. "Absent" and "disabled"
+        // require different remediations, so they must not be conflated.
         Assert.Equal("unsupported", Collect(new FakeRegistryProvider()).Fields["security.secureBoot"]);
     }
 
