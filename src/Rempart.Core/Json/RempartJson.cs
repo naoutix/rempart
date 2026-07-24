@@ -62,4 +62,15 @@ public static class RempartJson
     public static MachineSnapshot DeserialiseSnapshot(string json) =>
         JsonSerializer.Deserialize(json, RempartJsonContext.Default.MachineSnapshot)
         ?? throw new InvalidDataException("Instantané illisible.");
+
+    /// <summary>
+    /// Reads back a scan the tool itself wrote.
+    ///
+    /// The JSON report is the complete artifact — the HTML and the Markdown summarise
+    /// it — so re-rendering, and comparing two machines later (M7), both start here
+    /// rather than from a second scan.
+    /// </summary>
+    public static ScanResult DeserialiseScanResult(string json) =>
+        JsonSerializer.Deserialize(json, RempartJsonContext.Default.ScanResult)
+        ?? throw new InvalidDataException("Rapport JSON illisible.");
 }

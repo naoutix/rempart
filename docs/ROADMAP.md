@@ -337,9 +337,66 @@ une machine qui l'a.
 HTML autonome (fichier unique, thème clair/sombre), JSON, Markdown.
 Espace récupérable par couche via `AnalyzeComponentStore`, sans rien supprimer.
 
-- [ ] Layout de la clé : `/rempart.exe`, `/rules/`, `/reports/<hostname>-<date>/`
-- [ ] Manifeste d'intégrité : hash des binaires, pour détecter une clé compromise
-- [ ] Dégradation propre sans droits admin
+- [x] Générateur de rapport dans `Rempart.Core/Reports/` — rendu **pur**
+      `ScanResult → texte`, donc testable sans Windows ni système de fichiers. HTML
+      autonome (un fichier, CSS et script en ligne, aucune ressource externe, thème
+      clair/sombre), Markdown pour un ticket, JSON pour la donnée complète.
+- [x] `rempart scan --report [dossier]` écrit les trois fichiers dans
+      `<dossier>/<machine>-<date>/`, par défaut `reports/` à côté du binaire.
+      Deux scans le même jour ne s'écrasent pas : le second prend un suffixe — le
+      « avant » d'une correction est la moitié qu'on ne peut pas refaire.
+- [x] `rempart report --from <rapport.json>` re-fabrique HTML et Markdown sans
+      rescanner, et **ne demande pas Windows**. C'est aussi la brique dont `diff` (M7)
+      aura besoin : le JSON est l'artefact complet, les deux autres le résument.
+- [x] Layout de la clé : `/rempart.exe`, `/rules/`, `/reports/<machine>-<date>/`.
+      Un dossier `rules/` posé à côté du binaire est chargé sans option — même
+      raisonnement que le magasin de mise à jour, déjà résolu à côté de l'exécutable :
+      la clé se branche et tourne. Jamais en silence : l'en-tête nomme le dossier et
+      l'empreinte du catalogue change.
+- [x] Manifeste d'intégrité — `rempart seal`, **signé par la clé d'éditeur d'ADR-002**.
+      Une liste d'empreintes posée à côté des fichiers qu'elle décrit ne protège de
+      rien : qui modifie un fichier recalcule la ligne. Rapports et magasin exclus du
+      sceau (ils changent à l'usage normal ; le magasin est de toute façon revérifié à
+      chaque scan, D13). Un fichier **ajouté** est signalé autant qu'un fichier modifié :
+      poser une DLL à côté de l'exécutable est le vecteur, pas éditer ce qui est déjà
+      listé.
+- [x] Dégradation propre sans droits admin — le rapport s'ouvre sur ce qui le limite
+      avant d'afficher le moindre chiffre : scan non élevé, score partiel, collecteur
+      dégradé. Un support en lecture seule est nommé comme tel, avec la sortie à prendre.
+- [x] Espace récupérable par couche — collecteur `component-store`, en opt-in
+      (`--analyze-store`) : la pile de maintenance met des dizaines de secondes à
+      répondre et exige l'élévation. Le découpage est le livrable : la part partagée
+      avec Windows n'est pas récupérable, et c'est elle qui fait l'essentiel du magasin.
+- [ ] **Confronter le lecteur DISM à une vraie sortie élevée** — `rempart diagnose-store
+      --raw`. Les libellés attendus viennent de la documentation, pas d'une machine :
+      tant que ce n'est pas fait, la seule chose garantie est que le lecteur *refuse*
+      au lieu d'inventer des zéros.
+
+**Trouvé en chemin.** Les jauges de score étaient plafonnées à 70 % de la cellule :
+mesurées dans un navigateur, 67 %, 88 % et 100 % rendaient 136, 142 et 142 pixels. Un
+graphe qui fait passer un domaine médiocre pour parfait est pire que pas de graphe. La
+barre remplit désormais une piste de largeur fixe, et un test vérifie que sa longueur
+est le score.
+
+Deux autres constats. `dism.exe` refuse **même `/?`** sans élévation (code 740, immédiat)
+— la dégradation est donc nette, et c'est ce que le collecteur exploite. Et le rejeu de
+fixtures ne câblait pas le fournisseur d'extensions de navigateur ajouté en M5c : le
+collecteur tournait à vide et la référence figeait « rien trouvé ». C'est la dette D2,
+réapparue par une PR ; corrigé ici.
+
+**La décision de conception du lot.** Les notes de provenance — mise à jour appliquée ou
+refusée, sceau vérifié ou rompu, règles supplémentaires chargées — sont portées **par
+`ScanResult`**, pas passées à côté du rendu. Sans cela, `rempart report --from` aurait
+re-fabriqué un rapport amputé de la phrase « la mise à jour a été refusée » : exactement
+le silence qu'ADR-002 (D14, D17) interdit. Trois notes, trois versions de la même
+question que se pose le lecteur avant de comparer deux rapports.
+
+**Le rapport est construit à partir de chaînes choisies par la machine auditée** —
+lignes de commande, chemins, noms d'extensions. L'échappement HTML n'y est pas une
+politesse : c'est le seul endroit du projet où une erreur de formatage devient une
+vulnérabilité, et un test plante du balisage dans chaque champ. Le script en ligne ne
+reçoit **aucune donnée** du scan : il filtre des nœuds déjà présents, ce qui supprime la
+seconde voie d'injection au lieu de la sécuriser.
 
 **Fait quand** la clé tourne sur une machine tierce sans rien installer.
 

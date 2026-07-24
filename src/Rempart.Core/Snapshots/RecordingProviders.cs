@@ -319,6 +319,24 @@ public sealed class SnapshotBrowserExtensionProvider(MachineSnapshot snapshot)
     public IReadOnlyList<BrowserExtension> Read() => snapshot.BrowserExtensions ?? [];
 }
 
+public sealed class RecordingComponentStoreProvider(
+    IComponentStoreProvider inner, MachineSnapshot snapshot) : IComponentStoreProvider
+{
+    public ComponentStoreRead Read() => snapshot.ComponentStore ??= inner.Read();
+}
+
+public sealed class SnapshotComponentStoreProvider(MachineSnapshot snapshot)
+    : IComponentStoreProvider
+{
+    // Absent from a capture taken without --analyze-store: say the analysis was not
+    // run. An empty reading would replay as a store of zero bytes, which is a claim
+    // the capture never made.
+    public ComponentStoreRead Read() => snapshot.ComponentStore
+        ?? ComponentStoreRead.Failed(
+            "Cet instantané ne contient pas d'analyse du magasin de composants : "
+            + "capturé sans --analyze-store.");
+}
+
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {

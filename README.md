@@ -126,14 +126,23 @@ compliant.
 | Command | What it does |
 |---|---|
 | `rempart scan [--json]` | Audit the machine and print the scored report. |
+| `rempart scan --report [dir]` | Also write `rapport.html`, `.md` and `.json` to `<dir>/<machine>-<date>/`. |
 | `rempart scan --from <capture>` | Replay a snapshot without the machine. |
+| `rempart report --from <rapport.json>` | Re-render HTML and Markdown without scanning again. Runs anywhere. |
 | `rempart explain [<ID>]` | List all checks, or detail one: rationale, references, cost of fixing. |
 | `rempart capture [--raw]` | Record a replayable snapshot, anonymized by default. |
+| `rempart seal --dir … ` | Seal the USB stick, or `--check` that it is still what it was. |
 | `rempart update …` | Verify and apply a signed data update (see below). |
 
-Opt-in network flags for `scan`: `--virustotal-key` (hash lookups),
-`--probe-dns` (DoH/DoT latency test), `--fetch-pac` (retrieve the PAC script,
-analyzed statically, never executed).
+The HTML report is a single self-contained file — inline styles and script, no
+external reference of any kind, light and dark theme. The JSON is the complete
+artifact: the other two summarize it.
+
+Opt-in flags for `scan`: `--virustotal-key` (hash lookups), `--probe-dns` (DoH/DoT
+latency test), `--fetch-pac` (retrieve the PAC script, analyzed statically, never
+executed) — the three network ones — and `--analyze-store`, which measures
+reclaimable space in the component store. That last one is local but slow and needs
+elevation; it reports, and deletes nothing.
 
 ## What it is not
 
@@ -165,9 +174,11 @@ using it.
 ## Status
 
 In development. The read-only audit described above is implemented and tested
-(447 tests); packaged reports (HTML), fleet comparison, and remediation are
-planned. [ROADMAP.md](docs/ROADMAP.md) (French) tracks milestones and records
-what was deliberately deferred or discarded, with reasons.
+(524 tests), and so are the three report formats and the stick's signed integrity
+seal. Fleet comparison (`diff`) and remediation are planned.
+[ROADMAP.md](docs/ROADMAP.md) (French) tracks milestones and records what was
+deliberately deferred or discarded, with reasons — including, right now, that the
+component-store reader has not yet been confronted with a real elevated run.
 
 ## Output language
 

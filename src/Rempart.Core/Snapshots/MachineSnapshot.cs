@@ -86,6 +86,13 @@ public sealed class MachineSnapshot
 
     /// <summary>Browser extensions, or null if the snapshot predates their collection.</summary>
     public List<BrowserExtension>? BrowserExtensions { get; set; }
+
+    /// <summary>
+    /// Component store analysis, or null when it was not requested — it is opt-in
+    /// (<c>--analyze-store</c>), because the servicing stack takes tens of seconds to
+    /// answer and demands elevation.
+    /// </summary>
+    public ComponentStoreRead? ComponentStore { get; set; }
 }
 
 public static class SnapshotKeys
