@@ -1,29 +1,29 @@
 namespace Rempart.Core.Providers;
 
-/// <summary>D'où vient une entrée d'inventaire — chaque source a sa fiabilité et sa sémantique.</summary>
+/// <summary>Origin of an inventory entry — each source has its own reliability and semantics.</summary>
 public enum SoftwareSource
 {
-    /// <summary>Clés de désinstallation classiques (MSI/EXE), au registre.</summary>
+    /// <summary>Classic uninstall keys (MSI/EXE), in the registry.</summary>
     Uninstall,
 
-    /// <summary>Paquet Appx/MSIX (Store, applications modernes).</summary>
+    /// <summary>Appx/MSIX package (Store, modern apps).</summary>
     Appx,
 
-    /// <summary>Exécutable autonome enregistré sous <c>App Paths</c>.</summary>
+    /// <summary>Standalone executable registered under <c>App Paths</c>.</summary>
     AppPath,
 
-    /// <summary>Paquet installé par Chocolatey.</summary>
+    /// <summary>Package installed by Chocolatey.</summary>
     Chocolatey,
 }
 
 /// <summary>
-/// Un logiciel installé, quelle que soit sa source.
+/// An installed piece of software, whatever its source.
 ///
 /// <para>
-/// Deux drapeaux portent la distinction D6/D7 : un paquet Appx <b>provisionné</b> est stagé
-/// pour tous les utilisateurs et <b>revient après une mise à jour de fonctionnalité</b> même
-/// si l'utilisateur l'a retiré — c'est le cas qui compte pour le bloatware. Un logiciel
-/// classique, lui, survit aux mises à jour sans être provisionné.
+/// Two flags carry the D6/D7 distinction: a <b>provisioned</b> Appx package is staged
+/// for all users and <b>comes back after a feature update</b> even if the user removed
+/// it — the case that matters for bloatware. Classic software survives feature updates
+/// without being provisioned.
 /// </para>
 /// </summary>
 public sealed record InstalledSoftware(
@@ -34,18 +34,18 @@ public sealed record InstalledSoftware(
     bool Provisioned,
     bool SurvivesFeatureUpdate,
     /// <summary>
-    /// Identifiant stable pour l'appariement exact du catalogue (M5b) : le
-    /// <b>Package Family Name</b> pour un Appx, le <b>nom de clé Uninstall</b> pour une
-    /// désinstallation classique. <c>null</c> ailleurs (App Paths, Chocolatey), qui ne
-    /// s'apparient alors que par motif de nom/éditeur. Une capture d'avant M5b se relit
-    /// avec <c>null</c> — l'exact ne matche pas, le motif reste.
+    /// Stable identifier for exact catalog matching (M5b): the <b>Package Family
+    /// Name</b> for an Appx, the <b>Uninstall key name</b> for a classic uninstall
+    /// entry. <c>null</c> elsewhere (App Paths, Chocolatey), which then match only by
+    /// name/publisher pattern. A capture from before M5b reads back with <c>null</c> —
+    /// exact matching does not apply, pattern matching still does.
     /// </summary>
     string? Identifier = null);
 
 /// <summary>
-/// Énumère les logiciels installés, déjà décodés. Abstrait comme le reste (ADR-001, D5) :
-/// le jugement — et le croisement au catalogue bloatware (M5b) — se teste sur une liste
-/// donnée, sans machine.
+/// Enumerates installed software, already decoded. Abstracted like the rest
+/// (ADR-001, D5): the judgment — and the bloatware catalog cross-check (M5b) — is
+/// tested against a given list, without a machine.
 /// </summary>
 public interface ISoftwareInventoryProvider
 {

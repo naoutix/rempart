@@ -5,9 +5,8 @@ using Rempart.Core.Snapshots;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// La fabrique de fixtures est elle-même testée : c'est elle qui produit les données
-/// sur lesquelles reposent tous les tests de rejeu. Une fabrique fausse rendrait
-/// l'ensemble de la suite silencieusement inutile.
+/// The fixture factory is itself under test: it produces the data every replay
+/// test relies on. A broken factory would silently invalidate the whole suite.
 /// </summary>
 public sealed class SyntheticSnapshotTests
 {
@@ -39,11 +38,11 @@ public sealed class SyntheticSnapshotTests
         var built = SyntheticSnapshot.Build(
             Base(rules), rules, SyntheticProfile.WindowsDefaults, "anon:test");
 
-        // Le profil doit exercer la sémantique des défauts Windows : si des clés
-        // subsistaient, la fixture testerait autre chose que ce qu'elle annonce.
-        // Services et faits de politique en sont exclus : leur état est directement
-        // observable, il n'existe pas de « défaut Windows » à révéler en retirant
-        // une clé. Le profil les laisse donc tels que la capture les a vus.
+        // The profile must exercise Windows-default semantics: if keys remained,
+        // the fixture would test something other than what it claims. Services
+        // and policy facts are excluded: their state is directly observable,
+        // there is no "Windows default" to reveal by removing a key. The profile
+        // leaves them as the capture saw them.
         var registryRules = rules.Where(r =>
             r.Check.Kind is CheckKind.Registry or CheckKind.RegistryKey);
 
@@ -75,8 +74,8 @@ public sealed class SyntheticSnapshotTests
     [Fact]
     public void Keys_absent_from_the_source_capture_are_not_invented()
     {
-        // Les ajouter masquerait une lacune de la capture au lieu de la révéler :
-        // c'est précisément ce trou qui a fait échouer le rejeu inter-contextes.
+        // Adding them would hide a capture gap instead of revealing it: that
+        // exact gap is what broke cross-context replay before.
         var rule = Rule(new CheckSpec(CheckKind.Registry, Key, "Absente", CheckOperator.Equals, "1", "0"));
 
         var built = SyntheticSnapshot.Build(
@@ -100,8 +99,8 @@ public sealed class SyntheticSnapshotTests
     [Fact]
     public void The_result_is_always_marked_anonymised_with_a_frozen_uptime()
     {
-        // Une fixture versionnée dans un dépôt public ne peut ni porter d'identifiant
-        // machine, ni figer une durée qui change à chaque exécution.
+        // A fixture versioned in a public repository can neither carry a machine
+        // identifier nor freeze a duration that changes on every run.
         var built = SyntheticSnapshot.Build(
             new MachineSnapshot(), [], SyntheticProfile.Hardened, "anon:test");
 
@@ -136,8 +135,8 @@ public sealed class SyntheticSnapshotTests
 
             if (rule.Check.Kind == CheckKind.Policy)
             {
-                // Un fait présent mais vide : la fabrique doit le remplacer par une
-                // valeur satisfaisante, pas se contenter d'un dictionnaire absent.
+                // A fact present but empty: the factory must replace it with a
+                // satisfying value, not merely handle a missing dictionary.
                 facts[rule.Check.Path] = "0";
                 continue;
             }

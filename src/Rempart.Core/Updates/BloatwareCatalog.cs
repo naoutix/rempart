@@ -5,15 +5,15 @@ using Rempart.Core.Providers;
 
 namespace Rempart.Core.Updates;
 
-/// <summary>Risque porté par une entrée du catalogue — mappé en gravité par le collecteur.</summary>
+/// <summary>Risk carried by a catalog entry — mapped to a severity by the collector.</summary>
 public enum BloatwareRisk { Unwanted, SecurityRelevant }
 
-/// <summary>Comment une entrée reconnaît un logiciel installé.</summary>
+/// <summary>How an entry recognizes an installed piece of software.</summary>
 public enum BloatwareMatch { Pfn, Uninstall, Name, Publisher }
 
 /// <summary>
-/// Une entrée du catalogue : comment reconnaître un logiciel, et ce qu'il coûte.
-/// <see cref="Impact"/> est obligatoire — une entrée sans note d'impact n'entre pas.
+/// A catalog entry: how to recognize a piece of software, and what it costs.
+/// <see cref="Impact"/> is mandatory — an entry without an impact note does not get in.
 /// </summary>
 public sealed record BloatwareEntry(
     string Id,
@@ -23,23 +23,23 @@ public sealed record BloatwareEntry(
     BloatwareRisk Risk,
     string Impact);
 
-/// <summary>Le fichier de catalogue tel qu'il est sérialisé et signé.</summary>
+/// <summary>The catalog file as it is serialized and signed.</summary>
 public sealed record BloatwareCatalogFile(string AsOfUtc, string? Source, List<BloatwareEntry> Entries);
 
 /// <summary>
-/// Le catalogue bloatware, interrogeable par logiciel installé.
+/// The bloatware catalog, queryable by installed software.
 ///
 /// <para>
-/// Transposition du patron <see cref="DriverBlocklist"/> du hash de fichier à l'identité
-/// logicielle : un logiciel n'a pas d'empreinte stable, d'où l'appariement hybride —
-/// identifiant exact (PFN Appx, clé Uninstall) quand il existe, motif de nom/éditeur
-/// curaté en repli.
+/// Transposes the <see cref="DriverBlocklist"/> pattern from file hashes to software
+/// identity: software has no stable fingerprint, hence the hybrid matching — an exact
+/// identifier (Appx PFN, Uninstall key) when one exists, a curated name/publisher
+/// pattern as fallback.
 /// </para>
 ///
 /// <para>
-/// Le catalogue ne juge pas la gravité : il rend une entrée porteuse d'un
-/// <see cref="BloatwareRisk"/>, que le collecteur mappe. Ne rien inventer : une entrée
-/// sans impact ou sans identifiant lève au chargement, un fichier illisible aussi.
+/// The catalog does not judge severity: it returns an entry carrying a
+/// <see cref="BloatwareRisk"/>, which the collector maps. Invent nothing: an entry
+/// without an impact note or identifier throws at load time, as does an unreadable file.
 /// </para>
 /// </summary>
 public sealed class BloatwareCatalog
@@ -61,8 +61,8 @@ public sealed class BloatwareCatalog
     private static BloatwareCatalog? cachedEmbedded;
 
     /// <summary>
-    /// Le socle embarqué : le plancher bloatware livré dans le binaire (D12), complété par
-    /// un catalogue signé quand il est présent. Chargé une fois depuis les ressources.
+    /// The embedded baseline: the bloatware floor shipped in the binary (D12), extended by
+    /// a signed catalog when one is present. Loaded once from embedded resources.
     /// </summary>
     public static BloatwareCatalog Embedded
     {
@@ -85,14 +85,14 @@ public sealed class BloatwareCatalog
         }
     }
 
-    /// <summary>Date de référence du socle embarqué — à avancer à chaque révision.</summary>
+    /// <summary>Reference date of the embedded baseline — move forward on every revision.</summary>
     public static string EmbeddedAsOfUtc => Embedded.AsOfUtc;
 
     /// <summary>
-    /// Cherche l'entrée qui reconnaît ce logiciel. Plusieurs correspondances possibles
-    /// (un motif nom et un motif éditeur) : le <b>risque le plus élevé</b> gagne,
-    /// départage stable par <see cref="BloatwareEntry.Id"/> pour une sortie déterministe.
-    /// <c>null</c> si rien ne correspond — le logiciel reste bénin.
+    /// Finds the entry that recognizes this software. Several matches are possible
+    /// (a name pattern and a publisher pattern): the <b>highest risk</b> wins, with a
+    /// stable tie-break on <see cref="BloatwareEntry.Id"/> for deterministic output.
+    /// <c>null</c> when nothing matches — the software remains benign.
     /// </summary>
     public BloatwareEntry? Match(InstalledSoftware software) =>
         entries
@@ -103,8 +103,8 @@ public sealed class BloatwareCatalog
 
     private static bool Matches(BloatwareEntry entry, InstalledSoftware sw) => entry.Match switch
     {
-        // Exact et borné à la bonne source : un PFN ne s'apparie qu'à un Appx, une clé
-        // Uninstall qu'à une désinstallation — sans quoi une même chaîne collerait à tort.
+        // Exact and bounded to the right source: a PFN only matches an Appx package, an
+        // Uninstall key only an uninstall entry — otherwise the same string would stick wrongly.
         BloatwareMatch.Pfn =>
             sw.Source == SoftwareSource.Appx && string.Equals(sw.Identifier, entry.Value, StringComparison.OrdinalIgnoreCase),
         BloatwareMatch.Uninstall =>
@@ -117,9 +117,9 @@ public sealed class BloatwareCatalog
     };
 
     /// <summary>
-    /// Fusionne un catalogue entrant dans un socle : une entrée de même
-    /// <see cref="BloatwareEntry.Id"/> remplace celle du socle, une entrée inédite
-    /// s'ajoute, aucune entrée du socle ne disparaît (D12). Calque de la fusion des règles.
+    /// Merges an incoming catalog into a baseline: an entry with the same
+    /// <see cref="BloatwareEntry.Id"/> replaces the baseline one, a new entry is added,
+    /// and no baseline entry ever disappears (D12). Mirrors the rule merge.
     /// </summary>
     public static BloatwareCatalog Merge(BloatwareCatalog @base, BloatwareCatalog incoming)
     {
@@ -157,16 +157,16 @@ public sealed class BloatwareCatalog
         var file = JsonSerializer.Deserialize(json, RempartJsonContext.Default.BloatwareCatalogFile)
             ?? throw new JsonException("Catalogue bloatware illisible.");
 
-        // La clé « entries » absente signale un fichier d'un autre type (ex. une liste de
-        // blocage sans --kind) : un tableau vide serait un « update applied » silencieux
-        // sur rien. Une clé présente mais vide reste un catalogue vide légitime.
+        // A missing "entries" key signals a file of another type (e.g. a blocklist signed
+        // without --kind): an empty array would be a silent "update applied" over nothing.
+        // A key that is present but empty remains a legitimate empty catalog.
         var entries = file.Entries
             ?? throw new JsonException("Catalogue bloatware sans clé « entries » : fichier probablement d'un autre type.");
 
-        // Une entrée sans identifiant, sans valeur/identifiant de correspondance ou sans
-        // note d'impact n'a aucune valeur d'audit : lever plutôt que charger un catalogue
-        // tronqué (identifiant, valeur et note d'impact sont tous obligatoires — une
-        // Value vide ferait matcher un motif Name/Publisher sur tout logiciel).
+        // An entry without an id, without a match value/identifier, or without an impact
+        // note has no audit value: throw rather than load a truncated catalog (id, value
+        // and impact note are all mandatory — an empty Value would make a Name/Publisher
+        // pattern match every piece of software).
         foreach (var entry in entries)
         {
             if (string.IsNullOrWhiteSpace(entry.Id)

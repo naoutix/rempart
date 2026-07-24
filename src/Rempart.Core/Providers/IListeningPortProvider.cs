@@ -1,23 +1,23 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Un point d'écoute réseau : un protocole, une adresse et un port sur lesquels un
-/// processus attend des connexions.
+/// A network listening endpoint: a protocol, an address, and a port on which a process
+/// waits for connections.
 ///
 /// <para>
-/// L'adresse de liaison est le fait qui compte. <c>127.0.0.1</c> (ou <c>::1</c>) n'écoute
-/// que la machine elle-même — un service local, hors de portée du réseau. <c>0.0.0.0</c>
-/// (ou <c>::</c>) écoute toutes les interfaces : le service est joignable depuis
-/// l'extérieur. Deux processus sur le même port n'ont pas la même surface d'exposition
-/// selon cette seule adresse.
+/// The bind address is the fact that matters. <c>127.0.0.1</c> (or <c>::1</c>) listens
+/// only to the machine itself — a local service, out of the network's reach.
+/// <c>0.0.0.0</c> (or <c>::</c>) listens on all interfaces: the service is reachable
+/// from outside. Two processes on the same port can have different exposure surfaces
+/// based on this address alone.
 /// </para>
 /// </summary>
 public sealed record ListeningPort(string Protocol, string LocalAddress, int Port, int Pid)
 {
     /// <summary>
-    /// Vrai si l'écoute n'est que locale. <c>0.0.0.0</c> et <c>::</c> écoutent toutes les
-    /// interfaces ; une adresse de boucle ou une interface nommée n'expose pas au réseau
-    /// de la même façon — seule <c>0.0.0.0</c>/<c>::</c> est une exposition générale.
+    /// True if the endpoint listens only locally. <c>0.0.0.0</c> and <c>::</c> listen on
+    /// all interfaces; a loopback address or a named interface does not expose to the
+    /// network the same way — only <c>0.0.0.0</c>/<c>::</c> is general exposure.
     /// </summary>
     public bool IsLoopbackOnly =>
         LocalAddress.StartsWith("127.", StringComparison.Ordinal)
@@ -28,10 +28,10 @@ public sealed record ListeningPort(string Protocol, string LocalAddress, int Por
 }
 
 /// <summary>
-/// Énumère les points d'écoute TCP et UDP.
+/// Enumerates TCP and UDP listening endpoints.
 ///
-/// Abstrait comme le reste (ADR-001, D5) : le jugement — un binaire non signé qui expose
-/// un port à toutes les interfaces — se teste sur une liste donnée, sans ouvrir de vrai
+/// Abstracted like the rest (ADR-001, D5): the judgment — an unsigned binary exposing a
+/// port on all interfaces — is tested against a given list, without opening a real
 /// socket.
 /// </summary>
 public interface IListeningPortProvider

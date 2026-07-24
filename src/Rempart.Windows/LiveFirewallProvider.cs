@@ -3,15 +3,15 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Lit l'état du pare-feu Windows depuis le registre.
+/// Reads the Windows Firewall state from the registry.
 ///
 /// <para>
-/// Les règles vivent sous <c>SharedAccess</c> pour les règles locales, et sous
-/// <c>Policies</c> pour celles posées par stratégie de groupe — les deux comptent, une
-/// GPO ajoute sans remplacer. Chaque valeur est une chaîne <c>Clé=Valeur</c> que le cœur
-/// sait analyser. Passer par le registre plutôt que par l'interface COM du pare-feu a un
-/// prix — les mots-clés de port dynamique restent opaques — mais garde la lecture
-/// rejouable hors-ligne et sans dépendance COM sous AOT.
+/// Rules live under <c>SharedAccess</c> for local rules and under <c>Policies</c> for
+/// those set by Group Policy — both count, since a GPO adds rules without replacing the
+/// local ones. Each value is a <c>Key=Value</c> string the core knows how to parse.
+/// Reading the registry instead of the firewall COM interface has a cost — dynamic port
+/// keywords stay opaque — but keeps the read replayable offline and free of COM
+/// dependencies under AOT.
 /// </para>
 /// </summary>
 public sealed class LiveFirewallProvider : IFirewallProvider
@@ -51,22 +51,22 @@ public sealed class LiveFirewallProvider : IFirewallProvider
             }
         }
 
-        // La stratégie de groupe prime sur le réglage local quand elle le pose.
+        // Group Policy takes precedence over the local setting when it defines one.
         var enabled = ReadFlag(PolicyPublicProfile, "EnableFirewall")
             ?? ReadFlag(LocalPublicProfile, "EnableFirewall")
-            ?? true; // Absent : le pare-feu est actif par défaut.
+            ?? true; // Absent: the firewall is enabled by default.
 
         var defaultInboundAllow = ReadFlag(PolicyPublicProfile, "DefaultInboundAction")
             ?? ReadFlag(LocalPublicProfile, "DefaultInboundAction")
-            ?? false; // Absent : le défaut entrant de Windows est le blocage.
+            ?? false; // Absent: the Windows inbound default is block.
 
         return new FirewallState(rules, enabled, defaultInboundAllow);
     }
 
     /// <summary>
-    /// Lit un drapeau DWORD. <c>EnableFirewall</c> vaut 1 pour actif ;
-    /// <c>DefaultInboundAction</c> vaut 1 pour « autoriser », 0 pour « bloquer ». Null quand
-    /// la valeur est absente — l'appelant applique alors le défaut Windows.
+    /// Reads a DWORD flag. <c>EnableFirewall</c> is 1 when enabled;
+    /// <c>DefaultInboundAction</c> is 1 for "allow", 0 for "block". Null when the value
+    /// is absent — the caller then applies the Windows default.
     /// </summary>
     private bool? ReadFlag(string keyPath, string valueName)
     {

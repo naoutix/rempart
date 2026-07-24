@@ -3,20 +3,19 @@ using System.Net.Http;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// Transport HTTP réel, bâti sur <see cref="HttpClient"/>.
+/// The real HTTP transport, built on <see cref="HttpClient"/>.
 ///
 /// <para>
-/// Compatible Native AOT — <c>SocketsHttpHandler</c> ne demande pas de réflexion. Le
-/// tampon de réponse est plafonné : un serveur hostile ne doit pas pouvoir épuiser la
-/// mémoire en servant un fichier sans fin. Le plafond est large devant les données
-/// réelles (un manifeste fait moins d'un kilo-octet, la liste LOLDrivers quelques
-/// centaines).
+/// Native AOT compatible — <c>SocketsHttpHandler</c> requires no reflection. The
+/// response buffer is capped: a hostile server must not be able to exhaust memory by
+/// serving an endless file. The cap is generous relative to the real data (a manifest
+/// is under a kilobyte, the LOLDrivers list a few hundred).
 /// </para>
 ///
 /// <para>
-/// Aucune confiance n'est placée dans le transport : les redirections sont suivies sans
-/// crainte, car un manifeste redirigé vers un contenu falsifié échouera de toute façon
-/// à la vérification de signature. C'est elle qui protège, pas le canal.
+/// No trust is placed in the transport: redirects are followed without concern, since
+/// a manifest redirected to forged content will fail signature verification anyway.
+/// The signature is what protects, not the channel.
 /// </para>
 /// </summary>
 public sealed class HttpTransport : IUpdateTransport, IDisposable
@@ -33,8 +32,8 @@ public sealed class HttpTransport : IUpdateTransport, IDisposable
             MaxResponseContentBufferSize = MaxResponseBytes,
         };
 
-        // Un en-tête d'agent honnête : rien à cacher, et certains hébergeurs refusent
-        // une requête sans agent.
+        // An honest user-agent header: nothing to hide, and some hosts reject a
+        // request without one.
         client.DefaultRequestHeaders.UserAgent.ParseAdd("rempart-update/1.0");
     }
 
@@ -55,8 +54,8 @@ public sealed class HttpTransport : IUpdateTransport, IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or UriFormatException)
         {
-            // Injoignable, expiré, URL mal formée : un échec de transport, jamais un
-            // verdict de confiance. Le message brut suffit à orienter l'utilisateur.
+            // Unreachable, timed out, malformed URL: a transport failure, never a
+            // trust verdict. The raw message is enough to orient the user.
             error = ex.Message;
             return null;
         }

@@ -8,10 +8,10 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Les trois appels natifs — <c>GetFirmwareType</c>, <c>NetGetJoinInformation</c>,
-/// vérification d'élévation — n'étaient couverts par aucun test. Une signature
-/// P/Invoke fausse ne se voit pas à la compilation : elle rend une valeur plausible
-/// et silencieusement erronée, sur laquelle des règles se prononcent ensuite.
+/// The three native calls — <c>GetFirmwareType</c>, <c>NetGetJoinInformation</c>,
+/// elevation check — were covered by no test. A wrong P/Invoke signature is not
+/// caught at compile time: it returns a plausible, silently wrong value, which rules
+/// then act on.
 /// </summary>
 public sealed class LiveSystemInfoProviderTests
 {
@@ -29,16 +29,16 @@ public sealed class LiveSystemInfoProviderTests
     [Fact]
     public void Firmware_type_is_one_of_the_known_values()
     {
-        // Une signature P/Invoke fausse rendrait « unknown » en permanence, et la
-        // règle Secure Boot perdrait tout son sens sans que rien ne le signale.
+        // A wrong P/Invoke signature would return "unknown" permanently, and the
+        // Secure Boot rule would lose all meaning without any signal.
         Assert.Contains(info.FirmwareType, new[] { "uefi", "bios", "unknown" });
     }
 
     [Fact]
     public void Domain_membership_is_answered_without_throwing()
     {
-        // La valeur dépend de la machine ; ce qui se teste, c'est que l'appel natif
-        // aboutisse et ne laisse pas fuir de mémoire non libérée.
+        // The value depends on the machine; what is tested is that the native call
+        // completes and does not leak unreleased memory.
         _ = info.IsDomainJoined;
     }
 
@@ -55,8 +55,8 @@ public sealed class LiveSystemInfoProviderTests
 }
 
 /// <summary>
-/// Le chemin complet, contre la vraie machine : ce que la CI exerçait déjà sans
-/// rien vérifier au-delà du code de sortie.
+/// The full path, against the real machine: what CI already exercised without
+/// checking anything beyond the exit code.
 /// </summary>
 public sealed class EndToEndTests
 {
@@ -72,8 +72,8 @@ public sealed class EndToEndTests
         Assert.NotNull(result.Score);
         Assert.NotEmpty(result.RulesFingerprint);
 
-        // Un scan qui ne conclurait sur rien signalerait un catalogue muet ou des
-        // chemins de registre tous faux — le rapport paraîtrait pourtant normal.
+        // A scan that concluded on nothing would mean a silent catalog or registry
+        // paths that are all wrong — yet the report would look normal.
         Assert.Contains(result.Verdicts, v => v.Status is VerdictStatus.Pass or VerdictStatus.Fail);
     }
 
@@ -91,9 +91,9 @@ public sealed class EndToEndTests
     [Fact]
     public void A_capture_replays_to_the_same_verdicts()
     {
-        // La promesse centrale du projet : un instantané rejoué rend le même verdict
-        // que le scan qui l'a produit. Jamais vérifiée jusqu'ici contre une vraie
-        // machine, seulement entre fixtures synthétiques.
+        // The project's central promise: a replayed snapshot yields the same verdicts
+        // as the scan that produced it. Never verified against a real machine before,
+        // only between synthetic fixtures.
         var snapshot = new MachineSnapshot { CapturedAtUtc = "2026-01-01T00:00:00Z" };
         var recording = new ProviderSet(
             new RecordingRegistryProvider(new LiveRegistryProvider(), snapshot),

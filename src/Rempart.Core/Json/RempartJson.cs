@@ -8,8 +8,8 @@ using Rempart.Core.Updates;
 namespace Rempart.Core.Json;
 
 /// <summary>
-/// Sérialisation par génération de source : la réflexion n'est pas disponible sous
-/// Native AOT, dont dépend le livrable en binaire unique.
+/// Source-generated serialisation: reflection is not available under Native AOT, which
+/// the single-binary deliverable depends on.
 /// </summary>
 [JsonSourceGenerationOptions(
     WriteIndented = true,
@@ -27,9 +27,9 @@ namespace Rempart.Core.Json;
 public sealed partial class RempartJsonContext : JsonSerializerContext;
 
 /// <summary>
-/// Variante compacte, sans indentation. Pour les artefacts de données volumineux —
-/// une liste de 2 000 pilotes indentée triplerait de taille sans rien apporter, sinon
-/// à un fichier destiné à voyager et à être signé.
+/// Compact variant, without indentation. For large data artifacts — an indented list of
+/// 2,000 drivers would triple in size and indentation adds nothing to a file that is
+/// meant to be transferred and signed.
 /// </summary>
 [JsonSourceGenerationOptions(
     WriteIndented = false,
@@ -51,11 +51,11 @@ public static class RempartJson
     public static string Serialise(SignedManifest manifest) =>
         JsonSerializer.Serialize(manifest, RempartJsonContext.Default.SignedManifest);
 
-    /// <summary>Sérialise une liste de blocage sans indentation — c'est un artefact à transporter.</summary>
+    /// <summary>Serialises a blocklist without indentation — it is an artifact meant for transfer.</summary>
     public static string SerialiseCompact(DriverBlocklistFile blocklist) =>
         JsonSerializer.Serialize(blocklist, CompactJsonContext.Default.DriverBlocklistFile);
 
-    /// <summary>Sérialise un catalogue bloatware sans indentation — artefact à transporter et signer.</summary>
+    /// <summary>Serialises a bloatware catalog without indentation — an artifact to transfer and sign.</summary>
     public static string SerialiseCompact(BloatwareCatalogFile catalog) =>
         JsonSerializer.Serialize(catalog, CompactJsonContext.Default.BloatwareCatalogFile);
 

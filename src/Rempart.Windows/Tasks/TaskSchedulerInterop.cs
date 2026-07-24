@@ -4,24 +4,23 @@ using System.Runtime.InteropServices.Marshalling;
 namespace Rempart.Windows.Tasks;
 
 /// <summary>
-/// Interfaces COM du planificateur de tâches, déclarées pour le générateur d'interop.
+/// COM interfaces of the Task Scheduler, declared for the interop generator.
 ///
-/// Même démarche que pour WMI : <c>GeneratedComInterface</c> produit la transition à
-/// la compilation, sans réflexion, donc compatible Native AOT.
+/// Same approach as for WMI: <c>GeneratedComInterface</c> produces the transition at
+/// compile time, without reflection, hence Native AOT compatible.
 ///
 /// <para>
-/// Une différence essentielle avec WMI : ces interfaces dérivent d'<c>IDispatch</c>,
-/// pas d'<c>IUnknown</c>. Quatre emplacements supplémentaires les précèdent donc dans
-/// la table virtuelle — <c>GetTypeInfoCount</c>, <c>GetTypeInfo</c>,
-/// <c>GetIDsOfNames</c>, <c>Invoke</c>. Les omettre appellerait la mauvaise fonction
-/// avec les mauvais arguments : un plantage si l'on a de la chance, un résultat faux
-/// sinon.
+/// One essential difference from WMI: these interfaces derive from <c>IDispatch</c>,
+/// not <c>IUnknown</c>. Four additional slots therefore precede them in the
+/// virtual table — <c>GetTypeInfoCount</c>, <c>GetTypeInfo</c>,
+/// <c>GetIDsOfNames</c>, <c>Invoke</c>. Omitting them would call the wrong function
+/// with the wrong arguments: a crash if we are lucky, a wrong result otherwise.
 /// </para>
 ///
 /// <para>
-/// L'ordre des méthodes est repris de <c>taskschd.h</c> du SDK Windows, pas de
-/// mémoire. Un décalage d'un seul emplacement est invisible à la compilation et se
-/// paie à l'exécution.
+/// The method order is taken from <c>taskschd.h</c> in the Windows SDK, not from
+/// memory. A single-slot offset is invisible at compile time and is paid for at
+/// run time.
 /// </para>
 /// </summary>
 internal static class TaskSchedulerIds
@@ -33,8 +32,8 @@ internal static class TaskSchedulerIds
         new("2faba4c7-4da9-4013-9697-20cc3fd40f85");
 
     /// <summary>
-    /// Inclut les tâches masquées. Un audit qui ne les verrait pas manquerait
-    /// exactement celles qu'on prend soin de cacher.
+    /// Includes hidden tasks. An audit that could not see them would miss exactly
+    /// the ones someone took care to hide.
     /// </summary>
     internal const int EnumHidden = 1;
 }
@@ -43,8 +42,8 @@ internal static class TaskSchedulerIds
 [Guid("2faba4c7-4da9-4013-9697-20cc3fd40f85")]
 internal partial interface ITaskService
 {
-    // Emplacements d'IDispatch. Jamais appeles, jamais retires : ils sont ce qui
-    // aligne tout ce qui suit sur la bonne fonction.
+    // IDispatch slots. Never called, never removed: they are what keeps everything
+    // that follows aligned on the right function.
     void GetTypeInfoCount_Unused();
 
     void GetTypeInfo_Unused();
@@ -63,9 +62,9 @@ internal partial interface ITaskService
     void NewTask_Unused();
 
     /// <summary>
-    /// Quatre VARIANT vides désignent la machine locale et l'utilisateur courant.
-    /// Le VARIANT est déclaré comme une structure blittable — l'interop générée ne
-    /// sait pas l'exprimer autrement, c'est la même contrainte que pour WMI.
+    /// Four empty VARIANTs designate the local machine and the current user.
+    /// The VARIANT is declared as a blittable struct — the generated interop cannot
+    /// express it any other way, the same constraint as for WMI.
     /// </summary>
     [PreserveSig]
     int Connect(Wmi.Variant server, Wmi.Variant user, Wmi.Variant domain, Wmi.Variant password);
@@ -75,8 +74,8 @@ internal partial interface ITaskService
 [Guid("8cfac062-a080-4c15-9a88-aa7c2af80dfc")]
 internal partial interface ITaskFolder
 {
-    // Emplacements d'IDispatch. Jamais appeles, jamais retires : ils sont ce qui
-    // aligne tout ce qui suit sur la bonne fonction.
+    // IDispatch slots. Never called, never removed: they are what keeps everything
+    // that follows aligned on the right function.
     void GetTypeInfoCount_Unused();
 
     void GetTypeInfo_Unused();
@@ -109,8 +108,8 @@ internal partial interface ITaskFolder
 [Guid("79184a66-8664-423f-97f1-637356a5d812")]
 internal partial interface ITaskFolderCollection
 {
-    // Emplacements d'IDispatch. Jamais appeles, jamais retires : ils sont ce qui
-    // aligne tout ce qui suit sur la bonne fonction.
+    // IDispatch slots. Never called, never removed: they are what keeps everything
+    // that follows aligned on the right function.
     void GetTypeInfoCount_Unused();
 
     void GetTypeInfo_Unused();
@@ -130,8 +129,8 @@ internal partial interface ITaskFolderCollection
 [Guid("86627eb4-42a7-41e4-a4d9-ac33a72f2d52")]
 internal partial interface IRegisteredTaskCollection
 {
-    // Emplacements d'IDispatch. Jamais appeles, jamais retires : ils sont ce qui
-    // aligne tout ce qui suit sur la bonne fonction.
+    // IDispatch slots. Never called, never removed: they are what keeps everything
+    // that follows aligned on the right function.
     void GetTypeInfoCount_Unused();
 
     void GetTypeInfo_Unused();
@@ -151,8 +150,8 @@ internal partial interface IRegisteredTaskCollection
 [Guid("9c86f320-dee3-4dd1-b972-a303f26b061e")]
 internal partial interface IRegisteredTask
 {
-    // Emplacements d'IDispatch. Jamais appeles, jamais retires : ils sont ce qui
-    // aligne tout ce qui suit sur la bonne fonction.
+    // IDispatch slots. Never called, never removed: they are what keeps everything
+    // that follows aligned on the right function.
     void GetTypeInfoCount_Unused();
 
     void GetTypeInfo_Unused();
@@ -192,12 +191,12 @@ internal partial interface IRegisteredTask
     void get_Definition_Unused();
 
     /// <summary>
-    /// La définition complète en XML.
+    /// The full definition as XML.
     ///
-    /// Préférée à <c>get_Definition</c> et à sa chaîne d'interfaces — actions,
-    /// déclencheurs, principal, chacune avec sa propre table virtuelle à déclarer
-    /// correctement. Le XML donne la même information en une seule lecture, donc en
-    /// une seule occasion de se tromper d'emplacement au lieu de dix.
+    /// Preferred over <c>get_Definition</c> and its chain of interfaces — actions,
+    /// triggers, principal, each with its own virtual table to declare correctly.
+    /// The XML gives the same information in a single read, hence a single
+    /// opportunity to get a slot wrong instead of ten.
     /// </summary>
     [PreserveSig]
     int get_Xml([MarshalAs(UnmanagedType.BStr)] out string xml);

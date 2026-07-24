@@ -5,13 +5,13 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Politique de comptes locaux, par <c>netapi32</c>.
+/// Local account policy, via <c>netapi32</c>.
 ///
-/// Même famille d'API que <c>NetGetJoinInformation</c>, déjà éprouvée : la question
-/// WMI/AOT ouverte depuis M0 reste entière, mais elle ne bloque pas ce lot non plus.
+/// Same API family as <c>NetGetJoinInformation</c>, already proven: the WMI/AOT
+/// question open since M0 is still unresolved, but it does not block this batch either.
 ///
-/// Toute mémoire rendue par ces appels doit être libérée par <c>NetApiBufferFree</c>,
-/// sous peine d'une fuite qu'un scan répété rendrait visible.
+/// Any memory returned by these calls must be freed with <c>NetApiBufferFree</c>,
+/// otherwise the leak would become visible under repeated scans.
 /// </summary>
 public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
 {
@@ -42,12 +42,11 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
     [LibraryImport("netapi32.dll")]
     private static partial int NetApiBufferFree(IntPtr buffer);
 
-    // Structures natives declarees plutot que parcourues a coups de decalages calcules
-    // a la main. La premiere version le faisait, et se trompait : USER_INFO_1 fait
-    // 56 octets et non 64, son champ « flags » est au decalage 40 et non 28, et la
-    // politique de mot de passe commence au decalage 0. Le lecteur plantait. Ici c'est
-    // le compilateur qui calcule taille et decalages -- sans reflexion, donc compatible
-    // Native AOT.
+    // Native structs are declared rather than walked with hand-computed offsets. The
+    // first version did that and got it wrong: USER_INFO_1 is 56 bytes, not 64, its
+    // "flags" field is at offset 40, not 28, and the password policy starts at offset
+    // 0. The reader crashed. Here the compiler computes sizes and offsets -- without
+    // reflection, so compatible with Native AOT.
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct UserInfo1
@@ -89,8 +88,8 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         ReadAccounts(facts);
         ReadAdminGroup(facts);
 
-        // Aucun fait établi : l'API a refusé partout. Le signaler évite qu'une règle
-        // conclue sur un dictionnaire vide.
+        // No fact established: the API denied everything. Reporting this prevents a
+        // rule from drawing conclusions from an empty dictionary.
         return facts.Count == 0 ? PolicyFacts.AccessDenied : new PolicyFacts(facts);
     }
 
@@ -108,8 +107,9 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
             facts[PolicyFactNames.PasswordMinLength] = info.MinPasswordLength.ToString();
             facts[PolicyFactNames.PasswordHistoryLength] = info.PasswordHistoryLength.ToString();
 
-            // TIMEQ_FOREVER signifie « n'expire jamais ». Le rendre en 0 jour serait
-            // ambigu : la regle distingue « pas d'expiration » d'un seuil trop long.
+            // TIMEQ_FOREVER means "never expires". Rendering it as 0 days would be
+            // ambiguous: the rule distinguishes "no expiration" from a threshold that
+            // is too long.
             facts[PolicyFactNames.PasswordMaxAgeDays] = info.MaxPasswordAge == TimeqForever
                 ? "never"
                 : (info.MaxPasswordAge / 86400).ToString();
@@ -142,7 +142,7 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
 
     private static unsafe void ReadAccounts(Dictionary<string, string> facts)
     {
-        // Niveau 1 : nom et drapeaux en une seule passe.
+        // Level 1: name and flags in a single pass.
         if (NetUserEnum(null, 1, FilterNormalAccount, out var buffer,
                 MaxPreferredLength, out var read, out _, out _) != 0 || buffer == IntPtr.Zero)
         {
@@ -161,8 +161,8 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
                 var entry = entries[i];
                 var name = Marshal.PtrToStringUni(entry.Name) ?? string.Empty;
 
-                // Un compte desactive ne represente aucun risque : le compter
-                // gonflerait les constats sans rien apporter.
+                // A disabled account poses no risk: counting it would inflate the
+                // findings without adding anything.
                 if ((entry.Flags & UfAccountDisable) != 0)
                 {
                     continue;
@@ -178,9 +178,9 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
                     neverExpires++;
                 }
 
-                // Le compte invite porte le RID 501, mais son nom varie selon la
-                // langue. La comparaison par nom couvre les cas courants ; un
-                // renommage delibere y echappe, ce qui est assume et documente.
+                // The guest account has RID 501, but its name varies with the
+                // language. Name comparison covers the common cases; a deliberate
+                // rename escapes it, which is a known and documented limitation.
                 if (name.Equals("Guest", StringComparison.OrdinalIgnoreCase)
                     || name.Equals("Invité", StringComparison.OrdinalIgnoreCase))
                 {
@@ -199,9 +199,9 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
     }
 
     /// <summary>
-    /// Membres du groupe Administrateurs. Le nom du groupe dépend de la langue de
-    /// Windows : il est résolu depuis son SID connu, pour que la règle vaille aussi
-    /// sur une machine en français.
+    /// Members of the Administrators group. The group name depends on the Windows
+    /// language: it is resolved from its well-known SID so the rule also holds on a
+    /// French-language machine.
     /// </summary>
     private static void ReadAdminGroup(Dictionary<string, string> facts)
     {
@@ -228,13 +228,13 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
     }
 
     /// <summary>
-    /// Le nom du groupe Administrateurs dépend de la langue de Windows — « Administrateurs »
-    /// en français. Il est résolu depuis son SID connu, pour que la règle vaille sur
-    /// n'importe quelle installation.
+    /// The Administrators group name depends on the Windows language — "Administrateurs"
+    /// in French. It is resolved from its well-known SID so the rule holds on any
+    /// installation.
     ///
-    /// Passe par l'API managée plutôt que par LookupAccountSid : le générateur de
-    /// P/Invoke ne prend pas en charge le marshalling de tampons de caractères, et
-    /// SecurityIdentifier fait le même travail sans code natif à maintenir.
+    /// Uses the managed API rather than LookupAccountSid: the P/Invoke source generator
+    /// does not support marshalling character buffers, and SecurityIdentifier does the
+    /// same job without native code to maintain.
     /// </summary>
     private static string? ResolveAdministratorsGroupName()
     {
@@ -243,14 +243,14 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
             var sid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             var account = ((NTAccount)sid.Translate(typeof(NTAccount))).Value;
 
-            // « BUILTIN\Administrateurs » -> « Administrateurs ».
+            // "BUILTIN\Administrateurs" -> "Administrateurs".
             var separator = account.LastIndexOf('\\');
             return separator >= 0 ? account[(separator + 1)..] : account;
         }
         catch (Exception)
         {
-            // Sans nom de groupe résolu, le fait n'est pas produit : la règle
-            // correspondante rendra « non vérifiable », jamais un échec.
+            // Without a resolved group name the fact is not produced: the
+            // corresponding rule will report "not verifiable", never a failure.
             return null;
         }
     }

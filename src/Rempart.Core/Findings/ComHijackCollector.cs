@@ -3,29 +3,29 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Détournement COM par enregistrement d'un composant côté utilisateur.
+/// COM hijacking through a user-side component registration.
 ///
 /// <para>
-/// Quand une application résout un CLSID, Windows consulte d'abord
-/// <c>HKCU\Software\Classes\CLSID</c> avant <c>HKLM</c>. Un objet enregistré là s'exécute
-/// donc à la place du composant système attendu — sans droits d'administrateur, puisque
-/// la ruche de l'utilisateur lui appartient. C'est le « COM hijacking » : une persistance
-/// discrète, qu'aucune clé <c>Run</c> ne révèle.
+/// When an application resolves a CLSID, Windows consults
+/// <c>HKCU\Software\Classes\CLSID</c> before <c>HKLM</c>. An object registered there
+/// therefore runs in place of the expected system component — without administrator
+/// rights, since the user's hive belongs to them. This is "COM hijacking": a discreet
+/// persistence that no <c>Run</c> key reveals.
 /// </para>
 ///
 /// <para>
-/// Sur une machine saine, cette ruche contient peu d'enregistrements. Chacun est jugé sur
-/// la signature de la bibliothèque qu'il désigne (<see cref="SignatureLadder"/>), et sa
-/// seule présence côté utilisateur est notable — c'est l'emplacement inscriptible sans
-/// privilège qui en fait un vecteur, pas la nature du composant.
+/// On a healthy machine, this hive holds few registrations. Each is judged on the
+/// signature of the library it points to (<see cref="SignatureLadder"/>), and its mere
+/// presence on the user side is notable — what makes it a vector is the location being
+/// writable without privilege, not the nature of the component.
 /// </para>
 /// </summary>
 public sealed class ComHijackCollector : IFindingCollector
 {
     private const string UserClsid = @"HKCU\Software\Classes\CLSID";
 
-    // Les deux formes de serveur COM : une DLL chargée dans le processus, ou un
-    // exécutable lancé à part. Les deux exécutent du code, les deux sont détournables.
+    // The two forms of COM server: a DLL loaded into the process, or an executable
+    // launched separately. Both execute code, both can be hijacked.
     private static readonly string[] ServerKinds = ["InprocServer32", "LocalServer32"];
 
     public string Name => "com-hijack";
@@ -66,9 +66,9 @@ public sealed class ComHijackCollector : IFindingCollector
         };
         SignatureLadder.Describe(judgement.Signature, details);
 
-        // La présence même d'un composant COM côté utilisateur mérite un regard : c'est
-        // l'emplacement inscriptible sans privilège qui fait le vecteur. On pose donc un
-        // plancher Notable, sans jamais abaisser un binaire déjà suspect par sa signature.
+        // The very presence of a user-side COM component deserves a look: the location,
+        // writable without privilege, is what makes the vector. So we set a Notable
+        // floor, without ever lowering a binary already suspicious by its signature.
         var floor = FindingSeverity.Notable;
         var severity = judgement.Severity < floor ? floor : judgement.Severity;
 
@@ -81,15 +81,15 @@ public sealed class ComHijackCollector : IFindingCollector
     }
 
     /// <summary>
-    /// Chemin du binaire d'un serveur COM. Une valeur <c>LocalServer32</c> est une ligne
-    /// de commande — <c>"C:\…\app.exe" -ToastActivated</c> — dont il faut extraire le seul
-    /// exécutable ; sans quoi les arguments et le guillemet fermant se collent au chemin,
-    /// qui ressort alors introuvable. Un <c>InprocServer32</c> est un chemin de DLL nu.
+    /// Path of a COM server's binary. A <c>LocalServer32</c> value is a command line —
+    /// <c>"C:\…\app.exe" -ToastActivated</c> — from which the executable alone must be
+    /// extracted; otherwise the arguments and the closing quote stick to the path, which
+    /// then comes out as not found. An <c>InprocServer32</c> is a bare DLL path.
     ///
     /// <para>
-    /// Un chemin complet est rendu tel quel ; un nom nu est supposé en System32. En dur,
-    /// sans toucher au disque ni à <c>System.IO.Path</c>, pour que capture et rejeu
-    /// produisent le même chemin quelle que soit la machine.
+    /// A full path is returned as-is; a bare name is assumed to be in System32. Hardcoded,
+    /// without touching the disk or <c>System.IO.Path</c>, so that capture and replay
+    /// produce the same path whatever the machine.
     /// </para>
     /// </summary>
     private static string Resolve(string server)

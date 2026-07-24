@@ -13,37 +13,37 @@ public sealed record ScanResult(
     List<Verdict> Verdicts,
     List<Finding> Findings,
     ScoreCard? Score,
-    /// <summary>Identifie le catalogue evalue : deux rapports ne sont comparables
-    /// que s'ils partagent la meme empreinte.</summary>
+    /// <summary>Identifies the evaluated rule catalog: two reports are comparable only
+    /// if they share the same fingerprint.</summary>
     string RulesFingerprint,
-    /// <summary>Age des donnees evaluees au moment du scan (ADR-002, D15).</summary>
+    /// <summary>Age of the evaluated data at scan time (ADR-002, D15).</summary>
     DataAge DataAge,
-    /// <summary>Avis du test actif DoH/DoT, ou null s'il n'a pas ete demande (--probe-dns).
-    /// Hors du score : c'est une recommandation, pas un verdict.</summary>
+    /// <summary>Result of the active DoH/DoT probe, or null if it was not requested
+    /// (--probe-dns). Kept out of the score: it is a recommendation, not a verdict.</summary>
     Dns.DnsProbeReport? DnsProbe = null);
 
 /// <summary>
-/// Exécute les collecteurs, puis évalue les règles.
+/// Runs the collectors, then evaluates the rules.
 ///
-/// Deux étapes distinctes et volontairement découplées : les collecteurs décrivent la
-/// machine, les règles la jugent. Un collecteur ne porte aucun seuil, une règle ne lit
-/// jamais Windows autrement qu'à travers les providers.
+/// Two distinct and deliberately decoupled stages: collectors describe the machine,
+/// rules judge it. A collector carries no thresholds, and a rule never reads Windows
+/// except through the providers.
 ///
-/// Un collecteur qui échoue est signalé et le scan continue : un rapport partiel et
-/// honnête vaut mieux qu'aucun rapport.
+/// A failing collector is reported and the scan continues: a partial report that
+/// discloses its gaps is better than no report.
 /// </summary>
 public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyList<Rule> rules)
 {
     public static IReadOnlyList<ICollector> DefaultCollectors => [new InventoryCollector()];
 
     /// <summary>
-    /// Collecteurs de constats. Separes des collecteurs de champs : ils enumerent ce
-    /// qui est present au lieu de decrire des valeurs connues d'avance.
+    /// Finding collectors. Separate from field collectors: they enumerate what is
+    /// present instead of describing values known in advance.
     /// </summary>
     /// <summary>
-    /// Collecteurs de constats, armés de la liste de pilotes en vigueur. La liste vient
-    /// du magasin de mises à jour (D12) ; à défaut, elle est vide et le collecteur juge
-    /// les pilotes sur leur seule signature.
+    /// Finding collectors, supplied with the driver blocklist in effect. The list comes
+    /// from the update store (D12); when unavailable it is empty and the collector
+    /// judges drivers on their signature alone.
     /// </summary>
     public static IReadOnlyList<IFindingCollector> DefaultFindingCollectors(
         Updates.DriverBlocklist blocklist, Updates.BloatwareCatalog catalog) =>
@@ -74,13 +74,13 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new(DefaultCollectors, RuleCatalog.Load(externalRules));
 
     /// <summary>
-    /// Lit toutes les clés que les règles pourraient consulter, sans rien évaluer.
+    /// Reads every key the rules might consult, without evaluating anything.
     ///
-    /// Sans cela, un instantané ne contiendrait que les lectures réellement effectuées
-    /// sur la machine d'origine : une règle hors périmètre là-bas — non jointe à un
-    /// domaine, RDP éteint — n'aurait rien enregistré, et le rejeu échouerait dès qu'on
-    /// change de contexte. Une fixture doit être rejouable partout, pas seulement dans
-    /// les conditions de sa capture.
+    /// Without this, a snapshot would only contain the reads actually performed on the
+    /// source machine: a rule out of scope there — machine not domain-joined, RDP
+    /// disabled — would have recorded nothing, and replay would fail as soon as the
+    /// context changes. A fixture must be replayable everywhere, not only under the
+    /// conditions of its capture.
     /// </summary>
     public void Prefetch(ProviderSet providers)
     {
@@ -117,8 +117,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             }
         }
 
-        // Les conditions d'applicabilite s'appuient sur des faits machine autant que
-        // sur le registre : l'evaluateur a besoin des deux.
+        // Applicability conditions rely on machine facts as much as on the registry:
+        // the evaluator needs both.
         var system = providers.SystemInfo.Read();
 
         var verdicts = rules
@@ -135,7 +135,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             }
             catch (Exception ex)
             {
-                // Un collecteur de constats qui echoue ne doit pas emporter le scan.
+                // A finding collector that fails must not abort the scan.
                 findings.Add(new Finding(collector.Name, "collecteur", collector.Name,
                     FindingSeverity.Notable, [$"Enumeration interrompue : {ex.Message}"], new Dictionary<string, string>()));
             }
@@ -149,9 +149,9 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             findings,
             verdicts.Count > 0 ? Scoring.Compute(verdicts) : null,
             RuleCatalog.Fingerprint(rules),
-            // Contre l'heure du scan : en direct c'est l'heure réelle, en rejeu l'heure
-            // figée de la capture. La date de référence est celle du catalogue embarqué,
-            // ou celle de la mise à jour appliquée si l'appelant en fournit une.
+            // Measured against the scan time: live scans use the real time, replays use
+            // the frozen capture time. The reference date is the embedded catalog's, or
+            // the applied update's if the caller provides one.
             DataFreshness.At(dataAsOfUtc ?? RuleCatalog.EmbeddedAsOfUtc, startedAtUtc));
     }
 }

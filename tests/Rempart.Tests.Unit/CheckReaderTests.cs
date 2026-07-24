@@ -8,12 +8,12 @@ namespace Rempart.Tests.Unit;
 public sealed class CheckReaderTests
 {
     /// <summary>
-    /// L'invariant que le lecteur unifié existe pour tenir.
+    /// The invariant the unified reader exists to hold.
     ///
-    /// Capture et évaluation avaient chacune leur traduction d'un <c>CheckSpec</c> en
-    /// appels de provider. Le prochain type de contrôle oublié côté capture aurait
-    /// produit des instantanés incomplets — et un échec de rejeu bien plus tard, avec
-    /// un message sans rapport avec la cause. Ce test échoue immédiatement à la place.
+    /// Capture and evaluation each had their own translation of a <c>CheckSpec</c>
+    /// into provider calls. The next check kind forgotten on the capture side would
+    /// have produced incomplete snapshots — and a replay failure much later, with a
+    /// message unrelated to the cause. This test fails immediately instead.
     /// </summary>
     [Fact]
     public void Capture_and_evaluation_touch_exactly_the_same_keys()
@@ -30,9 +30,9 @@ public sealed class CheckReaderTests
             RuleEvaluator.Evaluate(rule, registry, FakeSystemInfoProvider.Default);
         }
 
-        // L'évaluation peut lire moins — une règle hors périmètre n'atteint pas son
-        // contrôle principal. Elle ne doit jamais lire davantage : ce serait une clé
-        // qu'aucune capture n'enregistrerait.
+        // Evaluation may read less — a rule out of scope never reaches its main
+        // check. It must never read more: that would be a key no capture would
+        // ever record.
         Assert.Empty(evaluated.Registry.Keys.Except(captured.Registry.Keys));
     }
 
@@ -72,8 +72,9 @@ public sealed class CheckReaderTests
     [Fact]
     public void The_description_names_the_default_that_applied()
     {
-        // Sans cette mention, on croirait l'outil incapable de lire la clé, alors
-        // qu'il rend un verdict fondé sur le comportement réel de la machine.
+        // Without this note, the output would suggest the tool failed to read the
+        // key, when it actually returns a verdict based on the machine's real
+        // behavior.
         var check = Check(CheckOperator.Equals, "1", "3");
 
         var described = CheckReader.Read(check, new FakeRegistryProvider()).Describe(check);

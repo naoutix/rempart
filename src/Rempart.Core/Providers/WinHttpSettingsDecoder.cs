@@ -4,24 +4,25 @@ using System.Text;
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Décode le blob binaire <c>WinHttpSettings</c> — le proxy machine posé par
-/// <c>netsh winhttp set proxy</c>. En-tête de 12 octets (version, compteur, drapeaux),
-/// puis serveur et bypass en chaînes ASCII préfixées de leur longueur, little-endian.
+/// Decodes the <c>WinHttpSettings</c> binary blob — the machine proxy set by
+/// <c>netsh winhttp set proxy</c>. 12-byte header (version, counter, flags), then
+/// server and bypass as length-prefixed ASCII strings, little-endian.
 ///
 /// <para>
-/// Pur, testable sans Windows : la couche Windows lui passe les octets lus au registre.
-/// Ne lève jamais — un blob tronqué ou corrompu rend un scope désactivé plutôt qu'une
-/// exception qui emporterait le scan.
+/// Pure, testable without Windows: the Windows layer passes it the bytes read from the
+/// registry. Never throws — a truncated or corrupted blob yields a disabled scope
+/// rather than an exception that would take down the scan.
 /// </para>
 ///
 /// <para>
-/// Format confirmé sur machine réelle (cas « accès direct », sans proxy) :
-/// <c>18000000 00000000 01000000 00000000 00000000</c> — version 0x18, compteur, drapeaux
-/// 0x01 (direct), longueur serveur 0, longueur bypass 0. Le bit 0x02 des drapeaux marque
-/// un proxy configuré ; le serveur suit alors immédiatement l'en-tête, en chaîne préfixée.
-/// Le cas « proxy posé » reste à confronter à un vrai <c>netsh winhttp set proxy</c> ; en
-/// cas d'écart, la dégradation est sûre (scope désactivé = aucun constat, jamais de faux
-/// positif), et le job CI Windows exerce la lecture réelle.
+/// Format confirmed on a real machine ("direct access" case, no proxy):
+/// <c>18000000 00000000 01000000 00000000 00000000</c> — version 0x18, counter, flags
+/// 0x01 (direct), server length 0, bypass length 0. Flag bit 0x02 marks a configured
+/// proxy; the server then immediately follows the header, as a length-prefixed string.
+/// The "proxy set" case still has to be checked against a real
+/// <c>netsh winhttp set proxy</c>; if it differs, the degradation is safe (disabled
+/// scope = no finding, never a false positive), and the Windows CI job exercises the
+/// real read.
 /// </para>
 /// </summary>
 public static class WinHttpSettingsDecoder
@@ -51,15 +52,15 @@ public static class WinHttpSettingsDecoder
         return new ProxyScope(
             Enabled: true,
             Server: server,
-            AutoConfigUrl: null,   // WinHTTP ne porte pas de PAC.
+            AutoConfigUrl: null,   // WinHTTP does not carry a PAC.
             Bypass: bypass.Length == 0
                 ? []
                 : bypass.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }
 
     /// <summary>
-    /// Lit une chaîne préfixée de sa longueur. Rend la chaîne vide sans lever si le blob
-    /// est trop court pour la longueur annoncée — un blob corrompu ne doit pas planter.
+    /// Reads a length-prefixed string. Returns the empty string without throwing if the
+    /// blob is too short for the announced length — a corrupted blob must not crash.
     /// </summary>
     private static string ReadPrefixedAscii(byte[] blob, ref int offset)
     {

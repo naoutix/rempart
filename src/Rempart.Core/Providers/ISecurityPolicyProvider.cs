@@ -1,21 +1,21 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Faits de sécurité qui ne se lisent ni au registre ni au gestionnaire de services :
-/// politique de mot de passe, verrouillage de compte, comptes locaux.
+/// Security facts that cannot be read from the registry or the service control manager:
+/// password policy, account lockout, local accounts.
 ///
-/// Exposés comme un dictionnaire de valeurs nommées plutôt que comme un modèle typé.
-/// Une règle compare une valeur à une attente ; lui donner une liste de comptes à
-/// parcourir demanderait un langage d'expression dans le YAML, ce qui reviendrait à
-/// écrire du code dans un fichier de données. Les agrégats — nombre d'administrateurs,
-/// compte invité actif — répondent aux questions qu'un audit pose réellement.
+/// Exposed as a dictionary of named values rather than a typed model. A rule compares a
+/// value against an expectation; giving it a list of accounts to iterate would require
+/// an expression language in the YAML, which amounts to writing code in a data file.
+/// Aggregates — local admin count, guest account enabled — answer the questions an
+/// audit actually asks.
 /// </summary>
 public interface ISecurityPolicyProvider
 {
     /// <summary>
-    /// Faits disponibles, indexés par nom. Une clé absente signifie que le fait n'a pas
-    /// pu être établi : la règle correspondante rendra « non vérifiable », jamais un
-    /// échec — l'outil ne sait pas, il ne juge pas.
+    /// Available facts, indexed by name. A missing key means the fact could not be
+    /// established: the corresponding rule returns "not verifiable", never a failure —
+    /// the tool could not observe the fact, so it makes no judgment.
     /// </summary>
     PolicyFacts Read();
 }
@@ -31,7 +31,7 @@ public sealed record PolicyFacts(
         Values.TryGetValue(name, out var value) ? value : null;
 }
 
-/// <summary>Noms des faits, pour éviter les chaînes libres dans le code.</summary>
+/// <summary>Fact names, to avoid free-form strings in code.</summary>
 public static class PolicyFactNames
 {
     public const string PasswordMinLength = "password.minLength";

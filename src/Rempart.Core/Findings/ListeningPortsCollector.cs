@@ -3,22 +3,22 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Ports en écoute, jugés par leur surface d'exposition réelle.
+/// Listening ports, judged by their actual exposure surface.
 ///
 /// <para>
-/// Un port ouvert n'est pas une menace en soi — une machine en tient toujours plusieurs.
-/// Ce qui compte, c'est le croisement de trois faits : sur quelle adresse écoute-t-il,
-/// quel binaire le tient, et le pare-feu le laisse-t-il entrer. Un port qu'un binaire non
-/// signé expose sur <c>0.0.0.0</c> <b>et</b> que le pare-feu autorise en profil Public est
-/// réellement joignable depuis un réseau non maîtrisé ; le même port bloqué par le pare-feu
-/// ne l'est pas. Les classer pareil serait le défaut que ce lot corrige.
+/// An open port is not a threat in itself — a machine always holds several. What matters
+/// is the crossing of three facts: which address it listens on, which binary holds it,
+/// and whether the firewall lets it in. A port that an unsigned binary exposes on
+/// <c>0.0.0.0</c> <b>and</b> that the firewall allows on the Public profile is genuinely
+/// reachable from an untrusted network; the same port blocked by the firewall is not.
+/// Ranking them the same would be the flaw this batch fixes.
 /// </para>
 ///
 /// <para>
-/// L'écoute purement locale (<c>127.0.0.1</c>, <c>::1</c>) reste bénigne : elle n'expose
-/// rien au réseau, et le binaire non signé qui la tient est déjà relevé par le collecteur
-/// de processus. La signature suit la même échelle (<see cref="SignatureLadder"/>) que les
-/// processus et les pilotes.
+/// Purely local listening (<c>127.0.0.1</c>, <c>::1</c>) stays benign: it exposes nothing
+/// to the network, and the unsigned binary holding it is already reported by the process
+/// collector. The signature follows the same ladder (<see cref="SignatureLadder"/>) as
+/// processes and drivers.
 /// </para>
 /// </summary>
 public sealed class ListeningPortsCollector : IFindingCollector
@@ -27,8 +27,8 @@ public sealed class ListeningPortsCollector : IFindingCollector
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
-        // PID → chemin du binaire propriétaire. Les ports ne portent qu'un PID ; c'est la
-        // table des processus qui le relie à un fichier, donc à une signature.
+        // PID → path of the owning binary. Ports only carry a PID; the process table is
+        // what links it to a file, hence to a signature.
         var ownerByPid = new Dictionary<int, string>();
         foreach (var process in providers.Processes.Enumerate())
         {
@@ -37,14 +37,14 @@ public sealed class ListeningPortsCollector : IFindingCollector
 
         var firewall = providers.Firewall.Read();
 
-        // Un même binaire tient souvent plusieurs ports : on juge sa signature une fois.
+        // The same binary often holds several ports: its signature is judged once.
         var judgements = new Dictionary<string, SignatureJudgement>(StringComparer.OrdinalIgnoreCase);
 
-        // Plusieurs processus lient parfois le même point d'écoute — quatre instances de
-        // Chrome tiennent mDNS sur 0.0.0.0:5353. Le même couple protocole/adresse/port/
-        // propriétaire ne fait qu'un constat, jugé une fois, avec le nombre d'instances ;
-        // les répéter noierait le rapport, comme pour les processus. Deux adresses de bind
-        // distinctes restent deux constats : c'est l'adresse qui porte l'exposition.
+        // Several processes sometimes bind the same listening endpoint — four Chrome
+        // instances hold mDNS on 0.0.0.0:5353. The same protocol/address/port/owner
+        // tuple makes a single finding, judged once, carrying the instance count;
+        // repeating them would drown the report, as with processes. Two distinct bind
+        // addresses remain two findings: the address is what carries the exposure.
         var groups = providers.ListeningPorts.Enumerate()
             .GroupBy(p => (p.Protocol, p.LocalAddress, p.Port,
                 Owner: ownerByPid.TryGetValue(p.Pid, out var op) && op.Length > 0
@@ -102,8 +102,8 @@ public sealed class ListeningPortsCollector : IFindingCollector
 
         var target = owner ?? $"PID {port.Pid}";
 
-        // L'écoute locale ne franchit aucune interface : rien à exposer. Le binaire non
-        // signé qui la tient est l'affaire du collecteur de processus.
+        // Local listening crosses no interface: nothing to expose. The unsigned binary
+        // holding it is the process collector's business.
         if (port.IsLoopbackOnly)
         {
             return new Finding("listening-port", Location(port), target,
@@ -111,23 +111,23 @@ public sealed class ListeningPortsCollector : IFindingCollector
                 ["Écoute locale uniquement — hors de portée du réseau."], details);
         }
 
-        // Le fait qui départage : ce port, le pare-feu le laisse-t-il entrer sur Public ?
+        // The deciding fact: does the firewall let this port in on the Public profile?
         var reach = firewall.InboundReachability(port.Protocol, port.Port, owner);
         var unsigned = judgement is { Severity: FindingSeverity.Suspicious };
 
         return reach switch
         {
-            // Réellement joignable depuis un réseau non maîtrisé. Non signé, c'est un port
-            // ouvert au monde par un binaire dont rien n'atteste l'origine ; signé, c'est
-            // un service exposé qui mérite tout de même un regard.
+            // Genuinely reachable from an untrusted network. Unsigned, it is a port
+            // opened to the world by a binary whose origin nothing attests; signed, it
+            // is an exposed service that still deserves a look.
             FirewallReachability.Reachable => Reachable(port, target, judgement, unsigned, details),
 
-            // Ouvert, mais le pare-feu ne le laisse pas entrer : pas exposé en l'état. On
-            // l'inventorie sans le hisser, quelle que soit la signature — la promesse du lot.
+            // Open, but the firewall does not let it in: not exposed as things stand. It is
+            // inventoried without escalation, whatever the signature — this batch's promise.
             FirewallReachability.Blocked => Blocked(port, target, details),
 
-            // Pare-feu non lu (capture antérieure à sa collecte) : la règle croisée se
-            // retire, et l'on retombe sur la signature seule.
+            // Firewall not read (capture predates its collection): the cross-check rule
+            // steps aside, and we fall back on the signature alone.
             _ => Unknown(port, target, unsigned, judgement, details),
         };
     }
@@ -167,8 +167,8 @@ public sealed class ListeningPortsCollector : IFindingCollector
         ListeningPort port, string target, bool unsigned, SignatureJudgement? judgement,
         Dictionary<string, string> details)
     {
-        // Sans état de pare-feu, on ne prétend pas trancher l'atteignabilité : un binaire
-        // non signé exposé reste suspect sur sa seule signature, le reste est inventorié.
+        // Without firewall state, we do not claim to settle reachability: an exposed
+        // unsigned binary stays suspicious on its signature alone, the rest is inventoried.
         if (unsigned)
         {
             var reach = port.IsAllInterfaces ? "toutes les interfaces" : $"l'interface {port.LocalAddress}";

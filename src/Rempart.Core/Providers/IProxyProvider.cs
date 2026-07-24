@@ -1,13 +1,13 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Configuration proxy d'une portée (par utilisateur WinINET, ou machine WinHTTP).
+/// Proxy configuration for one scope (per-user WinINET, or machine-wide WinHTTP).
 ///
 /// <para>
-/// Distincte du DNS mais de même esprit : un proxy imposé par stratégie de groupe est le
-/// cas d'entreprise attendu, un proxy ou un PAC posé sans contrainte est un choix — ou une
-/// greffe. Un AutoConfigURL (PAC) réécrit tout le routage de la machine, technique de
-/// détournement connue.
+/// Distinct from DNS but similar in kind: a proxy imposed by group policy is the
+/// expected enterprise case; a proxy or PAC set without such a constraint is a
+/// deliberate choice — or an implant. An AutoConfigURL (PAC) rewrites all of the
+/// machine's routing, a known hijacking technique.
 /// </para>
 /// </summary>
 public sealed record ProxyScope(
@@ -19,7 +19,7 @@ public sealed record ProxyScope(
     public static readonly ProxyScope Disabled = new(false, null, null, []);
 }
 
-/// <summary>Toutes les portées proxy de la machine, déjà décodées.</summary>
+/// <summary>All proxy scopes of the machine, already decoded.</summary>
 public sealed record ProxyConfiguration(
     ProxyScope WinInet,
     ProxyScope WinHttp,
@@ -30,8 +30,9 @@ public sealed record ProxyConfiguration(
 }
 
 /// <summary>
-/// Rend la configuration proxy déjà décodée. Abstrait comme le reste (ADR-001, D5) : le
-/// jugement se teste sur une config donnée, sans registre ni machine.
+/// Returns the proxy configuration, already decoded. Abstracted like the rest
+/// (ADR-001, D5): the judgment is tested against a given config, without registry or
+/// machine.
 /// </summary>
 public interface IProxyProvider
 {

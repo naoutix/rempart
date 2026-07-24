@@ -3,15 +3,14 @@ using Rempart.Core.Rules;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// Ce qu'une mise à jour changerait au catalogue en vigueur.
+/// What an update would change in the active catalog.
 ///
 /// <para>
-/// Le socle est un plancher (ADR-002, D12) : une mise à jour peut corriger ou ajouter
-/// un contrôle, jamais en retirer un embarqué. Un contrôle présent dans le socle et
-/// absent de la mise à jour n'est donc pas « retiré » — il reste, tel quel. C'est
-/// pourquoi ce différentiel n'a pas de catégorie « supprimé » : elle serait toujours
-/// vide, et l'y laisser inviterait un jour à la remplir, c'est-à-dire à percer le
-/// plancher.
+/// The baseline is a floor (ADR-002, D12): an update can fix or add a check, never
+/// remove an embedded one. A check present in the baseline and absent from the update is
+/// therefore not "removed" — it stays, unchanged. That is why this diff has no "removed"
+/// category: it would always be empty, and keeping it around would eventually invite
+/// filling it, which would break the floor.
 /// </para>
 /// </summary>
 public sealed record CatalogDiff(
@@ -22,12 +21,12 @@ public sealed record CatalogDiff(
     public bool ChangesNothing => Added.Count == 0 && Modified.Count == 0;
 
     /// <summary>
-    /// Compare un catalogue entrant au catalogue en vigueur, par identifiant.
+    /// Compares an incoming catalog to the active one, by identifier.
     ///
-    /// « Modifié » se juge sur l'empreinte par règle, pas sur le texte : reformuler une
-    /// justification ne modifie pas un contrôle, changer un seuil oui. C'est la même
-    /// aune que l'empreinte du catalogue, pour qu'un rapport et un différentiel ne se
-    /// contredisent jamais sur ce qui « a changé ».
+    /// "Modified" is judged on the per-rule fingerprint, not on the text: rewording a
+    /// justification does not modify a check, changing a threshold does. This is the
+    /// same measure as the catalog fingerprint, so a report and a diff never contradict
+    /// each other about what "changed".
     /// </summary>
     public static CatalogDiff Between(
         IReadOnlyList<Rule> current, IReadOnlyList<Rule> incoming)
@@ -65,7 +64,7 @@ public sealed record CatalogDiff(
 }
 
 /// <summary>
-/// Un contrôle modifié, avec les empreintes avant et après. Les montrer permet de
-/// distinguer d'un coup d'œil deux mises à jour qui touchent la même règle.
+/// A modified check, with the before and after fingerprints. Showing both makes it
+/// possible to tell apart at a glance two updates that touch the same rule.
 /// </summary>
 public sealed record RuleChange(string Id, string Before, string After);

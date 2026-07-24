@@ -9,8 +9,8 @@ using Rempart.Core.Updates;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Le magasin fait de l'I/O : ces tests s'appuient sur un dossier temporaire réel,
-/// comme les tests de règles externes. Chacun nettoie le sien.
+/// The store does I/O: these tests rely on a real temporary directory, like the
+/// external-rules tests. Each one cleans up its own.
 /// </summary>
 public sealed class UpdateStoreTests : IDisposable
 {
@@ -39,8 +39,8 @@ public sealed class UpdateStoreTests : IDisposable
     private IReadOnlyList<Rule> BaseCatalog() => RuleLoader.Load(BaseRule);
 
     /// <summary>
-    /// Écrit un manifeste signé et son jeu de données dans le dossier source, prêt à
-    /// être appliqué. Renvoie le chemin du manifeste, la clé publique et son empreinte.
+    /// Writes a signed manifest and its dataset into the source directory, ready to be
+    /// applied. Returns the manifest path, the public key and its fingerprint.
     /// </summary>
     private (string ManifestPath, ManifestVerifier Verifier) Publish(
         TestPublisher publisher, string datasetName, string content,
@@ -98,7 +98,7 @@ public sealed class UpdateStoreTests : IDisposable
 
         var resolution = UpdateStore.Resolve(Store, BaseCatalog(), verifier);
 
-        // Le socle embarqué tient, l'entrée signée s'y ajoute.
+        // The embedded baseline holds, the signed entry adds to it.
         Assert.True(resolution.Catalog.Count > BloatwareCatalog.Embedded.Count);
         Assert.Equal("BLOAT-SIGNED", resolution.Catalog.Match(new InstalledSoftware(
             "SignedWare Pro", null, null, SoftwareSource.Uninstall, false, true, "{s}"))?.Id);
@@ -117,8 +117,8 @@ public sealed class UpdateStoreTests : IDisposable
     }
 
     /// <summary>
-    /// Le tour complet : publier, appliquer, résoudre. Une règle nouvelle s'ajoute, et
-    /// la date des données devient celle de la publication (D15).
+    /// The full round trip: publish, apply, resolve. A new rule is added, and the data
+    /// date becomes the publication date (D15).
     /// </summary>
     [Fact]
     public void An_applied_update_adds_rules_and_dates_from_the_manifest()
@@ -154,8 +154,8 @@ public sealed class UpdateStoreTests : IDisposable
     }
 
     /// <summary>
-    /// D12 : une mise à jour corrige un contrôle embarqué de même identifiant, sans en
-    /// changer le nombre. La version entrante l'emporte.
+    /// D12: an update corrects an embedded check with the same identifier, without
+    /// changing their count. The incoming version wins.
     /// </summary>
     [Fact]
     public void An_update_corrects_an_embedded_rule_of_the_same_id()
@@ -173,8 +173,8 @@ public sealed class UpdateStoreTests : IDisposable
     }
 
     /// <summary>
-    /// D12, le plancher : une mise à jour qui ne mentionne pas un contrôle embarqué ne
-    /// le retire pas. Il reste, tel quel.
+    /// D12, the floor: an update that does not mention an embedded check does not
+    /// remove it. It stays, as is.
     /// </summary>
     [Fact]
     public void An_update_that_omits_an_embedded_rule_does_not_remove_it()
@@ -203,13 +203,13 @@ public sealed class UpdateStoreTests : IDisposable
         var resolution = UpdateStore.Resolve(Store, BaseCatalog(), verifier);
 
         Assert.Equal(2, resolution.Rules.Count);
-        Assert.Contains(resolution.Rules, r => r.Id == "WIN-STORE-001"); // le socle tient
+        Assert.Contains(resolution.Rules, r => r.Id == "WIN-STORE-001"); // the baseline holds
         Assert.Contains(resolution.Rules, r => r.Id == "WIN-STORE-999");
     }
 
     /// <summary>
-    /// D13 : le scan re-vérifie. Un fichier du magasin altéré après l'application est
-    /// rejeté — le socle tient, et le rapport dit pourquoi. Jamais en silence.
+    /// D13: the scan re-verifies. A store file tampered with after apply is rejected —
+    /// the baseline holds, and the report says why. Never silently.
     /// </summary>
     [Fact]
     public void A_store_file_tampered_after_apply_is_rejected_not_loaded()
@@ -218,19 +218,19 @@ public sealed class UpdateStoreTests : IDisposable
         var (manifestPath, verifier) = Publish(publisher, "regles.yaml", BaseRule);
         UpdateStore.Apply(manifestPath, Store, ["regles.yaml"]);
 
-        // Quelqu'un modifie le jeu de données dans le magasin après coup.
+        // Someone alters the dataset in the store after the fact.
         File.WriteAllText(Path.Combine(Store, "regles.yaml"), "- id: INJECTE");
 
         var resolution = UpdateStore.Resolve(Store, BaseCatalog(), verifier);
 
-        Assert.Single(resolution.Rules); // socle seul
+        Assert.Single(resolution.Rules); // baseline only
         Assert.DoesNotContain(resolution.Rules, r => r.Id == "INJECTE");
         Assert.Contains("ne correspond", resolution.UpdateNote);
     }
 
     /// <summary>
-    /// Un manifeste du magasin signé par une clé inconnue : refusé, socle conservé, dit.
-    /// C'est ce qui distingue « le dépôt a été compromis » d'un chargement silencieux.
+    /// A store manifest signed by an unknown key: refused, baseline kept, and said.
+    /// This is what separates "the store was compromised" from a silent load.
     /// </summary>
     [Fact]
     public void An_untrusted_store_manifest_is_refused_and_said()

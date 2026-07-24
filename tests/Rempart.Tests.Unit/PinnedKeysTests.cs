@@ -5,11 +5,11 @@ namespace Rempart.Tests.Unit;
 public class PinnedKeysTests
 {
     /// <summary>
-    /// Chaque empreinte épinglée doit être exactement celle que le vérificateur
-    /// calculera de la clé publique en regard. Une faute de recopie dans
-    /// <see cref="PinnedKeys"/> — un caractère de la clé, un chiffre de l'empreinte —
-    /// ferait rejeter tout manifeste pour « clé inconnue », sans que rien d'autre ne le
-    /// signale. Ce test refuse de livrer une telle incohérence.
+    /// Each pinned fingerprint must be exactly the one the verifier computes from
+    /// the public key next to it. A copy mistake in <see cref="PinnedKeys"/> — one
+    /// character of the key, one digit of the fingerprint — would make every
+    /// manifest be rejected as "unknown key", with nothing else reporting it.
+    /// This test blocks shipping such an inconsistency.
     /// </summary>
     [Fact]
     public void Every_pinned_fingerprint_matches_its_public_key()
@@ -22,8 +22,9 @@ public class PinnedKeysTests
     }
 
     /// <summary>
-    /// Deux clés au maximum : au-delà, ce n'est plus une rotation mais une accumulation,
-    /// et chaque clé encore acceptée est une clé de plus qui peut signer (ADR-002, D16).
+    /// Two keys at most: beyond that it is no longer a rotation but an
+    /// accumulation, and each still-accepted key is one more key that can sign
+    /// (ADR-002, D16).
     /// </summary>
     [Fact]
     public void At_most_two_keys_are_pinned()
@@ -32,18 +33,17 @@ public class PinnedKeysTests
     }
 
     /// <summary>
-    /// Le vérificateur de production reconnaît bien les clés épinglées : un manifeste
-    /// signé par une clé inconnue est refusé, ce qui confirme au passage qu'une clé
-    /// <em>est</em> désormais épinglée — l'état « aucune clé, tout est refusé » est
-    /// derrière nous.
+    /// The production verifier recognizes the pinned keys: a manifest signed by
+    /// an unknown key is refused, which also confirms that a key <em>is</em> now
+    /// pinned — the "no keys, everything refused" state is over.
     /// </summary>
     [Fact]
     public void The_production_verifier_is_armed_with_the_pinned_keys()
     {
         var verifier = PinnedKeys.Verifier();
 
-        // Un manifeste vide est mal formé, pas « clé inconnue » : la distinction montre
-        // que le vérificateur va jusqu'à examiner les signatures.
+        // An empty manifest is malformed, not "unknown key": the distinction
+        // shows the verifier goes as far as examining the signatures.
         var verdict = verifier.Verify("{}");
 
         Assert.Equal(ManifestStatus.Malformed, verdict.Status);

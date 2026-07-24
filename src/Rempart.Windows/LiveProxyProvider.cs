@@ -3,14 +3,14 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Lit la configuration proxy depuis le registre — par utilisateur (WinINET), imposée par
-/// stratégie de groupe, et machine (WinHTTP).
+/// Reads the proxy configuration from the registry — per-user (WinINET), imposed by
+/// Group Policy, and machine-wide (WinHTTP).
 ///
 /// <para>
-/// Tout passe par <see cref="IRegistryProvider"/>, y compris le blob binaire WinHTTP :
-/// <c>LiveRegistryProvider</c> surface un <c>REG_BINARY</c> en chaîne hexadécimale, qu'on
-/// reconvertit en octets pour le décodeur. Aucun accès direct au registre, donc rejouable
-/// et sans couplage à l'OS au-delà de cette lecture.
+/// Everything goes through <see cref="IRegistryProvider"/>, including the WinHTTP
+/// binary blob: <c>LiveRegistryProvider</c> surfaces a <c>REG_BINARY</c> as a
+/// hexadecimal string, which is converted back to bytes for the decoder. No direct
+/// registry access, so the read is replayable and has no OS coupling beyond this read.
 /// </para>
 /// </summary>
 public sealed class LiveProxyProvider : IProxyProvider

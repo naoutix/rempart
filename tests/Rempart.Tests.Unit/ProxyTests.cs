@@ -9,7 +9,7 @@ using Rempart.Core.Updates;
 
 namespace Rempart.Tests.Unit;
 
-/// <summary>Un fournisseur proxy simulé, sur le modèle de FakeDnsProvider.</summary>
+/// <summary>A simulated proxy provider, modelled on FakeDnsProvider.</summary>
 internal sealed class FakeProxyProvider(ProxyConfiguration config) : IProxyProvider
 {
     public ProxyConfiguration Read() => config;
@@ -17,7 +17,7 @@ internal sealed class FakeProxyProvider(ProxyConfiguration config) : IProxyProvi
 
 public class ProxyProviderSetTests
 {
-    /// <summary>Absent, aucun proxy n'est inventé : la config est vide, comme EmptyDns.</summary>
+    /// <summary>When absent, no proxy is invented: the config is empty, like EmptyDns.</summary>
     [Fact]
     public void An_absent_proxy_provider_yields_an_empty_configuration()
     {
@@ -95,7 +95,7 @@ public class ProxyCollectorTests
     [Fact]
     public void A_disabled_proxy_with_a_malicious_pac_is_still_judged_on_the_pac()
     {
-        // AutoConfigURL s'applique même quand ProxyEnable vaut 0 : le PAC est jugé seul.
+        // AutoConfigURL applies even when ProxyEnable is 0: the PAC is judged on its own.
         var finding = Assert.Single(Collect(WinInet(enabled: false, pac: "http://198.51.100.7/p.pac")));
         Assert.Equal(FindingSeverity.Suspicious, finding.Severity);
     }
@@ -113,7 +113,7 @@ public class ProxyCollectorTests
 
 public class WinHttpSettingsDecoderTests
 {
-    /// <summary>Construit un blob au format WinHttpSettings (en-tête + chaînes préfixées).</summary>
+    /// <summary>Builds a blob in the WinHttpSettings format (header + length-prefixed strings).</summary>
     private static byte[] BuildBlob(uint flags, string server, string bypass)
     {
         var serverBytes = Encoding.ASCII.GetBytes(server);
@@ -122,7 +122,7 @@ public class WinHttpSettingsDecoderTests
         var span = blob.AsSpan();
 
         BinaryPrimitives.WriteUInt32LittleEndian(span[0..], 0x18);   // version
-        BinaryPrimitives.WriteUInt32LittleEndian(span[4..], 0x01);   // compteur
+        BinaryPrimitives.WriteUInt32LittleEndian(span[4..], 0x01);   // counter
         BinaryPrimitives.WriteUInt32LittleEndian(span[8..], flags);
         BinaryPrimitives.WriteUInt32LittleEndian(span[12..], (uint)serverBytes.Length);
         serverBytes.CopyTo(span[16..]);
@@ -159,7 +159,7 @@ public class WinHttpSettingsDecoderTests
     [Fact]
     public void A_truncated_blob_is_disabled_and_does_not_throw()
     {
-        // En-tête annonçant un serveur de 400 octets sur un blob qui n'en a que 16.
+        // A header announcing a 400-byte server on a blob that only has 16.
         var blob = new byte[16];
         BinaryPrimitives.WriteUInt32LittleEndian(blob.AsSpan()[8..], 0x2);
         BinaryPrimitives.WriteUInt32LittleEndian(blob.AsSpan()[12..], 400);
@@ -182,12 +182,12 @@ public class ProxySnapshotTests
 
         new RecordingProxyProvider(new FakeProxyProvider(config), snapshot).Read();
 
-        // Passe par la sérialisation réelle : garde-fou AOT sur les nouveaux records.
+        // Goes through the real serialisation: an AOT guard-rail on the new records.
         var round = RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot));
         var replayed = new SnapshotProxyProvider(round).Read();
 
-        // Comparaison structurelle : l'égalité de record compare Bypass (IReadOnlyList)
-        // par référence, ce qu'une désérialisation ne peut pas satisfaire.
+        // Structural comparison: record equality compares Bypass (IReadOnlyList) by
+        // reference, which a deserialisation cannot satisfy.
         Assert.Equal(config.PolicyImposed, replayed.PolicyImposed);
         Assert.Equal(config.WinInet.Enabled, replayed.WinInet.Enabled);
         Assert.Equal(config.WinInet.Server, replayed.WinInet.Server);
@@ -200,7 +200,7 @@ public class ProxySnapshotTests
     [Fact]
     public void A_snapshot_without_a_proxy_section_replays_an_empty_configuration()
     {
-        // Rétrocompat : une fixture d'avant ce lot n'a pas de section proxy.
+        // Backward compat: a fixture predating this batch has no proxy section.
         var replayed = new SnapshotProxyProvider(new MachineSnapshot()).Read();
 
         Assert.Equal(ProxyConfiguration.Empty, replayed);
@@ -224,7 +224,7 @@ public class ProxyAnonymisationTests
 
         Assert.DoesNotContain("corp.example", result.WinInet.Server);
         Assert.Contains("anon:", result.WinInet.Server);
-        Assert.EndsWith(":8080", result.WinInet.Server);   // le port reste lisible
+        Assert.EndsWith(":8080", result.WinInet.Server);   // the port stays readable
     }
 
     [Fact]

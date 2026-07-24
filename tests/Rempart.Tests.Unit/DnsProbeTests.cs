@@ -10,14 +10,14 @@ public class DnsWireFormatTests
     {
         var packet = DnsWireFormat.BuildQuery("example.com", 0xABCD);
 
-        Assert.Equal(0xAB, packet[0]);           // identifiant
+        Assert.Equal(0xAB, packet[0]);           // identifier
         Assert.Equal(0xCD, packet[1]);
-        Assert.Equal(0x01, packet[2]);           // drapeaux : RD posé
+        Assert.Equal(0x01, packet[2]);           // flags: RD set
         Assert.Equal(1, packet[5]);              // QDCOUNT = 1
-        Assert.Equal(7, packet[12]);             // longueur du label « example »
+        Assert.Equal(7, packet[12]);             // length of the "example" label
         Assert.Equal((byte)'e', packet[13]);
-        Assert.Equal(3, packet[20]);             // longueur du label « com »
-        Assert.Equal(0, packet[24]);             // racine
+        Assert.Equal(3, packet[20]);             // length of the "com" label
+        Assert.Equal(0, packet[24]);             // root
         Assert.Equal(1, packet[26]);             // QTYPE = A
         Assert.Equal(1, packet[28]);             // QCLASS = IN
         Assert.Equal(29, packet.Length);
@@ -28,7 +28,7 @@ public class DnsWireFormatTests
     {
         var query = DnsWireFormat.BuildQuery("example.com", 0x1234);
         var response = (byte[])query.Clone();
-        response[2] = 0x81;   // bit QR posé
+        response[2] = 0x81;   // QR bit set
 
         Assert.True(DnsWireFormat.IsValidResponse(query, response));
     }
@@ -111,7 +111,7 @@ public class DnsProbeAnalysisTests
             Down("Google", DnsProbeProtocol.DoT),
         ]);
 
-        Assert.Equal("Cloudflare", report.RecommendedResolver);   // DoH passe encore
+        Assert.Equal("Cloudflare", report.RecommendedResolver);   // DoH still gets through
         var finding = Assert.Single(findings);
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Equal("DoT", finding.Target);

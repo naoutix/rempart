@@ -7,16 +7,16 @@ using Rempart.Core.Snapshots;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Tests de niveau 2 : les collecteurs rejouent des instantanés, comparés à une sortie
-/// de référence versionnée. Une régression devient visible sans démarrer de VM.
+/// Level-2 tests: the collectors replay snapshots, compared against a versioned
+/// reference output. A regression becomes visible without starting a VM.
 ///
-/// Deux répertoires, deux régimes :
+/// Two directories, two regimes:
 /// <list type="bullet">
-///   <item><c>synthetic/</c> — versionné, valeurs fabriquées. Le dépôt étant public,
-///   aucune machine réelle n'y figure.</item>
-///   <item><c>local/</c> — hors versionnement. Les captures de machines réelles y
-///   restent, et sont rejouées si présentes : c'est là que se trouvent les cas que
-///   personne n'aurait pensé à fabriquer.</item>
+///   <item><c>synthetic/</c> — versioned, fabricated values. The repository being
+///   public, no real machine appears there.</item>
+///   <item><c>local/</c> — outside version control. Captures of real machines stay
+///   there, and are replayed when present: that is where the cases live that
+///   nobody would have thought to fabricate.</item>
 /// </list>
 /// </summary>
 public sealed class FixtureReplayTests
@@ -32,8 +32,8 @@ public sealed class FixtureReplayTests
                 .Replace(Path.DirectorySeparatorChar, '/'));
         }
 
-        // Les fixtures synthétiques sont versionnées : leur absence signale un dépôt
-        // incomplet, pas une machine sans captures locales.
+        // Synthetic fixtures are versioned: their absence signals an incomplete
+        // repository, not a machine without local captures.
         Assert.Contains(data.Cast<object[]>().Select(d => (string)d[0]),
             name => name.StartsWith("synthetic/", StringComparison.Ordinal));
         return data;
@@ -61,24 +61,24 @@ public sealed class FixtureReplayTests
     [MemberData(nameof(Fixtures))]
     public void Replay_is_deterministic(string fixture)
     {
-        // Un rejeu qui varierait d'une exécution à l'autre rendrait toute référence
-        // inutilisable — y compris pour rempart diff (M7).
+        // A replay that varied from one run to the next would make any reference
+        // unusable — including for rempart diff (M7).
         Assert.Equal(Replay(fixture), Replay(fixture));
     }
 
     [Fact]
     public void No_shipped_rule_fails_on_a_hardened_machine()
     {
-        // Une règle qui ne peut jamais passer est un bug : attendu contradictoire,
-        // chemin erroné, opérateur mal choisi. Elle produirait un échec permanent sur
-        // toutes les machines, que personne ne pourrait corriger.
+        // A rule that can never pass is a bug: contradictory expectation, wrong
+        // path, badly chosen operator. It would produce a permanent failure on
+        // every machine, one that nobody could fix.
         //
-        // La fixture « hardened » pose sur chaque clé la valeur que sa règle attend.
+        // The "hardened" fixture sets on each key the value its rule expects.
         //
-        // NotApplicable reste une réponse recevable, et l'exiger absent serait une
-        // erreur : certaines règles s'excluent mutuellement par construction. RDP
-        // désactivé satisfait WIN-RDP-001 et rend WIN-RDP-002 (NLA) sans objet —
-        // aucune machine ne peut satisfaire les deux à la fois.
+        // NotApplicable remains an acceptable answer, and requiring its absence
+        // would be a mistake: some rules exclude each other by construction. RDP
+        // disabled satisfies WIN-RDP-001 and makes WIN-RDP-002 (NLA) moot — no
+        // machine can satisfy both at once.
         var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
             Path.Combine(FixtureDirectory, "synthetic", "hardened-win11.capture.json")));
 
@@ -101,9 +101,9 @@ public sealed class FixtureReplayTests
     [Fact]
     public void The_hardened_fixture_leaves_almost_no_rule_unevaluated()
     {
-        // Garde-fou contre la dérive inverse : une fixture qui rendrait la plupart des
-        // règles « hors périmètre » atteindrait 100 % sans rien prouver. Les exclusions
-        // doivent rester rares et intentionnelles.
+        // Guardrail against the opposite drift: a fixture that pushed most rules
+        // out of scope would reach 100 % without proving anything. Exclusions
+        // must stay rare and intentional.
         var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
             Path.Combine(FixtureDirectory, "synthetic", "hardened-win11.capture.json")));
 
@@ -131,8 +131,8 @@ public sealed class FixtureReplayTests
         {
             var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(path));
 
-            // Garde-fou : le dépôt est public. Une capture brute déposée ici par
-            // inadvertance échoue au test, pas six mois plus tard en relisant le dépôt.
+            // Guardrail: the repository is public. A raw capture dropped here by
+            // mistake fails the test now, not six months later while rereading the repo.
             Assert.True(snapshot.Anonymised, $"Fixture non anonymisée : {path}");
             Assert.StartsWith("anon:", snapshot.SystemInfo?.MachineName, StringComparison.Ordinal);
         }
@@ -141,8 +141,8 @@ public sealed class FixtureReplayTests
     [Fact]
     public void Local_fixtures_stay_out_of_version_control()
     {
-        // La politique est portée par .gitignore ; ce test la rend visible depuis le code,
-        // là où quelqu'un risque de déposer une capture réelle par commodité.
+        // The policy lives in .gitignore; this test makes it visible from the code,
+        // right where someone might drop a real capture out of convenience.
         var local = Path.Combine(FixtureDirectory, "local");
         var readme = Path.Combine(local, "README.md");
 
@@ -155,12 +155,12 @@ public sealed class FixtureReplayTests
         var snapshot = RempartJson.DeserialiseSnapshot(
             File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
 
-        // Tous les providers de rejeu sont câblés, en arguments nommés : le scan réel en
-        // fournit autant (Program.cs), et un rejeu qui en omettrait retomberait sur les
-        // no-op par défaut. Les collecteurs correspondants tourneraient alors à vide et la
-        // référence figerait « rien trouvé » sur une capture qui contient la donnée — la
-        // pire forme de fixture, celle qui rassure. Le nommage prévient aussi toute
-        // inversion silencieuse entre providers de même forme.
+        // Every replay provider is wired in, as named arguments: the real scan
+        // supplies just as many (Program.cs), and a replay omitting one would fall
+        // back to the default no-ops. The matching collectors would then run on
+        // empty and the reference would freeze "nothing found" over a capture that
+        // does hold the data — the worst kind of fixture, the reassuring one. The
+        // naming also prevents any silent swap between same-shaped providers.
         var providers = new ProviderSet(
             new SnapshotRegistryProvider(snapshot),
             new SnapshotSystemInfoProvider(snapshot),
@@ -180,11 +180,11 @@ public sealed class FixtureReplayTests
             wifi: new SnapshotWifiProfileProvider(snapshot),
             softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot));
 
-        // Moteur complet, regles comprises : c'est le verdict rendu sur une machine
-        // donnee qu'on veut voir figer, pas seulement les champs collectes.
+        // Full engine, rules included: what we want frozen is the verdict rendered
+        // on a given machine, not just the collected fields.
         var result = ScanEngine.Default().Run(providers, "test", snapshot.CapturedAtUtc);
 
-        // Les champs volatils sont retirés : une référence ne peut pas figer un uptime.
+        // Volatile fields are removed: a reference cannot freeze an uptime.
         var comparable = result with
         {
             Collectors = [.. result.Collectors.Select(c => c with

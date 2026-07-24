@@ -3,16 +3,15 @@ using System.Runtime.InteropServices;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Vérification par catalogue.
+/// Catalog-based signature verification.
 ///
-/// La plupart des binaires Windows ne portent aucune signature embarquée : leur
-/// signature vit dans un fichier <c>.cat</c> séparé, indexé par empreinte. Une
-/// vérification qui n'examine que le fichier les déclare non signés — ce qui
-/// classerait <c>cmd.exe</c> comme suspect, et avec lui la quasi-totalité des
-/// démarrages automatiques d'un Windows sain.
+/// Most Windows binaries carry no embedded signature: their signature lives in a
+/// separate <c>.cat</c> file, indexed by hash. A check that only inspects the file
+/// itself would report them as unsigned — classifying <c>cmd.exe</c> as suspect,
+/// along with almost every autostart entry of a healthy Windows install.
 ///
-/// La démarche est celle de Windows lui-même : calculer l'empreinte du fichier,
-/// chercher le catalogue qui la contient, puis valider ce catalogue.
+/// This follows the same steps Windows uses: compute the file hash, find the
+/// catalog that contains it, then validate that catalog.
 /// </summary>
 internal static unsafe partial class CatalogSignature
 {
@@ -99,12 +98,12 @@ internal static unsafe partial class CatalogSignature
     private static partial int WinVerifyTrust(IntPtr window, ref Guid action, ref WintrustData data);
 
     /// <summary>
-    /// Vérifie que le fichier est couvert par un catalogue valide.
+    /// Checks whether the file is covered by a valid catalog.
     /// </summary>
     /// <returns>
-    /// <c>0</c> si un catalogue valide couvre le fichier, un HRESULT sinon, et
-    /// <c>null</c> si aucun catalogue ne le référence — auquel cas le fichier n'est
-    /// simplement pas signé de cette manière.
+    /// <c>0</c> if a valid catalog covers the file, an HRESULT otherwise, and
+    /// <c>null</c> if no catalog references it — in which case the file is simply
+    /// not signed this way.
     /// </returns>
     internal static int? Verify(string path)
     {
@@ -118,7 +117,7 @@ internal static unsafe partial class CatalogSignature
             using var stream = File.OpenRead(path);
             var handle = stream.SafeFileHandle.DangerousGetHandle();
 
-            // Appel en deux temps : la taille de l'empreinte d'abord, son contenu ensuite.
+            // Two-step call: first the hash size, then its content.
             uint size = 0;
             CalcHash(admin, handle, ref size, null, 0);
             if (size == 0)
@@ -135,8 +134,8 @@ internal static unsafe partial class CatalogSignature
             var catalog = EnumCatalogFromHash(admin, hash, size, 0, IntPtr.Zero);
             if (catalog == IntPtr.Zero)
             {
-                // Aucun catalogue ne couvre ce fichier : ce n'est pas un échec de
-                // vérification, c'est une absence de signature par catalogue.
+                // No catalog covers this file: this is not a verification failure,
+                // the file just has no catalog signature.
                 return null;
             }
 
@@ -168,10 +167,10 @@ internal static unsafe partial class CatalogSignature
             return null;
         }
 
-        // Le tampon est deja fixe dans la structure locale : on lit directement.
+        // The buffer is a fixed array in the local struct: read it directly.
         var catalogPath = new string(info.CatalogFile);
 
-        // Le membre est designe dans le catalogue par son empreinte en hexadecimal.
+        // The member is identified in the catalog by its hash in hexadecimal.
         var memberTag = Convert.ToHexString(hash);
 
         var catalogPathPointer = Marshal.StringToHGlobalUni(catalogPath);
@@ -211,7 +210,7 @@ internal static unsafe partial class CatalogSignature
             var action = ActionGenericVerifyV2;
             var result = WinVerifyTrust(IntPtr.Zero, ref action, ref data);
 
-            // Second appel obligatoire : sans lui l'état alloué fuit à chaque fichier.
+            // The second call is mandatory: without it the allocated state leaks on every file.
             data.StateAction = WtdStateActionClose;
             WinVerifyTrust(IntPtr.Zero, ref action, ref data);
 

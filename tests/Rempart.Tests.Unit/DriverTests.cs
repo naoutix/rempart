@@ -28,9 +28,9 @@ public class DriverTests
     }
 
     /// <summary>
-    /// Sur une machine saine, chaque pilote noyau est validement signé : aucun ne
-    /// ressort. C'est le résultat observé en vrai (190 pilotes, 190 valides), et la
-    /// preuve que le collecteur ne fait pas de bruit.
+    /// On a healthy machine, every kernel driver is validly signed: none stands out.
+    /// That is the result observed in the wild (190 drivers, 190 valid), and proof
+    /// that the collector makes no noise.
     /// </summary>
     [Fact]
     public void A_validly_signed_driver_absent_from_the_blocklist_is_benign()
@@ -44,9 +44,9 @@ public class DriverTests
     }
 
     /// <summary>
-    /// Un pilote noyau non signé n'a rien à faire sur une machine à Secure Boot : c'est
-    /// le premier signe d'un chargement forcé. Le jugement est celui de l'échelle
-    /// commune, la même que pour un démarrage automatique.
+    /// An unsigned kernel driver has no place on a Secure Boot machine: it is the
+    /// first sign of a forced load. The verdict comes from the common scale, the same
+    /// one used for an autorun.
     /// </summary>
     [Fact]
     public void An_unsigned_driver_is_suspicious()
@@ -60,9 +60,9 @@ public class DriverTests
     }
 
     /// <summary>
-    /// Un pilote parfaitement signé mais connu vulnérable est suspect : c'est justement
-    /// un pilote légitime qu'un attaquant apporte pour s'en servir de levier (BYOVD).
-    /// La liste de blocage ne peut qu'aggraver le verdict de signature.
+    /// A perfectly signed but known-vulnerable driver is suspicious: it is precisely a
+    /// legitimate driver that an attacker brings along to use as leverage (BYOVD).
+    /// The blocklist can only worsen the signature verdict.
     /// </summary>
     [Fact]
     public void A_validly_signed_but_known_vulnerable_driver_is_suspicious()
@@ -81,8 +81,8 @@ public class DriverTests
     }
 
     /// <summary>
-    /// La correspondance se fait sur l'empreinte quelle que soit la casse : le
-    /// fournisseur de signature et la liste peuvent la rendre différemment.
+    /// Matching is done on the hash regardless of case: the signature provider and
+    /// the list may render it differently.
     /// </summary>
     [Fact]
     public void Blocklist_match_is_case_insensitive_on_the_hash()
@@ -94,9 +94,8 @@ public class DriverTests
     }
 
     /// <summary>
-    /// Un pilote dont l'empreinte n'a pas pu être calculée n'est pas déclaré sûr : il
-    /// n'est simplement pas trouvé dans la liste, et son verdict reste celui de sa
-    /// signature.
+    /// A driver whose hash could not be computed is not declared safe: it is simply
+    /// not found in the list, and its verdict remains the one its signature earns.
     /// </summary>
     [Fact]
     public void A_driver_without_a_hash_is_not_matched()
@@ -106,8 +105,8 @@ public class DriverTests
     }
 
     /// <summary>
-    /// Une liste illisible n'est pas une liste vide : lever plutôt que charger « au
-    /// mieux » une liste de sécurité tronquée.
+    /// An unreadable list is not an empty list: throw rather than load a truncated
+    /// security list "as best we can".
     /// </summary>
     [Fact]
     public void An_unreadable_blocklist_throws_rather_than_loading_partially()
@@ -116,8 +115,8 @@ public class DriverTests
     }
 
     /// <summary>
-    /// Un catalogue bloatware signé sans <c>--kind</c> route ici par défaut (Infer) :
-    /// sans la clé « drivers », il ne faut pas charger silencieusement une liste vide.
+    /// A bloatware catalog signed without <c>--kind</c> routes here by default (Infer):
+    /// without the "drivers" key, an empty list must not be loaded silently.
     /// </summary>
     [Fact]
     public void Parse_throws_when_the_drivers_key_is_absent() =>

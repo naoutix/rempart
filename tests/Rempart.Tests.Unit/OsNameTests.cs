@@ -3,9 +3,9 @@ using Rempart.Core.Collectors;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Sur Windows 11, la valeur de registre <c>ProductName</c> annonce toujours
-/// « Windows 10 » — Microsoft ne l'a jamais corrigée. Rapporter cette valeur telle
-/// quelle fausserait toute règle conditionnée à la version de l'OS.
+/// On Windows 11, the <c>ProductName</c> registry value still reports
+/// "Windows 10" — Microsoft never fixed it. Reporting that value as-is would
+/// break any rule conditioned on the OS version.
 /// </summary>
 public sealed class OsNameTests
 {
@@ -33,7 +33,7 @@ public sealed class OsNameTests
     [InlineData("pas-un-nombre")]
     public void Unreadable_build_falls_back_to_the_raw_registry_value(string? build)
     {
-        // Rendre la valeur brute plutôt qu'inventer une version.
+        // Return the raw value rather than invent a version.
         Assert.Equal("Windows 10 Pro", InventoryCollector.DeriveOsName(build, "Windows 10 Pro"));
     }
 

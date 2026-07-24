@@ -3,7 +3,7 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Findings;
 
 /// <summary>
-/// Le verdict porté sur un exécutable et les raisons qui le motivent.
+/// The verdict passed on an executable and the reasons behind it.
 /// </summary>
 public sealed record SignatureJudgement(
     FindingSeverity Severity,
@@ -11,23 +11,23 @@ public sealed record SignatureJudgement(
     FileSignature Signature);
 
 /// <summary>
-/// L'échelle commune à tous les collecteurs de persistance.
+/// The ladder shared by all persistence collectors.
 ///
-/// Démarrage automatique et tâches planifiées posent la même question — ce programme
-/// se lance tout seul, qu'est-ce qui atteste de son origine ? — et doivent y répondre
-/// pareil. Deux échelles séparées divergeraient : la même absence de signature
-/// deviendrait suspecte ici et notable là, sans que rien ne le justifie.
+/// Autoruns and scheduled tasks ask the same question — this program starts on its
+/// own, what attests to its origin? — and must answer it the same way. Two separate
+/// ladders would drift apart: the same missing signature would become suspicious here
+/// and notable there, with nothing to justify it.
 ///
-/// Le jugement porte sur la signature, pas sur le nom ni le chemin : les deux
-/// s'imitent trivialement, un binaire nommé « OneDriveSetup.exe » dans un dossier
-/// utilisateur n'a rien de Microsoft.
+/// The judgement rests on the signature, not on the name or the path: both are
+/// trivially imitated, and a binary named "OneDriveSetup.exe" in a user folder has
+/// nothing of Microsoft.
 /// </summary>
 public static class SignatureLadder
 {
     /// <summary>
-    /// Emplacements d'où un binaire légitime se lance rarement. Un exécutable qui
-    /// démarre depuis un dossier temporaire ou un profil utilisateur mérite un
-    /// regard — sans être coupable pour autant, beaucoup d'outils s'y installent.
+    /// Locations a legitimate binary rarely launches from. An executable starting
+    /// from a temporary folder or a user profile deserves a look — without being
+    /// guilty for that alone, plenty of tools install there.
     /// </summary>
     private static readonly string[] UnusualLocations =
     [
@@ -42,10 +42,10 @@ public static class SignatureLadder
         var signature = signatures.Verify(path);
         var reasons = new List<string>();
 
-        // Un binaire sous WindowsApps est déployé par MSIX : Windows n'y écrit que des
-        // paquets dont il a vérifié la signature, et le fichier lui-même n'en porte pas
-        // au niveau Authenticode. « Non signé » y est donc la règle, pas un signal — le
-        // marquer suspect accuserait à tort chaque application du Store.
+        // A binary under WindowsApps is deployed by MSIX: Windows only writes packages
+        // there whose signature it has verified, and the file itself carries none at
+        // the Authenticode level. "Unsigned" is therefore the rule there, not a signal —
+        // marking it suspicious would wrongly accuse every Store application.
         if (signature.Status == SignatureStatus.Unsigned
             && path.Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase))
         {
@@ -72,7 +72,7 @@ public static class SignatureLadder
                 "qu'un tiers pourrait occuper pour être lancé au démarrage.",
                 FindingSeverity.Notable),
 
-            // Ni valide ni invalide : ne pas transformer une lacune en accusation.
+            // Neither valid nor invalid: do not turn a gap into an accusation.
             _ => Add(reasons,
                 "Signature non vérifiable. Ce n'est pas un défaut du binaire.",
                 FindingSeverity.Notable),
@@ -87,7 +87,7 @@ public static class SignatureLadder
         return new SignatureJudgement(severity, reasons, signature);
     }
 
-    /// <summary>Verse la signature dans les détails d'un constat, sans les champs vides.</summary>
+    /// <summary>Writes the signature into a finding's details, omitting empty fields.</summary>
     public static void Describe(FileSignature signature, IDictionary<string, string> details)
     {
         details["signature"] = signature.Status.ToString();

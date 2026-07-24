@@ -3,23 +3,23 @@ using Rempart.Core.Providers;
 namespace Rempart.Core.Rules;
 
 /// <summary>
-/// Résultat brut de la lecture d'un contrôle, avant tout jugement.
+/// Raw result of reading a check, before any judgment.
 /// </summary>
-/// <param name="Found">Valeur réellement présente, ou null si absente.</param>
+/// <param name="Found">Value actually present, or null if absent.</param>
 /// <param name="Effective">
-/// Valeur qui régit le comportement : <paramref name="Found"/> ou, à défaut, le défaut
-/// Windows déclaré par la règle.
+/// Value that governs the behavior: <paramref name="Found"/> or, failing that, the
+/// Windows default declared by the rule.
 /// </param>
-/// <param name="Denied">L'accès a été refusé : ni conforme, ni non conforme.</param>
+/// <param name="Denied">Access was denied: neither compliant nor non-compliant.</param>
 public sealed record CheckReading(string? Found, string? Effective, bool Denied)
 {
-    /// <summary>Ce que le rapport affiche, défaut Windows mentionné le cas échéant.</summary>
+    /// <summary>What the report displays, mentioning the Windows default when relevant.</summary>
     public string? Describe(CheckSpec check)
     {
         if (Denied)
         {
-            // Renseignée quand une défaillance interne a été diagnostiquée ; null pour
-            // un refus d'accès légitime, où il n'y a rien à expliquer.
+            // Set when an internal failure was diagnosed; null for a legitimate access
+            // denial, where there is nothing to explain.
             return Found;
         }
 
@@ -35,12 +35,13 @@ public sealed record CheckReading(string? Found, string? Effective, bool Denied)
 }
 
 /// <summary>
-/// Seul point du projet qui traduit un <see cref="CheckSpec"/> en appels de provider.
+/// The only place in the project that translates a <see cref="CheckSpec"/> into provider
+/// calls.
 ///
-/// L'évaluation et la capture avaient chacune leur version de cette traduction, à tenir
-/// synchronisées sans que rien ne le garantisse. Le prochain type de contrôle oublié
-/// côté capture aurait produit des instantanés silencieusement incomplets, et un échec
-/// de rejeu bien plus tard, avec un message sans rapport avec la cause.
+/// Evaluation and capture each used to have their own version of this translation, to be
+/// kept in sync with nothing guaranteeing it. The next check type forgotten on the
+/// capture side would have produced silently incomplete snapshots, and a replay failure
+/// much later, with a message unrelated to the cause.
 /// </summary>
 public static class CheckReader
 {
@@ -53,9 +54,9 @@ public static class CheckReader
     };
 
     /// <summary>
-    /// Un fait absent du dictionnaire n'est pas une non-conformité : l'API n'a pas su
-    /// l'établir. Rendre « non vérifiable » plutôt qu'un verdict évite de reprocher à
-    /// une machine ce que l'outil n'a pas su lire.
+    /// A fact missing from the dictionary is not a non-compliance: the API could not
+    /// establish it. Returning "not verifiable" rather than a verdict avoids blaming a
+    /// machine for what the tool could not read.
     /// </summary>
     private static CheckReading ReadPolicy(CheckSpec check, ISecurityPolicyProvider policy)
     {
@@ -70,9 +71,9 @@ public static class CheckReader
     }
 
     /// <summary>
-    /// Un service absent n'est pas un refus d'accès : il n'y a rien à lire, et la
-    /// comparaison portera sur « absent ». Distinguer les deux évite de conclure à
-    /// une non-conformité là où le scan n'a simplement pas pu regarder.
+    /// A missing service is not an access denial: there is nothing to read, and the
+    /// comparison will run against "absent". Distinguishing the two avoids concluding
+    /// non-compliance where the scan simply could not look.
     /// </summary>
     private static CheckReading ReadService(CheckSpec check, IServiceStateProvider services)
     {
@@ -98,12 +99,12 @@ public static class CheckReader
     }
 
     /// <summary>
-    /// Un contrôle WMI porte sur toutes les instances rendues : chaque volume, chaque
-    /// adaptateur. Il n'est satisfait que si toutes le sont — un seul disque non
-    /// chiffré suffit à exposer les données qu'il porte.
+    /// A WMI check covers all returned instances: every volume, every adapter. It only
+    /// passes if all of them pass — a single unencrypted disk is enough to expose the
+    /// data it holds.
     ///
-    /// Quand les instances divergent, la valeur observée les énumère et la comparaison
-    /// échoue d'elle-même : aucune valeur unique ne peut correspondre à plusieurs.
+    /// When instances diverge, the observed value lists them and the comparison fails
+    /// by itself: no single value can match several.
     /// </summary>
     private static CheckReading ReadWmi(CheckSpec check, IWmiProvider wmi)
     {
@@ -116,12 +117,12 @@ public static class CheckReader
         var read = wmi.Query(
             check.Path[..separator], check.Path[(separator + 1)..], [check.ValueName]);
 
-        // Aucune instance : il n'y a rien à juger. BitLocker absent d'une édition
-        // Famille n'est pas une non-conformité, c'est une absence de sujet.
+        // No instances: nothing to judge. BitLocker missing on a Home edition is not a
+        // non-compliance, there is simply nothing to evaluate.
         if (read.Status != ReadStatus.Found || read.Instances.Count == 0)
         {
-            // La raison d'un échec interne accompagne le verdict : sans elle, un bug
-            // du provider ressemble à un manque de droits.
+            // The reason for an internal failure travels with the verdict: without it,
+            // a provider bug looks like missing privileges.
             return new CheckReading(read.Diagnostic, null, Denied: true);
         }
 
@@ -163,16 +164,16 @@ public static class CheckReader
 
         var found = read.Status == ReadStatus.Found ? read.Value?.ToString() : null;
 
-        // Clé absente : le comportement effectif est celui du défaut Windows déclaré
-        // par la règle. Le verdict porte donc sur ce que fait réellement la machine,
-        // pas sur la présence d'une entrée de registre.
+        // Absent key: the effective behavior is the Windows default declared by the
+        // rule. The verdict is therefore about what the machine actually does, not
+        // about the presence of a registry entry.
         return new CheckReading(found, found ?? check.WindowsDefault, Denied: false);
     }
 
     /// <summary>
-    /// Effectue la lecture sans exploiter le résultat, pour qu'un provider
-    /// d'enregistrement la consigne. Passe par <see cref="Read"/> : c'est ce qui
-    /// garantit que capture et évaluation touchent exactement les mêmes clés.
+    /// Performs the read without using the result, so a recording provider can log it.
+    /// Goes through <see cref="Read"/>: that is what guarantees capture and evaluation
+    /// touch exactly the same keys.
     /// </summary>
     public static void Touch(CheckSpec check, ProviderSet providers) =>
         _ = Read(check, providers);

@@ -1,18 +1,18 @@
 <#
 .SYNOPSIS
-    Régénère les fixtures synthétiques à partir d'une capture réelle.
+    Regenerates the synthetic fixtures from a real capture.
 
 .DESCRIPTION
-    À lancer après tout changement du catalogue de règles : une règle ajoutée lit une
-    clé que les fixtures existantes ne contiennent pas, et le rejeu échoue.
+    Run after any change to the rule catalog: an added rule reads a key that the
+    existing fixtures do not contain, and the replay fails.
 
-    La substitution s'appuie sur les règles chargées par le moteur lui-même. Un script
-    antérieur reparsait le YAML en expressions régulières — une seconde implémentation
-    du chargeur, ni versionnée ni testée, que personne d'autre ne pouvait rejouer.
+    The substitution relies on the rules loaded by the engine itself. An earlier
+    script re-parsed the YAML with regular expressions — a second implementation
+    of the loader, neither versioned nor tested, that nobody else could replay.
 
 .PARAMETER Source
-    Capture réelle servant de base. Par défaut la première trouvée dans
-    tests/fixtures/local/, hors dépôt.
+    Real capture used as the base. Defaults to the first one found in
+    tests/fixtures/local/, kept out of the repository.
 
 .EXAMPLE
     ./scripts/regenerate-fixtures.ps1
@@ -48,22 +48,22 @@ try {
     $cli = 'src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/rempart.dll'
     $out = 'tests/fixtures/synthetic'
 
-    # Poste durci. Joint a un domaine pour que les regles conditionnees le soient aussi
-    # et se retrouvent reellement evaluees.
+    # Hardened workstation. Domain-joined so that domain-conditioned rules are too,
+    # and actually get evaluated.
     dotnet $cli synthesise --from $Source --out "$out/hardened-win11.capture.json" `
         --profile hardened --name 'anon:000000000001' --domain-joined
 
-    # Aucune cle de durcissement posee : exerce la semantique des defauts Windows,
-    # le cas le plus repandu en parc reel.
+    # No hardening key set: exercises the Windows-defaults semantics, the most
+    # common case in a real fleet.
     dotnet $cli synthesise --from $Source --out "$out/default-win11.capture.json" `
         --profile defaults --name 'anon:000000000002'
 
-    # Scan non eleve : les cles LSA sont hors de portee.
+    # Non-elevated scan: the LSA keys are out of reach.
     dotnet $cli synthesise --from $Source --out "$out/restricted-access.capture.json" `
         --profile hardened --name 'anon:000000000003' --domain-joined --not-elevated --deny 'Control\Lsa'
 
-    # Les references sont reecrites par la suite de tests, qui echoue une fois pour
-    # forcer leur relecture avant versionnement.
+    # The expected references are rewritten by the test suite, which fails once to
+    # force their review before they are committed.
     Remove-Item "$out/*.expected.json" -ErrorAction SilentlyContinue
     Write-Host ''
     Write-Host 'Fixtures regenerees. Lancer « dotnet test » : les references seront'

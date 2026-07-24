@@ -14,7 +14,7 @@ public sealed class LiveFileSystemProvider : IFileSystemProvider
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
-            // Un refus rend une liste vide : les autres emplacements comptent aussi.
+            // Access denial returns an empty list: the other locations still need scanning.
             return [];
         }
     }

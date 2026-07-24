@@ -5,18 +5,18 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Énumère les points d'écoute TCP et UDP via <c>iphlpapi</c>.
+/// Enumerates TCP and UDP listening endpoints via <c>iphlpapi</c>.
 ///
 /// <para>
-/// <c>GetExtendedTcpTable</c> rend une table à taille variable, comme les pilotes : on
-/// demande d'abord la taille, on alloue, on relit. Le tampon est parcouru par décalages
-/// plutôt que par une structure marshalée — le même choix que pour l'énumération des
-/// pilotes, où un marshalling généré avait rendu un tampon vide en silence.
+/// <c>GetExtendedTcpTable</c> returns a variable-size table, like the driver APIs: ask
+/// for the size first, allocate, then read again. The buffer is walked by offsets
+/// rather than through a marshaled struct — the same choice as for driver enumeration,
+/// where generated marshalling had silently returned an empty buffer.
 /// </para>
 ///
 /// <para>
-/// TCP en classe « listener » : Windows ne rend alors que les sockets en écoute, pas les
-/// connexions établies. UDP n'a pas d'état — tout socket UDP ouvert « écoute ».
+/// TCP uses the "listener" table class: Windows then returns only listening sockets,
+/// not established connections. UDP has no state — every open UDP socket "listens".
 /// </para>
 /// </summary>
 public sealed partial class LiveListeningPortProvider : IListeningPortProvider
@@ -27,9 +27,9 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
     private const uint ErrorInsufficientBuffer = 122;
 
     /// <summary>
-    /// Une table MIB se lit en deux temps : un premier appel rend la taille nécessaire,
-    /// le second remplit le tampon. La taille voyage par <c>ref</c> — un <c>Func</c> ne
-    /// sait pas la porter, d'où ce délégué dédié.
+    /// A MIB table is read in two steps: a first call returns the required size, the
+    /// second fills the buffer. The size travels by <c>ref</c> — a <c>Func</c> cannot
+    /// carry it, hence this dedicated delegate.
     /// </summary>
     private delegate uint TableCall(IntPtr table, ref uint size);
 
@@ -56,9 +56,8 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
     }
 
     /// <summary>
-    /// Une table MIB partage la même forme : un compteur d'entrées sur quatre octets,
-    /// puis les lignes. Seuls la taille d'une ligne et les décalages de ses champs
-    /// changent entre TCP et UDP.
+    /// Every MIB table has the same shape: a four-byte entry count, then the rows.
+    /// Only the row size and the field offsets differ between TCP and UDP.
     /// </summary>
     private static void ReadTable(
         List<ListeningPort> ports, string protocol,
@@ -67,7 +66,7 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
     {
         uint size = 0;
 
-        // Premier appel : le tampon vide sert à obtenir la taille nécessaire.
+        // First call: the empty buffer is used to obtain the required size.
         if (call(IntPtr.Zero, ref size) != ErrorInsufficientBuffer || size == 0)
         {
             return;
@@ -103,14 +102,14 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
         }
     }
 
-    /// <summary>Un DWORD IPv4 en octets réseau devient <c>a.b.c.d</c>.</summary>
+    /// <summary>Converts an IPv4 DWORD in network byte order to <c>a.b.c.d</c>.</summary>
     private static string FormatAddress(int raw) =>
         string.Create(CultureInfo.InvariantCulture, stackalloc char[15],
             $"{raw & 0xFF}.{(raw >> 8) & 0xFF}.{(raw >> 16) & 0xFF}.{(raw >> 24) & 0xFF}");
 
     /// <summary>
-    /// Le port occupe le mot bas en octets réseau : l'octet de poids fort d'abord. On
-    /// remet donc les deux octets dans l'ordre.
+    /// The port occupies the low word in network byte order: most significant byte
+    /// first. The two bytes are swapped back into host order.
     /// </summary>
     private static int FormatPort(int raw) =>
         ((raw & 0xFF) << 8) | ((raw >> 8) & 0xFF);

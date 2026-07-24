@@ -7,14 +7,14 @@ using System.Net.Sockets;
 namespace Rempart.Core.Dns;
 
 /// <summary>
-/// Sonde réelle des résolveurs chiffrés — le seul volet actif du scan avec l'enrichissement
-/// VirusTotal et la récupération PAC, et comme eux jamais déclenché sans opt-in.
+/// Real probe of encrypted resolvers — the only active part of the scan alongside the
+/// VirusTotal enrichment and the PAC fetch, and like them never triggered without opt-in.
 ///
 /// <para>
-/// Un même paquet DNS wire sert les deux transports : DoH le poste en
-/// <c>application/dns-message</c>, DoT l'envoie sur une socket TLS/853 préfixé de sa
-/// longueur (DNS/TCP). Trois échantillons par sonde, un de chauffe écarté, médiane retenue.
-/// Compatible AOT (HttpClient, sockets, SslStream ne demandent pas de réflexion).
+/// A single DNS wire packet serves both transports: DoH posts it as
+/// <c>application/dns-message</c>, DoT sends it over a TLS/853 socket prefixed with its
+/// length (DNS/TCP). Three samples per probe, one warm-up discarded, median kept.
+/// AOT-compatible (HttpClient, sockets, SslStream require no reflection).
 /// </para>
 /// </summary>
 public sealed class LiveDnsProbe : IDnsProbe, IDisposable
@@ -47,15 +47,15 @@ public sealed class LiveDnsProbe : IDnsProbe, IDisposable
 
     private DnsProbeResult Measure(EncryptedResolver resolver, DnsProbeProtocol protocol, Func<int> once)
     {
-        // Échantillon de chauffe : la première connexion TLS/HTTP est plus lente, on
-        // l'écarte. Son échec n'est pas fatal, les mesures suivantes retentent.
+        // Warm-up sample: the first TLS/HTTP connection is slower, so it is discarded.
+        // Its failure is not fatal — the following measurements try again.
         try
         {
             once();
         }
         catch
         {
-            // ignoré : la chauffe n'est pas une mesure.
+            // ignored: the warm-up is not a measurement.
         }
 
         var samples = new List<int>();
@@ -92,8 +92,8 @@ public sealed class LiveDnsProbe : IDnsProbe, IDisposable
         using var request = new HttpRequestMessage(HttpMethod.Post, $"https://{host}/dns-query")
         {
             Content = content,
-            // La plupart des endpoints DoH veulent HTTP/2 ; on le préfère, avec repli en
-            // HTTP/1.1 pour ne pas exclure un résolveur qui ne le parle pas.
+            // Most DoH endpoints want HTTP/2; prefer it, falling back to HTTP/1.1 so a
+            // resolver that does not speak it is not excluded.
             Version = System.Net.HttpVersion.Version20,
             VersionPolicy = System.Net.Http.HttpVersionPolicy.RequestVersionOrLower,
         };
@@ -128,9 +128,9 @@ public sealed class LiveDnsProbe : IDnsProbe, IDisposable
         using var ssl = new SslStream(tcp.GetStream(), leaveInnerStreamOpen: false);
         ssl.ReadTimeout = (int)timeout.TotalMilliseconds;
         ssl.WriteTimeout = (int)timeout.TotalMilliseconds;
-        ssl.AuthenticateAsClient(host);   // valide le certificat sur le nom d'hôte
+        ssl.AuthenticateAsClient(host);   // validates the certificate against the host name
 
-        // DNS/TCP : le message est préfixé de sa longueur sur deux octets.
+        // DNS/TCP: the message is prefixed with its length on two bytes.
         var framed = new byte[2 + query.Length];
         BinaryPrimitives.WriteUInt16BigEndian(framed, (ushort)query.Length);
         query.CopyTo(framed, 2);

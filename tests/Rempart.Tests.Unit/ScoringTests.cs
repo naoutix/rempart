@@ -7,8 +7,8 @@ public sealed class ScoringTests
     [Fact]
     public void Unknown_verdicts_are_excluded_never_counted_as_passing()
     {
-        // Un contrôle qu'on n'a pas pu lire n'est pas un contrôle satisfait.
-        // L'inverse gonflerait le score des machines les moins auditables.
+        // A check that could not be read is not a passing check. Counting it as
+        // a pass would inflate the score of the least auditable machines.
         var card = Scoring.Compute([
             Verdict("a", Severity.High, VerdictStatus.Pass),
             Verdict("b", Severity.High, VerdictStatus.Unknown),
@@ -22,8 +22,8 @@ public sealed class ScoringTests
     [Fact]
     public void A_fully_unreadable_domain_scores_null_not_zero()
     {
-        // « Je ne sais pas » et « c'est mauvais » appellent des actions differentes :
-        // relancer en administrateur, ou corriger la configuration.
+        // "Unknown" and "bad" call for different actions: re-run as administrator,
+        // or fix the configuration.
         var card = Scoring.Compute([Verdict("a", Severity.High, VerdictStatus.Unknown)]);
 
         Assert.Null(card.Overall);
@@ -33,7 +33,7 @@ public sealed class ScoringTests
     [Fact]
     public void Severity_weighting_is_not_linear()
     {
-        // Dix réglages mineurs ne compensent pas une faiblesse critique.
+        // Ten minor settings must not offset one critical weakness.
         var oneCriticalFailure = Scoring.Compute([
             Verdict("a", Severity.Critical, VerdictStatus.Fail),
             .. Enumerable.Range(0, 10).Select(i => Verdict($"l{i}", Severity.Low, VerdictStatus.Pass)),

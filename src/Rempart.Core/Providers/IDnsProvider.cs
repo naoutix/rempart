@@ -1,13 +1,13 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// La configuration de résolution DNS d'une interface réseau.
+/// The DNS resolution configuration of a network interface.
 ///
 /// <para>
-/// La distinction qui compte : un résolveur reçu du DHCP est celui du réseau, subi ;
-/// un résolveur posé <b>statiquement</b> est un choix — ou une greffe. Le détournement
-/// DNS opère précisément là, en écrivant un serveur qu'il contrôle par-dessus celui du
-/// réseau, pour rediriger silencieusement la résolution de noms.
+/// The distinction that matters: a resolver received from DHCP comes from the network
+/// and is not chosen; a <b>statically</b> set resolver is a deliberate choice — or an
+/// implant. DNS hijacking operates exactly there, writing a server it controls over the
+/// network's one to silently redirect name resolution.
 /// </para>
 /// </summary>
 public sealed record DnsInterface(
@@ -16,10 +16,10 @@ public sealed record DnsInterface(
     IReadOnlyList<string> DhcpServers);
 
 /// <summary>
-/// Énumère la configuration DNS par interface.
+/// Enumerates the DNS configuration per interface.
 ///
-/// Abstrait comme le reste (ADR-001, D5) : le jugement — un résolveur statique inconnu,
-/// vecteur de détournement — se teste sur une liste donnée, sans carte réseau.
+/// Abstracted like the rest (ADR-001, D5): the judgment — an unknown static resolver,
+/// a hijacking vector — is tested against a given list, without a network adapter.
 /// </summary>
 public interface IDnsProvider
 {

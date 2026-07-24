@@ -12,14 +12,14 @@ using Rempart.Core.Updates;
 using System.Reflection;
 using Rempart.Windows;
 
-// Analyse d'arguments écrite à la main. L'ADR-001 prévoit System.CommandLine ; l'ajouter
-// pour deux commandes serait prématuré. À basculer en M1, quand le nombre de commandes
-// le justifiera.
+// Hand-written argument parsing. ADR-001 plans for System.CommandLine; adding it for
+// two commands would be premature. To be switched in M1, once the number of commands
+// justifies it.
 
 
 
-// La console Windows n'est pas en UTF-8 par défaut : sans cela les diagnostics
-// accentués sortent illisibles, et ce sont eux qu'il faut lire en priorité.
+// The Windows console is not UTF-8 by default: without this, accented diagnostics
+// come out garbled, and they are exactly what needs to be read first.
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var command = args.Length > 0 && !args[0].StartsWith('-') ? args[0] : "help";
@@ -63,7 +63,7 @@ static int Scan(string[] args)
 
     if (snapshotPath is not null)
     {
-        // Rejeu hors-ligne : le même code de collecte, sans Windows.
+        // Offline replay: the same collection code, without Windows.
         var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(snapshotPath));
         providers = new ProviderSet(
             new SnapshotRegistryProvider(snapshot),
@@ -109,9 +109,9 @@ static int Scan(string[] args)
         origin = UtcNow();
     }
 
-    // Le magasin de mises à jour ne s'applique qu'en direct. Un rejeu reproduit un scan
-    // passé : y injecter le magasin de cette machine-ci le rendrait non déterministe, et
-    // ferait dépendre une fixture d'un état local. En rejeu, seul le socle compte.
+    // The update store only applies to live scans. A replay reproduces a past scan:
+    // injecting this machine's store would make it non-deterministic, and make a
+    // fixture depend on local state. On replay, only the embedded baseline counts.
     var resolution = snapshotPath is null
         ? ResolveLiveCatalog(args)
         : new CatalogResolution(RuleCatalog.Load(OptionValue(args, "--rules")),
@@ -121,9 +121,9 @@ static int Scan(string[] args)
         .Run(providers, ToolVersion(), origin, resolution.AsOfUtc,
             ScanEngine.DefaultFindingCollectors(resolution.Blocklist, resolution.Catalog));
 
-    // Enrichissement VirusTotal — le seul appel réseau du scan, jamais par défaut
-    // (ADR-001, D9) et jamais en rejeu : c'est un instantané passé, pas la machine
-    // courante. La clé vient de --virustotal-key ou de l'environnement.
+    // VirusTotal enrichment — the scan's only network call, never on by default
+    // (ADR-001, D9) and never on replay: that is a past snapshot, not the current
+    // machine. The key comes from --virustotal-key or the environment.
     var virusTotalKey = OptionValue(args, "--virustotal-key")
         ?? Environment.GetEnvironmentVariable("REMPART_VT_KEY");
 
@@ -141,9 +141,9 @@ static int Scan(string[] args)
         };
     }
 
-    // Récupération du script PAC — le second appel réseau possible du scan, opt-in
-    // explicite (--fetch-pac) et jamais en rejeu : un instantané passé ne doit pas
-    // déclencher de trafic. Ne récupère que les constats proxy signalés portant une URL.
+    // PAC script retrieval — the scan's second possible network call, explicit opt-in
+    // (--fetch-pac) and never on replay: a past snapshot must not trigger traffic.
+    // Only fetches for flagged proxy findings that carry a URL.
     if (snapshotPath is null && HasFlag(args, "--fetch-pac"))
     {
         var withPac = result.Findings.Count(f => f.Severity != FindingSeverity.Benign
@@ -158,9 +158,9 @@ static int Scan(string[] args)
         };
     }
 
-    // Test actif DoH/DoT — l'autre appel réseau opt-in, jamais par défaut ni en rejeu.
-    // Mesure la latence des résolveurs chiffrés et sépare le constat (chiffré bloqué)
-    // de l'avis (le plus rapide), qui reste hors du score.
+    // Active DoH/DoT probe — the other opt-in network call, never by default nor on
+    // replay. Measures encrypted-resolver latency and separates the finding (encrypted
+    // DNS blocked) from the advice (the fastest one), which stays out of the score.
     if (snapshotPath is null && HasFlag(args, "--probe-dns"))
     {
         Console.Error.WriteLine("Sonde des résolveurs DNS chiffrés (DoH/DoT)…");
@@ -183,8 +183,8 @@ static int Scan(string[] args)
         WriteHumanReadable(result, resolution.UpdateNote);
     }
 
-    // Un manque de droits n'est pas une erreur d'exécution, mais l'appelant doit
-    // pouvoir le détecter sans relire la sortie.
+    // Missing privileges are not an execution error, but the caller must be able
+    // to detect them without re-reading the output.
     return result.Collectors.Any(c => c.Status == CollectorStatus.Failed) ? 1
         : result.Collectors.Any(c => c.Status == CollectorStatus.InsufficientPrivileges) ? 3
         : 0;
@@ -218,19 +218,19 @@ static int Capture(string[] args)
         softwareInventory: new RecordingSoftwareInventoryProvider(
             new LiveSoftwareInventoryProvider(), snapshot));
 
-    // Le moteur complet, regles comprises : une fixture doit pouvoir rejouer tout ce
-    // que fait un scan, sans quoi elle ne testerait que la moitie du chemin. Le magasin
-    // de mises a jour est resolu ici aussi, pour qu'une capture prefetch les cles des
-    // regles ajoutees par une mise a jour et reste rejouable.
+    // The full engine, rules included: a fixture must be able to replay everything a
+    // scan does, otherwise it would only test half the path. The update store is
+    // resolved here too, so a capture prefetches the keys of rules added by an update
+    // and stays replayable.
     var engine = new ScanEngine(
         ScanEngine.DefaultCollectors, ResolveLiveCatalog(args).Rules);
     engine.Run(providers, ToolVersion(), snapshot.CapturedAtUtc);
 
-    // Puis toutes les cles que les regles pourraient lire dans un autre contexte, afin
-    // que l'instantane reste rejouable ailleurs que sur la machine qui l'a produit.
+    // Then every key the rules could read in another context, so the snapshot stays
+    // replayable elsewhere than on the machine that produced it.
     engine.Prefetch(providers);
 
-    // Anonymisation par défaut : les fixtures finissent versionnées.
+    // Anonymised by default: fixtures end up under version control.
     if (!raw)
     {
         Anonymiser.Apply(snapshot);
@@ -253,15 +253,15 @@ static int Capture(string[] args)
 }
 
 /// <summary>
-/// Télécharge la liste officielle LOLDrivers et la prépare au format que <c>sign</c>
-/// puis <c>update</c> savent traiter.
+/// Downloads the official LOLDrivers list and prepares it in the format that <c>sign</c>
+/// then <c>update</c> know how to process.
 ///
 /// <para>
-/// L'outil va chercher la donnée ; l'éditeur la signe. Côté publication, en ligne :
-/// c'est le seul endroit où l'on sort sur le réseau pour produire une donnée, jamais
-/// pour l'appliquer. La confiance des machines auditées ne repose pas sur ce
-/// téléchargement mais sur la signature qui suit — loldrivers.io est la source amont
-/// que l'éditeur choisit, et sa signature l'engage.
+/// The tool fetches the data; the publisher signs it. This is the publishing side,
+/// online: the only place where we reach out to the network to produce a dataset,
+/// never to apply one. The audited machines' trust does not rest on this download
+/// but on the signature that follows — loldrivers.io is the upstream source the
+/// publisher chooses, and their signature vouches for it.
 /// </para>
 /// </summary>
 static int FetchLoldrivers(string[] args)
@@ -287,8 +287,8 @@ static int FetchLoldrivers(string[] args)
     }
     catch (System.Text.Json.JsonException ex)
     {
-        // La source a peut-être changé de forme : le dire plutôt que d'écrire une liste
-        // tronquée qui passerait pour complète.
+        // The source may have changed shape: say so rather than write a truncated
+        // list that would pass for complete.
         Console.Error.WriteLine(
             $"La réponse n'a pas la forme attendue : {ex.Message} La source a pu changer.");
         return 1;
@@ -306,13 +306,13 @@ static int FetchLoldrivers(string[] args)
 }
 
 /// <summary>
-/// Signe un manifeste — l'acte de publication de l'ADR-002.
+/// Signs a manifest — the publication act of ADR-002.
 ///
 /// <para>
-/// Le pendant de <c>keygen</c> : à lancer sur la même machine hors ligne, avec la clé
-/// privée chiffrée qui n'en sort jamais (D16). Rassemble les jeux de données d'un
-/// dossier, en calcule les empreintes, et signe le tout. Le manifeste produit est
-/// exactement ce que <c>update</c> saura vérifier.
+/// The counterpart of <c>keygen</c>: run on the same offline machine, with the
+/// encrypted private key that never leaves it (D16). Gathers the datasets of a
+/// directory, computes their digests, and signs the lot. The resulting manifest is
+/// exactly what <c>update</c> will know how to verify.
 /// </para>
 /// </summary>
 static int Sign(string[] args)
@@ -336,8 +336,8 @@ static int Sign(string[] args)
     var outPath = OptionValue(args, "--out")
         ?? Path.Combine(dataDir, UpdateStore.ManifestFileName);
 
-    // Ni la clé privée ni le manifeste produit ne doivent se signer eux-mêmes comme des
-    // jeux de données : on les exclut de l'énumération.
+    // Neither the private key nor the produced manifest must sign themselves as
+    // datasets: exclude both from the enumeration.
     var excluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         Path.GetFullPath(keyPath), Path.GetFullPath(outPath),
@@ -367,8 +367,8 @@ static int Sign(string[] args)
     Console.WriteLine("Phrase de passe de la clé privée (non affichée) :");
     var passphrase = ReadHidden();
 
-    // Type imposé pour tous les fichiers, ou deviné à l'extension : un éditeur signe
-    // d'ordinaire un seul type à la fois (une mise à jour de règles, ou de pilotes).
+    // Kind forced for all files, or guessed from the extension: a publisher usually
+    // signs a single kind at a time (a rules update, or a drivers update).
     var kind = OptionValue(args, "--kind");
 
     var entries = datasets
@@ -386,8 +386,8 @@ static int Sign(string[] args)
     }
     catch (System.Security.Cryptography.CryptographicException)
     {
-        // Phrase de passe fausse, ou fichier de clé abîmé : ne pas distinguer les deux
-        // n'aide pas un attaquant et évite de confirmer qu'une phrase approchait.
+        // Wrong passphrase, or corrupted key file: not telling the two apart gives
+        // an attacker nothing and avoids confirming that a phrase came close.
         Console.Error.WriteLine("Clé illisible : phrase de passe erronée, ou fichier abîmé.");
         return 1;
     }
@@ -410,14 +410,14 @@ static int Sign(string[] args)
 }
 
 /// <summary>
-/// Prépare une mise à jour des données signée (ADR-002).
+/// Prepares a signed data update (ADR-002).
 ///
 /// <para>
-/// Vérifie et montre — n'applique rien sans <c>--apply</c> (D14). Le manifeste et
-/// chaque jeu de données sont authentifiés, le différentiel affiché. Depuis un fichier
-/// local (<c>--from</c>, le flux clé USB) ou depuis le réseau (<c>--url</c>) : la
-/// vérification est exactement la même, car <b>le transport n'est jamais de
-/// confiance</b>, seule la signature l'est.
+/// Verifies and shows — applies nothing without <c>--apply</c> (D14). The manifest and
+/// every dataset are authenticated, the diff displayed. From a local file
+/// (<c>--from</c>, the USB-stick flow) or from the network (<c>--url</c>): the
+/// verification is exactly the same, because <b>the transport is never trusted</b>,
+/// only the signature is.
 /// </para>
 /// </summary>
 static int Update(string[] args)
@@ -434,8 +434,8 @@ static int Update(string[] args)
 
     var current = RuleCatalog.Load(OptionValue(args, "--rules"));
 
-    // Chaque source produit la même chose : une prévisualisation, et de quoi appliquer.
-    // Le reste — affichage, confirmation, écriture — est commun.
+    // Each source produces the same thing: a preview, and the means to apply it.
+    // The rest — display, confirmation, writing — is shared.
     UpdatePreview preview;
     Action applyToStore;
 
@@ -462,14 +462,14 @@ static int Update(string[] args)
             return 1;
         }
 
-        // Les jeux de données vivent à côté du manifeste. Le séparateur final distingue
-        // « dans ce dossier » d'« un dossier frère au nom voisin ».
+        // Datasets live next to the manifest. The trailing separator distinguishes
+        // "inside this directory" from "a sibling directory with a similar name".
         var directory = (Path.GetDirectoryName(Path.GetFullPath(manifestPath!)) ?? ".")
             .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
         byte[]? ReadDataset(string name)
         {
-            // Un nom comme « ..\\.. » ne doit pas devenir un chemin arbitraire.
+            // A name like "..\\.." must not become an arbitrary path.
             var full = Path.GetFullPath(Path.Combine(directory, name));
             return full.StartsWith(directory, StringComparison.OrdinalIgnoreCase)
                 && File.Exists(full)
@@ -488,14 +488,14 @@ static int Update(string[] args)
 }
 
 /// <summary>
-/// Affiche la prévisualisation, puis, si <c>--apply</c> et confirmation, écrit dans le
-/// magasin. Commun aux deux sources — la vérification a déjà eu lieu, identique.
+/// Displays the preview, then, given <c>--apply</c> and confirmation, writes to the
+/// store. Shared by both sources — verification has already happened, identically.
 /// </summary>
 static int ReportAndMaybeApply(string[] args, UpdatePreview preview, Action applyToStore)
 {
     if (!preview.Trusted)
     {
-        // Chaque motif de refus a sa réaction propre : ne pas les confondre.
+        // Each rejection reason gets its own response: do not conflate them.
         Console.Error.WriteLine($"Manifeste refusé ({preview.Status}) : {preview.Explanation}");
         return 1;
     }
@@ -533,8 +533,8 @@ static int ReportAndMaybeApply(string[] args, UpdatePreview preview, Action appl
         return 0;
     }
 
-    // Appliquer modifie ce que les scans évalueront : on le confirme, sauf --yes. Sans
-    // console, refuser plutôt qu'appliquer une mise à jour que personne n'a validée.
+    // Applying changes what future scans will evaluate: confirm it, unless --yes.
+    // Without a console, refuse rather than apply an update nobody validated.
     if (!HasFlag(args, "--yes"))
     {
         if (Console.IsInputRedirected)
@@ -564,8 +564,8 @@ static int ReportAndMaybeApply(string[] args, UpdatePreview preview, Action appl
 }
 
 /// <summary>
-/// Le catalogue effectif d'un scan en direct : socle embarqué (plus les règles
-/// <c>--rules</c> s'il y en a), complété par la mise à jour du magasin si elle vérifie.
+/// The effective catalog of a live scan: the embedded baseline (plus the <c>--rules</c>
+/// rules if any), completed by the store's update when it verifies.
 /// </summary>
 static CatalogResolution ResolveLiveCatalog(string[] args) =>
     UpdateStore.Resolve(
@@ -574,8 +574,8 @@ static CatalogResolution ResolveLiveCatalog(string[] args) =>
         PinnedKeys.Verifier());
 
 /// <summary>
-/// Le magasin voyage avec le binaire : à côté de l'exécutable par défaut, pour qu'une
-/// clé USB emporte ses données à jour sans dossier compagnon à ne pas oublier.
+/// The store travels with the binary: next to the executable by default, so a USB
+/// stick carries its up-to-date data without a companion folder to forget.
 /// </summary>
 static string StoreDirectory(string[] args) =>
     OptionValue(args, "--store") ?? Path.Combine(AppContext.BaseDirectory, "rempart-data");
@@ -588,8 +588,8 @@ static void WriteDataset(DatasetPreview dataset)
         return;
     }
 
-    // Une liste de pilotes n'a pas de différentiel : elle remplace la précédente. On en
-    // donne le nombre d'entrées, la seule mesure qui parle.
+    // A driver list has no diff: it replaces the previous one. Report its entry
+    // count, the only measure that means anything.
     if (dataset.Kind == DatasetKind.Drivers)
     {
         Console.WriteLine($"  ✓ {dataset.Name} ({dataset.Version}) — " +
@@ -621,16 +621,16 @@ static void WriteDataset(DatasetPreview dataset)
 }
 
 /// <summary>
-/// Vérifie que WMI répond réellement — destiné à la CI, exécuté contre le binaire
-/// Native AOT.
+/// Verifies that WMI actually responds — intended for CI, run against the Native AOT
+/// binary.
 ///
-/// Existe parce qu'un bug d'interop COM a rendu WMI inopérant dans le binaire publié
-/// sans que rien ne le signale : les contrôles rendaient « non vérifiable », le scan
-/// sortait en 0, et le job de publication le déclarait sain. Les tests, eux, ne
-/// s'exécutaient qu'en JIT, où le bug n'apparaît pas.
+/// Exists because a COM interop bug left WMI inoperative in the published binary
+/// with nothing reporting it: checks came back "unverifiable", the scan exited
+/// with 0, and the publish job declared it healthy. The tests, for their part, only
+/// ran under JIT, where the bug does not show.
 ///
-/// Interroge un espace de noms présent sur toute machine Windows et disponible sans
-/// élévation : un échec ici dénonce l'interop, pas l'environnement.
+/// Queries a namespace present on every Windows machine and available without
+/// elevation: a failure here indicts the interop, not the environment.
 /// </summary>
 static int DiagnoseWmi()
 {
@@ -662,19 +662,19 @@ static int DiagnoseWmi()
 }
 
 /// <summary>
-/// Génère la paire de clés qui signera les manifestes de mise à jour.
+/// Generates the key pair that will sign update manifests.
 ///
 /// <para>
-/// À lancer sur une machine hors ligne — une VM jetable suffit quand on n'en a
-/// qu'une (ADR-002, D16). C'est précisément pour ce genre d'usage que le livrable est
-/// un exécutable autonome : on copie <c>rempart.exe</c> sur une clé, on génère
-/// là-bas, rien à installer.
+/// Run it on an offline machine — a disposable VM is enough when that is all you
+/// have (ADR-002, D16). This is precisely the kind of use the standalone executable
+/// deliverable exists for: copy <c>rempart.exe</c> onto a USB stick, generate
+/// there, nothing to install.
 /// </para>
 ///
 /// <para>
-/// La clé privée n'est jamais écrite en clair et il n'existe pas d'option pour le
-/// faire. Un support amovible se perd ; la phrase de passe est ce qui sépare alors
-/// une clé perdue d'une clé compromise.
+/// The private key is never written in cleartext and no option exists to do so. A
+/// removable drive gets lost; the passphrase is then what separates a lost key
+/// from a compromised one.
 /// </para>
 /// </summary>
 static int Keygen(string[] args)
@@ -683,17 +683,17 @@ static int Keygen(string[] args)
 
     if (File.Exists(path))
     {
-        // Écraser une clé privée existante la détruit sans recours : il n'y a pas de
-        // copie ailleurs, c'est tout l'intérêt du dispositif.
+        // Overwriting an existing private key destroys it beyond recovery: there is
+        // no copy anywhere else, which is the whole point of the scheme.
         Console.Error.WriteLine($"{path} existe déjà. Refus d'écraser une clé privée.");
         return 1;
     }
 
     if (Console.IsInputRedirected)
     {
-        // Sans console, la phrase de passe viendrait d'un tube — donc d'un historique,
-        // d'un script ou d'un journal. Refuser plutôt que produire une clé dont la
-        // protection est déjà connue de quelqu'un d'autre.
+        // Without a console, the passphrase would come from a pipe — hence from a
+        // history, a script, or a log. Refuse rather than produce a key whose
+        // protection is already known to someone else.
         Console.Error.WriteLine(
             "Cette commande exige une console interactive : la phrase de passe ne doit " +
             "pas transiter par un tube ni par un argument.");
@@ -721,8 +721,8 @@ static int Keygen(string[] args)
         return 1;
     }
 
-    // Relecture immédiate : une clé qu'on ne sait pas rouvrir ne doit pas se
-    // découvrir le jour où l'on doit publier, sur une machine qu'on aura détruite.
+    // Immediate read-back: a key that cannot be reopened must not be discovered
+    // on publication day, on a machine that will have been destroyed by then.
     if (PublisherKey.ReadPublicKeyOf(pair.EncryptedPrivateKey, passphrase) != pair.PublicKey)
     {
         Console.Error.WriteLine("La clé générée ne se relit pas. Rien n'a été écrit.");
@@ -749,7 +749,7 @@ static int Keygen(string[] args)
     return 0;
 }
 
-/// <summary>Lit sans écho. La phrase de passe ne doit pas rester à l'écran.</summary>
+/// <summary>Reads without echo. The passphrase must not remain on screen.</summary>
 static string ReadHidden()
 {
     var buffer = new System.Text.StringBuilder();
@@ -782,19 +782,19 @@ static string ReadHidden()
 }
 
 /// <summary>
-/// Vérifie que le planificateur de tâches répond depuis le binaire publié.
+/// Verifies that the Task Scheduler responds from the published binary.
 ///
-/// Même raison d'être que <c>diagnose-wmi</c>, et même risque exactement : l'interop
-/// COM du planificateur est générée à la compilation, ses interfaces dérivent
-/// d'<c>IDispatch</c>, et un décalage d'un seul emplacement de table virtuelle est
-/// invisible en JIT comme à la compilation.
+/// Same reason to exist as <c>diagnose-wmi</c>, and exactly the same risk: the
+/// scheduler's COM interop is generated at compile time, its interfaces derive
+/// from <c>IDispatch</c>, and an offset of a single vtable slot is invisible
+/// under JIT as at compile time.
 ///
-/// Un scan qui ne trouverait aucune tâche produirait un rapport d'apparence saine.
-/// C'est précisément ce qui s'est produit avec WMI pendant deux lots, et la raison
-/// pour laquelle cette commande existe avant que le problème ne se pose.
+/// A scan that found no tasks would produce a healthy-looking report. That is
+/// precisely what happened with WMI for two batches, and the reason this command
+/// exists before the problem arises.
 ///
-/// Toute machine Windows porte des dizaines de tâches ; l'énumération de base ne
-/// demande pas l'élévation. Un échec ici dénonce l'interop, pas l'environnement.
+/// Every Windows machine carries dozens of tasks; basic enumeration does not
+/// require elevation. A failure here indicts the interop, not the environment.
 /// </summary>
 static int DiagnoseTasks()
 {
@@ -809,8 +809,8 @@ static int DiagnoseTasks()
         Console.WriteLine($"  défaillance : {diagnostic}");
     }
 
-    // Un Windows sans aucune tâche n'existe pas : zéro dénonce l'énumération, pas la
-    // machine. Le seuil reste bas — un runner de CI en porte moins qu'un poste réel.
+    // A Windows with no tasks at all does not exist: zero indicts the enumeration, not
+    // the machine. The bar stays low — a CI runner carries fewer than a real machine.
     if (read.Status != ReadStatus.Found || read.Tasks.Count == 0)
     {
         Console.Error.WriteLine(
@@ -819,8 +819,8 @@ static int DiagnoseTasks()
         return 1;
     }
 
-    // La définition XML est lue par un appel distinct de l'énumération. Compter les
-    // tâches ne prouve donc pas qu'on sait les lire.
+    // The XML definition is read by a call separate from the enumeration. Counting
+    // tasks therefore proves nothing about being able to read them.
     var withAction = read.Tasks.Count(t => t.Actions.Count > 0);
     Console.WriteLine($"  dont {withAction} avec au moins une action lue");
 
@@ -837,12 +837,12 @@ static int DiagnoseTasks()
 }
 
 /// <summary>
-/// Fabrique une fixture synthétique à partir d'une capture réelle.
+/// Builds a synthetic fixture from a real capture.
 ///
-/// Les fixtures étaient régénérées par un script jetable qui reparsait le YAML en
-/// expressions régulières : une seconde implémentation du chargeur, ni versionnée ni
-/// testée, et que personne d'autre ne pouvait rejouer. Ici ce sont les règles chargées
-/// par le moteur qui pilotent la substitution.
+/// Fixtures used to be regenerated by a throwaway script that re-parsed the YAML
+/// with regular expressions: a second implementation of the loader, neither
+/// versioned nor tested, that nobody else could replay. Here the rules loaded by
+/// the engine drive the substitution.
 /// </summary>
 static int Synthesise(string[] args)
 {
@@ -885,8 +885,8 @@ static int Synthesise(string[] args)
 }
 
 /// <summary>
-/// Rend l'âge des données en une ligne. Une date illisible est dite telle, jamais
-/// tue : « inconnu » ne doit pas se lire comme « à jour ».
+/// Renders the data age in one line. An unreadable date is stated as such, never
+/// silenced: "unknown" must not read as "up to date".
 /// </summary>
 static string DescribeAge(DataAge age)
 {
@@ -910,9 +910,9 @@ static string DescribeAge(DataAge age)
 }
 
 /// <summary>
-/// Ce qu'on vient chercher d'abord : les problèmes. L'inventaire ferme le rapport —
-/// c'est du contexte, et vingt-trois lignes de contexte avant le premier constat
-/// font qu'on ne lit plus le constat.
+/// What the reader comes for first: the problems. The inventory closes the report —
+/// it is context, and twenty-three lines of context before the first finding mean
+/// the finding never gets read.
 /// </summary>
 static void WriteHumanReadable(ScanResult result, string? updateNote = null)
 {
@@ -920,8 +920,8 @@ static void WriteHumanReadable(ScanResult result, string? updateNote = null)
     Console.WriteLine($"règles : {result.RulesFingerprint}");
     Console.WriteLine($"données : {DescribeAge(result.DataAge)}");
 
-    // La provenance des données — appliquée ou refusée — se dit toujours, jamais en
-    // silence (ADR-002, D14 et D17).
+    // Data provenance — applied or rejected — is always stated, never silent
+    // (ADR-002, D14 and D17).
     if (updateNote is { } note)
     {
         Console.WriteLine($"mise à jour : {note}");
@@ -957,8 +957,8 @@ static void WriteHumanReadable(ScanResult result, string? updateNote = null)
 }
 
 /// <summary>
-/// Test actif DoH/DoT : un avis, pas un constat. Affiché à part, hors du score, et
-/// clairement présenté comme une mesure ponctuelle et une suggestion.
+/// Active DoH/DoT probe: advice, not a finding. Shown separately, outside the score,
+/// and clearly presented as a one-off measurement and a suggestion.
 /// </summary>
 static void WriteDnsProbe(Rempart.Core.Dns.DnsProbeReport probe)
 {
@@ -984,8 +984,8 @@ static void WriteDnsProbe(Rempart.Core.Dns.DnsProbeReport probe)
 }
 
 /// <summary>
-/// Les constats ne se melangent pas au score : une configuration a 94 % ne doit pas
-/// masquer un binaire non signe lance au demarrage.
+/// Findings do not blend into the score: a configuration at 94 % must not mask an
+/// unsigned binary launched at startup.
 /// </summary>
 static void WriteFindings(IReadOnlyList<Finding> findings)
 {
@@ -1029,8 +1029,8 @@ static void WriteFindings(IReadOnlyList<Finding> findings)
 
 static void WritePosture(ScanResult result, ScoreCard score)
 {
-    // Les règles satisfaites ne sont pas listées, seulement comptées : un rapport qui
-    // noie trois problèmes dans cent lignes vertes ne sera pas lu.
+    // Satisfied rules are not listed, only counted: a report that drowns three
+    // problems in a hundred green lines will not be read.
     var failures = result.Verdicts
         .Where(v => v.Status == VerdictStatus.Fail)
         .OrderByDescending(v => v.Severity)
@@ -1092,9 +1092,9 @@ static void WritePosture(ScanResult result, ScoreCard score)
 }
 
 /// <summary>
-/// Rend accessible ce que le scan ne peut pas afficher : la justification, les
-/// références, et le coût réel d'une correction. Sans cette commande, ces informations
-/// n'existaient que dans les fichiers YAML — écrites, mais hors de portée à l'usage.
+/// Surfaces what the scan cannot display: the rationale, the references, and the
+/// real cost of a fix. Without this command, that information only existed in the
+/// YAML files — written down, but out of reach in practice.
 /// </summary>
 static int Explain(string[] args)
 {
@@ -1212,8 +1212,8 @@ static void RequireWindows()
 }
 
 /// <summary>
-/// Version lue sur l'assembly. Écrite en dur, elle avait déjà divergé deux fois du
-/// lot réellement livré : la source unique est &lt;Version&gt; dans Directory.Build.props.
+/// Version read from the assembly. Hard-coded, it had already diverged twice from
+/// the batch actually shipped: the single source is &lt;Version&gt; in Directory.Build.props.
 /// </summary>
 static string ToolVersion() =>
     System.Reflection.Assembly.GetEntryAssembly()
@@ -1231,7 +1231,7 @@ static string? OptionValue(string[] args, string name)
 
 static bool HasFlag(string[] args, string name) => Array.IndexOf(args, name) >= 0;
 
-/// <summary>Toutes les occurrences d'une option répétable.</summary>
+/// <summary>All occurrences of a repeatable option.</summary>
 static IReadOnlyList<string> OptionValues(string[] args, string name)
 {
     var values = new List<string>();

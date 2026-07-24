@@ -4,10 +4,9 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// La lecture du pare-feu passe par des chaînes de registre à analyser. Un chemin de clé
-/// faux ou un format mal compris ne se voit pas à la compilation : il rend une liste vide
-/// et la règle croisée se tait sans que rien ne le signale. Ces tests exercent la vraie
-/// lecture contre la machine.
+/// The firewall read parses registry strings. A wrong key path or a misread format is not
+/// caught at compile time: it returns an empty list and the cross-checking rule goes
+/// silent without any signal. These tests exercise the real read against the machine.
 /// </summary>
 public sealed class LiveFirewallProviderTests
 {
@@ -22,8 +21,8 @@ public sealed class LiveFirewallProviderTests
     [Fact]
     public void Rules_are_read_and_parsed()
     {
-        // Toute installation de Windows porte des centaines de règles intégrées. Une liste
-        // vide trahit un chemin de clé faux, pas un pare-feu sans règle.
+        // Every Windows installation carries hundreds of built-in rules. An empty list
+        // means a wrong key path, not a firewall without rules.
         Assert.NotEmpty(state.Rules);
         Assert.All(state.Rules, rule => Assert.False(string.IsNullOrEmpty(rule.Direction)));
     }
@@ -31,8 +30,8 @@ public sealed class LiveFirewallProviderTests
     [Fact]
     public void Reachability_is_answered_without_throwing()
     {
-        // La valeur dépend de la machine ; ce qui se teste, c'est que le croisement aboutisse
-        // et ne rende jamais « inconnu » sur un état pourtant lu.
+        // The value depends on the machine; what is tested is that the cross-check
+        // completes and never returns "unknown" for a state that was actually read.
         var reach = state.InboundReachability("TCP", 445, null);
         Assert.NotEqual(FirewallReachability.Unknown, reach);
     }

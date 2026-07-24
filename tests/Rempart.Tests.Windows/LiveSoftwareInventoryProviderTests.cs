@@ -4,9 +4,9 @@ using Rempart.Windows;
 namespace Rempart.Tests.Windows;
 
 /// <summary>
-/// Test machine réelle : on ne connaît pas les logiciels du runner, on vérifie que la
-/// lecture ne lève pas, rend des entrées cohérentes, et trouve au moins des désinstallations
-/// (toute machine Windows en a).
+/// Real-machine test: the runner's installed software is unknown, so we check that the
+/// read does not throw, returns consistent entries, and finds at least uninstall entries
+/// (every Windows machine has some).
 /// </summary>
 public sealed class LiveSoftwareInventoryProviderTests
 {
@@ -18,7 +18,7 @@ public sealed class LiveSoftwareInventoryProviderTests
         Assert.NotNull(software);
         Assert.All(software, entry => Assert.False(string.IsNullOrEmpty(entry.Name)));
 
-        // Toute installation de Windows porte des entrées de désinstallation.
+        // Every Windows installation carries uninstall entries.
         Assert.Contains(software, entry => entry.Source == SoftwareSource.Uninstall);
     }
 
@@ -28,7 +28,7 @@ public sealed class LiveSoftwareInventoryProviderTests
         var software = new LiveSoftwareInventoryProvider().Read();
         var appx = software.Where(s => s.Source == SoftwareSource.Appx).ToList();
 
-        // Sur toute machine Windows moderne il y a des paquets Appx, et chacun a un PFN.
+        // Every modern Windows machine has Appx packages, and each one has a PFN.
         Assert.NotEmpty(appx);
         Assert.All(appx, s => Assert.False(string.IsNullOrWhiteSpace(s.Identifier)));
     }

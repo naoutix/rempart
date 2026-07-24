@@ -1,6 +1,6 @@
 namespace Rempart.Core.Providers;
 
-/// <summary>Mode de démarrage, tel que déclaré au gestionnaire de services.</summary>
+/// <summary>Start mode, as declared to the service control manager.</summary>
 public enum ServiceStartMode
 {
     Boot,
@@ -11,7 +11,7 @@ public enum ServiceStartMode
     Unknown,
 }
 
-/// <summary>État courant du service.</summary>
+/// <summary>Current state of the service.</summary>
 public enum ServiceState
 {
     Stopped,
@@ -31,12 +31,12 @@ public sealed record ServiceRead(ReadStatus Status, ServiceInfo? Info)
 }
 
 /// <summary>
-/// Interroge le gestionnaire de services.
+/// Queries the service control manager.
 ///
-/// Ce que le registre ne dit pas : un service peut être configuré en démarrage
-/// automatique et se trouver arrêté — parce qu'il a échoué, ou qu'on l'a stoppé. Pour
-/// Windows Update ou le pare-feu, la différence entre « censé tourner » et « tourne »
-/// est exactement ce qu'un audit doit établir.
+/// The registry does not show this: a service can be configured for automatic start and
+/// still be stopped, because it failed or someone stopped it. For Windows Update or the
+/// firewall, an audit must establish whether the service is actually running, not just
+/// whether it is supposed to run.
 /// </summary>
 public interface IServiceStateProvider
 {

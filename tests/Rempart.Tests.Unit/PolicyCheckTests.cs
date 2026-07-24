@@ -15,11 +15,10 @@ internal sealed class FakePolicyProvider(params (string Name, string Value)[] fa
 }
 
 /// <summary>
-/// Les faits de politique — mot de passe, verrouillage, comptes — ne se lisent ni au
-/// registre ni au gestionnaire de services. Ils sont exposés comme valeurs nommées
-/// plutôt que comme une liste de comptes : un audit demande « combien », pas
-/// « lesquels », et énumérer des noms d'utilisateurs dans un rapport les exposerait
-/// sans nécessité.
+/// Policy facts — password, lockout, accounts — are readable neither from the
+/// registry nor from the service control manager. They are exposed as named values
+/// rather than as a list of accounts: an audit asks "how many", not "which ones",
+/// and enumerating user names in a report would expose them needlessly.
 /// </summary>
 public sealed class PolicyCheckTests
 {
@@ -35,9 +34,9 @@ public sealed class PolicyCheckTests
     [Fact]
     public void A_fact_the_provider_could_not_establish_is_unverifiable()
     {
-        // Une clé absente du dictionnaire signifie que l'API n'a pas su répondre.
-        // Conclure à une non-conformité reprocherait à la machine ce que l'outil
-        // n'a pas su lire.
+        // A key absent from the dictionary means the API could not answer.
+        // Concluding non-compliance would blame the machine for something the
+        // tool failed to read.
         var policy = new FakePolicyProvider(("password.minLength", "14"));
 
         var verdict = Evaluate(Rule("lockout.threshold", CheckOperator.AtLeast, "1"), policy);
@@ -72,8 +71,8 @@ public sealed class PolicyCheckTests
     public void AtMost_caps_a_value_where_AtLeast_floors_it(
         CheckOperator op, string expect, string actual, VerdictStatus expected)
     {
-        // atMost existe pour les plafonds : nombre d'administrateurs locaux, seuils.
-        // Sans lui, ces contrôles ne s'exprimaient pas.
+        // atMost exists for upper bounds: local administrator count, thresholds.
+        // Without it, those checks could not be expressed.
         var policy = new FakePolicyProvider(("accounts.localAdminCount", actual));
 
         Assert.Equal(expected,
@@ -83,8 +82,8 @@ public sealed class PolicyCheckTests
     [Fact]
     public void A_non_numeric_value_fails_an_ordering_comparison_without_throwing()
     {
-        // Échouer visiblement plutôt qu'interrompre le scan : une règle mal écrite ne
-        // doit pas priver l'opérateur de tous les autres verdicts.
+        // Fail visibly rather than abort the scan: a badly written rule must not
+        // deprive the operator of all the other verdicts.
         var policy = new FakePolicyProvider(("accounts.guestEnabled", "true"));
 
         Assert.Equal(VerdictStatus.Fail,

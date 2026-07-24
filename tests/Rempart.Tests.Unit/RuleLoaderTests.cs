@@ -3,9 +3,9 @@ using Rempart.Core.Rules;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Le chargeur refuse tout fichier douteux plutôt que d'en ignorer une partie.
-/// Une règle silencieusement écartée produirait un audit qui paraît complet en
-/// ayant sauté un contrôle — le pire mode de défaillance pour cet outil.
+/// The loader rejects any dubious file rather than ignoring part of it. A rule
+/// silently dropped would produce an audit that looks complete while having
+/// skipped a check — the worst failure mode for this tool.
 /// </summary>
 public sealed class RuleLoaderTests
 {
@@ -56,9 +56,9 @@ public sealed class RuleLoaderTests
     [InlineData("rationale")]
     public void Rejects_a_rule_missing_a_required_field(string field)
     {
-        // La clé est conservée et sa valeur vidée. Supprimer la ligne « id » entière
-        // détruirait la séquence YAML : on testerait la détection d'un document
-        // malformé, pas celle d'un champ manquant.
+        // The key is kept and its value emptied. Deleting the whole "id" line
+        // would break the YAML sequence: we would be testing malformed-document
+        // detection, not missing-field detection.
         var yaml = string.Join('\n', Valid.Split('\n').Select(line =>
             line.TrimStart('-', ' ').StartsWith($"{field}:", StringComparison.Ordinal)
                 ? line[..(line.IndexOf(':') + 1)]
@@ -75,7 +75,7 @@ public sealed class RuleLoaderTests
 
         var ex = Assert.Throws<RuleFormatException>(() => RuleLoader.Load(yaml));
 
-        // Le message doit permettre de corriger sans consulter la documentation.
+        // The message must be enough to fix the rule without consulting the documentation.
         Assert.Contains("critique", ex.Message, StringComparison.Ordinal);
         Assert.Contains("critical", ex.Message, StringComparison.Ordinal);
         Assert.Contains("TEST-001", ex.Message, StringComparison.Ordinal);
@@ -101,8 +101,8 @@ public sealed class RuleLoaderTests
     [Fact]
     public void Rejects_a_comparison_without_a_declared_windows_default()
     {
-        // L'exigence est le coeur de la justesse des regles : sur le registre Windows,
-        // une cle absente est le cas courant, pas l'exception.
+        // This requirement is central to rule correctness: in the Windows registry,
+        // an absent key is the common case, not the exception.
         var yaml = Valid.Replace("    windowsDefault: \"0\"", string.Empty);
 
         var ex = Assert.Throws<RuleFormatException>(() => RuleLoader.Load(yaml));
@@ -136,7 +136,7 @@ public sealed class RuleLoaderTests
 
         var ex = Assert.Throws<RuleFormatException>(() => RuleLoader.Load(yaml));
 
-        // Le message doit orienter vers le bon type plutôt que constater l'absence.
+        // The message must point to the right check type, not just note the missing field.
         Assert.Contains("registryKey", ex.Message, StringComparison.Ordinal);
     }
 
@@ -175,9 +175,9 @@ public sealed class RuleLoaderTests
     [Fact]
     public void Rejects_the_old_free_text_impact_field()
     {
-        // Le champ unique attirait les generalites -- « peut avoir des effets de bord »
-        // -- sur lesquelles aucune decision ne se prend. Echouer explicitement vaut
-        // mieux que d'ignorer en silence une remediation redigee a l'ancienne.
+        // The single field attracted generalities -- "may have side effects" --
+        // that support no decision. Failing explicitly is better than silently
+        // ignoring a remediation written in the old format.
         var yaml = Valid + """
 
               remediation:

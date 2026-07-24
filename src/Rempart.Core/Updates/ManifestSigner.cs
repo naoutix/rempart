@@ -5,22 +5,22 @@ using Rempart.Core.Json;
 namespace Rempart.Core.Updates;
 
 /// <summary>
-/// Produit un manifeste signé — le pendant de <see cref="ManifestVerifier"/>.
+/// Produces a signed manifest — the counterpart of <see cref="ManifestVerifier"/>.
 ///
 /// <para>
-/// C'est l'acte de publication de l'ADR-002, et il reste manuel (D16) : aucune
-/// automatisation ne détient la clé, la signature se fait sur une machine hors ligne.
-/// Ce code est le même des deux côtés d'un principe — <b>on signe les octets, puis on
-/// les décrit ; jamais l'inverse</b>. La charge utile est sérialisée une fois, ces
-/// octets-là sont signés, et ce sont eux qui voyagent en base64. Le vérificateur
-/// signera sur exactement la même suite d'octets, sans re-sérialiser.
+/// This is the publication step of ADR-002, and it stays manual (D16): no automation
+/// holds the key; signing happens on an offline machine. This code applies the same
+/// principle as the verifier — <b>sign the bytes, then describe them; never the
+/// reverse</b>. The payload is serialized once, those exact bytes are signed, and those
+/// bytes are what travels as base64. The verifier operates on exactly the same byte
+/// sequence, without re-serializing.
 /// </para>
 /// </summary>
 public static class ManifestSigner
 {
     /// <summary>
-    /// Décrit un fichier tel que le manifeste doit le déclarer : empreinte et taille,
-    /// ce sur quoi le vérificateur jugera qu'un fichier reçu est bien celui-ci.
+    /// Describes a file the way the manifest must declare it: hash and size, which is
+    /// what the verifier uses to decide that a received file is this one.
     /// </summary>
     public static ManifestEntry Describe(string name, byte[] content, string? kind = null)
     {
@@ -28,9 +28,9 @@ public static class ManifestSigner
 
         return new ManifestEntry(
             name,
-            // Version dérivée du contenu : deux publications d'un même fichier portent
-            // la même, deux contenus différents non. Rien à saisir à la main, rien à
-            // oublier d'incrémenter.
+            // Version derived from the content: two publications of the same file carry
+            // the same version, two different contents do not. Nothing to enter by hand,
+            // nothing to forget to increment.
             sha256[..8],
             sha256,
             content.LongLength,
@@ -38,12 +38,12 @@ public static class ManifestSigner
     }
 
     /// <summary>
-    /// Signe une charge utile avec la clé privée d'éditeur.
+    /// Signs a payload with the publisher private key.
     ///
-    /// La signature ECDSA est produite au format IEEE P1363 (r‖s, 64 octets fixes pour
-    /// P-256) — le format par défaut de <c>SignData</c>, et celui qu'attend
-    /// <c>VerifyData</c> côté vérificateur. Les deux côtés s'accordent sans le dire ;
-    /// un test le prouve plutôt que de le supposer.
+    /// The ECDSA signature is produced in IEEE P1363 format (r‖s, a fixed 64 bytes for
+    /// P-256) — the default format of <c>SignData</c>, and the one <c>VerifyData</c>
+    /// expects on the verifier side. The two sides agree implicitly; a test proves it
+    /// rather than assuming it.
     /// </summary>
     public static SignedManifest Sign(ManifestPayload payload, ECDsa privateKey)
     {

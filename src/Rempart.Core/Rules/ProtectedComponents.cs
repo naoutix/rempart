@@ -1,41 +1,41 @@
 namespace Rempart.Core.Rules;
 
 /// <summary>
-/// Composants qu'aucune règle ne peut cibler pour remédiation (ADR-001, D7).
+/// Components no rule may target for remediation (ADR-001, D7).
 ///
-/// L'état de l'art du dé-bloatware Windows recense cinq modes d'échec récurrents ; la
-/// suppression de ces composants en cause quatre. Le runtime WebView2 fait le rendu de
-/// nombreuses applications natives et surfaces système — le retirer casse des programmes
-/// sans rapport apparent. Sans le Store ni App Installer, plus de chemin de réinstallation.
-/// Sans Windows Update, plus de correctifs, ce qui contredit frontalement l'objectif.
+/// The state of the art in Windows debloating shows five recurring failure modes; removing
+/// these components causes four of them. The WebView2 runtime renders many native
+/// applications and system surfaces — removing it breaks seemingly unrelated programs.
+/// Without the Store and App Installer there is no reinstallation path. Without Windows
+/// Update there are no more patches, which directly contradicts the goal.
 ///
-/// La liste est en dur, et non dans un YAML, précisément pour qu'une modification de
-/// fichier de règles ne puisse pas la contourner. Un test parcourt toutes les règles
-/// livrées et échoue si l'une d'elles y touche.
+/// The list is hardcoded, not kept in a YAML file, precisely so that editing a rules file
+/// cannot bypass it. A test walks every shipped rule and fails if one of them touches
+/// these components.
 ///
-/// Sans effet en v1 : aucun provider en écriture n'existe avant M9. La garantie est
-/// posée maintenant pour qu'aucune règle ne s'écrive entre-temps en la supposant absente.
+/// No effect in v1: no write provider exists before M9. The guarantee is put in place now
+/// so that no rule gets written in the meantime assuming it is absent.
 /// </summary>
 public static class ProtectedComponents
 {
     /// <summary>
-    /// Fragments recherchés dans les chemins de remédiation, en insensible à la casse.
+    /// Fragments searched for in remediation paths, case-insensitively.
     /// </summary>
     public static readonly IReadOnlyList<string> Fragments =
     [
-        // Moteur de rendu de nombreuses applications natives et surfaces système.
+        // Rendering engine for many native applications and system surfaces.
         "microsoft-windows-webview",
         "microsoftedgewebview",
         "microsoft.microsoftedge",
         "msedgewebview",
 
-        // Chemin de réinstallation des composants livrés par le Store.
+        // Reinstallation path for components delivered through the Store.
         "microsoft.windowsstore",
         "microsoft.desktopappinstaller",
         "microsoft.storepurchaseapp",
 
-        // Servicing : sans lui, plus de correctifs de sécurité. Le service ne suffit
-        // pas — la configuration de Windows Update est tout aussi désactivable.
+        // Servicing: without it, no more security patches. Protecting the service alone
+        // is not enough — the Windows Update configuration can be disabled just as well.
         @"currentversion\windowsupdate",
         @"policies\microsoft\windows\windowsupdate",
         @"currentcontrolset\services\wuauserv",
@@ -43,12 +43,12 @@ public static class ProtectedComponents
         @"currentcontrolset\services\trustedinstaller",
         @"currentcontrolset\services\msiserver",
 
-        // Sécurité de base : un durcissement qui les désactive n'en est pas un.
+        // Baseline security: hardening that disables these is not hardening.
         @"currentcontrolset\services\windefend",
         @"currentcontrolset\services\mpssvc",
         @"currentcontrolset\services\securityhealthservice",
 
-        // Amorçage et session : une erreur ici rend la machine inutilisable.
+        // Boot and session: a mistake here makes the machine unusable.
         @"currentcontrolset\services\rpcss",
         @"currentcontrolset\services\dcomlaunch",
         @"currentcontrolset\services\lsm",
@@ -58,8 +58,8 @@ public static class ProtectedComponents
         Fragments.Any(fragment => path.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// Retourne les règles dont la remédiation viserait un composant protégé.
-    /// Vide en v1 — aucune règle livrée ne porte de cible de remédiation.
+    /// Returns the rules whose remediation would target a protected component.
+    /// Empty in v1 — no shipped rule carries a remediation target.
     /// </summary>
     public static IReadOnlyList<Rule> FindViolations(IEnumerable<Rule> rules) =>
         [.. rules.Where(rule => rule.Remediation is not null && IsProtected(rule.Check.Path))];

@@ -3,20 +3,20 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Énumère les pilotes noyau chargés via WMI (<c>Win32_SystemDriver</c>).
+/// Enumerates loaded kernel drivers via WMI (<c>Win32_SystemDriver</c>).
 ///
 /// <para>
-/// La voie évidente — <c>EnumDeviceDrivers</c> — est un piège depuis Windows 10 : hors
-/// élévation, elle rend le <b>nombre</b> de pilotes mais met leurs adresses noyau à
-/// zéro, une protection contre la fuite d'adresses noyau (KASLR). Sans adresse, pas de
-/// chemin, et l'énumération rendait zéro pilote en apparente réussite. Un succès qui
-/// ment, exactement ce que ce projet traque.
+/// The obvious route — <c>EnumDeviceDrivers</c> — is a trap since Windows 10: without
+/// elevation it returns the <b>count</b> of drivers but zeroes their kernel addresses,
+/// a protection against kernel address disclosure (KASLR). Without an address there is
+/// no path, so the enumeration returned zero drivers while appearing to succeed.
 /// </para>
 ///
 /// <para>
-/// <c>Win32_SystemDriver</c> donne le chemin du fichier directement, sans élévation et
-/// sans jamais exposer d'adresse noyau. On ne retient que les pilotes <c>Running</c> :
-/// un pilote installé mais arrêté ne s'exécute pas, et le dire chargé serait faux.
+/// <c>Win32_SystemDriver</c> provides the file path directly, without elevation and
+/// without ever exposing a kernel address. Only <c>Running</c> drivers are kept: a
+/// driver that is installed but stopped does not execute, and reporting it as loaded
+/// would be wrong.
 /// </para>
 /// </summary>
 public sealed class LiveDriverProvider(IWmiProvider wmi) : IDriverProvider
@@ -41,8 +41,8 @@ public sealed class LiveDriverProvider(IWmiProvider wmi) : IDriverProvider
 
         foreach (var instance in read.Instances)
         {
-            // Seuls les pilotes en cours d'exécution : les autres sont sur le disque
-            // sans être chargés, et la surface qu'on veut juger est celle qui tourne.
+            // Only drivers that are currently running: the others sit on disk without
+            // being loaded, and the surface to assess is what actually runs.
             if (!string.Equals(instance.Find("State"), "Running", StringComparison.OrdinalIgnoreCase))
             {
                 continue;

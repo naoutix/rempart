@@ -8,10 +8,9 @@ public class PublisherKeyTests
     private const string Passphrase = "une phrase de passe correcte";
 
     /// <summary>
-    /// Le tour complet : générer, écrire, relire, signer, vérifier. C'est ce qui compte
-    /// vraiment — une clé qu'on ne peut pas rouvrir ne se découvre autrement que le
-    /// jour où l'on doit publier, sur une machine hors ligne probablement détruite
-    /// depuis.
+    /// The full round-trip: generate, write, reload, sign, verify. This is what
+    /// matters — a key that cannot be reopened would otherwise only be discovered
+    /// on publish day, on an offline machine probably destroyed since.
     /// </summary>
     [Fact]
     public void A_generated_key_can_be_reopened_and_actually_signs()
@@ -25,8 +24,8 @@ public class PublisherKeyTests
         var payload = "manifeste"u8.ToArray();
         var signature = reopened.SignData(payload, HashAlgorithmName.SHA256);
 
-        // Vérifié par la clé publique annoncée, pas par celle qu'on vient de rouvrir :
-        // c'est l'appariement des deux qui est en cause.
+        // Verified with the announced public key, not the one just reopened:
+        // the pairing of the two is what is under test.
         using var verifier = ECDsa.Create();
         verifier.ImportSubjectPublicKeyInfo(Convert.FromBase64String(pair.PublicKey), out _);
 
@@ -34,8 +33,8 @@ public class PublisherKeyTests
     }
 
     /// <summary>
-    /// L'empreinte annoncée est bien celle que le vérificateur calculera, sans quoi le
-    /// manifeste signé serait rejeté pour clé inconnue.
+    /// The announced fingerprint must be the one the verifier will compute,
+    /// otherwise the signed manifest would be rejected as an unknown key.
     /// </summary>
     [Fact]
     public void The_announced_key_id_is_the_one_the_verifier_computes()
@@ -61,9 +60,9 @@ public class PublisherKeyTests
     }
 
     /// <summary>
-    /// Un support amovible se perd. Une phrase de passe trop courte ferait de cette
-    /// perte une compromission, et il n'existe volontairement aucune option pour
-    /// écrire la clé en clair.
+    /// Removable media gets lost. A passphrase that is too short would turn that
+    /// loss into a compromise, and there is deliberately no option to write the
+    /// key in cleartext.
     /// </summary>
     [Theory]
     [InlineData("")]
@@ -73,8 +72,8 @@ public class PublisherKeyTests
         Assert.Throws<ArgumentException>(() => PublisherKey.Generate(passphrase));
 
     /// <summary>
-    /// Deux générations ne donnent jamais la même clé : sans cela, deux éditeurs
-    /// pourraient signer l'un pour l'autre.
+    /// Two generations never produce the same key: otherwise two publishers
+    /// could sign for each other.
     /// </summary>
     [Fact]
     public void Two_generations_produce_different_keys()
@@ -85,8 +84,8 @@ public class PublisherKeyTests
     }
 
     /// <summary>
-    /// La clé privée écrite ne contient jamais la forme non chiffrée. Le vérifier
-    /// plutôt que de le supposer : c'est le fichier qui part sur une clé USB.
+    /// The written private key never contains the unencrypted form. Verify it
+    /// rather than assume it: this is the file that goes onto a USB stick.
     /// </summary>
     [Fact]
     public void The_written_private_key_is_encrypted()
@@ -94,7 +93,7 @@ public class PublisherKeyTests
         var pair = PublisherKey.Generate(Passphrase);
         var written = Convert.FromBase64String(pair.EncryptedPrivateKey);
 
-        // Un PKCS#8 en clair s'importe sans phrase de passe ; un chiffré non.
+        // A cleartext PKCS#8 imports without a passphrase; an encrypted one does not.
         using var key = ECDsa.Create();
 
         Assert.ThrowsAny<CryptographicException>(

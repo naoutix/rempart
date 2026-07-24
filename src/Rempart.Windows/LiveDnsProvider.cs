@@ -3,13 +3,13 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Lit la configuration DNS de chaque interface depuis le registre.
+/// Reads each interface's DNS configuration from the registry.
 ///
 /// <para>
-/// Chaque interface a sa clé sous <c>Tcpip\Parameters\Interfaces</c>. <c>NameServer</c>
-/// porte les résolveurs posés statiquement, <c>DhcpNameServer</c> ceux reçus du réseau —
-/// la distinction que le collecteur juge. Les adresses y sont séparées par des espaces ou
-/// des virgules.
+/// Each interface has its key under <c>Tcpip\Parameters\Interfaces</c>. <c>NameServer</c>
+/// holds statically configured resolvers, <c>DhcpNameServer</c> those received from the
+/// network — the distinction the collector evaluates. Addresses are separated by spaces
+/// or commas.
 /// </para>
 /// </summary>
 public sealed class LiveDnsProvider : IDnsProvider

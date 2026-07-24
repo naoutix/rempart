@@ -3,8 +3,8 @@ using Rempart.Core.Findings;
 namespace Rempart.Core.Dns;
 
 /// <summary>
-/// L'avis rendu par le test actif : les mesures brutes, et le résolveur chiffré le plus
-/// rapide joignable — ou aucun. Hors du score : c'est une recommandation, pas un verdict.
+/// What the active test returned: the raw measurements, and the fastest reachable
+/// encrypted resolver — or none. Kept out of the score: a recommendation, not a verdict.
 /// </summary>
 public sealed record DnsProbeReport(
     IReadOnlyList<DnsProbeResult> Results,
@@ -13,13 +13,13 @@ public sealed record DnsProbeReport(
     int? RecommendedLatencyMs);
 
 /// <summary>
-/// Transforme les résultats de sonde en un avis (le plus rapide) et en constats de
-/// sécurité (le DNS chiffré est-il bloqué ?). Pur, testable sans réseau.
+/// Turns probe results into advice (the fastest resolver) and into security findings
+/// (is encrypted DNS blocked?). Pure, testable without network access.
 ///
 /// <para>
-/// La séparation est délibérée : l'observation « DNS chiffré bloqué » est un constat, elle
-/// entre dans les findings ; le classement par latence est un avis, il reste hors du score
-/// et ne se déguise pas en verdict.
+/// The separation is deliberate: the observation "encrypted DNS is blocked" is a fact and
+/// belongs in the findings; the latency ranking is advice — it stays out of the score and
+/// does not masquerade as a verdict.
 /// </para>
 /// </summary>
 public static class DnsProbeAnalysis
@@ -39,7 +39,7 @@ public static class DnsProbeAnalysis
 
         if (!results.Any(result => result.Reachable))
         {
-            // Rien de chiffré ne passe : le réseau force le DNS en clair.
+            // Nothing encrypted gets through: the network forces DNS into the clear.
             findings.Add(new Finding("dns-encrypted", "réseau", "DNS chiffré",
                 FindingSeverity.Suspicious,
                 ["Aucun résolveur DNS chiffré (DoH ni DoT) n'est joignable — la résolution "
@@ -48,7 +48,7 @@ public static class DnsProbeAnalysis
         }
         else
         {
-            // Un protocole entièrement filtré alors que l'autre passe.
+            // One protocol entirely filtered while the other gets through.
             foreach (var protocol in new[] { DnsProbeProtocol.DoH, DnsProbeProtocol.DoT })
             {
                 var probes = results.Where(result => result.Protocol == protocol).ToList();

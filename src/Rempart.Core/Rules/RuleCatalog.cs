@@ -5,34 +5,34 @@ using System.Text;
 namespace Rempart.Core.Rules;
 
 /// <summary>
-/// Les règles livrées, embarquées dans le binaire, éventuellement complétées par un
-/// répertoire externe.
+/// The shipped rules, embedded in the binary, optionally supplemented by an external
+/// directory.
 ///
-/// Embarquées et non lues depuis le disque : le binaire doit rester autonome sur clé
-/// USB, sans dossier compagnon à ne pas oublier de copier. Le répertoire externe est
-/// un complément — pour itérer sur des règles sans recompiler, et pour porter des
-/// contrôles propres à un parc que le catalogue livré n'a pas à connaître.
+/// Embedded rather than read from disk: the binary must stay self-contained on a USB
+/// stick, with no companion folder one could forget to copy. The external directory is
+/// a supplement — to iterate on rules without recompiling, and to carry fleet-specific
+/// checks the shipped catalog has no business knowing about.
 ///
-/// Une règle reste une donnée déclarative : elle lit le registre, elle n'exécute rien.
-/// Charger un répertoire externe n'ouvre donc pas de surface d'exécution.
+/// A rule remains declarative data: it reads the registry, it executes nothing.
+/// Loading an external directory therefore opens no execution surface.
 /// </summary>
 public static class RuleCatalog
 {
     /// <summary>
-    /// Date de référence des données embarquées : à quand remonte le dernier examen du
-    /// catalogue livré.
+    /// Reference date of the embedded data: when the shipped catalog was last
+    /// reviewed.
     ///
     /// <para>
-    /// Déclarée à la main, faute de source automatique fiable : le binaire est publié en
-    /// AOT, sans date de compilation exploitable, et une date dérivée du système de
-    /// fichiers ne survivrait pas à la mise en cache. <b>À avancer à chaque révision
-    /// matérielle du catalogue</b> — sans quoi le rapport annoncerait des données plus
-    /// fraîches qu'elles ne le sont, exactement le mensonge que D15 veut empêcher.
+    /// Declared by hand, for lack of a reliable automatic source: the binary ships as
+    /// AOT, with no usable compilation date, and a date derived from the file system
+    /// would not survive caching. <b>Must be advanced with every material revision of
+    /// the catalog</b> — otherwise the report would claim fresher data than it
+    /// actually has, exactly the lie D15 is meant to prevent.
     /// </para>
     ///
     /// <para>
-    /// C'est un plancher : dès que <c>rempart update</c> chargera des données signées,
-    /// leur date de publication prendra le relais (ADR-002, D15).
+    /// It is a floor: once <c>rempart update</c> loads signed data, its publication
+    /// date takes over (ADR-002, D15).
     /// </para>
     /// </summary>
     public const string EmbeddedAsOfUtc = "2026-07-21T00:00:00Z";
@@ -40,9 +40,9 @@ public static class RuleCatalog
     private static IReadOnlyList<Rule>? cachedEmbedded;
 
     /// <param name="externalDirectory">
-    /// Répertoire de YAML supplémentaires, parcouru récursivement. Les identifiants
-    /// doivent rester uniques : une collision avec le catalogue livré est une erreur,
-    /// pas une redéfinition silencieuse.
+    /// Directory of additional YAML files, walked recursively. Identifiers must stay
+    /// unique: a collision with the shipped catalog is an error, not a silent
+    /// redefinition.
     /// </param>
     public static IReadOnlyList<Rule> Load(string? externalDirectory = null)
     {
@@ -53,8 +53,8 @@ public static class RuleCatalog
             rules.AddRange(LoadExternal(externalDirectory));
         }
 
-        // Le contrôle est fait ici, entre fichiers : le chargeur ne voit qu'un fichier
-        // à la fois et ne peut pas repérer un doublon réparti sur deux sources.
+        // The check happens here, across files: the loader only sees one file at a
+        // time and cannot spot a duplicate spread over two sources.
         var duplicates = rules
             .GroupBy(r => r.Id, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1)
@@ -73,12 +73,12 @@ public static class RuleCatalog
     }
 
     /// <summary>
-    /// Empreinte du jeu de règles évalué.
+    /// Fingerprint of the evaluated rule set.
     ///
-    /// Deux rapports au même score ne sont comparables que s'ils ont été produits par
-    /// le même catalogue. Sans cette empreinte, un écart entre deux machines pourrait
-    /// venir d'un changement de règles plutôt que d'un changement de configuration —
-    /// et rien ne permettrait de le savoir. Indispensable à « rempart diff » (M7).
+    /// Two reports with the same score are only comparable if they were produced by
+    /// the same catalog. Without this fingerprint, a gap between two machines could
+    /// come from a rule change rather than a configuration change — and nothing
+    /// would tell them apart. Essential for "rempart diff" (M7).
     /// </summary>
     public static string Fingerprint(IReadOnlyList<Rule> rules)
     {
@@ -94,20 +94,20 @@ public static class RuleCatalog
     }
 
     /// <summary>
-    /// Empreinte d'une règle seule, sur les mêmes champs que <see cref="Fingerprint"/>.
+    /// Fingerprint of a single rule, over the same fields as <see cref="Fingerprint"/>.
     ///
-    /// Extraite pour que le différentiel d'une mise à jour (ADR-002, D14) juge un
-    /// changement au même aune que l'empreinte du catalogue : deux règles de même
-    /// identifiant ne diffèrent que si l'un de ces champs change. Une seconde définition
-    /// de « ce qui compte dans une règle » divergerait tôt ou tard de celle-ci.
+    /// Extracted so that the diff of an update (ADR-002, D14) judges a change by the
+    /// same yardstick as the catalog fingerprint: two rules with the same identifier
+    /// only differ if one of these fields changes. A second definition of "what
+    /// matters in a rule" would sooner or later diverge from this one.
     /// </summary>
     public static string RuleFingerprint(Rule rule) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(RuleContent(rule))))[..12];
 
     /// <summary>
-    /// Identifiant, sévérité, cible et défaut : tout ce qui change un verdict. Le titre
-    /// et la justification n'en font pas partie — une reformulation ne doit rendre ni
-    /// deux rapports incomparables, ni une mise à jour « modifiée » à tort.
+    /// Identifier, severity, target and default: everything that changes a verdict.
+    /// The title and rationale are not part of it — a rewording must neither make two
+    /// reports incomparable nor wrongly mark an update as "modified".
     /// </summary>
     private static string RuleContent(Rule rule) =>
         string.Join('|',
@@ -131,8 +131,8 @@ public static class RuleCatalog
             rules.AddRange(RuleLoader.Load(ReadResource(assembly, name), name));
         }
 
-        // Le chargement échoue plutôt que de livrer un catalogue vide en silence :
-        // un scan sans règles rendrait un rapport parfaitement vert.
+        // Loading fails rather than silently delivering an empty catalog:
+        // a scan without rules would produce a perfectly green report.
         if (rules.Count == 0)
         {
             throw new RuleFormatException(
@@ -164,8 +164,8 @@ public static class RuleCatalog
 
         if (files.Count == 0)
         {
-            // Un répertoire vide passé explicitement est très probablement une erreur
-            // de chemin. Le signaler évite un scan qui semble complet.
+            // An explicitly passed empty directory is most likely a path mistake.
+            // Reporting it avoids a scan that merely looks complete.
             throw new RuleFormatException($"Aucun fichier .yaml dans : {directory}");
         }
 
@@ -175,8 +175,8 @@ public static class RuleCatalog
             rules.AddRange(RuleLoader.Load(File.ReadAllText(file), file));
         }
 
-        // La liste noire s'applique aux règles externes comme aux autres : c'est
-        // précisément là qu'une règle non relue pourrait cibler un composant critique.
+        // The blocklist applies to external rules like any other: that is precisely
+        // where an unreviewed rule could target a critical component.
         var violations = ProtectedComponents.FindViolations(rules);
         if (violations.Count > 0)
         {

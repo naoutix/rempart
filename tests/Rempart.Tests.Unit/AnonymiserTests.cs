@@ -4,19 +4,17 @@ using Rempart.Core.Snapshots;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Les fixtures finissent versionnées. Un instantané brut porte hostname, numéro de
-/// série et propriétaire enregistré : c'est de l'identification de machine, pas de la
-/// donnée de test.
+/// Fixtures end up under version control. A raw snapshot carries the hostname, serial
+/// number and registered owner: that is machine identification, not test data.
 /// </summary>
 public sealed class AnonymiserTests
 {
     [Fact]
     public void Firewall_rule_application_paths_are_scrubbed()
     {
-        // Une règle de pare-feu peut viser une application installée sous un profil
-        // utilisateur : son chemin nomme alors quelqu'un, et la capture destinée à voyager
-        // le porterait. Les chemins système (%SystemRoot%) n'ont rien à cacher et restent
-        // lisibles.
+        // A firewall rule can target an application installed under a user profile: its
+        // path then names someone, and a capture meant to travel would carry it. System
+        // paths (%SystemRoot%) have nothing to hide and stay readable.
         var snapshot = new MachineSnapshot
         {
             SystemInfo = FakeSystemInfoProvider.Default,
@@ -69,7 +67,7 @@ public sealed class AnonymiserTests
 
         Anonymiser.Apply(snapshot);
 
-        // Anonymiser au-delà du nécessaire viderait les fixtures de leur intérêt.
+        // Anonymising beyond what is necessary would drain the fixtures of their value.
         Assert.Equal("Windows 11 Pro", Text(snapshot, "ProductName"));
     }
 

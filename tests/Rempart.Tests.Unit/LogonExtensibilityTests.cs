@@ -16,9 +16,9 @@ public class LogonExtensibilityTests
             registry, new FakeSystemInfoProvider(), signatures: signatures));
 
     /// <summary>
-    /// La configuration par défaut : Userinit et Shell pointent leurs programmes
-    /// attendus, tous deux signés. Rien à examiner — sinon le rapport crierait à chaque
-    /// scan d'une machine saine.
+    /// The default configuration: Userinit and Shell point to their expected programs,
+    /// both signed. Nothing to review — otherwise the report would cry wolf on every
+    /// scan of a healthy machine.
     /// </summary>
     [Fact]
     public void The_default_userinit_and_shell_are_benign()
@@ -35,8 +35,8 @@ public class LogonExtensibilityTests
     }
 
     /// <summary>
-    /// Un exécutable ajouté à Userinit est signalé même signé : c'est l'ajout à cet
-    /// emplacement qui compte, une technique de persistance classique.
+    /// An executable appended to Userinit is flagged even when signed: what matters is
+    /// the addition at this location, a classic persistence technique.
     /// </summary>
     [Fact]
     public void An_extra_userinit_entry_is_notable_even_when_signed()
@@ -55,8 +55,8 @@ public class LogonExtensibilityTests
     }
 
     /// <summary>
-    /// Le même ajout, non signé, cumule les deux motifs et reste au moins suspect : la
-    /// signature ne peut qu'aggraver, jamais abaisser.
+    /// The same addition, unsigned, accumulates both reasons and stays at least
+    /// suspicious: the signature can only aggravate, never lower.
     /// </summary>
     [Fact]
     public void An_extra_unsigned_userinit_entry_is_suspicious()
@@ -74,8 +74,8 @@ public class LogonExtensibilityTests
     }
 
     /// <summary>
-    /// Un shell qui n'est pas <c>explorer.exe</c> est signalé — le remplacer est un
-    /// détournement d'ouverture de session.
+    /// A shell that is not <c>explorer.exe</c> is flagged — replacing it hijacks the
+    /// logon sequence.
     /// </summary>
     [Fact]
     public void A_shell_other_than_explorer_is_flagged()
@@ -90,9 +90,9 @@ public class LogonExtensibilityTests
     }
 
     /// <summary>
-    /// Une DLL dans AppInit_DLLs est notable quelle que soit sa signature : le mécanisme
-    /// injecte dans chaque processus graphique et n'a plus lieu d'être sur une machine
-    /// moderne.
+    /// A DLL in AppInit_DLLs is notable regardless of its signature: the mechanism
+    /// injects into every GUI process and no longer has any place on a modern
+    /// machine.
     /// </summary>
     [Fact]
     public void A_present_appinit_dll_is_notable_even_when_signed()
@@ -109,8 +109,8 @@ public class LogonExtensibilityTests
     }
 
     /// <summary>
-    /// AppInit_DLLs vide — le cas normal — ne produit aucun constat. L'absence de valeur
-    /// est un état sain, pas une lacune.
+    /// An empty AppInit_DLLs — the normal case — produces no finding. The absence of a
+    /// value is a healthy state, not a gap.
     /// </summary>
     [Fact]
     public void An_empty_appinit_produces_no_finding()
@@ -121,7 +121,7 @@ public class LogonExtensibilityTests
         var signatures = new FakeSignatureProvider()
             .With(@"C:\W\system32\userinit.exe", SignatureStatus.Valid);
 
-        // Seul Userinit est présent : aucun constat AppInit.
+        // Only Userinit is present: no AppInit finding.
         Assert.DoesNotContain(Collect(registry, signatures), f => f.Source == "AppInit_DLLs");
     }
 }
