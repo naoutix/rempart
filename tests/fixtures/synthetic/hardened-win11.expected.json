@@ -3712,5 +3712,8 @@
     "unknown": false,
     "thresholdDays": 180
   },
-  "dnsProbe": null
+  "dnsProbe": null,
+  "updateNote": null,
+  "integrityNote": null,
+  "rulesNote": null
 }

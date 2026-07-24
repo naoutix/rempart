@@ -20,7 +20,30 @@ public sealed record ScanResult(
     DataAge DataAge,
     /// <summary>Result of the active DoH/DoT probe, or null if it was not requested
     /// (--probe-dns). Kept out of the score: it is a recommendation, not a verdict.</summary>
-    Dns.DnsProbeReport? DnsProbe = null);
+    Dns.DnsProbeReport? DnsProbe = null,
+
+    /// <summary>
+    /// What the update store had to say — applied, or refused and why (ADR-002, D17).
+    ///
+    /// Carried by the result rather than passed alongside it, because the JSON report is
+    /// re-rendered later by <c>rempart report</c>: a note living outside the result
+    /// would silently vanish from the re-rendered report, and "the update was refused"
+    /// is precisely the sentence that must never go missing.
+    /// </summary>
+    string? UpdateNote = null,
+
+    /// <summary>What the stick's integrity seal concluded, when there is one to read.</summary>
+    string? IntegrityNote = null,
+
+    /// <summary>
+    /// Where extra rules came from, when the evaluated catalog is not the embedded one
+    /// alone.
+    ///
+    /// Three notes, three versions of the same question the reader of a report has to
+    /// answer before comparing it to another: is this the catalog I think it is, was it
+    /// updated, and is the tool that produced it the one that was sealed.
+    /// </summary>
+    string? RulesNote = null);
 
 /// <summary>
 /// Runs the collectors, then evaluates the rules.

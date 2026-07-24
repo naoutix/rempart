@@ -11,8 +11,13 @@ publish/
 # Données machine — ne jamais commiter par défaut.
 # Un rapport contient l'inventaire logiciel, les ports ouverts et les faiblesses
 # de configuration d'une machine réelle : c'est une cartographie de ses points faibles.
-reports/
-captures/
+#
+# Ancrés à la racine : sans la barre initiale, « reports/ » avalait aussi
+# src/Rempart.Core/Reports/ — la casse ne protège pas, git ignore la distinction
+# sous Windows. Le générateur de rapports entier serait resté hors du dépôt sans
+# qu'aucune commande ne s'en plaigne.
+/reports/
+/captures/
 *.capture.json
 
 # Fixtures : le dépôt est public, seules les synthétiques sont versionnées.

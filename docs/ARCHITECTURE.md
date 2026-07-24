@@ -45,11 +45,12 @@ the interfaces. The same code runs against a real machine or against a JSON snap
 > This diagram is the **target**. Implemented today: inventory, security rules,
 > persistence (autoruns, tasks, drivers, WMI, processes, LSA, COM, …), network
 > (listening ports cross-checked with the firewall, DNS resolvers, hosts file, proxy
-> and PAC, Wi-Fi profiles), software inventory with the bloatware catalog, and
-> browser extensions with their granted permissions.
-> Still to come: hygiene, the hardware add-on, and `diff` / `report` on the CLI
-> side — see [ROADMAP.md](ROADMAP.md) (French). The update channel, not shown here,
-> has its own diagram below.
+> and PAC, Wi-Fi profiles), software inventory with the bloatware catalog,
+> browser extensions with their granted permissions, reclaimable space in the
+> component store, and the three report formats with `rempart report`.
+> Still to come: hygiene, the hardware add-on, and `diff` — see
+> [ROADMAP.md](ROADMAP.md) (French). The update channel, not shown here, has its own
+> diagram below.
 
 ## Execution flow
 
@@ -123,8 +124,9 @@ local file or HTTP transport. Same abstraction as the providers, applied to down
 ```
 rempart/
 ├── src/
-│   ├── Rempart.Cli/            # CLI: scan, capture, explain, synthesise, keygen,
-│   │                           #   sign, fetch-loldrivers, update, diagnose-*, version
+│   ├── Rempart.Cli/            # CLI: scan, report, capture, explain, synthesise,
+│   │                           #   keygen, sign, seal, fetch-loldrivers, update,
+│   │                           #   diagnose-*, version
 │   ├── Rempart.Core/
 │   │   ├── Collectors/         # ICollector: describes the machine via known fields
 │   │   ├── Findings/           # IFindingCollector: enumerates persistence (autoruns,
@@ -132,6 +134,8 @@ rempart/
 │   │   │                       #   (ports, DNS, hosts) + SignatureLadder
 │   │   ├── Engine/             # orchestration, field semantics, scoring
 │   │   ├── Json/               # source-generated serialization (AOT)
+│   │   ├── Packaging/          # the USB stick's signed integrity seal
+│   │   ├── Reports/            # pure ScanResult → HTML · Markdown · JSON renderers
 │   │   ├── Providers/          # IRegistryProvider, IWmiProvider, IDriverProvider,
 │   │   │                       #   IFirewallProvider, IDnsProvider, IListeningPortProvider…
 │   │   ├── Rules/              # YAML loading, evaluation, scoring, blocklist
@@ -159,6 +163,58 @@ driver or a network-exposed port.
 Directories planned by the roadmap but not created yet — HTML report, hardware add-on,
 remediation profiles, image layer — are described in [ROADMAP.md](ROADMAP.md) rather
 than announced here as if they existed.
+
+## Reports
+
+Rendering is a pure function of the scan: `ScanResult → text`, with no filesystem, no
+clock, no Windows. `rempart report --from <rapport.json>` therefore runs anywhere, and
+both renderers are tested by property rather than by screenshot.
+
+| Format | Reader | Content |
+|---|---|---|
+| HTML | whoever opens it | summary, flagged findings, benign ones folded away |
+| Markdown | whoever pastes it into a ticket | the same, with nothing folded — plain text is read as often as rendered |
+| JSON | the next tool | **complete**, benign findings included; source for `report` and for `diff` (M7) |
+
+The HTML is one file: inline stylesheet and script, no external reference of any kind.
+One would turn opening a report into a network call from the reader's machine, and would
+disclose that it was opened.
+
+**A report is built from strings the audited machine chose** — command lines, paths,
+extension names. Escaping is not cosmetic here: it is the one place where a formatting
+mistake becomes a vulnerability. The inline script receives no scan data at all; it
+filters nodes already in the document, which removes the second injection path instead of
+securing it.
+
+Provenance travels inside `ScanResult` — `UpdateNote`, `IntegrityNote`, `RulesNote` —
+rather than beside it. Otherwise re-rendering from the JSON would drop the sentence "the
+update was refused", exactly the silence [ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)
+(D14, D17) forbids.
+
+## The stick
+
+```
+E:\
+├── rempart.exe                       # sealed
+├── rules/                            # sealed — loaded without an option
+├── rempart-data/                     # excluded: re-verified at every scan (D13)
+├── reports/<machine>-<date>/         # excluded: written by every scan
+└── rempart-integrity.json            # the seal itself
+```
+
+`rules/` and `rempart-data/` are found beside the binary with nothing to configure: the
+stick is plugged in and run. Extra rules are never picked up silently — the scan header
+names the folder, and the catalog fingerprint changes.
+
+`rempart seal` signs the listing with the publisher key of ADR-002 — the same trust
+anchor as the update channel. A bare list of hashes stored next to the files it describes
+would protect against nothing: whoever alters a file recomputes the line. An **added**
+file is reported like a modified one, because planting is done by adding a DLL beside the
+executable, not by editing something the seal already lists.
+
+Its limit is stated wherever it appears: a binary verifying itself proves little. The
+check is worth something run from a copy known to be good, against a stick one has reason
+to doubt.
 
 ## Rule format
 

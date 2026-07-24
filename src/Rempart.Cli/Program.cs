@@ -3,8 +3,10 @@ using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Dns;
 using Rempart.Core.Json;
+using Rempart.Core.Packaging;
 using Rempart.Core.Pac;
 using Rempart.Core.Providers;
+using Rempart.Core.Reports;
 using Rempart.Core.Reputation;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
@@ -29,12 +31,15 @@ try
     return command switch
     {
         "scan" => Scan(args),
+        "report" => Report(args),
         "capture" => Capture(args),
         "explain" => Explain(args),
         "synthesise" => Synthesise(args),
         "diagnose-wmi" => DiagnoseWmi(),
         "diagnose-tasks" => DiagnoseTasks(),
+        "diagnose-store" => DiagnoseStore(args),
         "keygen" => Keygen(args),
+        "seal" => Seal(args),
         "fetch-loldrivers" => FetchLoldrivers(args),
         "sign" => Sign(args),
         "update" => Update(args),
@@ -83,7 +88,8 @@ static int Scan(string[] args)
             proxy: new SnapshotProxyProvider(snapshot),
             wifi: new SnapshotWifiProfileProvider(snapshot),
             softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot),
-            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot));
+            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot),
+            componentStore: new SnapshotComponentStoreProvider(snapshot));
         origin = snapshot.CapturedAtUtc;
     }
     else
@@ -107,7 +113,8 @@ static int Scan(string[] args)
             proxy: new LiveProxyProvider(),
             wifi: new LiveWifiProfileProvider(),
             softwareInventory: new LiveSoftwareInventoryProvider(),
-            browserExtensions: new LiveBrowserExtensionProvider());
+            browserExtensions: new LiveBrowserExtensionProvider(),
+            componentStore: new LiveComponentStoreProvider());
         origin = UtcNow();
     }
 
@@ -116,12 +123,30 @@ static int Scan(string[] args)
     // fixture depend on local state. On replay, only the embedded baseline counts.
     var resolution = snapshotPath is null
         ? ResolveLiveCatalog(args)
-        : new CatalogResolution(RuleCatalog.Load(OptionValue(args, "--rules")),
+        : new CatalogResolution(RuleCatalog.Load(RulesDirectory(args)),
             DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, null);
 
-    var result = new ScanEngine(ScanEngine.DefaultCollectors, resolution.Rules)
+    // The store's verdict rides along inside the result: the JSON report is re-rendered
+    // later by "rempart report", and a note kept outside would vanish there — exactly
+    // the silence ADR-002 (D17) forbids.
+    var result = new ScanEngine(CollectorsFor(args), resolution.Rules)
         .Run(providers, ToolVersion(), origin, resolution.AsOfUtc,
-            ScanEngine.DefaultFindingCollectors(resolution.Blocklist, resolution.Catalog));
+            ScanEngine.DefaultFindingCollectors(resolution.Blocklist, resolution.Catalog))
+        with
+        {
+            UpdateNote = resolution.UpdateNote,
+
+            // Only on a live scan. A replay reproduces a past scan: hashing the stick
+            // this binary happens to sit on would make a fixture depend on local state,
+            // exactly why the update store is not consulted on replay either.
+            IntegrityNote = snapshotPath is null ? SealNote(AppContext.BaseDirectory) : null,
+
+            // Extra rules change what the score means, so where they came from is said
+            // outright rather than left to be inferred from a fingerprint that moved.
+            RulesNote = RulesDirectory(args) is { } directory
+                ? $"Règles supplémentaires chargées depuis {directory}."
+                : null,
+        };
 
     // VirusTotal enrichment — the scan's only network call, never on by default
     // (ADR-001, D9) and never on replay: that is a past snapshot, not the current
@@ -182,7 +207,14 @@ static int Scan(string[] args)
     }
     else
     {
-        WriteHumanReadable(result, resolution.UpdateNote);
+        WriteHumanReadable(result);
+    }
+
+    // The packaged report — the stick's deliverable. Asked for explicitly: a scan
+    // piped into a script must not litter the drive it runs from.
+    if (HasFlag(args, "--report") && !WriteReportBundle(args, result))
+    {
+        return 1;
     }
 
     // Missing privileges are not an execution error, but the caller must be able
@@ -190,6 +222,140 @@ static int Scan(string[] args)
     return result.Collectors.Any(c => c.Status == CollectorStatus.Failed) ? 1
         : result.Collectors.Any(c => c.Status == CollectorStatus.InsufficientPrivileges) ? 3
         : 0;
+}
+
+/// <summary>
+/// Writes the three report files into <c>&lt;root&gt;/&lt;hostname&gt;-&lt;date&gt;/</c>,
+/// the layout a stick carries across machines.
+///
+/// <para>
+/// The default root sits next to the binary, so plugging the stick in and running
+/// <c>rempart scan --report</c> files the report with the others, with nothing to
+/// configure. Failing to write is reported and returns false: the caller asked for a
+/// report, and a scan that printed to the console while silently producing no file
+/// would be the worst of both.
+/// </para>
+/// </summary>
+static bool WriteReportBundle(string[] args, ScanResult result)
+{
+    var root = OptionalValue(args, "--report")
+        ?? Path.Combine(AppContext.BaseDirectory, "reports");
+
+    var folder = FreeFolder(root, ReportBundle.FolderName(result));
+
+    try
+    {
+        Directory.CreateDirectory(folder);
+
+        foreach (var file in ReportBundle.Build(result))
+        {
+            File.WriteAllText(Path.Combine(folder, file.Name), file.Content);
+        }
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+        // The common case is a write-protected stick, which is a sensible way to carry
+        // an audit tool: say what to do rather than surface a bare IO error.
+        Console.Error.WriteLine();
+        Console.Error.WriteLine($"Rapport non écrit dans {folder} : {ex.Message}");
+        Console.Error.WriteLine(
+            "Support en lecture seule ? Indiquer un autre dossier : --report <dossier>.");
+        return false;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"Rapport écrit dans {folder}");
+    Console.WriteLine($"  {ReportBundle.HtmlName,-14} à ouvrir dans un navigateur, autonome");
+    Console.WriteLine($"  {ReportBundle.MarkdownName,-14} à coller dans un ticket");
+    Console.WriteLine($"  {ReportBundle.JsonName,-14} la donnée complète, constats bénins compris");
+    return true;
+}
+
+/// <summary>
+/// The report folder for this scan, suffixed if one is already there.
+///
+/// Two scans of the same machine on the same day are the normal case — before and
+/// after a fix. Overwriting would destroy the "before", which is the half that is
+/// impossible to reproduce.
+/// </summary>
+static string FreeFolder(string root, string name)
+{
+    var candidate = Path.Combine(root, name);
+
+    for (var attempt = 2; Directory.Exists(candidate) && attempt < 100; attempt++)
+    {
+        candidate = Path.Combine(root, $"{name}-{attempt}");
+    }
+
+    return candidate;
+}
+
+/// <summary>
+/// Re-renders a report from the JSON a scan produced.
+///
+/// <para>
+/// The JSON is the complete artifact — the HTML and the Markdown summarise it — so
+/// getting the other two formats back never requires scanning the machine again. It
+/// also runs anywhere: re-rendering reads a file, so an audit captured on a Windows
+/// machine can be turned into a report on any machine at all.
+/// </para>
+/// </summary>
+static int Report(string[] args)
+{
+    var source = OptionValue(args, "--from");
+
+    if (source is null || !File.Exists(source))
+    {
+        Console.Error.WriteLine(
+            "Indiquer le rapport JSON à rendre : rempart report --from <rapport.json>.");
+        return 1;
+    }
+
+    ScanResult result;
+    try
+    {
+        result = RempartJson.DeserialiseScanResult(File.ReadAllText(source));
+    }
+    catch (System.Text.Json.JsonException ex)
+    {
+        Console.Error.WriteLine($"{source} n'est pas un JSON lisible : {ex.Message}");
+        return 1;
+    }
+
+    // A capture and a report are both JSON produced by this tool. Deserialising one as
+    // the other yields empty fields rather than an error, and would write an empty
+    // report that looks like a machine with nothing to report.
+    if (string.IsNullOrEmpty(result.StartedAtUtc) || result.Collectors is null)
+    {
+        Console.Error.WriteLine(
+            $"{source} ne ressemble pas à un rapport de scan. « rempart scan --json » en " +
+            "produit un ; « rempart capture » produit un instantané, qui se rejoue avec " +
+            "« rempart scan --from ».");
+        return 1;
+    }
+
+    var wanted = OptionValue(args, "--format") switch
+    {
+        null or "all" => (string[])[ReportBundle.HtmlName, ReportBundle.MarkdownName, ReportBundle.JsonName],
+        "html" => [ReportBundle.HtmlName],
+        "markdown" or "md" => [ReportBundle.MarkdownName],
+        "json" => [ReportBundle.JsonName],
+        var other => throw new ArgumentException(
+            $"Format inconnu « {other} ». Attendu : html, markdown, json, all."),
+    };
+
+    // Here --out is the folder itself, not a root: the caller named a destination for
+    // one known report, where "scan" was filing an unknown number of them.
+    var directory = OptionValue(args, "--out") ?? ".";
+    Directory.CreateDirectory(directory);
+
+    foreach (var file in ReportBundle.Build(result).Where(f => wanted.Contains(f.Name)))
+    {
+        File.WriteAllText(Path.Combine(directory, file.Name), file.Content);
+        Console.WriteLine($"Écrit : {Path.Combine(directory, file.Name)}");
+    }
+
+    return 0;
 }
 
 static int Capture(string[] args)
@@ -220,14 +386,15 @@ static int Capture(string[] args)
         softwareInventory: new RecordingSoftwareInventoryProvider(
             new LiveSoftwareInventoryProvider(), snapshot),
         browserExtensions: new RecordingBrowserExtensionProvider(
-            new LiveBrowserExtensionProvider(), snapshot));
+            new LiveBrowserExtensionProvider(), snapshot),
+        componentStore: new RecordingComponentStoreProvider(
+            new LiveComponentStoreProvider(), snapshot));
 
     // The full engine, rules included: a fixture must be able to replay everything a
     // scan does, otherwise it would only test half the path. The update store is
     // resolved here too, so a capture prefetches the keys of rules added by an update
     // and stays replayable.
-    var engine = new ScanEngine(
-        ScanEngine.DefaultCollectors, ResolveLiveCatalog(args).Rules);
+    var engine = new ScanEngine(CollectorsFor(args), ResolveLiveCatalog(args).Rules);
     engine.Run(providers, ToolVersion(), snapshot.CapturedAtUtc);
 
     // Then every key the rules could read in another context, so the snapshot stays
@@ -436,7 +603,7 @@ static int Update(string[] args)
         return 1;
     }
 
-    var current = RuleCatalog.Load(OptionValue(args, "--rules"));
+    var current = RuleCatalog.Load(RulesDirectory(args));
 
     // Each source produces the same thing: a preview, and the means to apply it.
     // The rest — display, confirmation, writing — is shared.
@@ -574,7 +741,7 @@ static int ReportAndMaybeApply(string[] args, UpdatePreview preview, Action appl
 static CatalogResolution ResolveLiveCatalog(string[] args) =>
     UpdateStore.Resolve(
         StoreDirectory(args),
-        RuleCatalog.Load(OptionValue(args, "--rules")),
+        RuleCatalog.Load(RulesDirectory(args)),
         PinnedKeys.Verifier());
 
 /// <summary>
@@ -583,6 +750,33 @@ static CatalogResolution ResolveLiveCatalog(string[] args) =>
 /// </summary>
 static string StoreDirectory(string[] args) =>
     OptionValue(args, "--store") ?? Path.Combine(AppContext.BaseDirectory, "rempart-data");
+
+/// <summary>
+/// Where the extra rules come from: <c>--rules</c>, or a <c>rules/</c> folder next to
+/// the binary.
+///
+/// <para>
+/// Same reasoning as the update store above, and the same stick layout: plug it in, run
+/// it, nothing to remember. Fleet-specific checks travel beside the executable instead
+/// of in a command line nobody types the same way twice.
+/// </para>
+///
+/// <para>
+/// Picked up, never silently: the header names the folder, and the rule fingerprint
+/// changes — which is what makes two reports comparable or not. The stick seal covers
+/// this folder for the same reason it covers the binary.
+/// </para>
+/// </summary>
+static string? RulesDirectory(string[] args)
+{
+    if (OptionValue(args, "--rules") is { } explicitly)
+    {
+        return explicitly;
+    }
+
+    var beside = Path.Combine(AppContext.BaseDirectory, "rules");
+    return Directory.Exists(beside) ? beside : null;
+}
 
 static void WriteDataset(DatasetPreview dataset)
 {
@@ -623,6 +817,98 @@ static void WriteDataset(DatasetPreview dataset)
         Console.WriteLine($"      ~ {change.Id}  ({change.Before} → {change.After})");
     }
 }
+
+/// <summary>
+/// The collectors this run wires up.
+///
+/// <para>
+/// The component store analysis is opt-in: the servicing stack takes tens of seconds to
+/// answer and demands elevation. Adding that to every scan by default would turn a
+/// command that returns in a second into one that appears hung — the same reasoning that
+/// keeps <c>--probe-dns</c> off by default, for a local cost rather than a network one.
+/// </para>
+/// </summary>
+static IReadOnlyList<ICollector> CollectorsFor(string[] args) =>
+    HasFlag(args, "--analyze-store")
+        ? [.. ScanEngine.DefaultCollectors, new ComponentStoreCollector()]
+        : ScanEngine.DefaultCollectors;
+
+/// <summary>
+/// Checks that the servicing stack answers, and shows what it answered.
+///
+/// <para>
+/// Same reason to exist as <c>diagnose-wmi</c> and <c>diagnose-tasks</c>, applied to a
+/// different fragility: here the risk is not COM interop but a text format. The labels
+/// this parser looks for come from a tool whose output can change with a Windows update,
+/// and a parser that stopped recognising them would report a machine with nothing to
+/// reclaim rather than an error.
+/// </para>
+///
+/// <para>
+/// <c>--raw</c> prints the output verbatim, which is what confronting the parser with a
+/// real elevated run requires.
+/// </para>
+/// </summary>
+static int DiagnoseStore(string[] args)
+{
+    RequireWindows();
+
+    var diagnosis = new LiveComponentStoreProvider().Diagnose();
+    var read = diagnosis.Read;
+
+    Console.WriteLine($"magasin de composants -> {read.Status} (code {diagnosis.ExitCode})");
+
+    if (HasFlag(args, "--raw"))
+    {
+        Console.WriteLine();
+        Console.WriteLine(diagnosis.RawOutput);
+        Console.WriteLine();
+    }
+
+    if (read.Diagnostic is { } diagnostic)
+    {
+        Console.WriteLine($"  défaillance : {diagnostic}");
+    }
+
+    if (read.Status != ReadStatus.Found)
+    {
+        Console.Error.WriteLine(
+            read.Status == ReadStatus.AccessDenied
+                ? "Relancer depuis une console administrateur."
+                : "L'analyse n'a rien rendu d'exploitable. « --raw » montre la sortie brute, "
+                  + "à confronter aux libellés attendus par le lecteur.");
+        return 1;
+    }
+
+    foreach (var (label, value) in new (string, string?)[]
+             {
+                 ("taille réelle", Size(read.ActualSizeBytes)),
+                 ("partagé avec Windows", Size(read.SharedWithWindowsBytes)),
+                 ("sauvegardes et fonctionnalités désactivées", Size(read.BackupsAndDisabledFeaturesBytes)),
+                 ("cache et données temporaires", Size(read.CacheAndTemporaryBytes)),
+                 ("récupérable", Size(read.ReclaimableBytes)),
+                 ("paquets récupérables", read.ReclaimablePackages?.ToString()),
+                 ("nettoyage recommandé", read.CleanupRecommended?.ToString()),
+                 ("dernier nettoyage", read.LastCleanup),
+             })
+    {
+        Console.WriteLine($"  {label,-42} {value ?? "non indiqué"}");
+    }
+
+    // Every layer null while the anchor parsed means the format moved under us.
+    if (read.ReclaimableBytes is null)
+    {
+        Console.Error.WriteLine();
+        Console.Error.WriteLine(
+            "Taille lue, mais aucune couche détaillée : les libellés attendus ont changé. " +
+            "Relancer avec « --raw » et corriger ComponentStoreParser.");
+        return 1;
+    }
+
+    return 0;
+}
+
+static string? Size(long? bytes) => bytes is { } value ? ReportLabels.Bytes(value) : null;
 
 /// <summary>
 /// Verifies that WMI actually responds — intended for CI, run against the Native AOT
@@ -753,6 +1039,213 @@ static int Keygen(string[] args)
     return 0;
 }
 
+/// <summary>
+/// Seals the stick, or checks it against its seal.
+///
+/// <para>
+/// The stick gets plugged into the very machines it audits; any of them can rewrite
+/// <c>rempart.exe</c>. The seal is signed by the publisher key of ADR-002 — a list of
+/// hashes sitting next to the files it describes would protect against nothing, since
+/// whoever alters a file recomputes the line.
+/// </para>
+///
+/// <para>
+/// Its limit is stated wherever it is used: a binary checking itself proves little. The
+/// check is worth something run from a copy known to be good, against a stick one has
+/// reason to doubt.
+/// </para>
+/// </summary>
+static int Seal(string[] args)
+{
+    var root = OptionValue(args, "--dir") ?? AppContext.BaseDirectory;
+
+    if (!Directory.Exists(root))
+    {
+        Console.Error.WriteLine($"Dossier introuvable : {root}");
+        return 1;
+    }
+
+    var sealPath = OptionValue(args, "--out") ?? Path.Combine(root, StickSeal.FileName);
+
+    if (HasFlag(args, "--check"))
+    {
+        if (!File.Exists(sealPath))
+        {
+            Console.Error.WriteLine(
+                $"Aucun sceau dans {root}. En poser un : rempart seal --dir <dossier> " +
+                "--key <clé privée>.");
+            return 1;
+        }
+
+        var verdict = CheckSeal(root, sealPath, out var detail);
+        Console.WriteLine(detail);
+
+        foreach (var deviation in verdict?.Deviations ?? [])
+        {
+            Console.WriteLine($"  {DescribeSealState(deviation.State),-11} {deviation.Name}");
+        }
+
+        if (verdict is { Intact: true })
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "Rappel : un binaire qui se vérifie lui-même prouve peu. Ce contrôle vaut " +
+                "lancé depuis une copie sûre, contre une clé dont on doute.");
+            return 0;
+        }
+
+        return 1;
+    }
+
+    var keyPath = OptionValue(args, "--key");
+
+    if (keyPath is null || !File.Exists(keyPath))
+    {
+        Console.Error.WriteLine(
+            "Sceller exige la clé privée d'éditeur : rempart seal --dir <dossier> " +
+            "--key <fichier>. Sans signature, une liste d'empreintes posée à côté des " +
+            "fichiers qu'elle décrit ne protège de rien : qui modifie un fichier " +
+            "recalcule la ligne.");
+        return 1;
+    }
+
+    if (Console.IsInputRedirected)
+    {
+        Console.Error.WriteLine(
+            "Cette commande exige une console : la phrase de passe ne doit pas transiter " +
+            "par un tube ni par un argument.");
+        return 1;
+    }
+
+    var files = ReadSealableFiles(root);
+
+    if (files.Count == 0)
+    {
+        Console.Error.WriteLine($"Rien à sceller dans {root}.");
+        return 1;
+    }
+
+    Console.WriteLine("Phrase de passe de la clé privée (non affichée) :");
+    var passphrase = ReadHidden();
+
+    SignedManifest signed;
+    try
+    {
+        using var key = PublisherKey.Open(File.ReadAllText(keyPath).Trim(), passphrase);
+        signed = ManifestSigner.Sign(StickSeal.Describe(files, UtcNow()), key);
+    }
+    catch (System.Security.Cryptography.CryptographicException)
+    {
+        Console.Error.WriteLine("Clé illisible : phrase de passe erronée, ou fichier abîmé.");
+        return 1;
+    }
+
+    File.WriteAllText(sealPath, RempartJson.Serialise(signed));
+
+    Console.WriteLine();
+    Console.WriteLine($"Sceau écrit dans {sealPath} — {files.Count} fichier(s), " +
+                      $"signé par {signed.Signatures[0].KeyId}.");
+    foreach (var (name, content) in files)
+    {
+        Console.WriteLine($"  {name}  ({content.LongLength} octets)");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"Hors sceau, par conception : {string.Join(", ", StickSeal.ExcludedDirectories)}" +
+                      " — ils changent à l'usage normal. Le magasin de mise à jour est de");
+    Console.WriteLine("toute façon revérifié à chaque scan contre son propre manifeste signé.");
+    return 0;
+}
+
+static string DescribeSealState(SealState state) => state switch
+{
+    SealState.Modified => "modifié",
+    SealState.Missing => "manquant",
+    SealState.Unsealed => "ajouté",
+    _ => "conforme",
+};
+
+/// <summary>
+/// Authenticates the seal, then compares it to what is on the stick. Returns null when
+/// the seal itself is not trustworthy — a different problem from a stick that changed,
+/// and one that deserves its own wording.
+/// </summary>
+static SealVerdict? CheckSeal(string root, string sealPath, out string explanation)
+{
+    var verdict = PinnedKeys.Verifier().Verify(File.ReadAllText(sealPath));
+
+    if (!verdict.IsTrusted || verdict.Payload is null)
+    {
+        // The verifier's wording is written for the update channel — it ends on
+        // "install a newer version", which means nothing for a seal. Same statuses,
+        // different consequences, so the sentences are the seal's own.
+        explanation = verdict.Status switch
+        {
+            ManifestStatus.UnknownKey =>
+                "Sceau signé par une clé que ce binaire ne connaît pas : il ne prouve rien " +
+                "ici. Le vérifier depuis une copie qui connaît cette clé.",
+
+            ManifestStatus.BadSignature =>
+                "Sceau dont la signature ne correspond pas à son contenu : il a été modifié " +
+                "après signature. Ne pas se fier à cette clé.",
+
+            _ => $"Sceau illisible : {verdict.Explanation}",
+        };
+
+        return null;
+    }
+
+    var present = ReadSealableFiles(root)
+        .ToDictionary(f => f.Name, f => f.Content, StringComparer.OrdinalIgnoreCase);
+
+    var result = StickSeal.Check(verdict.Payload, present);
+    explanation = result.Summary;
+    return result;
+}
+
+/// <summary>
+/// The seal's verdict as one line for the scan header, or null when the stick carries
+/// no seal — the ordinary case, which must not read as a failure.
+/// </summary>
+static string? SealNote(string root)
+{
+    var sealPath = Path.Combine(root, StickSeal.FileName);
+
+    if (!File.Exists(sealPath))
+    {
+        return null;
+    }
+
+    try
+    {
+        CheckSeal(root, sealPath, out var explanation);
+        return explanation;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+        // Unreadable is not intact. Saying so beats staying silent, which would read
+        // as "nothing to report".
+        return $"Sceau d'intégrité illisible : {ex.Message}";
+    }
+}
+
+/// <summary>
+/// The stick's files, as names relative to its root with <c>/</c> separators, so a seal
+/// produced on one machine reads the same on another.
+/// </summary>
+static IReadOnlyList<(string Name, byte[] Content)> ReadSealableFiles(string root)
+{
+    var full = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar);
+
+    var names = StickSeal.Sealable(Directory
+        .EnumerateFiles(full, "*", SearchOption.AllDirectories)
+        .Select(path => Path.GetRelativePath(full, path)
+            .Replace(Path.DirectorySeparatorChar, '/')));
+
+    return [.. names.Select(name => (name,
+        File.ReadAllBytes(Path.Combine(full, name.Replace('/', Path.DirectorySeparatorChar)))))];
+}
+
 /// <summary>Reads without echo. The passphrase must not remain on screen.</summary>
 static string ReadHidden()
 {
@@ -867,7 +1360,7 @@ static int Synthesise(string[] args)
 
     var built = SyntheticSnapshot.Build(
         RempartJson.DeserialiseSnapshot(File.ReadAllText(sourcePath)),
-        RuleCatalog.Load(OptionValue(args, "--rules")),
+        RuleCatalog.Load(RulesDirectory(args)),
         profile,
         machineName: OptionValue(args, "--name") ?? "anon:synthetic",
         domainJoined: HasFlag(args, "--domain-joined"),
@@ -918,7 +1411,7 @@ static string DescribeAge(DataAge age)
 /// it is context, and twenty-three lines of context before the first finding mean
 /// the finding never gets read.
 /// </summary>
-static void WriteHumanReadable(ScanResult result, string? updateNote = null)
+static void WriteHumanReadable(ScanResult result)
 {
     Console.WriteLine($"Rempart {result.ToolVersion} — scan du {result.StartedAtUtc}");
     Console.WriteLine($"règles : {result.RulesFingerprint}");
@@ -926,9 +1419,19 @@ static void WriteHumanReadable(ScanResult result, string? updateNote = null)
 
     // Data provenance — applied or rejected — is always stated, never silent
     // (ADR-002, D14 and D17).
-    if (updateNote is { } note)
+    if (result.UpdateNote is { } note)
     {
         Console.WriteLine($"mise à jour : {note}");
+    }
+
+    if (result.IntegrityNote is { } integrity)
+    {
+        Console.WriteLine($"intégrité : {integrity}");
+    }
+
+    if (result.RulesNote is { } rulesNote)
+    {
+        Console.WriteLine($"catalogue : {rulesNote}");
     }
 
     if (result.Score is { } score)
@@ -1103,7 +1606,7 @@ static void WritePosture(ScanResult result, ScoreCard score)
 static int Explain(string[] args)
 {
     var id = args.Length > 1 && !args[1].StartsWith('-') ? args[1] : null;
-    var rules = RuleCatalog.Load(OptionValue(args, "--rules"));
+    var rules = RuleCatalog.Load(RulesDirectory(args));
 
     if (id is null)
     {
@@ -1235,6 +1738,21 @@ static string? OptionValue(string[] args, string name)
 
 static bool HasFlag(string[] args, string name) => Array.IndexOf(args, name) >= 0;
 
+/// <summary>
+/// Value of an option that may be given without one — <c>--report</c> alone, or
+/// <c>--report D:\audits</c>.
+///
+/// <see cref="OptionValue"/> would swallow the next option as a value and quietly
+/// write the reports into a folder named <c>--json</c>.
+/// </summary>
+static string? OptionalValue(string[] args, string name)
+{
+    var index = Array.IndexOf(args, name);
+    return index >= 0 && index + 1 < args.Length && !args[index + 1].StartsWith('-')
+        ? args[index + 1]
+        : null;
+}
+
 /// <summary>All occurrences of a repeatable option.</summary>
 static IReadOnlyList<string> OptionValues(string[] args, string name)
 {
@@ -1260,16 +1778,35 @@ static int Help() => Print(
     """
     Rempart — audit de postes Windows
 
-      rempart scan [--json] [--from <instantané>] [--rules <dossier>]
+      rempart scan [--json] [--report [dossier]] [--from <instantané>]
+                   [--rules <dossier>] [--analyze-store]
                    [--virustotal-key <clé>] [--fetch-pac] [--probe-dns]
           Analyse la machine locale, ou rejoue un instantané hors-ligne.
+
+          --report écrit rapport.html, rapport.md et rapport.json dans
+          <dossier>/<machine>-<date>/ ; sans valeur, dans « reports/ » à côté
+          du binaire — le rangement de la clé USB. Le HTML est autonome :
+          un seul fichier, aucune ressource externe, thème clair/sombre.
+
+          --analyze-store mesure l'espace récupérable du magasin de composants
+          (WinSxS) par couche. Opt-in : la pile de maintenance de Windows met
+          des dizaines de secondes à répondre et exige l'élévation. Rien n'est
+          supprimé, jamais.
+
           Trois appels réseau, tous opt-in et jamais en rejeu :
           --virustotal-key (ou REMPART_VT_KEY) enrichit les constats signalés
           de leur réputation VirusTotal ; --fetch-pac récupère et analyse le
           script PAC d'un proxy signalé ; --probe-dns mesure la latence des
           résolveurs chiffrés (DoH/DoT) et recommande le plus rapide.
 
-      rempart capture [--out <fichier>] [--raw]
+      rempart report --from <rapport.json> [--out <dossier>]
+                     [--format html|markdown|json]
+          Re-fabrique un rapport depuis le JSON d'un scan, sans rescanner.
+          Le JSON est l'artefact complet — HTML et Markdown le résument.
+          Écrit dans le dossier indiqué (par défaut le dossier courant) ;
+          --format n'en produit qu'un seul. Ne demande pas Windows.
+
+      rempart capture [--out <fichier>] [--raw] [--analyze-store]
           Enregistre l'état brut de la machine, rejouable en test.
           Anonymisé par défaut ; --raw conserve les identifiants.
 
@@ -1281,6 +1818,9 @@ static int Help() => Print(
           Charge des règles YAML supplémentaires, en plus des règles
           embarquées. Itérer sans recompiler, ou porter des contrôles
           propres à un parc. Les identifiants doivent rester uniques.
+          À défaut d'option, un dossier « rules/ » posé à côté du binaire
+          est chargé — le rangement de la clé. L'en-tête du scan le dit,
+          et l'empreinte du catalogue change : jamais en silence.
 
       rempart synthesise --from <capture> --out <fichier>
                          [--profile hardened|defaults] [--name <nom>]
@@ -1292,6 +1832,20 @@ static int Help() => Print(
 
       rempart diagnose-tasks
           Vérifie que le planificateur de tâches répond. Même usage.
+
+      rempart diagnose-store [--raw]
+          Vérifie que l'analyse du magasin de composants répond et que ses
+          libellés sont toujours ceux que le lecteur attend. Exige
+          l'élévation ; --raw montre la sortie brute de l'outil.
+
+      rempart seal --dir <dossier> (--key <clé privée> | --check)
+          Scelle la clé USB, ou vérifie qu'elle est restée ce qu'elle était.
+          Le sceau est signé par la clé d'éditeur (ADR-002) : une simple
+          liste d'empreintes posée à côté des fichiers qu'elle décrit ne
+          protège de rien, qui modifie un fichier recalcule la ligne.
+          Les rapports et le magasin de mise à jour en sont exclus : ils
+          changent à l'usage normal. Un binaire qui se vérifie lui-même
+          prouve peu — ce contrôle vaut lancé depuis une copie sûre.
 
       rempart keygen [--out <fichier>]
           Génère la paire de clés d'éditeur, pour signer les manifestes.
