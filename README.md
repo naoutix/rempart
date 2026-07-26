@@ -32,7 +32,7 @@ Abridged output on a stock Windows 11 machine (report language is currently Fren
 see [Output language](#output-language)):
 
 ```text
-Rempart 0.3.0 — scan du 2026-07-23T14:03:14Z
+Rempart 1.0.0-rc.1 — scan du 2026-07-23T14:03:14Z
 règles : 82:c3e6e3029b12
 données : catalogue au 2026-07-21, 2 jours
 
@@ -94,8 +94,22 @@ Correction — réversibilité : Trivial
 ## Quick start
 
 Runs on 64-bit Windows; the rule set is written against Windows 11 defaults.
-There is no packaged release yet — build from source with the
-[.NET SDK 10](docs/BUILD.md):
+
+**Packaged builds start at [v1.0.0-rc.1](https://github.com/naoutix/rempart/releases)** —
+a release candidate, and labelled one deliberately: the code for the read-only audit is
+complete and tested, but the stick has not yet been run on a machine other than the one
+it was built on, which is the exit criterion this project set for itself. Treat it as
+ready to try, not yet as ready to rely on.
+
+Each release archive is the stick layout — `rempart.exe`, `rules/`, and a
+`rempart.seal.json` signed by the publisher key. Verify it before trusting the binary,
+from a copy you already trust:
+
+```text
+rempart seal --dir <dossier> --check
+```
+
+Or build from source with the [.NET SDK 10](docs/BUILD.md):
 
 ```bash
 git clone https://github.com/naoutix/rempart
