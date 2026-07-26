@@ -102,7 +102,7 @@ it was built on, which is the exit criterion this project set for itself. Treat 
 ready to try, not yet as ready to rely on.
 
 Each release archive is the stick layout — `rempart.exe`, `rules/`, and a
-`rempart.seal.json` signed by the publisher key. Verify it before trusting the binary,
+`rempart-integrity.json` signed by the publisher key. Verify it before trusting the binary,
 from a copy you already trust:
 
 ```text

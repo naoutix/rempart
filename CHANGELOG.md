@@ -64,7 +64,7 @@ Three features touch the network and none is ever a default: VirusTotal enrichme
 
 ### Verifying what you downloaded
 
-The published archive carries `rempart.seal.json`, signed by the publisher key. Check it
+The published archive carries `rempart-integrity.json`, signed by the publisher key. Check it
 from a copy you already trust rather than from the stick under test — a binary that
 verifies itself proves little:
 
