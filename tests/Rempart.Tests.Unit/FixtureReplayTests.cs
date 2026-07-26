@@ -3,6 +3,7 @@ using Rempart.Core.Rules;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Snapshots;
+using Xunit.Abstractions;
 
 namespace Rempart.Tests.Unit;
 
@@ -19,8 +20,51 @@ namespace Rempart.Tests.Unit;
 ///   nobody would have thought to fabricate.</item>
 /// </list>
 /// </summary>
-public sealed class FixtureReplayTests
+public sealed class FixtureReplayTests(ITestOutputHelper output)
 {
+    /// <summary>
+    /// States what was actually replayed.
+    ///
+    /// <para>
+    /// The fixture list is discovered on disk and <c>local/</c> is gitignored, so this
+    /// workstation replays more cases than CI does — 513 unit tests against 511, a
+    /// difference nothing announced. A suite that quietly does less work still reports
+    /// green, and that green reads like the fuller one. The same rule already applies to
+    /// the WMI tests: a check that did not run has to say so.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_replay_states_how_many_fixtures_it_found()
+    {
+        var synthetic = Fixtures().Cast<object[]>()
+            .Select(row => (string)row[0])
+            .ToList();
+
+        var local = synthetic.Where(name => name.StartsWith("local/", StringComparison.Ordinal)).ToList();
+        var versioned = synthetic.Except(local).ToList();
+
+        output.WriteLine(
+            $"Fixtures rejouées : {versioned.Count} versionnée(s), {local.Count} locale(s) — "
+            + $"{synthetic.Count} au total.");
+
+        foreach (var name in synthetic)
+        {
+            output.WriteLine($"  · {name}");
+        }
+
+        if (local.Count == 0)
+        {
+            output.WriteLine(
+                "Aucune capture réelle dans tests/fixtures/local : les chemins que seule une "
+                + "vraie machine exerce ne sont pas couverts par cette exécution. C'est le cas "
+                + "en CI, par conception — le dépôt est public (voir DET-DIRTY).");
+        }
+
+        // The versioned fixtures are the contract: their absence means a broken checkout,
+        // not a machine without local captures.
+        Assert.NotEmpty(versioned);
+    }
+
     public static TheoryData<string> Fixtures()
     {
         var data = new TheoryData<string>();
