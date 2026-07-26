@@ -163,3 +163,9 @@ développement refuse l'élévation. Ce qui est garanti aujourd'hui : le lecteur
 proprement au lieu d'inventer, et `rempart diagnose-store --raw` existe pour trancher en
 une exécution. Tant que ce n'est pas fait, la mesure d'espace récupérable est du code
 livré mais non éprouvé, au sens où l'entend CONTRIBUTING pour les règles.
+
+> **Addendum du 2026-07-26 — tranché.** L'exécution élevée a eu lieu : `Found`, les 7
+> libellés attendus correspondent, aucune correction nécessaire. La mesure d'espace
+> récupérable est désormais éprouvée. Détail consigné dans [ROADMAP](../../ROADMAP.md) (M6)
+> et [DEBT](../../DEBT.md) (DET-DISM, fermée). Le reste de cette section est conservé tel
+> qu'écrit le 2026-07-24.

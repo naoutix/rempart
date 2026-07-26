@@ -28,10 +28,12 @@ sortie atteint. Ce qui reste ouvert dans v1 ne demande pas de code mais une mach
   effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
   loup, ce que le projet refuse par principe. Côté IPv6 il reste aussi du code : les ports
   en écoute sont collectés en `AF_INET` seul (DET-IPV6).
-- **Lecteur DISM confronté à une sortie élevée réelle** (M6) — une seule exécution en
-  console administrateur tranche (`rempart diagnose-store --raw`, DET-DISM).
 - **Validations terrain** : catalogue bloatware sur une machine OEM (M5), clé branchée sur
   une machine tierce sans rien installer (M6).
+
+Le lecteur DISM, longtemps le point aveugle de M6, est **éprouvé depuis le 2026-07-26** :
+les libellés tirés de la documentation se sont révélés justes face à une exécution élevée
+réelle (DET-DISM, fermée).
 
 ### M0 · Socle — ✅ terminé
 
@@ -380,10 +382,15 @@ Espace récupérable par couche via `AnalyzeComponentStore`, sans rien supprimer
       (`--analyze-store`) : la pile de maintenance met des dizaines de secondes à
       répondre et exige l'élévation. Le découpage est le livrable : la part partagée
       avec Windows n'est pas récupérable, et c'est elle qui fait l'essentiel du magasin.
-- [ ] **Confronter le lecteur DISM à une vraie sortie élevée** — `rempart diagnose-store
-      --raw`. Les libellés attendus viennent de la documentation, pas d'une machine :
-      tant que ce n'est pas fait, la seule chose garantie est que le lecteur *refuse*
-      au lieu d'inventer des zéros.
+- [x] **Lecteur DISM confronté à une vraie sortie élevée** — fait le 2026-07-26 en console
+      administrateur (`rempart diagnose-store --raw`). Les libellés tirés de la
+      documentation étaient justes : les 7 correspondent, `Found`, aucune correction. La
+      machine a rendu 16,45 Gio réels dont 7,76 partagés avec Windows et 8,68 de
+      sauvegardes, 5 paquets récupérables, nettoyage recommandé. Deux détails du lecteur se
+      valident enfin sur du réel plutôt qu'en théorie : le découpage au *premier*
+      deux-points, parce que la date de dernier nettoyage porte les siens, et `0 bytes`
+      écrit avec deux espaces. La sortie est bien anglaise sur un Windows français —
+      `/English` est demandé à l'outil pour n'affronter qu'un jeu de libellés.
 
 **Trouvé en chemin.** Les jauges de score étaient plafonnées à 70 % de la cellule :
 mesurées dans un navigateur, 67 %, 88 % et 100 % rendaient 136, 142 et 142 pixels. Un
