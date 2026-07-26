@@ -31,6 +31,35 @@ public static class AppxPackageName
     }
 
     /// <summary>
+    /// Whether the full name designates a split resource package — a scale or language
+    /// asset of another package (<c>split.scale-150</c>, <c>split.language-fr</c>) — and
+    /// not an application in its own right.
+    ///
+    /// <para>
+    /// Windows keeps such an entry in the Appx repository after the package it belonged to
+    /// is uninstalled, with no main entry left beside it. Reporting it as installed names
+    /// software that is not there — the audit then asks the reader to uninstall something
+    /// they cannot find.
+    /// </para>
+    /// <para>
+    /// The test is on the resource segment starting with <c>split.</c>, deliberately not on
+    /// it being non-empty: two dozen genuinely installed system packages, the Windows shell
+    /// among them, carry <c>neutral</c> in that position. Erasing those from the inventory
+    /// would be a worse error than the false positive this rule removes — an audit that
+    /// stays silent about installed software.
+    /// </para>
+    /// </summary>
+    public static bool IsResourcePackage(string fullName)
+    {
+        var parts = fullName.Split('_');
+
+        // The resource segment is second to last: the publisher hash closes the name, so
+        // this holds even for an identity name that itself contains an underscore.
+        return parts.Length >= 5
+            && parts[^2].StartsWith("split.", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Derives the Package Family Name (<c>Name_PublisherHash</c>) from a full name
     /// <c>Name_Version_Arch__PublisherHash</c>: the name (before the first <c>_</c>) and
     /// the publisher hash (after the last <c>_</c>). A name without separators is

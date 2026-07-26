@@ -21,6 +21,18 @@ tant que l'outil vise un public francophone.
 
 ## v1 — Audit en lecture seule
 
+**État au 2026-07-26 : les huit lots M0 → M7 sont livrés**, chacun avec son critère de
+sortie atteint. Ce qui reste ouvert dans v1 ne demande pas de code mais une machine :
+
+- **TLS/SCHANNEL** (M2b) et **IPv6** (M4) — reportés faute de pouvoir observer les défauts
+  effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
+  loup, ce que le projet refuse par principe. Côté IPv6 il reste aussi du code : les ports
+  en écoute sont collectés en `AF_INET` seul (DET-IPV6).
+- **Lecteur DISM confronté à une sortie élevée réelle** (M6) — une seule exécution en
+  console administrateur tranche (`rempart diagnose-store --raw`, DET-DISM).
+- **Validations terrain** : catalogue bloatware sur une machine OEM (M5), clé branchée sur
+  une machine tierce sans rien installer (M6).
+
 ### M0 · Socle — ✅ terminé
 
 - [x] `git init`, solution .NET 10, publication AOT vérifiée — **2,6 Mo**, testé isolé
@@ -210,7 +222,7 @@ cinq en gras et apparentées sont faites ; les autres restent.
 **Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test —
 atteint pour les surfaces livrées ; le volet processus rouvre le lot.
 
-### M4 · Réseau & DNS
+### M4 · Réseau & DNS — ✅ terminé
 Interfaces, DNS configurés, **test actif DoH/DoT avec mesure de latence**, fichier hosts,
 proxy et PAC, profils Wi-Fi, IPv6, NetBIOS, mDNS.
 
@@ -309,8 +321,9 @@ Découpé en trois sous-lots : **M5a** inventaire, **M5b** catalogue bloatware,
       renseignés, zéro faux positif sur le reste de l'inventaire. Les 2 entrées restantes
       (météo Bing, Clipchamp) sont absentes de `Get-AppxPackage` sur cette machine — mais y
       ont quand même escaladé en Notable, via une entrée-ressource orpheline du registre
-      Appx (faux positif assumé, DET-APPX-FAUXPOS dans DEBT.md) ; elles restent valables
-      pour d'autres machines où le paquet est réellement présent.
+      Appx ; elles restent valables pour d'autres machines où le paquet est réellement
+      présent. **Ce faux positif est corrigé depuis** (DET-APPX-FAUXPOS) : une entrée dont
+      le segment ressource commence par `split.` n'est plus prise pour une installation.
 - [x] Canal de rafraîchissement du catalogue — **déjà tranché** : le canal signé d'ADR-002,
       comme LOLDrivers (ADR-001 le renvoyait à ADR-002)
 - [x] **M5c — extensions navigateur** avec leurs permissions effectives. Parseurs purs
@@ -333,7 +346,7 @@ une machine qui l'a.
 
 **Fait quand** le catalogue est validé sur une machine OEM réelle, pas sur une VM.
 
-### M6 · Rapport & packaging clé
+### M6 · Rapport & packaging clé — ✅ terminé
 HTML autonome (fichier unique, thème clair/sombre), JSON, Markdown.
 Espace récupérable par couche via `AnalyzeComponentStore`, sans rien supprimer.
 
@@ -400,7 +413,7 @@ seconde voie d'injection au lieu de la sécuriser.
 
 **Fait quand** la clé tourne sur une machine tierce sans rien installer.
 
-### M7 · Flotte
+### M7 · Flotte — ✅ terminé
 `rempart diff a.json b.json`, baseline de référence, page d'agrégation des rapports.
 
 - [x] `rempart diff` — moteur pur `Rempart.Core/Diff/`, alimenté par le JSON de M6 :
