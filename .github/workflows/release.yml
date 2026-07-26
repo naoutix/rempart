@@ -1,0 +1,147 @@
+name: Release
+
+# Third-party actions are pinned by commit hash, not by movable tag: a tag such as
+# @v4 or :latest can be rewritten upstream, which would reintroduce unreviewed code
+# into a chain that, for a security tool, must stay reproducible.
+# The comment keeps the version readable; Dependabot bumps the hash (.github/dependabot.yml).
+
+# The binary is built here rather than uploaded from a workstation: what ships should
+# come from a place anyone can inspect, out of the commit the tag names.
+#
+# The release is left as a DRAFT on purpose. The stick is only a stick once it carries a
+# seal signed by the publisher key (ADR-002), and that key does not belong in a GitHub
+# secret -- a signing key held by the build system signs whatever the build system is
+# told to. So the last two steps are the publisher's: seal, then publish.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build a draft release from'
+        required: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
+permissions:
+  contents: write
+
+jobs:
+  stick:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Native AOT publish
+        run: dotnet publish src/Rempart.Cli --configuration Release
+
+      - name: The binary must agree with the tag
+        shell: pwsh
+        run: |
+          # <Version> in Directory.Build.props is the single source of the version, and it
+          # had already drifted twice from what was actually shipped. A tag that disagrees
+          # with the binary is caught here rather than by whoever runs "rempart version"
+          # on the release and reads the wrong number.
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          if (-not (Test-Path $exe)) { throw "Binary missing: $exe" }
+
+          $tag = "${{ inputs.tag || github.ref_name }}"
+          $expected = $tag -replace '^v', ''
+          $reported = (& $exe version).Trim()
+
+          Write-Host "tag=$tag  expected=$expected  rempart version=$reported"
+          if ($reported -ne $expected) {
+            throw "Version mismatch: tag says '$expected', binary says '$reported'. Bump <Version> in Directory.Build.props to match the tag."
+          }
+
+      - name: The binary must run and scan on a bare machine
+        shell: pwsh
+        run: |
+          # Same guarantee CI checks on every commit, re-checked on the artifact that
+          # actually ships: no runtime to install, and a real scan completes.
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe scan
+          # 0 = success, 3 = insufficient rights (acceptable on a runner).
+          if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan failed ($LASTEXITCODE)" }
+
+      - name: Assemble the stick
+        shell: pwsh
+        run: |
+          # The layout M6 defined: the binary at the root, rules/ beside it. A rules
+          # directory next to the executable is loaded without any option, so the stick
+          # plugs in and runs.
+          $tag = "${{ inputs.tag || github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          $stage = "stick/rempart-$version-win-x64"
+
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe" $stage
+          Copy-Item "rules" $stage -Recurse
+          Copy-Item "README.md", "LICENSE" $stage -ErrorAction SilentlyContinue
+
+          # "unsealed" is in the file name so this archive cannot be published by mistake
+          # as if it were the real thing.
+          $zip = "rempart-$version-win-x64-unsealed.zip"
+          Compress-Archive -Path "$stage/*" -DestinationPath $zip
+          Write-Host "archive: $zip ($([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB)"
+          "ZIP=$zip" >> $env:GITHUB_ENV
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Draft the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ inputs.tag || github.ref_name }}"
+          $backtick = [char]96
+
+          # Assembled line by line rather than as a here-string: a here-string closing
+          # delimiter has to sit at column 0, which depends on how YAML dedents this block.
+          $notes = @(
+            "Built from $backtick$tag$backtick by the Release workflow, on a GitHub runner.",
+            "",
+            "### Before publishing this draft",
+            "",
+            "The archive attached here is **unsealed**. It is not yet the deliverable:",
+            "",
+            "1. Download and unzip it.",
+            "2. $backtick" + "rempart seal --dir <dossier> --key <publisher private key>$backtick",
+            "3. Re-zip as $backtick" + "rempart-$env:VERSION-win-x64.zip$backtick and attach it.",
+            "4. Delete the $backtick-unsealed$backtick archive, then publish.",
+            "",
+            "A hash list sitting beside the files it describes protects nothing -- whoever",
+            "edits a file recomputes the line. The signature is what makes the seal mean",
+            "something, and the key that produces it is deliberately not available to CI.",
+            "",
+            "### Verifying, once published",
+            "",
+            "From a copy you already trust, not from the stick being checked:",
+            "",
+            "$backtick" + "rempart seal --dir <dossier> --check$backtick"
+          ) -join "`n"
+
+          Set-Content -Path notes.md -Value $notes -Encoding utf8
+
+          # Built as an array: passing an empty string as an argument would send gh an
+          # empty positional argument rather than nothing at all.
+          $arguments = @($tag, $env:ZIP, '--draft', '--title', $tag, '--notes-file', 'notes.md')
+
+          # A tag carrying a suffix (-rc.1, -beta) is a pre-release. Deriving it from the
+          # tag rather than from a checkbox keeps the two from disagreeing.
+          if ($tag -match '-') { $arguments += '--prerelease' }
+
+          gh release create @arguments
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stick-unsealed
+          path: ${{ env.ZIP }}
