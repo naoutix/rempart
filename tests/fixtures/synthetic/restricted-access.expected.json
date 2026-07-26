@@ -3545,6 +3545,26 @@
       }
     },
     {
+      "kind": "driver",
+      "source": "pilotes charg\u00E9s",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Pilotes charg\u00E9s absents de l\u0027instantan\u00E9."
+      ],
+      "details": {}
+    },
+    {
+      "kind": "process",
+      "source": "processus courants",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Processus courants absents de l\u0027instantan\u00E9."
+      ],
+      "details": {}
+    },
+    {
       "kind": "logon-extension",
       "source": "Winlogon\\Userinit",
       "target": "C:\\WINDOWS\\system32\\userinit.exe",

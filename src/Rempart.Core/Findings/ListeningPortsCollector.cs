@@ -29,8 +29,11 @@ public sealed class ListeningPortsCollector : IFindingCollector
     {
         // PID → path of the owning binary. Ports only carry a PID; the process table is
         // what links it to a file, hence to a signature.
+        // A failed process read is not fatal here: the ports are still worth reporting,
+        // they simply lose their owning binary. The processes collector says the read
+        // failed, so this one does not repeat it — it degrades and stays quiet.
         var ownerByPid = new Dictionary<int, string>();
-        foreach (var process in providers.Processes.Enumerate())
+        foreach (var process in providers.Processes.Enumerate().Processes)
         {
             ownerByPid[process.Pid] = process.Path;
         }

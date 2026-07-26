@@ -28,9 +28,27 @@ public sealed class LoadedDriversCollector(DriverBlocklist blocklist) : IFinding
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
+        var read = providers.Drivers.Enumerate();
+
+        if (read.Status != ReadStatus.Found)
+        {
+            // An unreadable driver table is not a machine without drivers. Staying silent
+            // here would hide exactly what this collector exists to find: a vulnerable or
+            // unsigned driver loaded in the kernel.
+            return
+            [
+                new Finding(
+                    "driver", "pilotes chargés", "—",
+                    FindingSeverity.Notable,
+                    [read.Diagnostic ?? "Énumération des pilotes refusée. Relancer en "
+                        + "administrateur : un pilote vulnérable chargé resterait invisible."],
+                    new Dictionary<string, string>()),
+            ];
+        }
+
         var findings = new List<Finding>();
 
-        foreach (var driver in providers.Drivers.Enumerate())
+        foreach (var driver in read.Drivers)
         {
             var judgement = SignatureLadder.Judge(driver.Path, providers.Signatures);
 

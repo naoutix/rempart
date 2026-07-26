@@ -10,7 +10,7 @@ public class LiveBrowserExtensionProviderTests
     [Fact]
     public void Read_does_not_throw_and_returns_wellformed_entries()
     {
-        var extensions = new LiveBrowserExtensionProvider().Read();
+        var extensions = new LiveBrowserExtensionProvider().Read().Extensions;
 
         Assert.All(extensions, e =>
         {

@@ -24,7 +24,32 @@ public sealed record LoadedDriver(string Name, string Path);
 /// driver list, without loading a real one.
 /// </para>
 /// </summary>
+/// <summary>
+/// The driver list, plus whether it could be read at all.
+///
+/// <para>
+/// The status is not decoration. Enumeration goes through WMI, which on a degraded
+/// machine answers every query with zero rows; before this record existed the provider
+/// returned an empty list and the report showed no drivers, which reads exactly like a
+/// machine with nothing loaded. This is the surface carrying the LOLDrivers comparison —
+/// the one place where "nothing found" must never be produced by a failure to look.
+/// </para>
+/// </summary>
+public sealed record DriverRead(
+    ReadStatus Status,
+    IReadOnlyList<LoadedDriver> Drivers,
+    string? Diagnostic = null)
+{
+    public static readonly DriverRead AccessDenied = new(ReadStatus.AccessDenied, []);
+
+    public static DriverRead Found(IReadOnlyList<LoadedDriver> drivers) =>
+        new(ReadStatus.Found, drivers);
+
+    public static DriverRead Failed(string reason) =>
+        new(ReadStatus.AccessDenied, [], reason);
+}
+
 public interface IDriverProvider
 {
-    IReadOnlyList<LoadedDriver> Enumerate();
+    DriverRead Enumerate();
 }

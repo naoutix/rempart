@@ -38,6 +38,8 @@ de fixtures qui exerce le chemin complet du scan sans machine Windows.
 | DET-SECURITY | Dépôt public d'un outil de sécurité sans voie de divulgation | Phase 1 dette — `SECURITY.md`, et **signalement privé de vulnérabilité activé** sur le dépôt : un rapport atteint le mainteneur sans passer par une issue publique, et sans publier d'adresse personnelle |
 | DET-SYSTEM32 | `C:\Windows\System32\` et le paragraphe expliquant pourquoi il est en dur, recopiés dans 3 collecteurs | Phase 1 dette — `WindowsPaths`, qui garde le codage en dur (délibéré : pas de disque, pas de `System.IO.Path`, sinon une capture Windows rejouée sur Linux résoudrait autrement) et le dit une fois |
 | DET-REPLAY-CABLAGE | Rien ne vérifiait qu'un fournisseur ajouté à `ProviderSet` était câblé au rejeu de fixtures — D2 puis D2b, la même erreur deux fois | Phase 2 dette — test de réflexion : chaque propriété de `ProviderSet` doit porter une implémentation `Snapshot*`. **Il a trouvé la troisième occurrence à sa première exécution** : `componentStore`, ajouté en M6, jamais câblé, sous un commentaire affirmant que tous l'étaient. Latente cette fois — le collecteur est opt-in — donc attrapée avant qu'elle ne fige « rien trouvé » |
+| DET-WMI-MUET | `LiveDriverProvider` et `LiveProcessProvider` rendaient une liste vide sur lecture échouée, sans canal de statut : un WMI dégradé donnait zéro pilote et zéro processus, et le rapport ressemblait à une machine saine | Phase 2 dette — `DriverRead` et `ProcessRead` portent `Status` + `Diagnostic`, sur le modèle de `ScheduledTaskRead`. Les collecteurs remontent un constat `Notable` nommant l'échec. Le statut est **ajouté à côté** de la liste dans l'instantané, jamais en remplacement : changer `drivers` d'un tableau JSON en objet aurait rendu illisible toute capture existante, y compris les captures réelles hors dépôt |
+| DET-EXT-MUET | Trois `catch (JsonException) { }` faisaient disparaître un profil de navigateur entier de l'inventaire, indistinguable de « ce profil n'a pas d'extension » | Phase 2 dette — les parseurs rendent `null` pour « illisible », distinct de la liste vide qui reste une réponse légitime. `BrowserExtensionRead.Partial` garde ce qui a été lu **et** nomme le profil qui ne l'a pas été. Asymétrie assumée avec les pilotes : zéro extension est un état de machine plausible, zéro pilote non |
 | DET-APPX-VERSIONS | Un paquet dont plusieurs versions restent enregistrées était remonté autant de fois | Phase 2 dette — `AppxPackageName.LatestPerIdentity`. L'identité est la famille **et** l'architecture, jamais la famille seule : vérifié par mutation, grouper sur la famille perd le paquet x86. Mesuré sur machine réelle : 268 → 228 lignes Appx, pour 134 → 114 identités calculées indépendamment |
 
 ## Ouvert
@@ -46,11 +48,8 @@ Classé par priorité décroissante.
 
 | Réf | Dette | Catégorie | I | R | E | Prio | Note |
 |---|---|---|:-:|:-:|:-:|:-:|---|
-| DET-WMI-MUET | **Entrée réécrite le 2026-07-26 : la version précédente visait le mauvais endroit.** `LiveDriverProvider` et `LiveProcessProvider` font `if (read.Status != ReadStatus.Found) return [];`, et `IDriverProvider`/`IProcessProvider` rendent une liste **sans canal de statut**. Un WMI dégradé donne donc zéro pilote et zéro processus, et le rapport ressemble à une machine saine. Ce sont les surfaces de la comparaison LOLDrivers et de la détection de binaires non signés : une machine portant un pilote malveillant, scannée pendant que WMI est muet, **ressort propre** | Code | 3 | 5 | 4 | 16 | Ce que la version précédente affirmait — « un WMI dégradé peut produire un verdict » — est **faux pour le moteur de règles** : `CheckReader.ReadWmi` rend `Denied: true`, donc « non vérifiable », exactement ce qu'il faut. L'entrée avait été écrite en lisant le provider sans suivre jusqu'au consommateur. Le patron correct existe déjà (`ScheduledTaskRead` porte `Status` + `Diagnostic`) ; il n'a pas été appliqué aux pilotes ni aux processus. Comme DET-EXT-MUET, la correction traverse les instantanés |
-| DET-EXT-MUET | Trois `catch (JsonException) { }` dans `ChromiumExtensions` et `FirefoxExtensions`. Le plus grave est `ParseSettings` : un `Secure Preferences` illisible rend une liste vide, indistinguable de « ce profil n'a pas d'extension » — **tout un profil disparaît de l'inventaire sans un mot** | Code | 2 | 3 | **4** | **10** | Contredit la règle du projet : « un accès refusé est dit et non tu ». **Effort re-coté de 2 à 4 à l'examen** : le mécanisme de dégradation existe (`CollectorResult.Status` + `Diagnostics`, rendus par les rapports), mais l'atteindre demande de traverser `IBrowserExtensionProvider`, **interface enregistrée dans les instantanés** — donc `RecordingProviders`, le round-trip JSON et les fixtures de référence. C'est exactement la zone de D2 et D2b. À faire seule, avec sa propre PR |
 | DET-FIXTURE-LOCALE | `FixtureReplayTests.Fixtures()` énumère les captures sur le disque, et `tests/fixtures/local/` est gitignoré : le poste de dev exécute **513 tests, la CI 511**. La fixture la plus riche du projet — une machine réelle — n'est jamais rejouée ailleurs que chez le mainteneur, et **rien ne le signale** | Test | 2 | 2 | 1 | 20 | Garder la capture hors dépôt reste le bon choix (DET-DIRTY). Ce qui manque est le dire : faire écrire au test combien de fixtures il a trouvées, pour qu'un vert de CI n'ait pas l'air d'un vert complet. Même famille que DET-WMI-FLAKY — un test qui en fait moins doit l'annoncer |
 | DET-IPV6 | Ports en écoute IPv6 non collectés (`AF_INET` seul) — recoupe l'item M4 « IPv6 » | Code | 3 | 3 | 3 | 18 | Ajouter `AF_INET6` + formatage d'adresse ; le test Windows suppose IPv4 (`Split('.')`) et devra suivre |
-| DET-SYSTEM32 | `C:\Windows\System32\` résolu en dur dans 3 collecteurs (COM, LSA, Logon) | Code | 2 | 2 | 2 | 16 | Helper `PathResolver.ResolveSystem32` |
 | DET-TACHE-EXPIREE | La branche « tâche supprimée après expiration » n'a aucun cas positif sur machine réelle : 196 tâches sur le poste de test, aucune concernée. Couverte par fixture fabriquée seulement | Test | 2 | 2 | 2 | 16 | Se ferme sur la première capture d'une machine qui en porte une ; le zéro a été vérifié, pas supposé |
 | DET-WINDEFAULT | ~60 `windowsDefault` validés sur **une seule machine** — la « dette n°4 » d'ADR-002 | Code | 2 | 3 | 3 | 15 | Se corrige à mesure des captures réelles |
 | DET-CI-SHA | Toutes les actions GitHub sont épinglées par SHA (vérifié). Ce qui flotte encore : le tag Docker d'actionlint (`:1.7.12`) et la bande `dotnet-version: '10.0.x'` | Infrastructure | 1 | 2 | 1 | 15 | Épingler actionlint par digest ; un `global.json` fermerait le SDK en même temps que DET-SDK |
@@ -86,15 +85,24 @@ cher.
 `DET-FIXTURE-LOCALE`, découverte en vérifiant l'écart 513/511 entre le poste et la CI,
 rejoint la phase 1 pour un prochain passage : effort 1, priorité 20.
 
-### Phase 2 — à moitié faite le 2026-07-26
+### Phase 2 — ✅ faite le 2026-07-26
 
-`DET-REPLAY-CABLAGE` ✅ · `DET-APPX-VERSIONS` ✅ · `DET-WMI-MUET` → à faire · `DET-EXT-MUET` → à faire
+`DET-REPLAY-CABLAGE` ✅ · `DET-APPX-VERSIONS` ✅ · `DET-WMI-MUET` ✅ · `DET-EXT-MUET` ✅
 
-Les deux fermés étaient les deux qui ne traversaient pas la frontière des instantanés.
-Les deux restants la traversent tous les deux, et pour la même raison : un fournisseur
-qui ne peut pas dire « je n'ai pas pu regarder » doit gagner un canal de statut, donc son
-`Recording`/`Snapshot`, son round-trip JSON et ses fixtures de référence bougent avec lui.
-Chacun mérite sa PR, dans la zone précise où D2 et D2b se sont produits.
+Les quatre entrées touchaient la même question : **ce que le rapport dit quand l'outil n'a
+pas pu regarder.** Trois d'entre elles produisaient un silence indistinguable d'une bonne
+nouvelle — zéro pilote, zéro processus, un profil de navigateur sans extension — et la
+quatrième laissait un collecteur tourner à vide derrière une référence figée.
+
+Le principe retenu, appliqué partout : **un canal de statut à côté de la donnée, jamais à
+la place.** Changer une liste JSON en objet aurait rendu illisibles les captures
+existantes, y compris les captures réelles gardées hors dépôt ; le statut s'ajoute, et une
+capture qui n'en porte pas est relue comme le succès qu'elle était.
+
+Et une asymétrie assumée plutôt que subie : zéro pilote ou zéro processus **ne peut pas**
+être vrai sur une machine allumée, donc c'est une panne ; zéro extension de navigateur
+l'est parfaitement, donc c'est une réponse. Traiter les deux pareil aurait ajouté du bruit
+là où on venait d'enlever du silence.
 
 **Ce que la phase 2 a appris.** Le garde de `DET-REPLAY-CABLAGE` a trouvé la troisième
 occurrence de D2/D2b à sa première exécution — pour la première fois **avant** qu'elle ne

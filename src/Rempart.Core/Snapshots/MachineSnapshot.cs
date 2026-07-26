@@ -60,8 +60,32 @@ public sealed class MachineSnapshot
     /// <summary>Loaded kernel drivers, or null if the snapshot predates their collection.</summary>
     public List<LoadedDriver>? Drivers { get; set; }
 
+    /// <summary>
+    /// Whether the driver enumeration succeeded, or null on a capture predating this
+    /// field.
+    ///
+    /// <para>
+    /// Added beside the list rather than replacing it with a read record, deliberately:
+    /// changing <see cref="Drivers"/> from a JSON array to an object would make every
+    /// existing capture unreadable, including the real-machine ones kept outside the
+    /// repository. A capture that carries a list and no status is replayed as a success —
+    /// the best available reading of what it recorded, and no worse than before.
+    /// </para>
+    /// </summary>
+    public ReadStatus? DriversStatus { get; set; }
+
+    /// <summary>Why the driver enumeration failed, when it did.</summary>
+    public string? DriversDiagnostic { get; set; }
+
     /// <summary>Running processes, or null if the snapshot predates their collection.</summary>
     public List<RunningProcess>? Processes { get; set; }
+
+    /// <summary>Whether the process enumeration succeeded. Same reasoning as
+    /// <see cref="DriversStatus"/>.</summary>
+    public ReadStatus? ProcessesStatus { get; set; }
+
+    /// <summary>Why the process enumeration failed, when it did.</summary>
+    public string? ProcessesDiagnostic { get; set; }
 
     /// <summary>Network listening endpoints, or null if the snapshot predates their collection.</summary>
     public List<ListeningPort>? ListeningPorts { get; set; }
@@ -86,6 +110,13 @@ public sealed class MachineSnapshot
 
     /// <summary>Browser extensions, or null if the snapshot predates their collection.</summary>
     public List<BrowserExtension>? BrowserExtensions { get; set; }
+
+    /// <summary>Whether every browser profile could be read. Added beside the list for
+    /// the same compatibility reason as <see cref="DriversStatus"/>.</summary>
+    public ReadStatus? BrowserExtensionsStatus { get; set; }
+
+    /// <summary>Which profiles could not be read, when some could not.</summary>
+    public string? BrowserExtensionsDiagnostic { get; set; }
 
     /// <summary>
     /// Component store analysis, or null when it was not requested — it is opt-in

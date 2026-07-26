@@ -21,9 +21,21 @@ public sealed class BrowserExtensionsCollector : IFindingCollector
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
+        var read = providers.BrowserExtensions.Read();
         var findings = new List<Finding>();
 
-        foreach (var extension in providers.BrowserExtensions.Read())
+        // Partial by design: what was decoded is still judged, and the profile that could
+        // not be read is named beside it. Reporting only the extensions would let an
+        // unreadable profile pass for one without extensions — the very place a
+        // sideloaded extension would sit.
+        if (read.Diagnostic is { } diagnostic)
+        {
+            findings.Add(new Finding(
+                "browser-extension", "profil de navigateur", "—",
+                FindingSeverity.Notable, [diagnostic], new Dictionary<string, string>()));
+        }
+
+        foreach (var extension in read.Extensions)
         {
             findings.Add(Judge(extension));
         }

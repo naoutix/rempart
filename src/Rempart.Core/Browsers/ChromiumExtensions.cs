@@ -115,7 +115,19 @@ public static class ChromiumExtensions
         return rawName;
     }
 
-    public static IReadOnlyList<ChromiumExtensionSetting> ParseSettings(string preferencesJson)
+    /// <summary>
+    /// Settings for a profile, or <c>null</c> when the file could not be parsed.
+    ///
+    /// <para>
+    /// The null is the point. This used to swallow a <c>JsonException</c> and return an
+    /// empty list, so a corrupt <c>Secure Preferences</c> made an entire browser profile
+    /// vanish from the inventory and read as "no extensions" — the project's own rule,
+    /// "a refused read is stated and not hidden", broken in the one place a sideloaded
+    /// extension would hide. An empty list still means an empty profile, which is an
+    /// ordinary thing for a machine to have.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<ChromiumExtensionSetting>? ParseSettings(string preferencesJson)
     {
         var result = new List<ChromiumExtensionSetting>();
 
@@ -142,6 +154,8 @@ public static class ChromiumExtensions
         }
         catch (JsonException)
         {
+            // Unreadable, not empty. The caller turns this into a stated failure.
+            return null;
         }
 
         return result;

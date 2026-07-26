@@ -16,7 +16,13 @@ namespace Rempart.Core.Browsers;
 /// </summary>
 public static class FirefoxExtensions
 {
-    public static IReadOnlyList<BrowserExtension> Parse(string extensionsJson, string profile)
+    /// <summary>
+    /// The profile's add-ons, or <c>null</c> when <c>extensions.json</c> could not be
+    /// parsed. Same reasoning as <see cref="ChromiumExtensions.ParseSettings"/>: an
+    /// unreadable profile is not an empty one, and the difference is what an audit owes
+    /// its reader.
+    /// </summary>
+    public static IReadOnlyList<BrowserExtension>? Parse(string extensionsJson, string profile)
     {
         var result = new List<BrowserExtension>();
 
@@ -41,6 +47,8 @@ public static class FirefoxExtensions
         }
         catch (JsonException)
         {
+            // Unreadable, not empty — same reasoning as ChromiumExtensions.ParseSettings.
+            return null;
         }
 
         return result;
