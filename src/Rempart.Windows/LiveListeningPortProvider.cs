@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Runtime.InteropServices;
 using Rempart.Core.Providers;
 
@@ -22,6 +23,7 @@ namespace Rempart.Windows;
 public sealed partial class LiveListeningPortProvider : IListeningPortProvider
 {
     private const uint AfInet = 2;
+    private const uint AfInet6 = 23;
     private const int TcpTableOwnerPidListener = 3;
     private const int UdpTableOwnerPid = 1;
     private const uint ErrorInsufficientBuffer = 122;
@@ -46,12 +48,32 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
     public IReadOnlyList<ListeningPort> Enumerate()
     {
         var ports = new List<ListeningPort>();
-        ReadTable(ports, "TCP", rowSize: 24, portOffset: 8, addrOffset: 4, pidOffset: 20,
+
+        // MIB_TCPROW_OWNER_PID: state(0) localAddr(4) localPort(8) remoteAddr(12)
+        // remotePort(16) owningPid(20) — 24 bytes.
+        ReadTable(ports, "TCP", rowSize: 24, portOffset: 8, addrOffset: 4, addrSize: 4, pidOffset: 20,
             (IntPtr buffer, ref uint size) => GetExtendedTcpTable(buffer, ref size, false,
                 AfInet, TcpTableOwnerPidListener, 0));
-        ReadTable(ports, "UDP", rowSize: 12, portOffset: 4, addrOffset: 0, pidOffset: 8,
+
+        // MIB_UDPROW_OWNER_PID: localAddr(0) localPort(4) owningPid(8) — 12 bytes.
+        ReadTable(ports, "UDP", rowSize: 12, portOffset: 4, addrOffset: 0, addrSize: 4, pidOffset: 8,
             (IntPtr buffer, ref uint size) => GetExtendedUdpTable(buffer, ref size, false,
                 AfInet, UdpTableOwnerPid, 0));
+
+        // The IPv6 rows are a different shape, not a different address width: the scope
+        // id sits between the address and the port, which shifts every field after it.
+        // MIB_TCP6ROW_OWNER_PID: localAddr(0,16) localScopeId(16) localPort(20)
+        // remoteAddr(24,16) remoteScopeId(40) remotePort(44) state(48) owningPid(52) — 56.
+        ReadTable(ports, "TCP", rowSize: 56, portOffset: 20, addrOffset: 0, addrSize: 16, pidOffset: 52,
+            (IntPtr buffer, ref uint size) => GetExtendedTcpTable(buffer, ref size, false,
+                AfInet6, TcpTableOwnerPidListener, 0));
+
+        // MIB_UDP6ROW_OWNER_PID: localAddr(0,16) localScopeId(16) localPort(20)
+        // owningPid(24) — 28 bytes.
+        ReadTable(ports, "UDP", rowSize: 28, portOffset: 20, addrOffset: 0, addrSize: 16, pidOffset: 24,
+            (IntPtr buffer, ref uint size) => GetExtendedUdpTable(buffer, ref size, false,
+                AfInet6, UdpTableOwnerPid, 0));
+
         return ports;
     }
 
@@ -61,7 +83,7 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
     /// </summary>
     private static void ReadTable(
         List<ListeningPort> ports, string protocol,
-        int rowSize, int portOffset, int addrOffset, int pidOffset,
+        int rowSize, int portOffset, int addrOffset, int addrSize, int pidOffset,
         TableCall call)
     {
         uint size = 0;
@@ -89,7 +111,9 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
                     break;
                 }
 
-                var address = FormatAddress(Marshal.ReadInt32(buffer, row + addrOffset));
+                var address = addrSize == 16
+                    ? FormatAddressV6(buffer, row + addrOffset)
+                    : FormatAddress(Marshal.ReadInt32(buffer, row + addrOffset));
                 var port = FormatPort(Marshal.ReadInt32(buffer, row + portOffset));
                 var pid = Marshal.ReadInt32(buffer, row + pidOffset);
 
@@ -108,8 +132,35 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
             $"{raw & 0xFF}.{(raw >> 8) & 0xFF}.{(raw >> 16) & 0xFF}.{(raw >> 24) & 0xFF}");
 
     /// <summary>
+    /// Renders the 16 raw bytes of an IPv6 address in its canonical compressed form —
+    /// <c>::</c>, <c>::1</c>, <c>fe80::1</c>.
+    ///
+    /// <para>
+    /// <see cref="IPAddress"/> does the compression rather than a hand-rolled formatter:
+    /// the rule for which run of zeros collapses is fiddly, and the Core judgement matches
+    /// the exact strings <c>::</c> and <c>::1</c> to decide whether a port is exposed or
+    /// merely local. A formatter that emitted <c>0:0:0:0:0:0:0:1</c> would be read as a
+    /// named interface, quietly turning a local socket into an exposed one.
+    /// </para>
+    ///
+    /// <para>
+    /// The scope id, which sits next to the address in the row, is deliberately left out:
+    /// <c>fe80::1%7</c> and <c>fe80::1%12</c> are the same exposure on two interfaces, and
+    /// carrying the index would split one finding into several without adding a fact the
+    /// audit acts on.
+    /// </para>
+    /// </summary>
+    private static string FormatAddressV6(IntPtr buffer, int offset)
+    {
+        var raw = new byte[16];
+        Marshal.Copy(buffer + offset, raw, 0, 16);
+        return new IPAddress(raw).ToString();
+    }
+
+    /// <summary>
     /// The port occupies the low word in network byte order: most significant byte
-    /// first. The two bytes are swapped back into host order.
+    /// first. The two bytes are swapped back into host order. Identical for v4 and v6 —
+    /// the field is a DWORD holding a network-order port in both row shapes.
     /// </summary>
     private static int FormatPort(int raw) =>
         ((raw & 0xFF) << 8) | ((raw >> 8) & 0xFF);

@@ -70,6 +70,26 @@ public class ProviderSilenceTests
         Assert.Empty(findings);
     }
 
+    [Theory]
+    // The judgement already accepted IPv6 before anything collected it; now that the
+    // provider reads the v6 tables, these strings actually reach it. The canonical
+    // compressed form is load-bearing: "::" is general exposure, "0:0:0:0:0:0:0:0" would
+    // fall through to "named interface" and be treated as narrower than it is.
+    [InlineData("::", false, true)]
+    [InlineData("::1", true, false)]
+    [InlineData("fe80::e0f7:5ffe:36ce:d9e4", false, false)]
+    [InlineData("0.0.0.0", false, true)]
+    [InlineData("127.0.0.1", true, false)]
+    [InlineData("192.168.1.20", false, false)]
+    public void Exposure_is_judged_the_same_way_for_both_address_families(
+        string address, bool loopbackOnly, bool allInterfaces)
+    {
+        var port = new ListeningPort("TCP", address, 445, 4);
+
+        Assert.Equal(loopbackOnly, port.IsLoopbackOnly);
+        Assert.Equal(allInterfaces, port.IsAllInterfaces);
+    }
+
     [Fact]
     public void An_unreadable_browser_profile_is_named_rather_than_dropped()
     {

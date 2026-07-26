@@ -283,7 +283,14 @@ correspondante**, réputation du port.
       restreint), `WIN-NET-002` (EnableMDNS), `WIN-LEG-003` (EnableMulticast, LLMNR). Les
       trois protocoles de résolution par diffusion, vecteurs d'empoisonnement et de capture
       d'authentification NTLM.
-- [ ] IPv6 — **reporté**, même raison que TLS/SCHANNEL (M2b). Le durcissement des
+- [x] **Ports en écoute IPv6 collectés** — fait le 2026-07-26. Les tables `AF_INET6` ont
+      leur propre forme de ligne : le scope id sépare l'adresse du port et décale tout ce
+      qui suit. Vérifié contre `netstat -ano` plutôt que déduit : 18 triplets sur 19
+      identiques, l'unique écart étant un port de la plage dynamique — le transitoire
+      `éphémère` de M7. Sur la machine de test, 20 points d'écoute IPv6 qui étaient
+      jusque-là absents du rapport, dont 16 sur `::`, c'est-à-dire toutes les interfaces.
+- [ ] Règles de durcissement IPv6 — **reporté**, même raison que TLS/SCHANNEL (M2b), et
+      distinct de la collecte ci-dessus qui est faite. Le durcissement des
       technologies de transition (Teredo, 6to4, ISATAP) est piloté par une stratégie
       absente par défaut (`…\TCPIP\v6Transition`), dont l'état effectif par défaut varie
       selon la build de Windows — Teredo est par exemple déjà désactivé par défaut sur un
