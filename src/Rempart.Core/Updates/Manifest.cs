@@ -14,6 +14,17 @@ public static class DatasetKind
     public const string Bloatware = "bloatware";
 
     /// <summary>
+    /// A file of the stick itself, listed by its integrity seal (M6).
+    ///
+    /// Never a dataset: nothing of this kind is ever loaded into the catalog. It exists
+    /// so the seal can reuse the signed envelope of ADR-002 — one signature format, one
+    /// verifier, one pinned key for the whole project — and <see cref="UpdateStore"/>
+    /// refuses it explicitly, so a seal dropped into the store by mistake is rejected
+    /// with a message that says what happened rather than one about a version to install.
+    /// </summary>
+    public const string Binary = "binary";
+
+    /// <summary>
     /// Guesses a file's kind from its extension: <c>.yaml</c>/<c>.yml</c> are rules,
     /// everything else (JSON) a driver list. A publisher can always force it
     /// explicitly at signing time; this is only a convenient default.

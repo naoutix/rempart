@@ -2,7 +2,7 @@
 
 Ce que le projet sait devoir améliorer, tenu à jour au fil des audits. La dette du code
 vit surtout en commentaires ; ce registre la rassemble pour qu'elle soit lisible d'un coup
-et priorisable, plutôt que dispersée. Dernier audit : **2026-07-23, post-M5b**.
+et priorisable, plutôt que dispersée. Dernier audit : **2026-07-24, post-M6**.
 
 Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 
@@ -13,6 +13,7 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 | D1 | `AutorunsCollector` résolvait les dossiers de démarrage par `Environment`/`Path` — cassait le déterminisme du rejeu Linux | Phase 1 dette (#45) — lecture via registre `Shell Folders` |
 | D2 | Le rejeu bout-en-bout ne câblait que 8 providers snapshot ; les collecteurs réseau tournaient à vide | Phase 1 dette (#45) — 14 providers câblés, round-trip JSON exercé |
 | D3 | `ProviderSet` (14 params) construit positionnellement en 3 sites — inversion silencieuse possible | Phase 1 dette (#45) — arguments nommés |
+| D2b | Récidive de D2 : M5c a ajouté `IBrowserExtensionProvider` sans le câbler au rejeu de fixtures — le collecteur tournait à vide et la référence figeait « rien trouvé » | M6 — fournisseur câblé. Le commentaire du test affirmait « every replay provider is wired in » : une affirmation qu'aucun test ne vérifiait |
 
 ## Ouvert
 
@@ -28,6 +29,8 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 | DET-DIRTY | Aucune fixture « sale » **versionnée** : les chemins de menace ne sont testés que par fakes + une capture locale hors dépôt | 3 | 3 | 4 | 12 | Une capture réelle compromise, anonymisée, serait le banc de test le plus honnête |
 | DET-RECPROV | 13 paires `Recording`/`Snapshot` quasi-identiques (~250 l.) | 2 | 2 | 3 | 12 | Généraliser par `RecordingProvider<T>`/`SnapshotProvider<T>` |
 | DET-PROGRAM | `Program.cs` monolithe (~1240 l. : dispatch + 10 commandes + rendu + parsing d'args) | 3 | 2 | 4 | 10 | Découper en commandes + couche de rendu, quand ça freinera |
+| DET-DISM | Les libellés attendus par `ComponentStoreParser` viennent de la documentation, pas d'une exécution élevée réelle : le poste de développement refuse l'élévation (code 740, y compris sur `dism /?`). Le lecteur refuse proprement au lieu d'inventer des zéros, donc le risque est « la fonction ne marche pas », pas « la fonction ment » | 2 | 2 | 1 | 20 | Une seule exécution en console admin tranche : `rempart diagnose-store --raw`, puis corriger les libellés si besoin |
+| DET-REPLAY-CABLAGE | Rien ne vérifie que tout nouveau fournisseur est câblé au rejeu de fixtures — D2 puis D2b sont la même erreur à deux reprises, et elle se voit uniquement en relisant un commentaire | 3 | 3 | 3 | 18 | Un test de réflexion comparant les propriétés de `ProviderSet` aux fournisseurs câblés dans `FixtureReplayTests` fermerait la récidive |
 | DET-APPX-FAUXPOS | Le collecteur Appx lit directement `AppModel\Repository\Packages`, qui peut retenir une entrée-ressource orpheline (`..._split.scale-*`) d'un paquet désinstallé, sans l'entrée principale — `Get-AppxPackage` ne le liste alors plus. Constaté sur machine réelle (M5b) : 2 des 5 entrées du socle bloatware (météo Bing, Clipchamp) étaient dans ce cas et sont ressorties en `Notable`. Vu du consommateur de l'audit, c'est un faux positif en bonne et due forme : le rapport nomme un bloatware « à désinstaller » pour un logiciel qui n'est pas installé, il n'y a rien à retirer | 3 | 3 | 3 | 18 | Risque « crier au loup », pas hypothétique : faire distinguer au lecteur Appx une installation active d'une entrée-ressource orpheline avant d'escalader |
 
 ## Limitations connues, assumées

@@ -108,6 +108,17 @@ public static class UpdateStore
                 "Socle embarqué conservé.");
         }
 
+        // A stick seal shares this envelope but is not an update. Recognised before
+        // anything else: what it declares are the stick's own files, which have no
+        // reason to sit in the store, so the generic "dataset missing" would send the
+        // reader looking for a file that was never supposed to be here.
+        if (verdict.Payload.Datasets.Any(entry => entry.Kind == DatasetKind.Binary))
+        {
+            return Refused(baseRules,
+                "Le magasin contient un sceau d'intégrité, pas une mise à jour. Il se " +
+                "vérifie avec « rempart seal --check ». Socle embarqué conservé.");
+        }
+
         var incoming = new List<Rule>();
         var blocklist = DriverBlocklist.Empty;
         var catalog = BloatwareCatalog.Embedded;

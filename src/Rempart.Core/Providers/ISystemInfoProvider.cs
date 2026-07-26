@@ -47,7 +47,8 @@ public sealed class ProviderSet(
     IProxyProvider? proxy = null,
     IWifiProfileProvider? wifi = null,
     ISoftwareInventoryProvider? softwareInventory = null,
-    IBrowserExtensionProvider? browserExtensions = null)
+    IBrowserExtensionProvider? browserExtensions = null,
+    IComponentStoreProvider? componentStore = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -111,6 +112,21 @@ public sealed class ProviderSet(
     /// <summary>Absent, no extension is enumerated — no install is invented.</summary>
     public IBrowserExtensionProvider BrowserExtensions { get; } =
         browserExtensions ?? EmptyBrowserExtensions.Instance;
+
+    /// <summary>
+    /// Absent, the store analysis is reported as not run — never as zero bytes to
+    /// reclaim, which would be an answer where there is none.
+    /// </summary>
+    public IComponentStoreProvider ComponentStore { get; } =
+        componentStore ?? UnanalysedComponentStore.Instance;
+}
+
+internal sealed class UnanalysedComponentStore : IComponentStoreProvider
+{
+    public static readonly UnanalysedComponentStore Instance = new();
+
+    public ComponentStoreRead Read() => ComponentStoreRead.Failed(
+        "Analyse du magasin de composants non effectuée : aucun fournisseur câblé.");
 }
 
 internal sealed class EmptyDns : IDnsProvider

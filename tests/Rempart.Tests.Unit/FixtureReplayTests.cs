@@ -178,7 +178,8 @@ public sealed class FixtureReplayTests
             hostsFile: new SnapshotHostsFileProvider(snapshot),
             proxy: new SnapshotProxyProvider(snapshot),
             wifi: new SnapshotWifiProfileProvider(snapshot),
-            softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot));
+            softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot),
+            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot));
 
         // Full engine, rules included: what we want frozen is the verdict rendered
         // on a given machine, not just the collected fields.
