@@ -114,6 +114,6 @@ public sealed class LsaPackagesCollector : IFindingCollector
             ? package
             : package + ".dll";
 
-        return @"C:\Windows\System32\" + name;
+        return WindowsPaths.InSystem32(name);
     }
 }
