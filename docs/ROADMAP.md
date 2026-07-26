@@ -26,8 +26,8 @@ sortie atteint. Ce qui reste ouvert dans v1 ne demande pas de code mais une mach
 
 - **TLS/SCHANNEL** (M2b) et **IPv6** (M4) — reportés faute de pouvoir observer les défauts
   effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
-  loup, ce que le projet refuse par principe. Côté IPv6 il reste aussi du code : les ports
-  en écoute sont collectés en `AF_INET` seul (DET-IPV6).
+  loup, ce que le projet refuse par principe. **La collecte IPv6, elle, est faite** depuis
+  le 2026-07-26 (DET-IPV6) : seules les règles de durcissement restent reportées.
 - **Validations terrain** : catalogue bloatware sur une machine OEM (M5), clé branchée sur
   une machine tierce sans rien installer (M6).
 
