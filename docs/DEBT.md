@@ -116,9 +116,21 @@ machine non auditée en machine jugée ; `DET-REPLAY-CABLAGE` a déjà laissé p
 un collecteur tournant à vide derrière une référence figée à « rien trouvé ». À traiter
 avant d'ajouter des collecteurs, chacun en étant une occasion de plus.
 
-### Phase 3 — structure, avant M9
+### Phase 3 — structure, avant M9 — conçue dans [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md)
 
 `DET-PROGRAM` · `DET-RECPROV` · `DET-WINDOWS-TESTS`
+
+**L'ordre a changé après conception.** Il avait été avancé que `DET-RECPROV` réduirait la
+surface de `DET-PROGRAM` et devait donc passer en premier : c'est faux, `RecordingProviders`
+vit dans Core et ne touche `Program.cs` que par une cinquantaine de lignes sur 1 881. Les
+deux dettes sont indépendantes.
+
+Le vrai bloqueur est ailleurs : **la couche CLI n'a aucun test**. Les 534 tests unitaires
+et 56 Windows n'en touchent pas une ligne, et la CI ne vérifie que des codes de sortie.
+D'où la séquence retenue — extraire d'abord un rendu console **pur**, comme M6 l'a fait
+pour les rapports, pour que le découpage des commandes soit comparable à une référence.
+On ne déplace pas 1 400 lignes avant d'avoir posé le garde qui les surveille, exactement
+le raisonnement qui a fermé `DET-REPLAY-CABLAGE`.
 
 M9 (remédiation) ajoutera des providers en écriture, des confirmations individuelles et un
 journal de rollback. Greffer ça sur un `Program.cs` de 1 881 lignes qui croît de moitié par
