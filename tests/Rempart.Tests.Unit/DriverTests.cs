@@ -6,7 +6,7 @@ namespace Rempart.Tests.Unit;
 
 internal sealed class FakeDriverProvider(params LoadedDriver[] drivers) : IDriverProvider
 {
-    public IReadOnlyList<LoadedDriver> Enumerate() => drivers;
+    public DriverRead Enumerate() => DriverRead.Found(drivers);
 }
 
 public class DriverTests

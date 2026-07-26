@@ -26,9 +26,26 @@ public sealed class RunningProcessesCollector : IFindingCollector
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
+        var read = providers.Processes.Enumerate();
+
+        if (read.Status != ReadStatus.Found)
+        {
+            // No machine runs zero processes, so an empty inventory here can only mean
+            // the scan could not look — which must be said, not shown as a clean table.
+            return
+            [
+                new Finding(
+                    "process", "processus courants", "—",
+                    FindingSeverity.Notable,
+                    [read.Diagnostic ?? "Énumération des processus refusée. Relancer en "
+                        + "administrateur : un exécutable non signé en cours resterait invisible."],
+                    new Dictionary<string, string>()),
+            ];
+        }
+
         var findings = new List<Finding>();
 
-        var byExecutable = providers.Processes.Enumerate()
+        var byExecutable = read.Processes
             .GroupBy(p => p.Path, StringComparer.OrdinalIgnoreCase);
 
         foreach (var group in byExecutable)

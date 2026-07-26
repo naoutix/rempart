@@ -1,7 +1,21 @@
-using Rempart.Core.Browsers;
+﻿using Rempart.Core.Browsers;
 using Rempart.Core.Providers;
 
 namespace Rempart.Tests.Unit;
+
+/// <summary>
+/// Asserts a parse succeeded before the test looks at what it produced. The parsers return
+/// null for "could not read", which is a distinct answer from "read, found nothing" — a
+/// test whose fixture became unparseable must fail there, not later on an empty list.
+/// </summary>
+internal static class ParsedOrFail
+{
+    public static IReadOnlyList<T> Readable<T>(IReadOnlyList<T>? parsed)
+    {
+        Assert.NotNull(parsed);
+        return parsed;
+    }
+}
 
 public class ChromiumManifestTests
 {
@@ -129,7 +143,7 @@ public class ChromiumSettingsTests
     [Fact]
     public void A_store_extension_is_parsed_with_its_granted_permissions()
     {
-        var settings = ChromiumExtensions.ParseSettings(RealisticSettings);
+        var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
         var entry = Assert.Single(settings, s => s.Id == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         Assert.True(entry.Enabled);
@@ -143,7 +157,7 @@ public class ChromiumSettingsTests
     [Fact]
     public void A_non_empty_disable_reasons_list_means_disabled()
     {
-        var settings = ChromiumExtensions.ParseSettings(RealisticSettings);
+        var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
         Assert.False(Assert.Single(settings, s => s.Id.StartsWith('b')).Enabled);
     }
@@ -151,7 +165,7 @@ public class ChromiumSettingsTests
     [Fact]
     public void Component_extensions_with_an_absolute_path_are_excluded()
     {
-        var settings = ChromiumExtensions.ParseSettings(RealisticSettings);
+        var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
         Assert.DoesNotContain(settings, s => s.Id.StartsWith('c'));
     }
@@ -159,7 +173,7 @@ public class ChromiumSettingsTests
     [Fact]
     public void An_unpacked_extension_is_not_from_the_store()
     {
-        var settings = ChromiumExtensions.ParseSettings(RealisticSettings);
+        var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
         Assert.False(Assert.Single(settings, s => s.Id.StartsWith('d')).FromStore);
     }
@@ -167,7 +181,7 @@ public class ChromiumSettingsTests
     [Fact]
     public void Sync_stub_entries_without_a_path_are_excluded()
     {
-        var settings = ChromiumExtensions.ParseSettings(RealisticSettings);
+        var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
         Assert.DoesNotContain(settings, s => s.Id.StartsWith('e'));
     }
@@ -178,7 +192,7 @@ public class ChromiumSettingsTests
         // Observed on Edge: Microsoft Add-ons installs carry from_webstore=false and
         // location=1. Only the location decides — flagging on from_webstore would mark
         // every Edge extension as sideloaded.
-        var settings = ChromiumExtensions.ParseSettings(RealisticSettings);
+        var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
         Assert.True(Assert.Single(settings, s => s.Id.StartsWith('f')).FromStore);
     }
@@ -191,14 +205,19 @@ public class ChromiumSettingsTests
               "state": 0, "from_webstore": true, "location": 1, "path": "g\\1_0" } } } }
             """;
 
-        Assert.False(Assert.Single(ChromiumExtensions.ParseSettings(Legacy)).Enabled);
+        Assert.False(Assert.Single(ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(Legacy))).Enabled);
     }
 
     [Fact]
     public void A_preferences_file_without_settings_yields_nothing()
     {
-        Assert.Empty(ChromiumExtensions.ParseSettings("{}"));
-        Assert.Empty(ChromiumExtensions.ParseSettings("not json"));
+        // Valid JSON without an extensions section: an empty profile, a real answer.
+        Assert.Empty(ParsedOrFail.Readable(ChromiumExtensions.ParseSettings("{}")));
+
+        // Unparseable: null, so the provider can name the profile instead of showing it
+        // as extension-free. This assertion used to expect an empty list, which is the
+        // silence the whole change removes.
+        Assert.Null(ChromiumExtensions.ParseSettings("not json"));
     }
 }
 
@@ -253,7 +272,8 @@ public class FirefoxExtensionsTests
     [Fact]
     public void A_signed_user_extension_is_parsed_with_its_permissions()
     {
-        var extensions = FirefoxExtensions.Parse(ExtensionsJson, "abcd1234.default-release");
+        var extensions = ParsedOrFail.Readable(
+            FirefoxExtensions.Parse(ExtensionsJson, "abcd1234.default-release"));
 
         var ext = Assert.Single(extensions, e => e.Id == "uBlock0@raymondhill.net");
         Assert.Equal("Firefox", ext.Browser);
@@ -269,7 +289,7 @@ public class FirefoxExtensionsTests
     [Fact]
     public void An_unsigned_extension_is_not_from_the_store()
     {
-        var extensions = FirefoxExtensions.Parse(ExtensionsJson, "p");
+        var extensions = ParsedOrFail.Readable(FirefoxExtensions.Parse(ExtensionsJson, "p"));
 
         var shadow = Assert.Single(extensions, e => e.Id == "shadow@example.org");
         Assert.False(shadow.FromStore);
@@ -279,7 +299,7 @@ public class FirefoxExtensionsTests
     [Fact]
     public void Themes_and_system_addons_are_excluded()
     {
-        var extensions = FirefoxExtensions.Parse(ExtensionsJson, "p");
+        var extensions = ParsedOrFail.Readable(FirefoxExtensions.Parse(ExtensionsJson, "p"));
 
         Assert.Equal(2, extensions.Count);
         Assert.DoesNotContain(extensions, e => e.Id.Contains("mozilla.org"));
@@ -288,6 +308,6 @@ public class FirefoxExtensionsTests
     [Fact]
     public void A_malformed_file_yields_nothing()
     {
-        Assert.Empty(FirefoxExtensions.Parse("not json", "p"));
+        Assert.Null(FirefoxExtensions.Parse("not json", "p"));
     }
 }

@@ -11,7 +11,7 @@ namespace Rempart.Tests.Unit;
 internal sealed class FakeBrowserExtensionProvider(params BrowserExtension[] extensions)
     : IBrowserExtensionProvider
 {
-    public IReadOnlyList<BrowserExtension> Read() => extensions;
+    public BrowserExtensionRead Read() => BrowserExtensionRead.Found(extensions);
 }
 
 public class BrowserExtensionCollectorTests
@@ -120,7 +120,7 @@ public class BrowserExtensionSnapshotTests
             new FakeBrowserExtensionProvider(extension), snapshot).Read();
 
         var round = RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot));
-        var replayed = Assert.Single(new SnapshotBrowserExtensionProvider(round).Read());
+        var replayed = Assert.Single(new SnapshotBrowserExtensionProvider(round).Read().Extensions);
 
         // Field-by-field: record equality compares the list properties by reference.
         Assert.Equal(extension.Browser, replayed.Browser);
@@ -135,8 +135,15 @@ public class BrowserExtensionSnapshotTests
     }
 
     [Fact]
-    public void A_snapshot_without_extensions_replays_an_empty_list() =>
-        Assert.Empty(new SnapshotBrowserExtensionProvider(new MachineSnapshot()).Read());
+    public void A_snapshot_without_extensions_replays_an_empty_list()
+    {
+        var read = new SnapshotBrowserExtensionProvider(new MachineSnapshot()).Read();
+
+        // Empty and successful, not denied: no extension is a plausible machine state,
+        // so an old capture must not start claiming a profile could not be read.
+        Assert.Empty(read.Extensions);
+        Assert.Equal(ReadStatus.Found, read.Status);
+    }
 }
 
 public class BrowserExtensionAnonymisationTests

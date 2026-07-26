@@ -29,14 +29,18 @@ public sealed class LiveProcessProvider(IWmiProvider wmi) : IProcessProvider
     {
     }
 
-    public IReadOnlyList<RunningProcess> Enumerate()
+    public ProcessRead Enumerate()
     {
         var read = wmi.Query(Namespace, "Win32_Process",
             ["ProcessId", "ParentProcessId", "Name", "ExecutablePath", "CommandLine"]);
 
         if (read.Status != ReadStatus.Found)
         {
-            return [];
+            // No machine runs zero processes. An empty list here could only ever be a
+            // failed read, and reporting it as an inventory would be a lie of omission.
+            return new ProcessRead(read.Status, [],
+                read.Diagnostic ?? "Énumération des processus refusée par WMI. Relancer en "
+                + "administrateur : un exécutable non signé en cours resterait invisible.");
         }
 
         var processes = new List<RunningProcess>();
@@ -57,7 +61,7 @@ public sealed class LiveProcessProvider(IWmiProvider wmi) : IProcessProvider
                 instance.Find("CommandLine") ?? string.Empty));
         }
 
-        return processes;
+        return ProcessRead.Found(processes);
     }
 
     private static int Number(string? value) =>

@@ -28,13 +28,17 @@ public sealed class LiveDriverProvider(IWmiProvider wmi) : IDriverProvider
     {
     }
 
-    public IReadOnlyList<LoadedDriver> Enumerate()
+    public DriverRead Enumerate()
     {
         var read = wmi.Query(Namespace, "Win32_SystemDriver", ["Name", "PathName", "State"]);
 
         if (read.Status != ReadStatus.Found)
         {
-            return [];
+            // Never an empty list: this is the surface a BYOVD attack lands on, and
+            // "no drivers" would read as a clean machine rather than as a failed read.
+            return new DriverRead(read.Status, [],
+                read.Diagnostic ?? "Énumération des pilotes refusée par WMI. Relancer en "
+                + "administrateur : un pilote vulnérable chargé resterait invisible.");
         }
 
         var drivers = new List<LoadedDriver>();
@@ -58,6 +62,6 @@ public sealed class LiveDriverProvider(IWmiProvider wmi) : IDriverProvider
                 instance.Find("Name") ?? Path.GetFileName(path), path));
         }
 
-        return drivers;
+        return DriverRead.Found(drivers);
     }
 }

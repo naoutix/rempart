@@ -30,24 +30,28 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
         ("Chromium", @"Chromium\User Data"),
     ];
 
-    public IReadOnlyList<BrowserExtension> Read()
+    public BrowserExtensionRead Read()
     {
         var result = new List<BrowserExtension>();
+        var unreadable = new List<string>();
 
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
         foreach (var (browser, relativeRoot) in ChromiumRoots)
         {
-            ReadChromiumBrowser(browser, Path.Combine(local, relativeRoot), result);
+            ReadChromiumBrowser(browser, Path.Combine(local, relativeRoot), result, unreadable);
         }
 
-        ReadFirefox(Path.Combine(roaming, @"Mozilla\Firefox\Profiles"), result);
+        ReadFirefox(Path.Combine(roaming, @"Mozilla\Firefox\Profiles"), result, unreadable);
 
-        return result;
+        return unreadable.Count == 0
+            ? BrowserExtensionRead.Found(result)
+            : BrowserExtensionRead.Partial(result, unreadable);
     }
 
-    private static void ReadChromiumBrowser(string browser, string root, List<BrowserExtension> result)
+    private static void ReadChromiumBrowser(
+        string browser, string root, List<BrowserExtension> result, List<string> unreadable)
     {
         if (!Directory.Exists(root))
         {
@@ -65,17 +69,21 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
 
             try
             {
-                ReadChromiumProfile(browser, profileDir, profile, result);
+                ReadChromiumProfile(browser, profileDir, profile, result, unreadable);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // A profile locked or unreadable mid-scan: skip it, keep the others.
+                // Locked or denied mid-scan. Skipping keeps the other profiles, but the
+                // skip is named: an extension living here would otherwise be absent from
+                // the inventory with nothing to show for it.
+                unreadable.Add($"{browser}/{profile}");
             }
         }
     }
 
     private static void ReadChromiumProfile(
-        string browser, string profileDir, string profile, List<BrowserExtension> result)
+        string browser, string profileDir, string profile,
+        List<BrowserExtension> result, List<string> unreadable)
     {
         // Entries observed in Secure Preferences; Preferences kept as a fallback for
         // older or divergent Chromium builds. First win per id — Secure read first.
@@ -83,12 +91,21 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
 
         foreach (var file in new[] { "Secure Preferences", "Preferences" })
         {
-            if (TryReadAllText(Path.Combine(profileDir, file)) is { } json)
+            if (TryReadAllText(Path.Combine(profileDir, file)) is not { } json)
             {
-                foreach (var setting in ChromiumExtensions.ParseSettings(json))
-                {
-                    settings.TryAdd(setting.Id, setting);
-                }
+                continue;
+            }
+
+            if (ChromiumExtensions.ParseSettings(json) is not { } parsed)
+            {
+                // The file is there and unreadable — the case that used to be swallowed.
+                unreadable.Add($"{browser}/{profile} ({file})");
+                continue;
+            }
+
+            foreach (var setting in parsed)
+            {
+                settings.TryAdd(setting.Id, setting);
             }
         }
 
@@ -121,7 +138,8 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
         }
     }
 
-    private static void ReadFirefox(string profilesRoot, List<BrowserExtension> result)
+    private static void ReadFirefox(
+        string profilesRoot, List<BrowserExtension> result, List<string> unreadable)
     {
         if (!Directory.Exists(profilesRoot))
         {
@@ -130,10 +148,20 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
 
         foreach (var profileDir in Directory.EnumerateDirectories(profilesRoot))
         {
-            if (TryReadAllText(Path.Combine(profileDir, "extensions.json")) is { } json)
+            var profile = Path.GetFileName(profileDir);
+
+            if (TryReadAllText(Path.Combine(profileDir, "extensions.json")) is not { } json)
             {
-                result.AddRange(FirefoxExtensions.Parse(json, Path.GetFileName(profileDir)));
+                continue;
             }
+
+            if (FirefoxExtensions.Parse(json, profile) is not { } parsed)
+            {
+                unreadable.Add($"Firefox/{profile} (extensions.json)");
+                continue;
+            }
+
+            result.AddRange(parsed);
         }
     }
 

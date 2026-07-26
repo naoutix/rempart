@@ -24,7 +24,26 @@ public sealed record RunningProcess(
 /// required state.
 /// </para>
 /// </summary>
+/// <summary>
+/// The process list, plus whether it could be read at all. Same reasoning as
+/// <see cref="DriverRead"/>: enumeration goes through WMI, and an empty list returned by
+/// a machine that could not answer is indistinguishable from a machine running nothing.
+/// </summary>
+public sealed record ProcessRead(
+    ReadStatus Status,
+    IReadOnlyList<RunningProcess> Processes,
+    string? Diagnostic = null)
+{
+    public static readonly ProcessRead AccessDenied = new(ReadStatus.AccessDenied, []);
+
+    public static ProcessRead Found(IReadOnlyList<RunningProcess> processes) =>
+        new(ReadStatus.Found, processes);
+
+    public static ProcessRead Failed(string reason) =>
+        new(ReadStatus.AccessDenied, [], reason);
+}
+
 public interface IProcessProvider
 {
-    IReadOnlyList<RunningProcess> Enumerate();
+    ProcessRead Enumerate();
 }

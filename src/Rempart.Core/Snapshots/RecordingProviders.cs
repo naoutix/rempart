@@ -196,27 +196,73 @@ public sealed class RecordingScheduledTaskProvider(
 public sealed class RecordingDriverProvider(
     IDriverProvider inner, MachineSnapshot snapshot) : IDriverProvider
 {
-    public IReadOnlyList<LoadedDriver> Enumerate() =>
-        snapshot.Drivers ??= [.. inner.Enumerate()];
+    public DriverRead Enumerate()
+    {
+        if (snapshot.DriversStatus is { } recorded)
+        {
+            return new DriverRead(recorded, snapshot.Drivers ?? [], snapshot.DriversDiagnostic);
+        }
+
+        var read = inner.Enumerate();
+
+        // The status is recorded alongside the list: a capture taken while WMI was mute
+        // must replay as "could not look", not as a machine without drivers.
+        snapshot.Drivers = [.. read.Drivers];
+        snapshot.DriversStatus = read.Status;
+        snapshot.DriversDiagnostic = read.Diagnostic;
+
+        return read;
+    }
 }
 
 public sealed class SnapshotDriverProvider(MachineSnapshot snapshot) : IDriverProvider
 {
-    // Absent from an earlier capture: empty list, the fixture stays replayable and
-    // simply produces fewer findings.
-    public IReadOnlyList<LoadedDriver> Enumerate() => snapshot.Drivers ?? [];
+    public DriverRead Enumerate() => snapshot switch
+    {
+        { DriversStatus: { } status } =>
+            new DriverRead(status, snapshot.Drivers ?? [], snapshot.DriversDiagnostic),
+
+        // A capture predating the status field recorded a list and nothing else: read it
+        // as the success it was taken to be, rather than inventing a failure.
+        { Drivers: { } drivers } => DriverRead.Found(drivers),
+
+        // Never an empty list: a fixture predating driver collection produces a "not
+        // enumerated" finding, exactly as the scheduled tasks already do.
+        _ => DriverRead.Failed("Pilotes chargés absents de l'instantané."),
+    };
 }
 
 public sealed class RecordingProcessProvider(
     IProcessProvider inner, MachineSnapshot snapshot) : IProcessProvider
 {
-    public IReadOnlyList<RunningProcess> Enumerate() =>
-        snapshot.Processes ??= [.. inner.Enumerate()];
+    public ProcessRead Enumerate()
+    {
+        if (snapshot.ProcessesStatus is { } recorded)
+        {
+            return new ProcessRead(recorded, snapshot.Processes ?? [], snapshot.ProcessesDiagnostic);
+        }
+
+        var read = inner.Enumerate();
+
+        snapshot.Processes = [.. read.Processes];
+        snapshot.ProcessesStatus = read.Status;
+        snapshot.ProcessesDiagnostic = read.Diagnostic;
+
+        return read;
+    }
 }
 
 public sealed class SnapshotProcessProvider(MachineSnapshot snapshot) : IProcessProvider
 {
-    public IReadOnlyList<RunningProcess> Enumerate() => snapshot.Processes ?? [];
+    public ProcessRead Enumerate() => snapshot switch
+    {
+        { ProcessesStatus: { } status } =>
+            new ProcessRead(status, snapshot.Processes ?? [], snapshot.ProcessesDiagnostic),
+
+        { Processes: { } processes } => ProcessRead.Found(processes),
+
+        _ => ProcessRead.Failed("Processus courants absents de l'instantané."),
+    };
 }
 
 public sealed class RecordingListeningPortProvider(
@@ -309,14 +355,34 @@ public sealed class SnapshotWifiProfileProvider(MachineSnapshot snapshot) : IWif
 public sealed class RecordingBrowserExtensionProvider(
     IBrowserExtensionProvider inner, MachineSnapshot snapshot) : IBrowserExtensionProvider
 {
-    public IReadOnlyList<BrowserExtension> Read() => snapshot.BrowserExtensions ??= [.. inner.Read()];
+    public BrowserExtensionRead Read()
+    {
+        if (snapshot.BrowserExtensionsStatus is { } recorded)
+        {
+            return new BrowserExtensionRead(
+                recorded, snapshot.BrowserExtensions ?? [], snapshot.BrowserExtensionsDiagnostic);
+        }
+
+        var read = inner.Read();
+
+        snapshot.BrowserExtensions = [.. read.Extensions];
+        snapshot.BrowserExtensionsStatus = read.Status;
+        snapshot.BrowserExtensionsDiagnostic = read.Diagnostic;
+
+        return read;
+    }
 }
 
 public sealed class SnapshotBrowserExtensionProvider(MachineSnapshot snapshot)
     : IBrowserExtensionProvider
 {
-    // Absent from an earlier capture: empty list, the fixture stays replayable.
-    public IReadOnlyList<BrowserExtension> Read() => snapshot.BrowserExtensions ?? [];
+    // Absent from an earlier capture: an empty, successful read. Unlike drivers, no
+    // extension is a plausible state, so a fixture predating this collection replays as
+    // "nothing to report" rather than as a failure it never had.
+    public BrowserExtensionRead Read() => snapshot.BrowserExtensionsStatus is { } status
+        ? new BrowserExtensionRead(
+            status, snapshot.BrowserExtensions ?? [], snapshot.BrowserExtensionsDiagnostic)
+        : BrowserExtensionRead.Found(snapshot.BrowserExtensions ?? []);
 }
 
 public sealed class RecordingComponentStoreProvider(

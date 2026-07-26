@@ -6,7 +6,7 @@ namespace Rempart.Tests.Unit;
 
 internal sealed class FakeProcessProvider(params RunningProcess[] processes) : IProcessProvider
 {
-    public IReadOnlyList<RunningProcess> Enumerate() => processes;
+    public ProcessRead Enumerate() => ProcessRead.Found(processes);
 }
 
 public class ProcessTests

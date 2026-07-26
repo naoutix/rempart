@@ -80,11 +80,16 @@ public sealed class ProviderSet(
     public IScheduledTaskProvider ScheduledTasks { get; } =
         scheduledTasks ?? UnavailableScheduledTasks.Instance;
 
-    /// <summary>Absent, no driver is enumerated — no loading is invented.</summary>
-    public IDriverProvider Drivers { get; } = drivers ?? EmptyDrivers.Instance;
+    /// <summary>
+    /// Absent, enumeration yields "denied" rather than "no drivers" — same reasoning as
+    /// the scheduler above. An empty list would make a missing provider look like a
+    /// machine with nothing loaded, on the surface that carries the LOLDrivers check.
+    /// </summary>
+    public IDriverProvider Drivers { get; } = drivers ?? UnavailableDrivers.Instance;
 
-    /// <summary>Absent, no process is enumerated — no execution is invented.</summary>
-    public IProcessProvider Processes { get; } = processes ?? EmptyProcesses.Instance;
+    /// <summary>Absent, enumeration yields "denied" rather than "no processes": no
+    /// machine runs none, so an empty list could only ever be a failure to look.</summary>
+    public IProcessProvider Processes { get; } = processes ?? UnavailableProcesses.Instance;
 
     /// <summary>Absent, no port is enumerated — no listening is invented.</summary>
     public IListeningPortProvider ListeningPorts { get; } =
@@ -168,7 +173,9 @@ internal sealed class EmptyBrowserExtensions : IBrowserExtensionProvider
 {
     public static readonly EmptyBrowserExtensions Instance = new();
 
-    public IReadOnlyList<BrowserExtension> Read() => [];
+    // Found, not denied: a machine with no browser extension is ordinary, and unlike
+    // drivers or processes an empty list here is a real answer rather than a silence.
+    public BrowserExtensionRead Read() => BrowserExtensionRead.Found([]);
 }
 
 internal sealed class UnreadFirewall : IFirewallProvider
@@ -185,18 +192,20 @@ internal sealed class EmptyListeningPorts : IListeningPortProvider
     public IReadOnlyList<ListeningPort> Enumerate() => [];
 }
 
-internal sealed class EmptyProcesses : IProcessProvider
+internal sealed class UnavailableProcesses : IProcessProvider
 {
-    public static readonly EmptyProcesses Instance = new();
+    public static readonly UnavailableProcesses Instance = new();
 
-    public IReadOnlyList<RunningProcess> Enumerate() => [];
+    public ProcessRead Enumerate() =>
+        ProcessRead.Failed("Aucun fournisseur de processus n'a été fourni à ce scan.");
 }
 
-internal sealed class EmptyDrivers : IDriverProvider
+internal sealed class UnavailableDrivers : IDriverProvider
 {
-    public static readonly EmptyDrivers Instance = new();
+    public static readonly UnavailableDrivers Instance = new();
 
-    public IReadOnlyList<LoadedDriver> Enumerate() => [];
+    public DriverRead Enumerate() =>
+        DriverRead.Failed("Aucun fournisseur de pilotes n'a été fourni à ce scan.");
 }
 
 internal sealed class UnavailableScheduledTasks : IScheduledTaskProvider
