@@ -88,10 +88,12 @@ jobs:
           Copy-Item "rules" $stage -Recurse
           Copy-Item "README.md", "LICENSE" $stage -ErrorAction SilentlyContinue
 
-          # "unsealed" is in the file name so this archive cannot be published by mistake
-          # as if it were the real thing.
+          # "unsealed" is in the *file* name so this archive cannot be published by mistake
+          # as if it were the real thing -- but never in the folder name inside it, which
+          # survives sealing and would leave a sealed stick sitting in a directory labelled
+          # unsealed. Hence archiving the staging folder itself rather than its contents.
           $zip = "rempart-$version-win-x64-unsealed.zip"
-          Compress-Archive -Path "$stage/*" -DestinationPath $zip
+          Compress-Archive -Path $stage -DestinationPath $zip
           Write-Host "archive: $zip ($([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB)"
           "ZIP=$zip" >> $env:GITHUB_ENV
           "VERSION=$version" >> $env:GITHUB_ENV
@@ -102,34 +104,49 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "${{ inputs.tag || github.ref_name }}"
-          $backtick = [char]96
 
-          # Assembled line by line rather than as a here-string: a here-string closing
-          # delimiter has to sit at column 0, which depends on how YAML dedents this block.
-          $notes = @(
-            "Built from $backtick$tag$backtick by the Release workflow, on a GitHub runner.",
-            "",
-            "### Before publishing this draft",
-            "",
-            "The archive attached here is **unsealed**. It is not yet the deliverable:",
-            "",
-            "1. Download and unzip it.",
-            "2. $backtick" + "rempart seal --dir <dossier> --key <publisher private key>$backtick",
-            "3. Re-zip as $backtick" + "rempart-$env:VERSION-win-x64.zip$backtick and attach it.",
-            "4. Delete the $backtick-unsealed$backtick archive, then publish.",
-            "",
-            "A hash list sitting beside the files it describes protects nothing -- whoever",
-            "edits a file recomputes the line. The signature is what makes the seal mean",
-            "something, and the key that produces it is deliberately not available to CI.",
-            "",
-            "### Verifying, once published",
-            "",
-            "From a copy you already trust, not from the stick being checked:",
-            "",
-            "$backtick" + "rempart seal --dir <dossier> --check$backtick"
+          # The release body is the CHANGELOG section for this version, not text written
+          # here: the notes a reader gets and the notes the repository keeps should not be
+          # two things that can disagree. The publisher checklist goes to the job summary
+          # instead -- it is addressed to whoever is looking at this run, and would read
+          # absurdly on a published release telling the public to seal the archive.
+          $lines = Get-Content CHANGELOG.md
+          $heading = '^##\s+' + [regex]::Escape($env:VERSION) + '(\s|$)'
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match $heading) { $start = $i; break }
+          }
+
+          if ($start -lt 0) {
+            throw "CHANGELOG.md has no '## $env:VERSION' section. Write the release notes before tagging."
+          }
+
+          $end = $lines.Count
+          for ($j = $start + 1; $j -lt $lines.Count; $j++) {
+            if ($lines[$j] -match '^##\s') { $end = $j; break }
+          }
+
+          $body = ($lines[($start + 1)..($end - 1)] -join "`n").Trim()
+          Set-Content -Path notes.md -Value $body -Encoding utf8
+
+          # Single-quoted: a backtick is literal there, which is what markdown code spans
+          # need. Interpolating them cost a mangled checklist on the first release.
+          $checklist = @(
+            '## This release is a draft, and the archive is unsealed',
+            '',
+            'It is not the deliverable yet:',
+            '',
+            '1. Download and unzip the attached archive.',
+            '2. `rempart seal --dir <dossier> --key <publisher private key>`',
+            "3. Re-zip the folder itself as ``rempart-$env:VERSION-win-x64.zip`` and attach it.",
+            '4. Delete the `-unsealed` archive, then publish.',
+            '',
+            'A hash list sitting beside the files it describes protects nothing -- whoever',
+            'edits a file recomputes the line. The signature is what makes the seal mean',
+            'something, and the key that produces it is deliberately not available to CI.'
           ) -join "`n"
 
-          Set-Content -Path notes.md -Value $notes -Encoding utf8
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $checklist -Encoding utf8
 
           # Built as an array: passing an empty string as an argument would send gh an
           # empty positional argument rather than nothing at all.
