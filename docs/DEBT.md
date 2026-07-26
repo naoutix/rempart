@@ -14,6 +14,8 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 | D2 | Le rejeu bout-en-bout ne câblait que 8 providers snapshot ; les collecteurs réseau tournaient à vide | Phase 1 dette (#45) — 14 providers câblés, round-trip JSON exercé |
 | D3 | `ProviderSet` (14 params) construit positionnellement en 3 sites — inversion silencieuse possible | Phase 1 dette (#45) — arguments nommés |
 | D2b | Récidive de D2 : M5c a ajouté `IBrowserExtensionProvider` sans le câbler au rejeu de fixtures — le collecteur tournait à vide et la référence figeait « rien trouvé » | M6 — fournisseur câblé. Le commentaire du test affirmait « every replay provider is wired in » : une affirmation qu'aucun test ne vérifiait |
+| DET-DISM | Les libellés attendus par `ComponentStoreParser` venaient de la documentation, pas d'une exécution élevée réelle | 2026-07-26 — `rempart diagnose-store --raw` exécuté en console admin : `Found`, **les 7 libellés correspondent**, aucune correction nécessaire. Deux subtilités du code validées sur du réel : le découpage au premier deux-points (la date `2026-07-23 09:53:40` porte les siens) et `0 bytes` à double espace. Relevé : 16,45 Gio réels, 7,76 partagés, 8,68 de sauvegardes, 5 paquets récupérables, nettoyage recommandé |
+| DET-APPX-FAUXPOS | Le collecteur Appx remontait les entrées-ressource orphelines (`..._split.scale-*`) comme des logiciels installés — le rapport nommait un bloatware « à désinstaller » pour un paquet absent | Post-M7 — `AppxPackageName.IsResourcePackage`, jugement pur en Core, filtre dans `ReadAppx`. Mesuré sur machine réelle : BingWeather 1→0, Clipchamp 2→0, GamingApp 2→1 (réellement installé, conservé) |
 
 ## Ouvert
 
@@ -31,9 +33,8 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 | DET-PROGRAM | `Program.cs` monolithe (~1240 l. : dispatch + 10 commandes + rendu + parsing d'args) | 3 | 2 | 4 | 10 | Découper en commandes + couche de rendu, quand ça freinera |
 | DET-TACHE-EXPIREE | La branche « tâche supprimée par Windows après expiration » (`DeleteExpiredTaskAfter` + `EndBoundary`) n'a aucun cas positif sur machine réelle : 196 tâches sur le poste de test, aucune avec l'un ou l'autre réglage, recoupé par `Get-ScheduledTask`. Couvert par fixture fabriquée seulement | 2 | 2 | 2 | 16 | Se ferme sur la première capture d'une machine qui en porte une ; le zéro a été vérifié, pas supposé |
 | DET-PLAGE-DYNAMIQUE | Le premier port de la plage dynamique (49152) est une constante, non lue depuis la configuration de la machine. Un poste ayant personnalisé sa plage obtient un diff plus bruyant | 1 | 1 | 3 | 6 | Dégradation gracieuse, jamais une affirmation fausse. À reprendre si le cas se présente |
-| DET-DISM | Les libellés attendus par `ComponentStoreParser` viennent de la documentation, pas d'une exécution élevée réelle : le poste de développement refuse l'élévation (code 740, y compris sur `dism /?`). Le lecteur refuse proprement au lieu d'inventer des zéros, donc le risque est « la fonction ne marche pas », pas « la fonction ment » | 2 | 2 | 1 | 20 | Une seule exécution en console admin tranche : `rempart diagnose-store --raw`, puis corriger les libellés si besoin |
 | DET-REPLAY-CABLAGE | Rien ne vérifie que tout nouveau fournisseur est câblé au rejeu de fixtures — D2 puis D2b sont la même erreur à deux reprises, et elle se voit uniquement en relisant un commentaire | 3 | 3 | 3 | 18 | Un test de réflexion comparant les propriétés de `ProviderSet` aux fournisseurs câblés dans `FixtureReplayTests` fermerait la récidive |
-| DET-APPX-FAUXPOS | Le collecteur Appx lit directement `AppModel\Repository\Packages`, qui peut retenir une entrée-ressource orpheline (`..._split.scale-*`) d'un paquet désinstallé, sans l'entrée principale — `Get-AppxPackage` ne le liste alors plus. Constaté sur machine réelle (M5b) : 2 des 5 entrées du socle bloatware (météo Bing, Clipchamp) étaient dans ce cas et sont ressorties en `Notable`. Vu du consommateur de l'audit, c'est un faux positif en bonne et due forme : le rapport nomme un bloatware « à désinstaller » pour un logiciel qui n'est pas installé, il n'y a rien à retirer | 3 | 3 | 3 | 18 | Risque « crier au loup », pas hypothétique : faire distinguer au lecteur Appx une installation active d'une entrée-ressource orpheline avant d'escalader |
+| DET-APPX-VERSIONS | Un paquet Appx dont plusieurs versions restent enregistrées est remonté autant de fois : sur le poste de test, `Microsoft.ECApp` et `Microsoft.LockApp` sortent 3 fois chacun, et les variantes d'architecture (`x64` + `x86` du même `Microsoft.NET.Native.Framework`) 2 fois. 113 PFN distincts pour 148 entrées brutes. Contrairement à DET-APPX-FAUXPOS ce n'est pas un faux positif — le logiciel est bien installé — mais une redondance qui gonfle l'inventaire | 1 | 1 | 2 | 8 | Découvert en corrigeant DET-APPX-FAUXPOS. Ne pas « corriger » par unicité du PFN : les variantes d'architecture sont des paquets distincts et légitimes. Retenir la version la plus haute par PFN serait le geste juste |
 
 ## Limitations connues, assumées
 
@@ -51,5 +52,8 @@ réel émerge :
   (condition d'exploitabilité) n'est pas vérifiée.
 - **Fraîcheur des données** : le seuil d'alerte de 180 jours est arbitraire tant que la
   cadence de publication réelle n'est pas observée ([ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)).
-- **Appx résiduel** : voir DET-APPX-FAUXPOS ci-dessus (registre « Ouvert ») — ce n'est pas
-  une limitation assumée mais une dette à corriger.
+- **Appx résiduel** : les entrées-ressource orphelines sont désormais écartées
+  (DET-APPX-FAUXPOS, corrigé). Le filtre porte sur le segment ressource commençant par
+  `split.`, **pas** sur ce segment non vide : deux douzaines de paquets système réellement
+  installés — le shell Windows compris — portent `neutral` à cette place, et les écarter
+  rendrait l'audit muet sur du logiciel présent.

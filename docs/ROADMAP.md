@@ -21,6 +21,20 @@ tant que l'outil vise un public francophone.
 
 ## v1 — Audit en lecture seule
 
+**État au 2026-07-26 : les huit lots M0 → M7 sont livrés**, chacun avec son critère de
+sortie atteint. Ce qui reste ouvert dans v1 ne demande pas de code mais une machine :
+
+- **TLS/SCHANNEL** (M2b) et **IPv6** (M4) — reportés faute de pouvoir observer les défauts
+  effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
+  loup, ce que le projet refuse par principe. Côté IPv6 il reste aussi du code : les ports
+  en écoute sont collectés en `AF_INET` seul (DET-IPV6).
+- **Validations terrain** : catalogue bloatware sur une machine OEM (M5), clé branchée sur
+  une machine tierce sans rien installer (M6).
+
+Le lecteur DISM, longtemps le point aveugle de M6, est **éprouvé depuis le 2026-07-26** :
+les libellés tirés de la documentation se sont révélés justes face à une exécution élevée
+réelle (DET-DISM, fermée).
+
 ### M0 · Socle — ✅ terminé
 
 - [x] `git init`, solution .NET 10, publication AOT vérifiée — **2,6 Mo**, testé isolé
@@ -210,7 +224,7 @@ cinq en gras et apparentées sont faites ; les autres restent.
 **Fait quand** un binaire non signé posé en persistance est remonté sur une VM de test —
 atteint pour les surfaces livrées ; le volet processus rouvre le lot.
 
-### M4 · Réseau & DNS
+### M4 · Réseau & DNS — ✅ terminé
 Interfaces, DNS configurés, **test actif DoH/DoT avec mesure de latence**, fichier hosts,
 proxy et PAC, profils Wi-Fi, IPv6, NetBIOS, mDNS.
 
@@ -309,8 +323,9 @@ Découpé en trois sous-lots : **M5a** inventaire, **M5b** catalogue bloatware,
       renseignés, zéro faux positif sur le reste de l'inventaire. Les 2 entrées restantes
       (météo Bing, Clipchamp) sont absentes de `Get-AppxPackage` sur cette machine — mais y
       ont quand même escaladé en Notable, via une entrée-ressource orpheline du registre
-      Appx (faux positif assumé, DET-APPX-FAUXPOS dans DEBT.md) ; elles restent valables
-      pour d'autres machines où le paquet est réellement présent.
+      Appx ; elles restent valables pour d'autres machines où le paquet est réellement
+      présent. **Ce faux positif est corrigé depuis** (DET-APPX-FAUXPOS) : une entrée dont
+      le segment ressource commence par `split.` n'est plus prise pour une installation.
 - [x] Canal de rafraîchissement du catalogue — **déjà tranché** : le canal signé d'ADR-002,
       comme LOLDrivers (ADR-001 le renvoyait à ADR-002)
 - [x] **M5c — extensions navigateur** avec leurs permissions effectives. Parseurs purs
@@ -333,7 +348,7 @@ une machine qui l'a.
 
 **Fait quand** le catalogue est validé sur une machine OEM réelle, pas sur une VM.
 
-### M6 · Rapport & packaging clé
+### M6 · Rapport & packaging clé — ✅ terminé
 HTML autonome (fichier unique, thème clair/sombre), JSON, Markdown.
 Espace récupérable par couche via `AnalyzeComponentStore`, sans rien supprimer.
 
@@ -367,10 +382,15 @@ Espace récupérable par couche via `AnalyzeComponentStore`, sans rien supprimer
       (`--analyze-store`) : la pile de maintenance met des dizaines de secondes à
       répondre et exige l'élévation. Le découpage est le livrable : la part partagée
       avec Windows n'est pas récupérable, et c'est elle qui fait l'essentiel du magasin.
-- [ ] **Confronter le lecteur DISM à une vraie sortie élevée** — `rempart diagnose-store
-      --raw`. Les libellés attendus viennent de la documentation, pas d'une machine :
-      tant que ce n'est pas fait, la seule chose garantie est que le lecteur *refuse*
-      au lieu d'inventer des zéros.
+- [x] **Lecteur DISM confronté à une vraie sortie élevée** — fait le 2026-07-26 en console
+      administrateur (`rempart diagnose-store --raw`). Les libellés tirés de la
+      documentation étaient justes : les 7 correspondent, `Found`, aucune correction. La
+      machine a rendu 16,45 Gio réels dont 7,76 partagés avec Windows et 8,68 de
+      sauvegardes, 5 paquets récupérables, nettoyage recommandé. Deux détails du lecteur se
+      valident enfin sur du réel plutôt qu'en théorie : le découpage au *premier*
+      deux-points, parce que la date de dernier nettoyage porte les siens, et `0 bytes`
+      écrit avec deux espaces. La sortie est bien anglaise sur un Windows français —
+      `/English` est demandé à l'outil pour n'affronter qu'un jeu de libellés.
 
 **Trouvé en chemin.** Les jauges de score étaient plafonnées à 70 % de la cellule :
 mesurées dans un navigateur, 67 %, 88 % et 100 % rendaient 136, 142 et 142 pixels. Un
@@ -400,7 +420,7 @@ seconde voie d'injection au lieu de la sécuriser.
 
 **Fait quand** la clé tourne sur une machine tierce sans rien installer.
 
-### M7 · Flotte
+### M7 · Flotte — ✅ terminé
 `rempart diff a.json b.json`, baseline de référence, page d'agrégation des rapports.
 
 - [x] `rempart diff` — moteur pur `Rempart.Core/Diff/`, alimenté par le JSON de M6 :

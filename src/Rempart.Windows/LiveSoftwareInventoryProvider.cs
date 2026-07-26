@@ -90,6 +90,13 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
 
         foreach (var fullName in registry.ListSubKeys(AppxInstalled))
         {
+            // A leftover scale or language asset is not an installed application, and the
+            // repository keeps one long after its package is gone.
+            if (AppxPackageName.IsResourcePackage(fullName))
+            {
+                continue;
+            }
+
             var (name, version) = AppxPackageName.Parse(fullName);
             var isProvisioned = provisioned.Contains(fullName);
 

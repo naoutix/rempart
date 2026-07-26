@@ -58,6 +58,49 @@ public class AppxPackageNameTests
     {
         Assert.Equal("SansSeparateur", AppxPackageName.FamilyName("SansSeparateur"));
     }
+
+    // The cases below come from a real machine's Appx repository, not from the
+    // documentation: the distinction they encode is the one the registry actually makes.
+
+    [Fact]
+    public void A_split_resource_entry_is_not_an_installed_package()
+    {
+        // Observed on the test machine: Microsoft.BingWeather leaves only this entry
+        // behind, and Get-AppxPackage no longer lists the package at all.
+        Assert.True(AppxPackageName.IsResourcePackage(
+            "Microsoft.BingWeather_4.54.63040.0_neutral_split.scale-150_8wekyb3d8bbwe"));
+    }
+
+    [Fact]
+    public void A_language_split_entry_is_not_an_installed_package_either()
+    {
+        Assert.True(AppxPackageName.IsResourcePackage(
+            "Microsoft.WindowsStore_12.0.0.0_neutral_split.language-fr_8wekyb3d8bbwe"));
+    }
+
+    [Fact]
+    public void A_main_package_with_an_empty_resource_segment_is_installed()
+    {
+        Assert.False(AppxPackageName.IsResourcePackage(
+            "Microsoft.GamingApp_2607.1001.21.0_x64__8wekyb3d8bbwe"));
+    }
+
+    [Fact]
+    public void A_neutral_resource_segment_is_a_real_package_not_a_split()
+    {
+        // The trap: 24 packages on the test machine carry "neutral" as their resource
+        // segment — the Windows shell itself among them. Treating a non-empty resource
+        // segment as a split would erase them from the inventory, which is worse than
+        // the false positive this rule exists to remove.
+        Assert.False(AppxPackageName.IsResourcePackage(
+            "Microsoft.Windows.ShellExperienceHost_10.0.26100.8115_neutral_neutral_cw5n1h2txyewy"));
+    }
+
+    [Fact]
+    public void An_atypical_name_is_not_taken_for_a_split_entry()
+    {
+        Assert.False(AppxPackageName.IsResourcePackage("SansSeparateur"));
+    }
 }
 
 internal sealed class FakeSoftwareInventoryProvider(params InstalledSoftware[] software)
