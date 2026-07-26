@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using Rempart.Windows;
 
 namespace Rempart.Tests.Windows;
@@ -31,11 +33,20 @@ public sealed class LiveListeningPortProviderTests
             Assert.InRange(port.Port, 1, 65535);
             Assert.True(port.Pid >= 0, $"PID négatif : {port.Pid}");
 
-            // A wrongly decoded DWORD would yield an address outside the four octets —
-            // the sign of a wrong field offset in the table read.
-            var octets = port.LocalAddress.Split('.');
-            Assert.Equal(4, octets.Length);
-            Assert.All(octets, o => Assert.InRange(int.Parse(o), 0, 255));
+            // A wrong field offset in the table read shows up here: the bytes it lands on
+            // do not parse as an address at all. Both families are checked, because the
+            // IPv6 rows have their own shape — a scope id sits between the address and the
+            // port, shifting every field after it.
+            Assert.True(IPAddress.TryParse(port.LocalAddress, out var address),
+                $"Adresse non analysable : « {port.LocalAddress} » — décalage de champ probable.");
+
+            Assert.Contains(address!.AddressFamily,
+                new[] { AddressFamily.InterNetwork, AddressFamily.InterNetworkV6 });
+
+            // The canonical compressed form is what the Core judgement matches on: "::"
+            // and "::1" decide exposed versus local. A formatter emitting
+            // "0:0:0:0:0:0:0:1" would make a loopback socket look like a named interface.
+            Assert.Equal(port.LocalAddress, address.ToString());
         }
     }
 
