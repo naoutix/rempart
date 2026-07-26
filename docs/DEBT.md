@@ -34,6 +34,9 @@ de fixtures qui exerce le chemin complet du scan sans machine Windows.
 | DET-DISM | Les libellés attendus par `ComponentStoreParser` venaient de la documentation, pas d'une exécution élevée réelle | 2026-07-26 — exécution en console admin : `Found`, les 7 libellés correspondent, aucune correction. Deux subtilités validées sur du réel : découpage au premier deux-points (la date porte les siens) et `0 bytes` à double espace |
 | DET-APPX-FAUXPOS | Le collecteur Appx remontait les entrées-ressource orphelines (`..._split.scale-*`) comme des logiciels installés | Post-M7 (#67) — `AppxPackageName.IsResourcePackage`, jugement pur en Core. Mesuré : BingWeather 1→0, Clipchamp 2→0, GamingApp 2→1 |
 | DET-WMI-FLAKY | `LiveWmiProviderTests` faisait échouer le build quand le runner partagé répondait zéro ligne — 5 fois en une journée, dont une sur une PR sans C# | 2026-07-26 (#70) — chaque test sonde d'abord si WMI répond ; les assertions sont inchangées quand il répond |
+| DET-DEPENDABOT | Dependabot ne surveillait que `github-actions` : YamlDotNet, seule dépendance de production, n'avait aucune alerte de vulnérabilité | Phase 1 dette — écosystème `nuget` ajouté, outillage de test groupé en une seule PR |
+| DET-SECURITY | Dépôt public d'un outil de sécurité sans voie de divulgation | Phase 1 dette — `SECURITY.md`, et **signalement privé de vulnérabilité activé** sur le dépôt : un rapport atteint le mainteneur sans passer par une issue publique, et sans publier d'adresse personnelle |
+| DET-SYSTEM32 | `C:\Windows\System32\` et le paragraphe expliquant pourquoi il est en dur, recopiés dans 3 collecteurs | Phase 1 dette — `WindowsPaths`, qui garde le codage en dur (délibéré : pas de disque, pas de `System.IO.Path`, sinon une capture Windows rejouée sur Linux résoudrait autrement) et le dit une fois |
 
 ## Ouvert
 
@@ -41,10 +44,9 @@ Classé par priorité décroissante.
 
 | Réf | Dette | Catégorie | I | R | E | Prio | Note |
 |---|---|---|:-:|:-:|:-:|:-:|---|
-| DET-DEPENDABOT | `dependabot.yml` ne surveille que `github-actions`. **Aucune surveillance de `nuget`** : ni YamlDotNet, seule dépendance de production, ni les paquets de test ne reçoivent d'alerte de mise à jour ou de vulnérabilité | Dépendance | 2 | 4 | 1 | **30** | Le fichier justifie lui-même sa raison d'être par « un pin figé rate les correctifs amont, sécurité compris » — le raisonnement s'applique mot pour mot à NuGet, qui n'est pas couvert. Un bloc de 5 lignes ferme le sujet |
 | DET-WMI-VIDE | `LiveWmiProvider.cs:134` : une énumération **réussie rendant zéro ligne** devient `NotFound`, indistinguable d'une classe absente. Un WMI dégradé peut donc produire un verdict là où il faudrait « non vérifiable » | Code | 3 | 4 | 3 | **21** | Le principe est déjà écrit dans `IWmiProvider` : « un refus doit devenir non vérifiable, jamais une non-conformité ». Zéro ligne reste une réponse légitime pour certaines classes, donc pas de mappage global : distinguer à la source la classe inconnue de l'énumération vide |
-| DET-SECURITY | Dépôt **public** d'un outil de sécurité, sans `SECURITY.md` ni voie de divulgation. Qui trouve une faille n'a pas d'endroit où l'adresser hors d'une issue publique | Documentation | 1 | 3 | 1 | **20** | Un fichier, une adresse, un délai de réponse annoncé |
-| DET-EXT-MUET | Trois `catch (JsonException) { }` dans `ChromiumExtensions` et `FirefoxExtensions` : un manifeste illisible fait **disparaître l'extension de l'inventaire**, sans un mot | Code | 2 | 3 | 2 | **20** | Contredit frontalement la règle du projet — « un accès refusé est dit et non tu ». Une extension qu'on n'a pas su lire doit ressortir comme non lue, pas comme absente |
+| DET-EXT-MUET | Trois `catch (JsonException) { }` dans `ChromiumExtensions` et `FirefoxExtensions`. Le plus grave est `ParseSettings` : un `Secure Preferences` illisible rend une liste vide, indistinguable de « ce profil n'a pas d'extension » — **tout un profil disparaît de l'inventaire sans un mot** | Code | 2 | 3 | **4** | **10** | Contredit la règle du projet : « un accès refusé est dit et non tu ». **Effort re-coté de 2 à 4 à l'examen** : le mécanisme de dégradation existe (`CollectorResult.Status` + `Diagnostics`, rendus par les rapports), mais l'atteindre demande de traverser `IBrowserExtensionProvider`, **interface enregistrée dans les instantanés** — donc `RecordingProviders`, le round-trip JSON et les fixtures de référence. C'est exactement la zone de D2 et D2b. À faire seule, avec sa propre PR |
+| DET-FIXTURE-LOCALE | `FixtureReplayTests.Fixtures()` énumère les captures sur le disque, et `tests/fixtures/local/` est gitignoré : le poste de dev exécute **513 tests, la CI 511**. La fixture la plus riche du projet — une machine réelle — n'est jamais rejouée ailleurs que chez le mainteneur, et **rien ne le signale** | Test | 2 | 2 | 1 | 20 | Garder la capture hors dépôt reste le bon choix (DET-DIRTY). Ce qui manque est le dire : faire écrire au test combien de fixtures il a trouvées, pour qu'un vert de CI n'ait pas l'air d'un vert complet. Même famille que DET-WMI-FLAKY — un test qui en fait moins doit l'annoncer |
 | DET-IPV6 | Ports en écoute IPv6 non collectés (`AF_INET` seul) — recoupe l'item M4 « IPv6 » | Code | 3 | 3 | 3 | 18 | Ajouter `AF_INET6` + formatage d'adresse ; le test Windows suppose IPv4 (`Split('.')`) et devra suivre |
 | DET-REPLAY-CABLAGE | Rien ne vérifie que tout nouveau fournisseur est câblé au rejeu de fixtures — D2 puis D2b sont la même erreur deux fois | Test | 3 | 3 | 3 | 18 | Un test de réflexion comparant les propriétés de `ProviderSet` aux fournisseurs câblés fermerait la récidive. **Deux occurrences historiques : la troisième est une question de temps** |
 | DET-SYSTEM32 | `C:\Windows\System32\` résolu en dur dans 3 collecteurs (COM, LSA, Logon) | Code | 2 | 2 | 2 | 16 | Helper `PathResolver.ResolveSystem32` |
@@ -65,19 +67,28 @@ Classé par priorité décroissante.
 
 Pensé pour avancer **à côté du développement de fonctionnalités**, pas à sa place.
 
-### Phase 1 — quatre correctifs courts, aucun risque de régression
+### Phase 1 — ✅ faite le 2026-07-26, sauf un item re-coté
 
-`DET-DEPENDABOT` · `DET-SECURITY` · `DET-EXT-MUET` · `DET-SYSTEM32`
+`DET-DEPENDABOT` ✅ · `DET-SECURITY` ✅ · `DET-SYSTEM32` ✅ · ~~`DET-EXT-MUET`~~ → phase 2
 
-Priorités 30, 20, 20 et 16 pour un effort de 1 à 2 chacun. Les deux premiers sont des
-fichiers de configuration et de la prose ; les deux suivants sont des changements locaux
-et testables. Justification : `DET-DEPENDABOT` laisse aujourd'hui la seule dépendance de
-production sans surveillance de vulnérabilité, sur un outil dont l'argument est la
-sécurité — c'est le pire rapport risque/effort du registre.
+Les trois premiers sont fermés. `DET-EXT-MUET`, coté effort 2 sur la foi de « trois
+`catch` vides à remplir », s'est révélé coté 4 une fois le chemin suivi : le mécanisme de
+dégradation existe, mais l'atteindre traverse une interface enregistrée dans les
+instantanés. Le corriger à la va-vite dans un lot de correctifs courts, c'est-à-dire dans
+la zone précise où D2 et D2b sont passés, aurait été la mauvaise façon de le faire.
+
+**Ce que la phase 1 a appris sur le registre lui-même** : une cotation d'effort faite en
+lisant le code n'est pas une cotation faite en suivant le chemin de la correction. Deux
+entrées sur quatre ont bougé à l'exécution — `DET-SYSTEM32` était plus simple qu'annoncé
+(la duplication, pas le codage en dur, qui est délibéré), `DET-EXT-MUET` deux fois plus
+cher.
+
+`DET-FIXTURE-LOCALE`, découverte en vérifiant l'écart 513/511 entre le poste et la CI,
+rejoint la phase 1 pour un prochain passage : effort 1, priorité 20.
 
 ### Phase 2 — ce qui touche la justesse de l'audit
 
-`DET-WMI-VIDE` · `DET-REPLAY-CABLAGE` · `DET-APPX-VERSIONS`
+`DET-WMI-VIDE` · `DET-REPLAY-CABLAGE` · `DET-EXT-MUET` · `DET-APPX-VERSIONS`
 
 Ces trois-là décident de ce que le rapport **dit**. `DET-WMI-VIDE` peut transformer une
 machine non auditée en machine jugée ; `DET-REPLAY-CABLAGE` a déjà laissé passer deux fois

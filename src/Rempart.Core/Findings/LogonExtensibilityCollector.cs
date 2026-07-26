@@ -184,7 +184,7 @@ public sealed class LogonExtensibilityCollector : IFindingCollector
         }
 
         return string.Equals(trimmed, "explorer.exe", StringComparison.OrdinalIgnoreCase)
-            ? @"C:\Windows\" + trimmed
-            : @"C:\Windows\System32\" + trimmed;
+            ? WindowsPaths.InWindows(trimmed)
+            : WindowsPaths.InSystem32(trimmed);
     }
 }

@@ -98,7 +98,7 @@ public sealed class ComHijackCollector : IFindingCollector
 
         return executable.Length == 0 || executable.Contains('\\') || executable.Contains('/')
             ? executable
-            : @"C:\Windows\System32\" + executable;
+            : WindowsPaths.InSystem32(executable);
     }
 
     private static string ExtractExecutable(string value)

@@ -10,3 +10,21 @@ updates:
       interval: weekly
     commit-message:
       prefix: ci
+
+  # The reasoning above applies unchanged to NuGet, and for a while this file made the
+  # argument without covering the ecosystem where the only production dependency lives:
+  # YamlDotNet parses rule files, which is untrusted input on a security tool. Watching
+  # the actions and not the parser was the wrong half.
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: deps
+    groups:
+      # Test tooling moves together and never ships to a user; one pull request for the
+      # lot rather than three that each need a full CI run.
+      test-tooling:
+        patterns:
+          - "xunit*"
+          - "Microsoft.NET.Test.Sdk"
