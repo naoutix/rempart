@@ -1,4 +1,5 @@
 using System.Text;
+using Rempart.Core.Diff;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Rules;
@@ -187,6 +188,114 @@ public static class ConsoleReport
             }
         }
     }
+
+    /// <summary>
+    /// The comparison on the console. What got worse first: a reader who stops after the
+    /// first screen must have seen the bad news, not the corrections.
+    /// </summary>
+    public static string Diff(DiffResult diff)
+    {
+        var text = new StringBuilder();
+
+        text.AppendLine(diff.SameMachine
+            ? $"{diff.AfterMachine} — évolution"
+            : $"{diff.BeforeMachine} contre {diff.AfterMachine}");
+        text.AppendLine($"  avant : {diff.BeforeAtUtc}");
+        text.AppendLine($"  après : {diff.AfterAtUtc}");
+
+        if (!diff.Comparable)
+        {
+            text.AppendLine();
+            text.AppendLine($"! {diff.ComparabilityNote}");
+        }
+
+        text.AppendLine();
+        text.AppendLine($"[synthèse] {DiffReport.Headline(diff)}");
+
+        var scoreLine = $"  conformité {Percent(diff.ScoreBefore)} → {Percent(diff.ScoreAfter)}";
+        text.AppendLine(diff.ScoreDelta is { } delta && delta != 0
+            ? $"{scoreLine}  ({(delta > 0 ? "+" : string.Empty)}{delta} pts)"
+            : scoreLine);
+
+        foreach (var (shift, title, _) in DiffReport.Sections)
+        {
+            var changes = diff.Of(shift).ToList();
+
+            if (changes.Count == 0)
+            {
+                continue;
+            }
+
+            text.AppendLine();
+            text.AppendLine($"[{title.ToLowerInvariant()}]");
+
+            foreach (var change in changes)
+            {
+                text.AppendLine($"  {change.RuleId,-14} {change.Title}");
+                text.AppendLine($"                 {DescribeStatus(change.Before)} → " +
+                                  $"{DescribeStatus(change.After)}");
+            }
+        }
+
+        if (diff.Findings.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine($"[constats] {diff.Findings.Count} écart(s)");
+
+            foreach (var change in diff.Findings)
+            {
+                text.AppendLine();
+                text.AppendLine($"  {DescribeChange(change.Change),-9} {change.Target}");
+                text.AppendLine($"            {change.Source}");
+
+                foreach (var note in change.Notes)
+                {
+                    text.AppendLine($"            → {note}");
+                }
+            }
+        }
+
+        if (diff.Transients.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine(
+                $"[mouvements attendus] {diff.Transients.Count} — Windows les retire ou les " +
+                "renumérote de lui-même, hors de l'écart de posture");
+        }
+
+        if (diff.Fields.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine(diff.SameMachine
+                ? $"[inventaire] {diff.Fields.Count} champ(s) modifié(s)"
+                : $"[inventaire] {diff.Fields.Count} écart(s) — deux machines, c'est du contexte");
+
+            foreach (var field in diff.Fields)
+            {
+                text.AppendLine($"  {field.Field,-32} {field.Before ?? "—"} → {field.After ?? "—"}");
+            }
+        }
+
+        return text.ToString();
+    }
+
+    private static string Percent(int? score) => score is { } value ? $"{value} %" : "n/d";
+
+    private static string DescribeStatus(VerdictStatus? status) => status switch
+    {
+        VerdictStatus.Pass => "conforme",
+        VerdictStatus.Fail => "échec",
+        VerdictStatus.Unknown => "non vérifié",
+        VerdictStatus.NotApplicable => "hors périmètre",
+        _ => "absent du catalogue",
+    };
+
+    private static string DescribeChange(ChangeKind change) => change switch
+    {
+        ChangeKind.Appeared => "apparu",
+        ChangeKind.Disappeared => "disparu",
+        _ => "modifié",
+    };
 
     private static void Posture(StringBuilder text, ScanResult result, ScoreCard score)
     {

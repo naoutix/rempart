@@ -432,7 +432,7 @@ static int Diff(string[] args)
     }
 
     var diff = ScanDiff.Compare(before, after);
-    WriteDiff(diff);
+    Console.Write(ConsoleReport.Diff(diff));
 
     if (HasFlag(args, "--report"))
     {
@@ -459,110 +459,6 @@ static int Diff(string[] args)
     // without re-reading the output.
     return diff.Of(VerdictShift.Regression).Any() ? 4 : 0;
 }
-
-/// <summary>
-/// The comparison on the console. What got worse first: a reader who stops after the
-/// first screen must have seen the bad news, not the corrections.
-/// </summary>
-static void WriteDiff(DiffResult diff)
-{
-    Console.WriteLine(diff.SameMachine
-        ? $"{diff.AfterMachine} — évolution"
-        : $"{diff.BeforeMachine} contre {diff.AfterMachine}");
-    Console.WriteLine($"  avant : {diff.BeforeAtUtc}");
-    Console.WriteLine($"  après : {diff.AfterAtUtc}");
-
-    if (!diff.Comparable)
-    {
-        Console.WriteLine();
-        Console.WriteLine($"! {diff.ComparabilityNote}");
-    }
-
-    Console.WriteLine();
-    Console.WriteLine($"[synthèse] {DiffReport.Headline(diff)}");
-
-    var scoreLine = $"  conformité {Percent(diff.ScoreBefore)} → {Percent(diff.ScoreAfter)}";
-    Console.WriteLine(diff.ScoreDelta is { } delta && delta != 0
-        ? $"{scoreLine}  ({(delta > 0 ? "+" : string.Empty)}{delta} pts)"
-        : scoreLine);
-
-    foreach (var (shift, title, _) in DiffReport.Sections)
-    {
-        var changes = diff.Of(shift).ToList();
-
-        if (changes.Count == 0)
-        {
-            continue;
-        }
-
-        Console.WriteLine();
-        Console.WriteLine($"[{title.ToLowerInvariant()}]");
-
-        foreach (var change in changes)
-        {
-            Console.WriteLine($"  {change.RuleId,-14} {change.Title}");
-            Console.WriteLine($"                 {DescribeStatus(change.Before)} → " +
-                              $"{DescribeStatus(change.After)}");
-        }
-    }
-
-    if (diff.Findings.Count > 0)
-    {
-        Console.WriteLine();
-        Console.WriteLine($"[constats] {diff.Findings.Count} écart(s)");
-
-        foreach (var change in diff.Findings)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"  {DescribeChange(change.Change),-9} {change.Target}");
-            Console.WriteLine($"            {change.Source}");
-
-            foreach (var note in change.Notes)
-            {
-                Console.WriteLine($"            → {note}");
-            }
-        }
-    }
-
-    if (diff.Transients.Count > 0)
-    {
-        Console.WriteLine();
-        Console.WriteLine(
-            $"[mouvements attendus] {diff.Transients.Count} — Windows les retire ou les " +
-            "renumérote de lui-même, hors de l'écart de posture");
-    }
-
-    if (diff.Fields.Count > 0)
-    {
-        Console.WriteLine();
-        Console.WriteLine(diff.SameMachine
-            ? $"[inventaire] {diff.Fields.Count} champ(s) modifié(s)"
-            : $"[inventaire] {diff.Fields.Count} écart(s) — deux machines, c'est du contexte");
-
-        foreach (var field in diff.Fields)
-        {
-            Console.WriteLine($"  {field.Field,-32} {field.Before ?? "—"} → {field.After ?? "—"}");
-        }
-    }
-}
-
-static string Percent(int? score) => score is { } value ? $"{value} %" : "n/d";
-
-static string DescribeStatus(VerdictStatus? status) => status switch
-{
-    VerdictStatus.Pass => "conforme",
-    VerdictStatus.Fail => "échec",
-    VerdictStatus.Unknown => "non vérifié",
-    VerdictStatus.NotApplicable => "hors périmètre",
-    _ => "absent du catalogue",
-};
-
-static string DescribeChange(ChangeKind change) => change switch
-{
-    ChangeKind.Appeared => "apparu",
-    ChangeKind.Disappeared => "disparu",
-    _ => "modifié",
-};
 
 /// <summary>
 /// Builds the fleet page from a folder of reports.
