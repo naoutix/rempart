@@ -129,6 +129,8 @@ compliant.
 | `rempart scan --report [dir]` | Also write `rapport.html`, `.md` and `.json` to `<dir>/<machine>-<date>/`. |
 | `rempart scan --from <capture>` | Replay a snapshot without the machine. |
 | `rempart report --from <rapport.json>` | Re-render HTML and Markdown without scanning again. Runs anywhere. |
+| `rempart diff <a.json> <b.json>` | Compare two scans: what regressed, what the audit stopped seeing. |
+| `rempart index [dir]` | Build the fleet page from a folder of reports, worst first. |
 | `rempart explain [<ID>]` | List all checks, or detail one: rationale, references, cost of fixing. |
 | `rempart capture [--raw]` | Record a replayable snapshot, anonymized by default. |
 | `rempart seal --dir … ` | Seal the USB stick, or `--check` that it is still what it was. |
@@ -174,8 +176,8 @@ using it.
 ## Status
 
 In development. The read-only audit described above is implemented and tested
-(524 tests), and so are the three report formats and the stick's signed integrity
-seal. Fleet comparison (`diff`) and remediation are planned.
+(564 tests), and so are the three report formats, the stick's signed integrity seal,
+and fleet comparison (`diff`, `index`). Remediation is planned.
 [ROADMAP.md](docs/ROADMAP.md) (French) tracks milestones and records what was
 deliberately deferred or discarded, with reasons — including, right now, that the
 component-store reader has not yet been confronted with a real elevated run.

@@ -1,4 +1,5 @@
 using Rempart.Core.Collectors;
+using Rempart.Core.Diff;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Dns;
@@ -32,6 +33,8 @@ try
     {
         "scan" => Scan(args),
         "report" => Report(args),
+        "diff" => Diff(args),
+        "index" => Index(args),
         "capture" => Capture(args),
         "explain" => Explain(args),
         "synthesise" => Synthesise(args),
@@ -356,6 +359,303 @@ static int Report(string[] args)
     }
 
     return 0;
+}
+
+/// <summary>
+/// The reference posture a fleet is held to, carried by the stick beside the binary —
+/// same idea as the update store and the rules folder.
+/// </summary>
+static string BaselinePath() => Path.Combine(AppContext.BaseDirectory, "baseline.json");
+
+/// <summary>
+/// Compares two scans.
+///
+/// <para>
+/// Reads reports, never machines: the comparison needs neither of them present, and it
+/// runs anywhere. One argument compares against the stick's baseline — the reference
+/// posture a fleet is held to; two arguments compare whatever is handed over.
+/// </para>
+/// </summary>
+static int Diff(string[] args)
+{
+    var positional = Positional(args, ["--report", "--baseline"]);
+
+    var (beforePath, afterPath) = positional.Count switch
+    {
+        >= 2 => (positional[0], positional[1]),
+        1 => (OptionValue(args, "--baseline") ?? BaselinePath(), positional[0]),
+        _ => (null, null),
+    };
+
+    if (beforePath is null || afterPath is null)
+    {
+        Console.Error.WriteLine(
+            "Indiquer deux rapports : rempart diff <avant.json> <après.json>. " +
+            "Avec un seul, la comparaison se fait contre la baseline de la clé " +
+            $"({BaselinePath()}).");
+        return 1;
+    }
+
+    if (!File.Exists(beforePath))
+    {
+        Console.Error.WriteLine(
+            positional.Count >= 2
+                ? $"Rapport introuvable : {beforePath}"
+                : $"Aucune baseline dans {beforePath}. En poser une : copier le rapport JSON " +
+                  $"d'une machine de référence sous ce nom, ou indiquer --baseline <fichier>.");
+        return 1;
+    }
+
+    if (!File.Exists(afterPath))
+    {
+        Console.Error.WriteLine($"Rapport introuvable : {afterPath}");
+        return 1;
+    }
+
+    ScanResult before, after;
+    try
+    {
+        before = RempartJson.DeserialiseScanResult(File.ReadAllText(beforePath));
+        after = RempartJson.DeserialiseScanResult(File.ReadAllText(afterPath));
+    }
+    catch (System.Text.Json.JsonException ex)
+    {
+        Console.Error.WriteLine($"Rapport illisible : {ex.Message}");
+        return 1;
+    }
+
+    if (string.IsNullOrEmpty(before.StartedAtUtc) || string.IsNullOrEmpty(after.StartedAtUtc))
+    {
+        Console.Error.WriteLine(
+            "L'un des fichiers n'est pas un rapport de scan. « rempart scan --json » en produit un.");
+        return 1;
+    }
+
+    var diff = ScanDiff.Compare(before, after);
+    WriteDiff(diff);
+
+    if (HasFlag(args, "--report"))
+    {
+        var directory = OptionValue(args, "--report") ?? ".";
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+
+            foreach (var file in DiffReport.Build(diff))
+            {
+                File.WriteAllText(Path.Combine(directory, file.Name), file.Content);
+                Console.WriteLine($"Écrit : {Path.Combine(directory, file.Name)}");
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Comparaison non écrite dans {directory} : {ex.Message}");
+            return 1;
+        }
+    }
+
+    // A regression is what the caller most likely wants to act on, so it is detectable
+    // without re-reading the output.
+    return diff.Of(VerdictShift.Regression).Any() ? 4 : 0;
+}
+
+/// <summary>
+/// The comparison on the console. What got worse first: a reader who stops after the
+/// first screen must have seen the bad news, not the corrections.
+/// </summary>
+static void WriteDiff(DiffResult diff)
+{
+    Console.WriteLine(diff.SameMachine
+        ? $"{diff.AfterMachine} — évolution"
+        : $"{diff.BeforeMachine} contre {diff.AfterMachine}");
+    Console.WriteLine($"  avant : {diff.BeforeAtUtc}");
+    Console.WriteLine($"  après : {diff.AfterAtUtc}");
+
+    if (!diff.Comparable)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"! {diff.ComparabilityNote}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"[synthèse] {DiffReport.Headline(diff)}");
+
+    var scoreLine = $"  conformité {Percent(diff.ScoreBefore)} → {Percent(diff.ScoreAfter)}";
+    Console.WriteLine(diff.ScoreDelta is { } delta && delta != 0
+        ? $"{scoreLine}  ({(delta > 0 ? "+" : string.Empty)}{delta} pts)"
+        : scoreLine);
+
+    foreach (var (shift, title, _) in DiffReport.Sections)
+    {
+        var changes = diff.Of(shift).ToList();
+
+        if (changes.Count == 0)
+        {
+            continue;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"[{title.ToLowerInvariant()}]");
+
+        foreach (var change in changes)
+        {
+            Console.WriteLine($"  {change.RuleId,-14} {change.Title}");
+            Console.WriteLine($"                 {DescribeStatus(change.Before)} → " +
+                              $"{DescribeStatus(change.After)}");
+        }
+    }
+
+    if (diff.Findings.Count > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"[constats] {diff.Findings.Count} écart(s)");
+
+        foreach (var change in diff.Findings)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"  {DescribeChange(change.Change),-9} {change.Target}");
+            Console.WriteLine($"            {change.Source}");
+
+            foreach (var note in change.Notes)
+            {
+                Console.WriteLine($"            → {note}");
+            }
+        }
+    }
+
+    if (diff.Transients.Count > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine(
+            $"[mouvements attendus] {diff.Transients.Count} — Windows les retire ou les " +
+            "renumérote de lui-même, hors de l'écart de posture");
+    }
+
+    if (diff.Fields.Count > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine(diff.SameMachine
+            ? $"[inventaire] {diff.Fields.Count} champ(s) modifié(s)"
+            : $"[inventaire] {diff.Fields.Count} écart(s) — deux machines, c'est du contexte");
+
+        foreach (var field in diff.Fields)
+        {
+            Console.WriteLine($"  {field.Field,-32} {field.Before ?? "—"} → {field.After ?? "—"}");
+        }
+    }
+}
+
+static string Percent(int? score) => score is { } value ? $"{value} %" : "n/d";
+
+static string DescribeStatus(VerdictStatus? status) => status switch
+{
+    VerdictStatus.Pass => "conforme",
+    VerdictStatus.Fail => "échec",
+    VerdictStatus.Unknown => "non vérifié",
+    VerdictStatus.NotApplicable => "hors périmètre",
+    _ => "absent du catalogue",
+};
+
+static string DescribeChange(ChangeKind change) => change switch
+{
+    ChangeKind.Appeared => "apparu",
+    ChangeKind.Disappeared => "disparu",
+    _ => "modifié",
+};
+
+/// <summary>
+/// Builds the fleet page from a folder of reports.
+///
+/// Reads every <c>rapport.json</c> it finds, however the folders are arranged: the stick
+/// layout produces one directory per scan, but a folder assembled by hand from several
+/// sticks works just as well.
+/// </summary>
+static int Index(string[] args)
+{
+    var positional = Positional(args, ["--out"]);
+    var root = positional.Count > 0
+        ? positional[0]
+        : Path.Combine(AppContext.BaseDirectory, "reports");
+
+    if (!Directory.Exists(root))
+    {
+        Console.Error.WriteLine(
+            $"Dossier introuvable : {root}. « rempart scan --report » y dépose des rapports.");
+        return 1;
+    }
+
+    var entries = new List<FleetEntry>();
+    var unreadable = 0;
+
+    foreach (var path in Directory
+                 .EnumerateFiles(root, ReportBundle.JsonName, SearchOption.AllDirectories)
+                 .OrderBy(p => p, StringComparer.Ordinal))
+    {
+        try
+        {
+            var result = RempartJson.DeserialiseScanResult(File.ReadAllText(path));
+
+            if (string.IsNullOrEmpty(result.StartedAtUtc))
+            {
+                unreadable++;
+                continue;
+            }
+
+            entries.Add(FleetEntry.From(result, Path.GetRelativePath(root, path)));
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or IOException)
+        {
+            // One unreadable report must not cost the whole page; it is counted and
+            // reported, never skipped in silence.
+            unreadable++;
+            Console.Error.WriteLine($"Ignoré, illisible : {path} ({ex.Message})");
+        }
+    }
+
+    var outPath = OptionValue(args, "--out") ?? Path.Combine(root, FleetIndex.FileName);
+    File.WriteAllText(outPath, FleetIndex.Render(entries));
+
+    Console.WriteLine($"Parc écrit dans {outPath} — {entries.Count} rapport(s)"
+                      + (unreadable > 0 ? $", {unreadable} illisible(s)" : string.Empty));
+
+    foreach (var entry in FleetIndex.Ordered(entries))
+    {
+        Console.WriteLine($"  {entry.Machine,-24} {entry.Date}  " +
+                          $"{(entry.Score is { } s ? $"{s,3} %" : "  n/d")}  " +
+                          $"échecs {entry.Failures}, à examiner {entry.FlaggedFindings}");
+    }
+
+    return entries.Count > 0 ? 0 : 1;
+}
+
+/// <summary>
+/// Arguments that are not options, and not the value of one.
+///
+/// The hand-written parser has no notion of arity, so a bare scan of non-dash tokens
+/// would take the folder in <c>--report ./out</c> for a file to compare.
+/// </summary>
+static IReadOnlyList<string> Positional(string[] args, IReadOnlyList<string> valueTaking)
+{
+    var positional = new List<string>();
+
+    for (var i = 1; i < args.Length; i++)
+    {
+        if (args[i].StartsWith('-'))
+        {
+            if (valueTaking.Contains(args[i]) && i + 1 < args.Length
+                && !args[i + 1].StartsWith('-'))
+            {
+                i++;
+            }
+
+            continue;
+        }
+
+        positional.Add(args[i]);
+    }
+
+    return positional;
 }
 
 static int Capture(string[] args)
@@ -1805,6 +2105,23 @@ static int Help() => Print(
           Le JSON est l'artefact complet — HTML et Markdown le résument.
           Écrit dans le dossier indiqué (par défaut le dossier courant) ;
           --format n'en produit qu'un seul. Ne demande pas Windows.
+
+      rempart diff <avant.json> <après.json> [--report <dossier>]
+      rempart diff <après.json> [--baseline <fichier>] [--report <dossier>]
+          Compare deux rapports : ce qui a régressé, ce que l'audit ne voit
+          plus, les constats apparus ou modifiés. Avec un seul argument, la
+          comparaison se fait contre baseline.json posé à côté du binaire —
+          la posture de référence que porte la clé.
+          Les mouvements que le système cause lui-même sortent de l'écart de
+          posture sans être tus : entrée RunOnce consommée, tâche supprimée
+          après expiration, port de la plage dynamique renuméroté.
+          Ne demande pas Windows. Code de sortie 4 s'il y a une régression.
+
+      rempart index [dossier] [--out <fichier>]
+          Lit tous les rapport.json d'un dossier et écrit une page de parc,
+          la plus basse d'abord. Par défaut « reports/ » à côté du binaire.
+          Signale les rapports issus de catalogues différents : leurs
+          pourcentages ne sont pas sur la même échelle.
 
       rempart capture [--out <fichier>] [--raw] [--analyze-store]
           Enregistre l'état brut de la machine, rejouable en test.

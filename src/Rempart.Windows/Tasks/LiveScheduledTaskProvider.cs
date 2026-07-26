@@ -172,6 +172,8 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
         var userId = (string?)null;
         var runLevel = (string?)null;
         var actions = (IReadOnlyList<TaskAction>)[];
+        var deleteExpiredAfter = (string?)null;
+        var expiringTrigger = false;
 
         // An unreadable definition must not remove the task from the inventory:
         // return it without its actions rather than not at all.
@@ -186,6 +188,14 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
                 runLevel = Text(document, TaskNs + "Principals", TaskNs + "Principal",
                     TaskNs + "RunLevel");
                 actions = ReadActions(document);
+
+                // The two facts that decide whether Windows deletes the task by itself
+                // once it has fired. Read here, judged in the core.
+                deleteExpiredAfter = Text(document,
+                    TaskNs + "Settings", TaskNs + "DeleteExpiredTaskAfter");
+                expiringTrigger = document.Root?.Element(TaskNs + "Triggers")
+                    ?.Elements()
+                    .Any(trigger => trigger.Element(TaskNs + "EndBoundary") is not null) ?? false;
             }
             catch (System.Xml.XmlException)
             {
@@ -197,7 +207,7 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
 
         return new ScheduledTask(
             path, name ?? path, enabled != 0, StateName(state),
-            author, userId, runLevel, actions);
+            author, userId, runLevel, actions, deleteExpiredAfter, expiringTrigger);
     }
 
     private static IReadOnlyList<TaskAction> ReadActions(XDocument document)

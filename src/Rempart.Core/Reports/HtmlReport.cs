@@ -37,16 +37,41 @@ namespace Rempart.Core.Reports;
 /// </summary>
 public static class HtmlReport
 {
+    /// <summary>
+    /// Opens a standalone document: head, inline stylesheet, nothing fetched.
+    ///
+    /// Shared with the comparison report so the two look like one tool and, more to the
+    /// point, so the self-containment promise is kept in one place rather than restated
+    /// — and eventually forgotten — in each.
+    /// </summary>
+    internal static void OpenDocument(StringBuilder html, string title)
+    {
+        html.Append("<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n");
+        html.Append("<meta charset=\"utf-8\">\n");
+        html.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
+        html.Append($"<title>{Escape(title)}</title>\n");
+        html.Append("<style>\n").Append(Style).Append("</style>\n</head>\n<body>\n");
+    }
+
+    internal static void CloseDocument(StringBuilder html) =>
+        html.Append("<script>\n").Append(Script).Append("</script>\n</body>\n</html>\n");
+
+    /// <summary>The tool's name and version, and the theme toggle.</summary>
+    internal static void WriteBrandBar(StringBuilder html, string toolVersion)
+    {
+        html.Append("<div class=\"bar\">\n");
+        html.Append($"<span class=\"brand\">Rempart <span class=\"ver\">{Escape(toolVersion)}</span></span>\n");
+        html.Append("<button type=\"button\" id=\"theme\" title=\"Basculer le thème clair / sombre\">"
+                    + "◐ thème</button>\n");
+        html.Append("</div>\n");
+    }
+
     public static string Render(ScanResult result)
     {
         var view = ReportView.From(result);
         var html = new StringBuilder(64 * 1024);
 
-        html.Append("<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n");
-        html.Append("<meta charset=\"utf-8\">\n");
-        html.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
-        html.Append($"<title>Rempart — {Escape(view.MachineName)} — {Escape(view.ScanDate)}</title>\n");
-        html.Append("<style>\n").Append(Style).Append("</style>\n</head>\n<body>\n");
+        OpenDocument(html, $"Rempart — {view.MachineName} — {view.ScanDate}");
 
         WriteHeader(html, view);
         WriteBanners(html, view);
@@ -58,7 +83,7 @@ public static class HtmlReport
         WriteInventory(html, view);
         WriteFooter(html, view);
 
-        html.Append("<script>\n").Append(Script).Append("</script>\n</body>\n</html>\n");
+        CloseDocument(html);
         return html.ToString();
     }
 
@@ -66,11 +91,8 @@ public static class HtmlReport
     {
         var result = view.Result;
 
-        html.Append("<header>\n<div class=\"bar\">\n");
-        html.Append($"<span class=\"brand\">Rempart <span class=\"ver\">{Escape(result.ToolVersion)}</span></span>\n");
-        html.Append("<button type=\"button\" id=\"theme\" title=\"Basculer le thème clair / sombre\">"
-                    + "◐ thème</button>\n");
-        html.Append("</div>\n");
+        html.Append("<header>\n");
+        WriteBrandBar(html, result.ToolVersion);
         html.Append($"<h1>{Escape(view.MachineName)}</h1>\n");
         html.Append("<p class=\"meta\">");
         html.Append($"scan du {Escape(result.StartedAtUtc)}");

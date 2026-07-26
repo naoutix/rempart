@@ -17,6 +17,7 @@ namespace Rempart.Core.Json;
     UseStringEnumConverter = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
 [JsonSerializable(typeof(ScanResult))]
+[JsonSerializable(typeof(Diff.DiffResult))]
 [JsonSerializable(typeof(Dns.DnsProbeReport))]
 [JsonSerializable(typeof(MachineSnapshot))]
 [JsonSerializable(typeof(SignedManifest))]
@@ -44,6 +45,13 @@ public static class RempartJson
 {
     public static string Serialise(ScanResult result) =>
         JsonSerializer.Serialize(result, RempartJsonContext.Default.ScanResult);
+
+    /// <summary>
+    /// A comparison, for a tool downstream. The HTML and the Markdown are for people;
+    /// this is what a fleet dashboard or a ticket bot would read.
+    /// </summary>
+    public static string Serialise(Diff.DiffResult diff) =>
+        JsonSerializer.Serialize(diff, RempartJsonContext.Default.DiffResult);
 
     public static string Serialise(MachineSnapshot snapshot) =>
         JsonSerializer.Serialize(snapshot, RempartJsonContext.Default.MachineSnapshot);
