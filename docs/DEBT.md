@@ -41,6 +41,7 @@ de fixtures qui exerce le chemin complet du scan sans machine Windows.
 | DET-WMI-MUET | `LiveDriverProvider` et `LiveProcessProvider` rendaient une liste vide sur lecture échouée, sans canal de statut : un WMI dégradé donnait zéro pilote et zéro processus, et le rapport ressemblait à une machine saine | Phase 2 dette — `DriverRead` et `ProcessRead` portent `Status` + `Diagnostic`, sur le modèle de `ScheduledTaskRead`. Les collecteurs remontent un constat `Notable` nommant l'échec. Le statut est **ajouté à côté** de la liste dans l'instantané, jamais en remplacement : changer `drivers` d'un tableau JSON en objet aurait rendu illisible toute capture existante, y compris les captures réelles hors dépôt |
 | DET-EXT-MUET | Trois `catch (JsonException) { }` faisaient disparaître un profil de navigateur entier de l'inventaire, indistinguable de « ce profil n'a pas d'extension » | Phase 2 dette — les parseurs rendent `null` pour « illisible », distinct de la liste vide qui reste une réponse légitime. `BrowserExtensionRead.Partial` garde ce qui a été lu **et** nomme le profil qui ne l'a pas été. Asymétrie assumée avec les pilotes : zéro extension est un état de machine plausible, zéro pilote non |
 | DET-IPV6 | Ports en écoute IPv6 non collectés : `LiveListeningPortProvider` n'interrogeait que `AF_INET`, donc un service exposé en IPv6 seul était **absent du rapport** | 2026-07-26 — tables `AF_INET6` lues avec leur propre forme de ligne (le scope id sépare l'adresse du port et décale tout ce qui suit : 56 octets en TCP6, 28 en UDP6). Adresse rendue sous forme compressée canonique par `IPAddress`, dont dépend le jugement Core. **Vérifié contre `netstat -ano`** : 18 triplets sur 19 identiques, l'unique écart étant un port de la plage dynamique — le transitoire `éphémère` déjà documenté en M7, pas un décalage. Le jugement Core acceptait `::` et `::1` depuis le début : il est désormais atteint, et testé |
+| DET-FIXTURE-LOCALE | Le rejeu découvrait ses fixtures sur le disque et `tests/fixtures/local/` est gitignoré : le poste de dev exécutait 513 tests, la CI 511, sans que rien l'annonce | 2026-07-26 (#75) — le rejeu énonce son inventaire sur la sortie de test et dit franchement quand aucune capture réelle n'était présente. **Le registre, lui, n'a pas été mis à jour dans cette PR** : l'entrée est restée en « Ouvert » un jour de plus, le même écart entre le code et le registre que cet audit traquait ailleurs |
 | DET-APPX-VERSIONS | Un paquet dont plusieurs versions restent enregistrées était remonté autant de fois | Phase 2 dette — `AppxPackageName.LatestPerIdentity`. L'identité est la famille **et** l'architecture, jamais la famille seule : vérifié par mutation, grouper sur la famille perd le paquet x86. Mesuré sur machine réelle : 268 → 228 lignes Appx, pour 134 → 114 identités calculées indépendamment |
 
 ## Ouvert
@@ -49,7 +50,6 @@ Classé par priorité décroissante.
 
 | Réf | Dette | Catégorie | I | R | E | Prio | Note |
 |---|---|---|:-:|:-:|:-:|:-:|---|
-| DET-FIXTURE-LOCALE | `FixtureReplayTests.Fixtures()` énumère les captures sur le disque, et `tests/fixtures/local/` est gitignoré : le poste de dev exécute **513 tests, la CI 511**. La fixture la plus riche du projet — une machine réelle — n'est jamais rejouée ailleurs que chez le mainteneur, et **rien ne le signale** | Test | 2 | 2 | 1 | 20 | Garder la capture hors dépôt reste le bon choix (DET-DIRTY). Ce qui manque est le dire : faire écrire au test combien de fixtures il a trouvées, pour qu'un vert de CI n'ait pas l'air d'un vert complet. Même famille que DET-WMI-FLAKY — un test qui en fait moins doit l'annoncer |
 | DET-TACHE-EXPIREE | La branche « tâche supprimée après expiration » n'a aucun cas positif sur machine réelle : 196 tâches sur le poste de test, aucune concernée. Couverte par fixture fabriquée seulement | Test | 2 | 2 | 2 | 16 | Se ferme sur la première capture d'une machine qui en porte une ; le zéro a été vérifié, pas supposé |
 | DET-WINDEFAULT | ~60 `windowsDefault` validés sur **une seule machine** — la « dette n°4 » d'ADR-002 | Code | 2 | 3 | 3 | 15 | Se corrige à mesure des captures réelles |
 | DET-CI-SHA | Toutes les actions GitHub sont épinglées par SHA (vérifié). Ce qui flotte encore : le tag Docker d'actionlint (`:1.7.12`) et la bande `dotnet-version: '10.0.x'` | Infrastructure | 1 | 2 | 1 | 15 | Épingler actionlint par digest ; un `global.json` fermerait le SDK en même temps que DET-SDK |
@@ -116,9 +116,21 @@ machine non auditée en machine jugée ; `DET-REPLAY-CABLAGE` a déjà laissé p
 un collecteur tournant à vide derrière une référence figée à « rien trouvé ». À traiter
 avant d'ajouter des collecteurs, chacun en étant une occasion de plus.
 
-### Phase 3 — structure, avant M9
+### Phase 3 — structure, avant M9 — conçue dans [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md)
 
 `DET-PROGRAM` · `DET-RECPROV` · `DET-WINDOWS-TESTS`
+
+**L'ordre a changé après conception.** Il avait été avancé que `DET-RECPROV` réduirait la
+surface de `DET-PROGRAM` et devait donc passer en premier : c'est faux, `RecordingProviders`
+vit dans Core et ne touche `Program.cs` que par une cinquantaine de lignes sur 1 881. Les
+deux dettes sont indépendantes.
+
+Le vrai bloqueur est ailleurs : **la couche CLI n'a aucun test**. Les 534 tests unitaires
+et 56 Windows n'en touchent pas une ligne, et la CI ne vérifie que des codes de sortie.
+D'où la séquence retenue — extraire d'abord un rendu console **pur**, comme M6 l'a fait
+pour les rapports, pour que le découpage des commandes soit comparable à une référence.
+On ne déplace pas 1 400 lignes avant d'avoir posé le garde qui les surveille, exactement
+le raisonnement qui a fermé `DET-REPLAY-CABLAGE`.
 
 M9 (remédiation) ajoutera des providers en écriture, des confirmations individuelles et un
 journal de rollback. Greffer ça sur un `Program.cs` de 1 881 lignes qui croît de moitié par
