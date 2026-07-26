@@ -88,15 +88,16 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
     {
         var provisioned = new HashSet<string>(registry.ListSubKeys(AppxProvisioned), StringComparer.OrdinalIgnoreCase);
 
-        foreach (var fullName in registry.ListSubKeys(AppxInstalled))
-        {
-            // A leftover scale or language asset is not an installed application, and the
-            // repository keeps one long after its package is gone.
-            if (AppxPackageName.IsResourcePackage(fullName))
-            {
-                continue;
-            }
+        // A leftover scale or language asset is not an installed application, and the
+        // repository keeps one long after its package is gone. Of what remains, an
+        // updated package leaves its older versions registered: one row per identity,
+        // the highest version, architectures kept apart.
+        var installed = AppxPackageName.LatestPerIdentity(
+            registry.ListSubKeys(AppxInstalled)
+                .Where(fullName => !AppxPackageName.IsResourcePackage(fullName)));
 
+        foreach (var fullName in installed)
+        {
             var (name, version) = AppxPackageName.Parse(fullName);
             var isProvisioned = provisioned.Contains(fullName);
 

@@ -150,18 +150,22 @@ public sealed class FixtureReplayTests
             $"Le répertoire {local} doit porter un README rappelant qu'il n'est pas versionné.");
     }
 
-    private static string Replay(string fixture)
-    {
-        var snapshot = RempartJson.DeserialiseSnapshot(
-            File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
-
-        // Every replay provider is wired in, as named arguments: the real scan
-        // supplies just as many (Program.cs), and a replay omitting one would fall
-        // back to the default no-ops. The matching collectors would then run on
-        // empty and the reference would freeze "nothing found" over a capture that
-        // does hold the data — the worst kind of fixture, the reassuring one. The
-        // naming also prevents any silent swap between same-shaped providers.
-        var providers = new ProviderSet(
+    /// <summary>
+    /// Every replay provider, wired as named arguments: the real scan supplies just as
+    /// many (Program.cs), and a replay omitting one falls back to the default no-ops. The
+    /// matching collectors then run on empty and the reference freezes "nothing found"
+    /// over a capture that does hold the data — the worst kind of fixture, the reassuring
+    /// one. The naming also prevents any silent swap between same-shaped providers.
+    ///
+    /// <para>
+    /// Shared with <see cref="Every_provider_is_wired_into_the_replay"/> rather than
+    /// inlined: the claim in the paragraph above had been written twice and verified
+    /// never, and it was false both times (D2, D2b, and a third time for the component
+    /// store). A comment cannot hold an invariant — a test can.
+    /// </para>
+    /// </summary>
+    private static ProviderSet ReplayProviders(MachineSnapshot snapshot) =>
+        new(
             new SnapshotRegistryProvider(snapshot),
             new SnapshotSystemInfoProvider(snapshot),
             services: new SnapshotServiceStateProvider(snapshot),
@@ -179,7 +183,48 @@ public sealed class FixtureReplayTests
             proxy: new SnapshotProxyProvider(snapshot),
             wifi: new SnapshotWifiProfileProvider(snapshot),
             softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot),
-            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot));
+            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot),
+            componentStore: new SnapshotComponentStoreProvider(snapshot));
+
+    /// <summary>
+    /// Closes D2 and D2b, which are the same mistake made twice: a provider added to
+    /// <see cref="ProviderSet"/> without being wired into the replay. Both times the
+    /// collector ran on nothing and the reference froze "nothing found", which reads
+    /// exactly like a clean machine.
+    ///
+    /// <para>
+    /// Reflection rather than a hand-kept list, because a hand-kept list is the thing
+    /// that was already forgotten twice. Every provider property must hold a
+    /// <c>Snapshot*</c> implementation: the no-op fallbacks are what a missing argument
+    /// silently leaves behind.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_provider_is_wired_into_the_replay()
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
+            Path.Combine(FixtureDirectory, "synthetic", "default-win11.capture.json")));
+
+        var missing = typeof(ProviderSet).GetProperties()
+            .Where(property => property.PropertyType.IsInterface)
+            .Select(property => (property.Name, Implementation: property.GetValue(ReplayProviders(snapshot))))
+            .Where(wired => wired.Implementation?.GetType().Name
+                .StartsWith("Snapshot", StringComparison.Ordinal) != true)
+            .Select(wired => $"{wired.Name} → {wired.Implementation?.GetType().Name ?? "null"}")
+            .ToList();
+
+        Assert.True(missing.Count == 0,
+            "Fournisseur(s) non câblé(s) au rejeu de fixtures, donc collecteur tournant à "
+            + "vide derrière une référence qui fige « rien trouvé » : "
+            + string.Join(", ", missing));
+    }
+
+    private static string Replay(string fixture)
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(
+            File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
+
+        var providers = ReplayProviders(snapshot);
 
         // Full engine, rules included: what we want frozen is the verdict rendered
         // on a given machine, not just the collected fields.

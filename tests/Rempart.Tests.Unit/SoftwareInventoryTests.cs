@@ -101,6 +101,64 @@ public class AppxPackageNameTests
     {
         Assert.False(AppxPackageName.IsResourcePackage("SansSeparateur"));
     }
+
+    // Cases below taken from the same real machine: three registered versions of one
+    // package, and two architectures of another.
+
+    [Fact]
+    public void Only_the_highest_registered_version_of_a_package_is_kept()
+    {
+        string[] entries =
+        [
+            "Microsoft.ECApp_10.0.26100.8328_neutral__8wekyb3d8bbwe",
+            "Microsoft.ECApp_10.0.26100.8737_neutral__8wekyb3d8bbwe",
+            "Microsoft.ECApp_10.0.26100.8521_neutral__8wekyb3d8bbwe",
+        ];
+
+        Assert.Equal(
+            ["Microsoft.ECApp_10.0.26100.8737_neutral__8wekyb3d8bbwe"],
+            AppxPackageName.LatestPerIdentity(entries));
+    }
+
+    [Fact]
+    public void Two_architectures_of_one_package_are_both_kept()
+    {
+        // They share a package family name, so collapsing on the family alone would
+        // erase a genuinely installed package. Architecture is part of the identity.
+        string[] entries =
+        [
+            "Microsoft.NET.Native.Framework.2.2_2.2.29512.0_x64__8wekyb3d8bbwe",
+            "Microsoft.NET.Native.Framework.2.2_2.2.29512.0_x86__8wekyb3d8bbwe",
+        ];
+
+        Assert.Equal(2, AppxPackageName.LatestPerIdentity(entries).Count);
+    }
+
+    [Fact]
+    public void Versions_are_compared_as_numbers_not_as_text()
+    {
+        // "10.0.26100.8737" sorts before "10.0.26100.900" as text, and after it as a
+        // version. Ordinal comparison would keep the older build.
+        string[] entries =
+        [
+            "Package_10.0.26100.900_x64__hash",
+            "Package_10.0.26100.8737_x64__hash",
+        ];
+
+        Assert.Equal(
+            ["Package_10.0.26100.8737_x64__hash"],
+            AppxPackageName.LatestPerIdentity(entries));
+    }
+
+    [Fact]
+    public void An_atypical_name_survives_deduplication()
+    {
+        // No version to compare and no identity to group on: dropping it would lose an
+        // entry, which is the one outcome worse than reporting it twice.
+        string[] entries = ["SansSeparateur", "SansSeparateur"];
+
+        Assert.Single(AppxPackageName.LatestPerIdentity(entries));
+    }
 }
 
 internal sealed class FakeSoftwareInventoryProvider(params InstalledSoftware[] software)
