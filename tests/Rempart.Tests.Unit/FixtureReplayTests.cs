@@ -2,6 +2,7 @@ using Rempart.Core.Engine;
 using Rempart.Core.Rules;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
+using Rempart.Core.Reports;
 using Rempart.Core.Snapshots;
 using Xunit.Abstractions;
 
@@ -99,6 +100,47 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
         }
 
         Assert.Equal(Normalise(File.ReadAllText(expectedPath)), Normalise(actual));
+    }
+
+    /// <summary>
+    /// Freezes the console output, which until now nothing observed.
+    ///
+    /// <para>
+    /// The CLI wrote straight to <see cref="Console"/>, so a change in what the tool says
+    /// was invisible: CI checks an exit code, not a text. The reports got this treatment
+    /// in M6 and it is what caught the capped score gauges; the console never did. Now
+    /// that the renderer is pure, the same golden-file discipline applies to it.
+    /// </para>
+    ///
+    /// <para>
+    /// The tool version is <c>test</c> here, as everywhere in the replay, so the reference
+    /// does not churn on every release. That the extraction itself changed nothing was
+    /// proved separately, by diffing the real CLI output on these three fixtures before
+    /// and after the move.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Fixtures))]
+    public void The_console_rendering_matches_its_reference(string fixture)
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(
+            File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
+
+        var result = ScanEngine.Default().Run(
+            ReplayProviders(snapshot), "test", snapshot.CapturedAtUtc);
+
+        var actual = Normalise(ConsoleReport.HumanReadable(result));
+        var referencePath = Path.Combine(FixtureDirectory, $"{fixture}.console.txt");
+
+        if (!File.Exists(referencePath))
+        {
+            File.WriteAllText(referencePath, actual);
+            Assert.Fail(
+                $"Référence console absente pour « {fixture} » : elle vient d'être écrite "
+                + $"dans {referencePath}. Relire le contenu, puis le versionner.");
+        }
+
+        Assert.Equal(Normalise(File.ReadAllText(referencePath)), actual);
     }
 
     [Theory]

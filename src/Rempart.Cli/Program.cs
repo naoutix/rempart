@@ -1,4 +1,5 @@
 using Rempart.Core.Collectors;
+using Rempart.Core.Reports;
 using Rempart.Core.Diff;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
@@ -7,7 +8,6 @@ using Rempart.Core.Json;
 using Rempart.Core.Packaging;
 using Rempart.Core.Pac;
 using Rempart.Core.Providers;
-using Rempart.Core.Reports;
 using Rempart.Core.Reputation;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
@@ -210,7 +210,7 @@ static int Scan(string[] args)
     }
     else
     {
-        WriteHumanReadable(result);
+        Console.Write(ConsoleReport.HumanReadable(result));
     }
 
     // The packaged report — the stick's deliverable. Asked for explicitly: a scan
@@ -1679,223 +1679,6 @@ static int Synthesise(string[] args)
     }
 
     return 0;
-}
-
-/// <summary>
-/// Renders the data age in one line. An unreadable date is stated as such, never
-/// silenced: "unknown" must not read as "up to date".
-/// </summary>
-static string DescribeAge(DataAge age)
-{
-    if (age.Unknown)
-    {
-        return "date de référence illisible — impossible d'en juger l'ancienneté";
-    }
-
-    var asOf = age.AsOfUtc.Length >= 10 ? age.AsOfUtc[..10] : age.AsOfUtc;
-
-    var summary = age.Days == 0
-        ? $"catalogue au {asOf}, à jour"
-        : $"catalogue au {asOf}, {age.Days} jour{(age.Days > 1 ? "s" : "")}";
-
-    if (age.Stale)
-    {
-        summary += $" — au-delà de {age.ThresholdDays} j, envisager « rempart update »";
-    }
-
-    return summary;
-}
-
-/// <summary>
-/// What the reader comes for first: the problems. The inventory closes the report —
-/// it is context, and twenty-three lines of context before the first finding mean
-/// the finding never gets read.
-/// </summary>
-static void WriteHumanReadable(ScanResult result)
-{
-    Console.WriteLine($"Rempart {result.ToolVersion} — scan du {result.StartedAtUtc}");
-    Console.WriteLine($"règles : {result.RulesFingerprint}");
-    Console.WriteLine($"données : {DescribeAge(result.DataAge)}");
-
-    // Data provenance — applied or rejected — is always stated, never silent
-    // (ADR-002, D14 and D17).
-    if (result.UpdateNote is { } note)
-    {
-        Console.WriteLine($"mise à jour : {note}");
-    }
-
-    if (result.IntegrityNote is { } integrity)
-    {
-        Console.WriteLine($"intégrité : {integrity}");
-    }
-
-    if (result.RulesNote is { } rulesNote)
-    {
-        Console.WriteLine($"catalogue : {rulesNote}");
-    }
-
-    if (result.Score is { } score)
-    {
-        WritePosture(result, score);
-    }
-
-    WriteFindings(result.Findings);
-
-    if (result.DnsProbe is { } probe)
-    {
-        WriteDnsProbe(probe);
-    }
-
-    Console.WriteLine();
-    foreach (var collector in result.Collectors)
-    {
-        Console.WriteLine($"[{collector.Name}] {collector.Status}");
-
-        foreach (var (key, value) in collector.Fields)
-        {
-            Console.WriteLine($"  {key,-32} {value ?? "—"}");
-        }
-
-        foreach (var diagnostic in collector.Diagnostics)
-        {
-            Console.WriteLine($"  ! {diagnostic}");
-        }
-    }
-}
-
-/// <summary>
-/// Active DoH/DoT probe: advice, not a finding. Shown separately, outside the score,
-/// and clearly presented as a one-off measurement and a suggestion.
-/// </summary>
-static void WriteDnsProbe(Rempart.Core.Dns.DnsProbeReport probe)
-{
-    Console.WriteLine();
-    Console.WriteLine("[résolveurs chiffrés] latence mesurée (ponctuelle, depuis ce réseau) :");
-
-    foreach (var result in probe.Results)
-    {
-        var state = result.Reachable ? $"{result.LatencyMs} ms" : $"bloqué ({result.Error})";
-        Console.WriteLine($"  {result.Resolver,-12} {result.Protocol,-4} {state}");
-    }
-
-    if (probe.RecommendedResolver is { } resolver)
-    {
-        Console.WriteLine(
-            $"  → suggestion : {resolver} en {probe.RecommendedProtocol} "
-            + $"({probe.RecommendedLatencyMs} ms) est le plus rapide joignable.");
-    }
-    else
-    {
-        Console.WriteLine("  → aucun résolveur chiffré joignable — voir le constat ci-dessus.");
-    }
-}
-
-/// <summary>
-/// Findings do not blend into the score: a configuration at 94 % must not mask an
-/// unsigned binary launched at startup.
-/// </summary>
-static void WriteFindings(IReadOnlyList<Finding> findings)
-{
-    if (findings.Count == 0)
-    {
-        return;
-    }
-
-    var flagged = findings.Where(f => f.Severity != FindingSeverity.Benign).ToList();
-
-    Console.WriteLine();
-    var byKind = string.Join(", ", findings
-        .GroupBy(f => f.Kind)
-        .OrderBy(g => g.Key, StringComparer.Ordinal)
-        .Select(g => $"{g.Count()} {g.Key}"));
-
-    Console.WriteLine($"[constats] {byKind} — {flagged.Count} à examiner");
-
-    foreach (var finding in flagged.OrderByDescending(f => f.Severity))
-    {
-        Console.WriteLine();
-        Console.WriteLine($"  {finding.Severity.ToString().ToUpperInvariant(),-11} {finding.Source}");
-        Console.WriteLine($"              {finding.Target}");
-
-        foreach (var reason in finding.Reasons)
-        {
-            Console.WriteLine($"              → {reason}");
-        }
-
-        if (finding.Details.TryGetValue("éditeur", out var publisher))
-        {
-            Console.WriteLine($"              éditeur : {publisher}");
-        }
-
-        if (finding.Details.TryGetValue("virustotal", out var virusTotal))
-        {
-            Console.WriteLine($"              virustotal : {virusTotal}");
-        }
-    }
-}
-
-static void WritePosture(ScanResult result, ScoreCard score)
-{
-    // Satisfied rules are not listed, only counted: a report that drowns three
-    // problems in a hundred green lines will not be read.
-    var failures = result.Verdicts
-        .Where(v => v.Status == VerdictStatus.Fail)
-        .OrderByDescending(v => v.Severity)
-        .ToList();
-
-    if (failures.Count > 0)
-    {
-        Console.WriteLine();
-        Console.WriteLine("[posture] à corriger");
-        foreach (var verdict in failures)
-        {
-            Console.WriteLine(
-                $"  {verdict.Severity.ToString().ToUpperInvariant(),-8} " +
-                $"{verdict.RuleId}  {verdict.Title}");
-            Console.WriteLine($"           observé : {verdict.Observed ?? "absent"}" +
-                              (verdict.Expected is null ? "" : $"   attendu : {verdict.Expected}"));
-        }
-    }
-
-    var unknown = result.Verdicts.Where(v => v.Status == VerdictStatus.Unknown).ToList();
-    if (unknown.Count > 0)
-    {
-        Console.WriteLine();
-        Console.WriteLine("[posture] non vérifiable — accès refusé");
-        foreach (var verdict in unknown)
-        {
-            Console.WriteLine($"  {verdict.RuleId}  {verdict.Title}");
-        }
-    }
-
-    Console.WriteLine();
-    Console.WriteLine("[score] par domaine");
-    foreach (var domain in score.Domains)
-    {
-        var value = domain.Score is { } s ? $"{s,3} %" : "  n/d";
-        Console.WriteLine(
-            $"  {domain.Domain,-18} {value}   " +
-            $"conformes {domain.Passed}, échecs {domain.Failed}, non vérifiés {domain.Unknown}" +
-            (domain.NotApplicable > 0 ? $", hors périmètre {domain.NotApplicable}" : string.Empty));
-    }
-
-    Console.WriteLine();
-    Console.WriteLine($"  {"GLOBAL",-18} {(score.Overall is { } o ? $"{o,3} %" : "  n/d")}");
-
-    if (score.IsPartial)
-    {
-        Console.WriteLine();
-        Console.WriteLine(
-            $"  Score partiel : {score.TotalUnknown} contrôle(s) non vérifiable(s) sans élévation.");
-        Console.WriteLine(
-            "  Les contrôles non vérifiés sont exclus du calcul, jamais comptés comme conformes.");
-    }
-
-    if (failures.Count > 0 || unknown.Count > 0)
-    {
-        Console.WriteLine();
-        Console.WriteLine("  « rempart explain <ID> » détaille une règle et ce que coûte sa correction.");
-    }
 }
 
 /// <summary>

@@ -1,0 +1,55 @@
+Rempart test — scan du 2026-01-01T00:00:00.0000000Z
+règles : 82:c3e6e3029b12
+données : catalogue au 2026-07-21, à jour
+
+[score] par domaine
+  accounts           100 %   conformes 6, échecs 0, non vérifiés 0
+  asr                100 %   conformes 18, échecs 0, non vérifiés 0
+  boot-integrity     100 %   conformes 2, échecs 0, non vérifiés 0
+  credentials        100 %   conformes 3, échecs 0, non vérifiés 0
+  defender           100 %   conformes 14, échecs 0, non vérifiés 0
+  encryption         100 %   conformes 1, échecs 0, non vérifiés 0
+  firewall           100 %   conformes 7, échecs 0, non vérifiés 0
+  legacy             100 %   conformes 12, échecs 0, non vérifiés 0
+  logging            100 %   conformes 6, échecs 0, non vérifiés 0
+  privacy            100 %   conformes 5, échecs 0, non vérifiés 0
+  remote-access      100 %   conformes 2, échecs 0, non vérifiés 0, hors périmètre 1
+  updates            100 %   conformes 2, échecs 0, non vérifiés 0
+  virtualization     100 %   conformes 3, échecs 0, non vérifiés 0
+
+  GLOBAL             100 %
+
+[constats] 1 driver, 2 logon-extension, 2 lsa-package, 1 process, 196 scheduled-task, 1 wmi-subscription — 2 à examiner
+
+  NOTABLE     pilotes chargés
+              —
+              → Pilotes chargés absents de l'instantané.
+
+  NOTABLE     processus courants
+              —
+              → Processus courants absents de l'instantané.
+
+[inventory] Ok
+  os.name                          Windows 11 Pro
+  os.displayVersion                25H2
+  os.build                         26200
+  os.updateBuildRevision           8875
+  os.edition                       Professional
+  os.installationType              Client
+  os.version                       10.0.26200.0
+  os.is64Bit                       True
+  hardware.manufacturer            Micro-Star International Co., Ltd.
+  hardware.model                   MS-7E80
+  hardware.family                  To be filled by O.E.M.
+  hardware.baseboardManufacturer   Micro-Star International Co., Ltd.
+  hardware.baseboardProduct        PRO B850-S WIFI6E (MS-7E80)
+  machine.name                     anon:000000000001
+  machine.processorCount           16
+  machine.uptimeSeconds            3600
+  firmware.type                    uefi
+  firmware.biosVersion             2.A41
+  firmware.biosDate                03/17/2026
+  security.secureBoot              enabled
+  security.tpmService              present
+  scan.elevated                    True
+  os.registryProductName           Windows 10 Pro
