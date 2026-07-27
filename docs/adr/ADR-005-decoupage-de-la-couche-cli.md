@@ -1,6 +1,6 @@
 # ADR-005 : Découpage de la couche CLI et généralisation des fournisseurs
 
-**Statut :** Accepté — étapes 1 et 2 faites (PR 1a, 1b, 1c, 1c-bis, puis le découpage) ; reste l'étape 3, les fournisseurs
+**Statut :** Accepté — **exécuté en entier le 2026-07-27** (étapes 1, 2 et 3). Deux des actions ont été menées autrement que prévu ici, et les deux écarts sont notés à leur place plutôt que corrigés dans le plan.
 **Date :** 2026-07-27
 **Décide :** l'éditeur du projet
 **Dettes visées :** DET-PROGRAM, DET-RECPROV, DET-WINDOWS-TESTS (phase 3 du plan de [DEBT.md](../DEBT.md))
@@ -245,9 +245,29 @@ l'interop.
    > La leçon est celle de `DET-REPLAY-CABLAGE`, une fois de plus : un garde qui compare
    > deux artefacts écrits ensemble ne prouve rien. Il faut le confronter à ce qui existe
    > vraiment — le disque, pas une seconde liste.
-6. [~] **PR 3 — fournisseurs.** `diagnose-drivers` et `diagnose-processes` faits, sur le
-       modèle `diagnose-wmi`, avec leurs deux étapes contre le binaire AOT. Reste
-       `DET-RECPROV` (`RecordingProvider<T>`/`SnapshotProvider<T>` génériques).
+6. [x] **PR 3 — fournisseurs.** `diagnose-drivers` et `diagnose-processes` faits, sur le
+       modèle `diagnose-wmi`, avec leurs deux étapes contre le binaire AOT. `DET-RECPROV`
+       est fermée — **en refusant ce que cette action prescrivait**, voir l'encadré suivant.
+
+   > **La généralisation demandée ici est impossible, et le mesurer valait mieux que
+   > l'appliquer.** `RecordingProvider<T>`/`SnapshotProvider<T>` exigerait de résoudre à
+   > l'exécution ce qui varie entre deux paires : le *nom de méthode* de l'interface
+   > (`Read`, `Enumerate`, `Verify`, `ListFiles`, `Query`) et le *champ* de
+   > `MachineSnapshot`. Deux noms résolus à la compilation, donc pas de générique sans
+   > réflexion — qu'ADR-001 exclut. Les trois formes candidates ont été écrites (délégués
+   > get/set, classe de base abstraite, `static abstract` sur un slot) : toutes ajoutent
+   > plus de lignes qu'elles n'en retirent, neuf des treize corps faisant une ligne.
+   >
+   > **La vraie duplication était ailleurs**, et c'est ce qui a été fait : quatre copies de
+   > la liste des fournisseurs — câblage réel, enregistrement, rejeu, et *la copie du rejeu
+   > dans le test*. Devenues trois fabriques nommées dans `Snapshots/ProviderSets.cs` et
+   > `Rempart.Windows/LiveProviders.cs`. Conséquence directe :
+   > `Every_provider_is_wired_into_the_replay` — le garde qui a déjà attrapé trois
+   > régressions réelles — inspectait jusque-là **la liste du test** et non celle du
+   > produit. Il inspecte désormais celle que la commande exécute.
+   >
+   > Ce que `StatusChannel` généralise, lui, l'est par `static abstract` sur l'interface :
+   > l'appel se résout à la compilation par le paramètre de type, donc sans réflexion.
 
    > **Le projet de fakes partagé, proposé ici pour `CatalogSignature`, n'a pas été
    > construit — et ne devrait pas l'être.** Cette section l'avait envisagé avant d'avoir
@@ -259,7 +279,8 @@ l'interop.
    >
    > La leçon rejoint celle de la phase 1 sur le registre de dette : une cotation faite en
    > lisant *autour* du code n'est pas une cotation faite en l'ouvrant.
-7. [ ] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette.
+7. [x] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette. Onze fermées le
+       2026-07-27 ; les cinq qui restent attendent des machines ou une décision, pas du code.
 
 **Faisable avant M9, pas pendant.** Aucune de ces trois PR ne devrait être ouverte en même
 temps qu'un lot fonctionnel : elles touchent le point de passage de toutes les commandes.

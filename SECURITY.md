@@ -11,7 +11,10 @@ What helps, roughly in order of usefulness:
 - the version — `rempart version`, or the tag of the release you downloaded;
 - what the tool did versus what it should have done;
 - a scan snapshot if one reproduces it (`rempart capture` is anonymised by default:
-  hostname, serial numbers and registered owner are replaced by fingerprints);
+  hostname, serial numbers, registered owner, hardware identity — manufacturer, model,
+  family, mainboard, BIOS version and date — the path and name of every scheduled task
+  outside `\Microsoft\`, Wi-Fi profile names, browser profile names and user folder paths
+  are all replaced by stable fingerprints; `--raw` keeps them);
 - whether the machine was scanned elevated.
 
 Expect an acknowledgement within **7 days**, and an assessment within **30**. This is a
@@ -34,6 +37,11 @@ and **what it exposes**, not about remote compromise:
   claims to have replaced.
 - **A seal that verifies when it should not.** `rempart seal --check` accepting a modified
   or added file, or accepting a manifest signed by an unknown key.
+- **A signed dataset that is accepted when it should not be.** `rempart update` trusts the
+  signature and never the transport: a manifest or a dataset that passes verification while
+  altered, or one signed by a key that is not pinned, puts chosen rules or a chosen driver
+  catalogue into the audit. Same defect as a seal that verifies wrongly, on the other
+  command.
 - **Anything that makes the tool write to a machine.** The audit is read-only by design;
   a path that modifies state is a bug of the most serious kind here.
 
@@ -43,8 +51,10 @@ and **what it exposes**, not about remote compromise:
   normal issue, they are taken seriously, but they are not security reports.
 - Requiring elevation to read something. A refused read maps to "not verifiable", never to
   compliance; that is the intended behaviour.
-- The two opt-in network features (VirusTotal enrichment, DoH/DoT probing) reaching the
-  network when explicitly enabled by their flags.
+- The opt-in network features reaching the network when explicitly enabled: VirusTotal
+  enrichment (`--virustotal-key`, or the `REMPART_VT_KEY` environment variable), DoH/DoT
+  probing (`--probe-dns`), PAC retrieval (`--fetch-pac`), and the two commands that are
+  online by nature, `fetch-loldrivers` and `update --url`. None of them fires on a replay.
 
 ## Supported versions
 
@@ -53,8 +63,11 @@ maintenance branch and no backporting.
 
 ## Signature and provenance
 
-Release binaries are built by GitHub Actions from the tagged commit, and each release
-archive carries a `rempart-integrity.json` signed by the publisher key. Verify it from a
+Release binaries are built by GitHub Actions from the tagged commit. CI stops at a **draft**,
+and the archive it attaches is named `-unsealed`: the publisher key is deliberately not
+available to the build, so the seal is added by hand before publishing. Every **published**
+archive carries a `rempart-integrity.json` signed by that key — an archive still named
+`-unsealed` is not a release. Verify it from a
 copy you already trust rather than from the stick under test — a binary that verifies
 itself proves little:
 

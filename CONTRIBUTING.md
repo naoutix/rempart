@@ -12,8 +12,13 @@ captures in `tests/fixtures/local/` runs more — three tests per capture, since
 theories are parameterised by fixture — and the folder is gitignored, so the difference
 never shows up in a diff. Quote the CI figure when writing one down (DET-FIXTURE-LOCALE).
 
-Prerequisites: [.NET SDK 10](docs/BUILD.md). The C++ Build Tools are only needed
-for the Native AOT publish step.
+Prerequisites: **.NET SDK 10.0.302 or later** — `winget install Microsoft.DotNet.SDK.10`.
+`global.json` pins that floor with `rollForward: latestFeature`, so anything from 10.0.302
+up to the end of 10.0 works and a .NET 11 SDK does not. An older 10.0 SDK — including
+10.0.100, the GA build — stops every `dotnet` command with `A compatible .NET SDK was not
+found`, naming the version it wanted; [BUILD.md](docs/BUILD.md) explains why that range and
+not a tighter or looser one. The C++ Build Tools are only needed for the Native AOT publish
+step.
 
 ## Language policy
 
@@ -67,11 +72,16 @@ rempart scan --rules ./my-rules
 The full format is described in [ARCHITECTURE.md](docs/ARCHITECTURE.md). Three
 fields need particular care:
 
-- **`windowsDefault` (mandatory).** On the Windows registry, an absent key is the
-  common case: behavior then follows a documented default, which is often the
-  desired state. An early version treated every absent key as a failure and
-  reported three false `CRITICAL` findings on a healthy machine. This field is
-  what decides correctness.
+- **`windowsDefault` — mandatory wherever an absent key would decide the verdict.** The
+  loader demands it for every comparison operator (`equals`, `notEquals`, `atLeast`,
+  `atMost`) on a registry check, and refuses the file without it. It does **not** demand it
+  of a `service`, `policy` or `wmi` check, because their state is directly observable —
+  there is no "value Windows applies when the key is absent". Nineteen of the 82 shipped
+  rules legitimately carry none. Where it does apply, this field is what decides
+  correctness: on the Windows registry an absent key is the common case, behavior then
+  follows a documented default which is often the desired state, and an early version that
+  treated every absence as a failure reported three false `CRITICAL` findings on a healthy
+  machine.
 - **`appliesWhen`.** Several checks only make sense in context — domain-joined
   machine, RDP enabled. Everywhere else they are noise, and noise gets an audit
   tool ignored.

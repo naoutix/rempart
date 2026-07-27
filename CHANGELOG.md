@@ -119,6 +119,32 @@ the same defect on opposite sides: one hid a breakdown, the other invented an ac
   skip and pins the whole read as complete — asking one table with a wrong address family
   leaves three of the four old tests green and reddens only that one.
 
+### The build chain is pinned, and CI and the local script can no longer drift apart
+
+- **`global.json` pins the SDK** to 10.0.302 with `rollForward: latestFeature` — a floor at
+  the version this is developed with, a ceiling at the end of 10.0. Without it, whichever
+  SDK a machine happened to carry compiled the binary a user is asked to run as
+  Administrator, and "it builds on my machine" was evidence of nothing.
+- **Package versions moved to `Directory.Packages.props`**, so the test tooling is declared
+  once instead of in three project files.
+- **actionlint is pinned by image digest**, not by tag. Worth knowing: Dependabot will never
+  refresh that pin — its Actions parser skips anything starting with `docker://` — so the
+  refresh was already manual and the tag merely also allowed silent movement.
+- **`scripts/verify.ps1` is held against the workflows by a test.** This repository had just
+  paid for the divergence: both workflows moved to accepting exit code `5` and the local
+  script stayed at `{0, 3}`, which would have rejected every correct build. It also claimed
+  to replay CI while running none of the four `diagnose-*` commands the publish job runs.
+  Both fixed; a guard now fails if a workflow accepts a code the script refuses.
+- **Coverage of `Rempart.Windows` was wrong, not merely missing.** It reported 35.5 %; 751
+  of 1 677 lines were COM stubs the interface generator emits into `obj/`, covered at 4.7 %,
+  and nine of the twelve worst "files" were generator output. The real figure is 60.6 %, and
+  its worst-covered list names two of the providers the register flags.
+- A trap nobody knew they were maintaining: two PowerShell scripts had no UTF-8 BOM and were
+  surviving only because every non-ASCII character happened to sit in a single-quoted
+  string. Under Windows PowerShell 5.1 an em dash in a double-quoted string decodes to
+  something ending in `U+201D` — a closing quote — and the file stops parsing. CI never sees
+  it; the maintainer's own shell does.
+
 ### The anonymiser washes what identifies a machine, not just who owns it
 
 - **Hardware identity is now scrubbed** — manufacturer, model, family, mainboard, BIOS
@@ -235,7 +261,7 @@ the same defect on opposite sides: one hid a breakdown, the other invented an ac
 ### Structure
 
 - **`Program.cs` is 29 lines.** It was 1 881 at its worst, growing by half a milestone at a
-  time. The dispatch is now an explicit table, each of the 17 commands is its own class,
+  time. The dispatch is now an explicit table, each of the 19 commands is its own class,
   and the helpers that touch the host sit in `CliHost`. Nothing changed in what the tool
   does: every command's output and exit code was captured before and after and compared —
   63 invocations, byte for byte identical, including the error paths.
@@ -249,10 +275,11 @@ the same defect on opposite sides: one hid a breakdown, the other invented an ac
 - **The CLI layer has tests.** It had none: 1 872 lines that every command passes through,
   watched only by CI asserting an exit code. The two pure surfaces now live in
   `Rempart.Core/Cli/` and are covered on the Linux job — the exit-code contract (6 codes)
-  and the argument parser (6 primitives), 55 tests between them. No command was moved.
+  and the argument parser (6 primitives), 56 tests between them. No command was moved.
 - **`rempart index` renders through `ConsoleReport.Fleet`**, like `scan` and `diff` before
   it, with a golden test. Output verified identical byte for byte before and after.
-- **Three golden references for `rempart diff`**, covering a regression, a correction, a
+- **Golden references for `rempart diff`** — three at first, four once the compromised
+  fixture existed — covering a regression, a correction, a
   control that went blind, one that came back, a scope change, findings that disappeared
   and were retargeted — and a capture compared with itself, which freezes what the tool
   says when nothing moved.
@@ -260,10 +287,14 @@ the same defect on opposite sides: one hid a breakdown, the other invented an ac
   (regression), from the day that code was introduced; the help now derives its own text
   from the contract, so it cannot drift again — code 5 above reached it without anyone
   having to remember.
-- **Code coverage is measured** on the Linux job and summarised in the run — Rempart.Core
-  only, deliberately without a threshold. Six reasons in `docs/DEBT.md` (DET-COUVERTURE).
-  The summary states which figure it is: a workstation holding real captures in
-  `tests/fixtures/local/` measures a different one, and the two are not comparable.
+- **Code coverage is measured on both jobs** and summarised in the run — `Rempart.Core` on
+  the Linux job, `Rempart.Windows` on the Windows one, the only job that can compile it,
+  through the same `scripts/coverage-summary.ps1` one parameter apart. Deliberately without
+  a threshold: the six reasons in `docs/DEBT.md` (DET-COUVERTURE) are untouched by the
+  widening, because what moved is the perimeter *seen*, not what is *enforced*.
+  `Rempart.Cli` stays unmeasured and the entry says why. The summary states which figure it
+  is: a workstation holding real captures in `tests/fixtures/local/` measures a different
+  one, and the two are not comparable.
 
 Two real defects were **frozen by tests rather than fixed** in this batch, each recorded in
 `docs/DEBT.md`: `rempart diff --report --baseline b.json a.json` wrote into a folder named
