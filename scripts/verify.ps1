@@ -14,10 +14,10 @@
     Useful for a fast loop during development.
 
 .PARAMETER Coverage
-    Collects line coverage for Rempart.Core and prints the same summary CI prints. Off by
-    default: instrumentation lengthens the very loop this script exists to shorten, and the
-    local figure is not comparable to the one CI reports — this workstation replays the
-    captures in tests/fixtures/local/, which is gitignored.
+    Collects line coverage for Rempart.Core and Rempart.Windows and prints the same two
+    summaries CI prints. Off by default: instrumentation lengthens the very loop this script
+    exists to shorten, and the local figure is not comparable to the one CI reports — this
+    workstation replays the captures in tests/fixtures/local/, which is gitignored.
 
 .EXAMPLE
     ./scripts/verify.ps1
@@ -44,6 +44,33 @@ $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 if ((Test-Path "$vsInstaller\vswhere.exe") -and ($env:PATH -notlike "*$vsInstaller*")) {
     $env:PATH += ";$vsInstaller"
 }
+
+# CI runs the two suites as two jobs, under two coverage configurations, because the Linux
+# job cannot compile Rempart.Windows. Iterating over the same pairs here is what keeps this
+# script a replay of CI rather than a second thing that resembles it: one solution-wide run
+# under a single --settings would file the Windows results under the Rempart.Core filter and
+# publish a report measuring nothing.
+$suites = @(
+    @{
+        Project  = 'tests/Rempart.Tests.Unit'
+        Settings = 'tests/coverage.runsettings'
+        Results  = 'artifacts/coverage'
+        Package  = 'Rempart.Core'
+    },
+    @{
+        Project  = 'tests/Rempart.Tests.Windows'
+        Settings = 'tests/coverage.windows.runsettings'
+        Results  = 'artifacts/coverage-windows'
+        Package  = 'Rempart.Windows'
+    }
+)
+
+# The commands the publish-aot job runs against the published binary, replayed below against
+# the same artifact. Written as a list rather than four typed-out lines because
+# BuildChainParityTests reads this array by name and holds it against ci.yml: DET-SCRIPTS is
+# this script drifting from the workflow, and the drift it has already produced once was
+# nobody noticing that a list existed in only one of the two files.
+$aotDiagnostics = @('diagnose-wmi', 'diagnose-tasks', 'diagnose-drivers', 'diagnose-processes')
 
 $steps = [ordered]@{}
 
@@ -83,24 +110,33 @@ Step 'Tests' {
     # reaches the diagnostic below.
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
+    $broken = @()
     try {
-        $arguments = @('test', '--configuration', 'Release', '--nologo', '--verbosity', 'quiet')
-        if ($Coverage) {
-            # No inner quotes: PowerShell 5.1 quotes an argument containing spaces on its
-            # own, and adding them here reaches dotnet with the quotes still attached.
-            $arguments += @(
-                '--collect:XPlat Code Coverage',
-                '--settings', 'tests/coverage.runsettings',
-                '--results-directory', 'artifacts/coverage')
-        }
+        foreach ($suite in $suites) {
+            $arguments = @('test', $suite.Project,
+                '--configuration', 'Release', '--nologo', '--verbosity', 'quiet')
+            if ($Coverage) {
+                # No inner quotes: PowerShell 5.1 quotes an argument containing spaces on its
+                # own, and adding them here reaches dotnet with the quotes still attached.
+                $arguments += @(
+                    '--collect:XPlat Code Coverage',
+                    '--settings', $suite.Settings,
+                    '--results-directory', $suite.Results)
+            }
 
-        dotnet @arguments
+            dotnet @arguments
+
+            # Both suites run even when the first one fails, deliberately: stopping here
+            # would hide a Windows-layer failure behind a Core one and turn a single run
+            # into two, which is how a fast loop stops being fast.
+            if ($LASTEXITCODE -ne 0) { $broken += $suite.Project }
+        }
     }
     finally {
         $ErrorActionPreference = $previous
     }
 
-    if ($LASTEXITCODE -eq 0) { return }
+    if ($broken.Count -eq 0) { return }
 
     # Smart App Control rejects unsigned assemblies based on a reputation verdict
     # issued by Microsoft for each hash. There is no way to predict or force it
@@ -117,15 +153,20 @@ Step 'Tests' {
               "dont les runners n'appliquent pas cette strategie. Voir docs/BUILD.md."
     }
 
-    throw "des tests ont echoue"
+    throw "des tests ont echoue : $($broken -join ', ')"
 }
 
 if ($Coverage) {
     Step 'Couverture' {
         # The same script CI calls, deliberately: DET-SCRIPTS is about this file drifting
         # from the workflow, and a second implementation of the parsing would be that drift.
-        & (Join-Path $PSScriptRoot 'coverage-summary.ps1') `
-            -ResultsDirectory (Join-Path $root 'artifacts/coverage')
+        # Two summaries, as CI publishes two: Rempart.Core from the Linux job,
+        # Rempart.Windows from the Windows one.
+        foreach ($suite in $suites) {
+            & (Join-Path $PSScriptRoot 'coverage-summary.ps1') `
+                -ResultsDirectory (Join-Path $root $suite.Results) `
+                -Package $suite.Package
+        }
     }
 }
 
@@ -171,7 +212,20 @@ if (-not $SkipPublish) {
                 # memes controles non verifiables, et rend le meme code.
                 if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "le rejeu a echoue ($LASTEXITCODE)" }
 
-                Write-Host "scan, capture et rejeu fonctionnent sans dependance"
+                # Les memes commandes que le job publish-aot passe au binaire publie, et
+                # pour la meme raison : la suite Windows tourne sous JIT, ou l'interop COM
+                # ne se comporte pas pareil. Un defaut d'interop a deja laisse WMI mort
+                # dans le binaire publie, avec un scan qui sortait 0 et tous les controles
+                # WMI « non verifiables ». Ce script pretendait rejouer la CI sans passer
+                # ces quatre appels : c'est exactement l'ecart que DET-SCRIPTS decrit.
+                foreach ($command in $aotDiagnostics) {
+                    & .\rempart.exe $command | Out-Null
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "$command a echoue depuis le binaire AOT ($LASTEXITCODE)"
+                    }
+                }
+
+                Write-Host ("scan, capture, rejeu et {0} diagnostics fonctionnent sans dependance" -f $aotDiagnostics.Count)
             }
             finally { Pop-Location }
         }

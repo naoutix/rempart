@@ -57,6 +57,7 @@ public sealed record BrowserExtensionRead(
     ReadStatus Status,
     IReadOnlyList<BrowserExtension> Extensions,
     string? Diagnostic = null)
+    : IStatusCarryingRead<BrowserExtensionRead, BrowserExtension>
 {
     public static BrowserExtensionRead Found(IReadOnlyList<BrowserExtension> extensions) =>
         new(ReadStatus.Found, extensions);
@@ -70,6 +71,13 @@ public sealed record BrowserExtensionRead(
         new(ReadStatus.AccessDenied, extensions,
             "Profil(s) de navigateur illisible(s) : " + string.Join(", ", unreadable)
             + ". Une extension installée dans ce profil n'apparaît pas dans l'inventaire.");
+
+    IReadOnlyList<BrowserExtension>
+        IStatusCarryingRead<BrowserExtensionRead, BrowserExtension>.Items => Extensions;
+
+    static BrowserExtensionRead IStatusCarryingRead<BrowserExtensionRead, BrowserExtension>.Compose(
+        ReadStatus status, IReadOnlyList<BrowserExtension> items, string? diagnostic) =>
+        new(status, items, diagnostic);
 }
 
 public interface IBrowserExtensionProvider

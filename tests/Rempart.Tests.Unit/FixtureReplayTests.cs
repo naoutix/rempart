@@ -354,40 +354,19 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Every replay provider, wired as named arguments: the real scan supplies just as
-    /// many (Program.cs), and a replay omitting one falls back to the default no-ops. The
-    /// matching collectors then run on empty and the reference freezes "nothing found"
-    /// over a capture that does hold the data — the worst kind of fixture, the reassuring
-    /// one. The naming also prevents any silent swap between same-shaped providers.
+    /// The replay wiring — now <see cref="SnapshotProviders.Replaying"/>, the same call
+    /// <c>rempart scan --from</c> makes, rather than a second list written here.
     ///
     /// <para>
-    /// Shared with <see cref="Every_provider_is_wired_into_the_replay"/> rather than
-    /// inlined: the claim in the paragraph above had been written twice and verified
-    /// never, and it was false both times (D2, D2b, and a third time for the component
-    /// store). A comment cannot hold an invariant — a test can.
+    /// That copy was the loophole in the guard below. It checked that every provider was
+    /// wired into <em>this file</em>, so the shipped command could drop one and stay green:
+    /// the property it was watching belonged to the test. What it verified was that the test
+    /// agreed with itself — the circular shape this repository has caught itself writing
+    /// before. Pointing both at Core is what makes the guard bite on the product.
     /// </para>
     /// </summary>
     private static ProviderSet ReplayProviders(MachineSnapshot snapshot) =>
-        new(
-            new SnapshotRegistryProvider(snapshot),
-            new SnapshotSystemInfoProvider(snapshot),
-            services: new SnapshotServiceStateProvider(snapshot),
-            policy: new SnapshotSecurityPolicyProvider(snapshot),
-            wmi: new SnapshotWmiProvider(snapshot),
-            signatures: new SnapshotSignatureProvider(snapshot),
-            files: new SnapshotFileSystemProvider(snapshot),
-            scheduledTasks: new SnapshotScheduledTaskProvider(snapshot),
-            drivers: new SnapshotDriverProvider(snapshot),
-            processes: new SnapshotProcessProvider(snapshot),
-            listeningPorts: new SnapshotListeningPortProvider(snapshot),
-            firewall: new SnapshotFirewallProvider(snapshot),
-            dns: new SnapshotDnsProvider(snapshot),
-            hostsFile: new SnapshotHostsFileProvider(snapshot),
-            proxy: new SnapshotProxyProvider(snapshot),
-            wifi: new SnapshotWifiProfileProvider(snapshot),
-            softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot),
-            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot),
-            componentStore: new SnapshotComponentStoreProvider(snapshot));
+        SnapshotProviders.Replaying(snapshot);
 
     /// <summary>
     /// Closes D2 and D2b, which are the same mistake made twice: a provider added to
@@ -401,6 +380,14 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
     /// <c>Snapshot*</c> implementation: the no-op fallbacks are what a missing argument
     /// silently leaves behind.
     /// </para>
+    ///
+    /// <para>
+    /// The count is asserted as well, and it is not decoration: the whole check is a filter,
+    /// and a filter that matches nothing reports success. Were <c>ProviderSet</c> to stop
+    /// exposing its providers as interface-typed properties — or were this test to be
+    /// pointed at something that has none — the list of failures would be empty for the one
+    /// reason that must never pass for a pass.
+    /// </para>
     /// </summary>
     [Fact]
     public void Every_provider_is_wired_into_the_replay()
@@ -408,25 +395,76 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
         var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
             Path.Combine(FixtureDirectory, "synthetic", "default-win11.capture.json")));
 
-        var missing = typeof(ProviderSet).GetProperties()
+        AssertEveryProviderIsWired(SnapshotProviders.Replaying(snapshot), "Snapshot",
+            "au rejeu de fixtures, donc collecteur tournant à vide derrière une référence "
+            + "qui fige « rien trouvé »");
+    }
+
+    /// <summary>
+    /// The other direction, which nothing watched: a provider missing from the recording
+    /// wiring never writes anything into the capture.
+    ///
+    /// <para>
+    /// It is the worse half of the same accident. A replay that forgets a provider still has
+    /// the data — the capture holds it, and re-running the replay after the fix recovers the
+    /// findings. A capture that forgets one has written nothing down, and the machine it was
+    /// taken on is not there any more. That is the shape the versioned fixtures are supposed
+    /// to protect against, and it is exactly the shape they cannot detect: a fixture recorded
+    /// without a provider replays perfectly and reports « rien trouvé » forever.
+    /// </para>
+    ///
+    /// <para>
+    /// Runs on the Linux job because <see cref="SnapshotProviders.Recording"/> wraps a
+    /// <see cref="ProviderSet"/> it is handed rather than building Windows providers itself.
+    /// The set handed in here is the replay one, which is convenient rather than meaningful:
+    /// what is under test is the wrapping, and any set with twenty providers exercises it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_provider_is_wrapped_by_the_capture()
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
+            Path.Combine(FixtureDirectory, "synthetic", "default-win11.capture.json")));
+
+        AssertEveryProviderIsWired(
+            SnapshotProviders.Recording(SnapshotProviders.Replaying(snapshot), new MachineSnapshot()),
+            "Recording",
+            "à l'enregistrement, donc une capture qui ne contient rien pour lui — et aucun "
+            + "rejeu ultérieur ne peut retrouver ce qui n'a jamais été écrit");
+    }
+
+    private static void AssertEveryProviderIsWired(ProviderSet wiring, string prefix, string harm)
+    {
+        var wired = typeof(ProviderSet).GetProperties()
             .Where(property => property.PropertyType.IsInterface)
-            .Select(property => (property.Name, Implementation: property.GetValue(ReplayProviders(snapshot))))
-            .Where(wired => wired.Implementation?.GetType().Name
-                .StartsWith("Snapshot", StringComparison.Ordinal) != true)
-            .Select(wired => $"{wired.Name} → {wired.Implementation?.GetType().Name ?? "null"}")
+            .Select(property => (property.Name, Implementation: property.GetValue(wiring)))
+            .ToList();
+
+        // An exact count, not a floor. A floor of nineteen had tolerated one provider slipping
+        // out of the filter — exposing one as a concrete decorator rather than as its
+        // interface is an ordinary refactoring, and it would have taken the provider out of
+        // this guard's sight while the assertion still passed. A filter that quietly stops
+        // looking at something is the failure this whole test exists to prevent.
+        Assert.True(wired.Count == 20,
+            $"{wired.Count} fournisseur(s) inspecté(s) sur ProviderSet au lieu de 20 : ce "
+            + "garde filtre sur les propriétés de type interface, et un fournisseur qui "
+            + "cesse d'en être une sort de sa vue sans que rien ne le dise.");
+
+        var missing = wired
+            .Where(entry => entry.Implementation?.GetType().Name
+                .StartsWith(prefix, StringComparison.Ordinal) != true)
+            .Select(entry => $"{entry.Name} → {entry.Implementation?.GetType().Name ?? "null"}")
             .ToList();
 
         Assert.True(missing.Count == 0,
-            "Fournisseur(s) non câblé(s) au rejeu de fixtures, donc collecteur tournant à "
-            + "vide derrière une référence qui fige « rien trouvé » : "
-            + string.Join(", ", missing));
+            $"Fournisseur(s) non câblé(s) {harm} : {string.Join(", ", missing)}.");
     }
 
     /// <summary>
     /// The scan a fixture replays to, result and all. Shared by the console goldens, which
     /// need the object rather than the JSON <see cref="Replay"/> returns, and by
     /// <c>ExitCodeTests</c>, which needs the scan the exit code answers for. Internal
-    /// rather than copied there: a second nineteen-provider wiring would drift from this
+    /// rather than copied there: a second twenty-provider wiring would drift from this
     /// one, and the claim being made — that the fixture scoring 100 % exits 5 — is only
     /// worth anything about the scan these references freeze.
     ///

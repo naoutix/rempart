@@ -9,14 +9,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
 
     <!-- Coverage collector, test-only: developmentDependency, no compile-time reference,
-         nothing reaches the shipped binary. Pinned rather than floated, like every other
-         version in this repository. -->
-    <PackageReference Include="coverlet.collector" Version="10.0.1">
+         nothing reaches the shipped binary. Versions live in Directory.Packages.props;
+         this metadata does not, because central management moves the version and nothing
+         else — declared there it would be dropped, and the collector would become a public
+         transitive dependency of the test assembly. -->
+    <PackageReference Include="coverlet.collector">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

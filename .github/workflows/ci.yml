@@ -4,6 +4,14 @@ name: CI
 # @v4 or :latest can be rewritten upstream, which would reintroduce unreviewed code
 # into a chain that, for a security tool, must stay reproducible.
 # The comment keeps the version readable; Dependabot bumps the hash (.github/dependabot.yml).
+#
+# One pin is on its own: the actionlint container below is pinned by image digest, and
+# Dependabot will not refresh it. Its GitHub Actions parser skips any `uses:` value starting
+# with "docker://" before it looks at anything else (dependabot-core,
+# github_actions/lib/dependabot/github_actions/file_parser.rb), which is also why that step
+# never appeared in the three bump pull requests that pinned the actions above. Refreshing
+# it is a manual step -- and it was already manual when it said ":1.7.12", except that a tag
+# can be moved under us without the file changing.
 
 on:
   push:
@@ -23,7 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker://rhysd/actionlint:1.7.12
+      # The digest of the OCI index for rhysd/actionlint:1.7.12, read from the registry
+      # rather than copied from anywhere: `docker-content-digest` on the manifest request,
+      # confirmed against the Docker Hub tag API. The runner passes everything after
+      # "docker://" straight to `docker pull`, so a digest reference is resolved by Docker
+      # itself and a moved tag can no longer change what lints these files.
+      - uses: docker://rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 # 1.7.12
         with:
           args: -color
 
@@ -72,7 +85,30 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Tests against the real registry and system APIs
-        run: dotnet test tests/Rempart.Tests.Windows --configuration Release
+        run: >
+          dotnet test tests/Rempart.Tests.Windows --configuration Release
+          --collect:"XPlat Code Coverage"
+          --settings tests/coverage.windows.runsettings
+          --results-directory artifacts/coverage-windows
+
+      - name: Coverage summary
+        # Rempart.Windows can only be measured here: the Linux job does not compile it, so
+        # until this step existed the layer this repository calls its least tested was also
+        # the one nobody counted. Same script as the Linux job, one parameter apart -- a
+        # second summariser would be the divergence DET-SCRIPTS describes.
+        # Measured, never gated: no threshold, and it cannot turn the job red.
+        if: always()
+        shell: pwsh
+        run: >
+          ./scripts/coverage-summary.ps1
+          -ResultsDirectory artifacts/coverage-windows
+          -Package Rempart.Windows
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: coverage-cobertura-windows
+          path: artifacts/coverage-windows/**/coverage.cobertura.xml
 
   publish-aot:
     # Verifies the actual deliverable: a single binary, no runtime to install.

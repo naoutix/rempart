@@ -33,6 +33,7 @@ public sealed record ProcessRead(
     ReadStatus Status,
     IReadOnlyList<RunningProcess> Processes,
     string? Diagnostic = null)
+    : IStatusCarryingRead<ProcessRead, RunningProcess>
 {
     public static readonly ProcessRead AccessDenied = new(ReadStatus.AccessDenied, []);
 
@@ -41,6 +42,13 @@ public sealed record ProcessRead(
 
     public static ProcessRead Failed(string reason) =>
         new(ReadStatus.AccessDenied, [], reason);
+
+    IReadOnlyList<RunningProcess> IStatusCarryingRead<ProcessRead, RunningProcess>.Items =>
+        Processes;
+
+    static ProcessRead IStatusCarryingRead<ProcessRead, RunningProcess>.Compose(
+        ReadStatus status, IReadOnlyList<RunningProcess> items, string? diagnostic) =>
+        new(status, items, diagnostic);
 }
 
 public interface IProcessProvider

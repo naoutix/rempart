@@ -3,50 +3,25 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
-/// Reads each interface's DNS configuration from the registry.
+/// This machine's DNS configuration: the live registry, handed to the reader in Core.
 ///
 /// <para>
-/// Each interface has its key under <c>Tcpip\Parameters\Interfaces</c>. <c>NameServer</c>
-/// holds statically configured resolvers, <c>DhcpNameServer</c> those received from the
-/// network — the distinction the collector evaluates. Addresses are separated by spaces
-/// or commas.
+/// Everything this class used to do is now <see cref="RegistryDnsProvider"/>, and that is the
+/// whole change: the key path, the two value names and the separators are a judgement about
+/// how Windows stores resolvers, testable against a fake registry on the Linux job, and they
+/// were sitting in a project that job does not compile. What is left here is the one thing
+/// that genuinely needs Windows — a real <see cref="LiveRegistryProvider"/> — and the name
+/// the wiring looks for.
 /// </para>
 /// </summary>
-public sealed class LiveDnsProvider : IDnsProvider
+public sealed class LiveDnsProvider(IRegistryProvider registry) : IDnsProvider
 {
-    private const string InterfacesKey =
-        @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces";
-
-    private readonly IRegistryProvider registry;
+    private readonly RegistryDnsProvider inner = new(registry);
 
     public LiveDnsProvider()
         : this(new LiveRegistryProvider())
     {
     }
 
-    public LiveDnsProvider(IRegistryProvider registry) => this.registry = registry;
-
-    public IReadOnlyList<DnsInterface> Read()
-    {
-        var interfaces = new List<DnsInterface>();
-
-        foreach (var guid in registry.ListSubKeys(InterfacesKey))
-        {
-            var keyPath = $@"{InterfacesKey}\{guid}";
-            var stat = Split(registry.ReadValue(keyPath, "NameServer").Value?.Text);
-            var dhcp = Split(registry.ReadValue(keyPath, "DhcpNameServer").Value?.Text);
-
-            if (stat.Count > 0 || dhcp.Count > 0)
-            {
-                interfaces.Add(new DnsInterface(guid, stat, dhcp));
-            }
-        }
-
-        return interfaces;
-    }
-
-    private static IReadOnlyList<string> Split(string? raw) =>
-        string.IsNullOrWhiteSpace(raw)
-            ? []
-            : raw.Split([' ', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    public IReadOnlyList<DnsInterface> Read() => inner.Read();
 }

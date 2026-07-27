@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// Holds the coverage configuration together with the workflow that asks for it.
+/// Holds the coverage configurations together with the workflow that asks for them.
 ///
 /// <para>
 /// VSTest pairs a run-settings block to a collector by <c>friendlyName</c>, and a mismatch
@@ -14,32 +14,44 @@ namespace Rempart.Tests.Unit;
 /// </para>
 ///
 /// <para>
+/// There are two configurations since DET-COUVERTURE was narrowed to its real subject: the
+/// Linux job measures <c>Rempart.Core</c>, the Windows job measures <c>Rempart.Windows</c>,
+/// which the Linux job cannot even compile. Two files, so two chances to drift, so the
+/// guards below read both rather than the first one.
+/// </para>
+///
+/// <para>
 /// Reading repository files from a test is the same technique as the replay wiring guard:
-/// the invariant spans two files that no compiler checks against each other.
-/// <see cref="Path"/> is legitimate here — these are real paths on the host running the
-/// test, not Windows paths captured on one machine and replayed on another.
+/// the invariant spans files that no compiler checks against each other.
 /// </para>
 /// </summary>
 public sealed class CoverageSettingsTests
 {
+    private const string Ci = ".github/workflows/ci.yml";
+    private const string CoreSettings = "tests/coverage.runsettings";
+    private const string WindowsSettings = "tests/coverage.windows.runsettings";
+
     [Fact]
     public void Coverage_settings_name_the_collector_the_workflow_asks_for()
     {
-        var declared = Regex.Match(Read("tests/coverage.runsettings"), "friendlyName=\"([^\"]+)\"");
-
-        Assert.True(declared.Success,
-            "tests/coverage.runsettings ne déclare plus de friendlyName : la configuration "
-            + "de couverture n'est appariée à aucun collecteur.");
-
-        Assert.Contains("--collect:\"XPlat Code Coverage\"", Read(".github/workflows/ci.yml"),
+        Assert.Contains("--collect:\"XPlat Code Coverage\"", RepositoryFiles.Read(Ci),
             StringComparison.Ordinal);
 
-        Assert.True(
-            string.Equals(declared.Groups[1].Value, "XPlat Code Coverage",
-                StringComparison.OrdinalIgnoreCase),
-            $"Le collecteur déclaré dans tests/coverage.runsettings (« {declared.Groups[1].Value} ») "
-            + "ne correspond plus à celui que ci.yml collecte : la configuration est ignorée "
-            + "en silence et la couverture est mesurée avec les valeurs par défaut.");
+        foreach (var settings in Settings)
+        {
+            var declared = Regex.Match(RepositoryFiles.Read(settings), "friendlyName=\"([^\"]+)\"");
+
+            Assert.True(declared.Success,
+                $"{settings} ne déclare plus de friendlyName : la configuration de couverture "
+                + "n'est appariée à aucun collecteur.");
+
+            Assert.True(
+                string.Equals(declared.Groups[1].Value, "XPlat Code Coverage",
+                    StringComparison.OrdinalIgnoreCase),
+                $"Le collecteur déclaré dans {settings} (« {declared.Groups[1].Value} ») ne "
+                + "correspond plus à celui que ci.yml collecte : la configuration est ignorée "
+                + "en silence et la couverture est mesurée avec les valeurs par défaut.");
+        }
     }
 
     /// <summary>
@@ -49,36 +61,144 @@ public sealed class CoverageSettingsTests
     [Fact]
     public void Coverage_settings_measure_Rempart_Core_only()
     {
-        var includes = Regex.Matches(Read("tests/coverage.runsettings"), "<Include>([^<]+)</Include>");
+        var includes = Regex.Matches(RepositoryFiles.Read(CoreSettings), "<Include>([^<]+)</Include>");
 
         Assert.Single(includes);
         Assert.Equal("[Rempart.Core]*", includes[0].Groups[1].Value);
     }
 
+    /// <summary>
+    /// An <c>Include</c> naming an assembly that does not exist matches nothing, and coverlet
+    /// says nothing about it: the report comes back with zero packages and a percentage of
+    /// "n/a" that reads like a tooling hiccup. Confronted here with the projects that exist
+    /// rather than with a second list of names.
+    /// </summary>
     [Fact]
-    public void The_test_job_passes_the_coverage_settings()
+    public void Every_measured_assembly_is_a_project_of_this_repository()
     {
-        Assert.Contains("--settings tests/coverage.runsettings", Read(".github/workflows/ci.yml"),
-            StringComparison.Ordinal);
+        var measured = MeasuredAssemblies().ToList();
 
-        Assert.Contains("coverage-summary.ps1", Read(".github/workflows/ci.yml"),
+        Assert.NotEmpty(measured);
+
+        foreach (var (settings, assembly) in measured)
+        {
+            var project = RepositoryFiles.Resolve($"src/{assembly}/{assembly}.csproj");
+
+            Assert.True(File.Exists(project),
+                $"{settings} mesure « {assembly} », qui n'est pas un projet de ce dépôt. Un "
+                + "filtre qui ne correspond à rien ne fait pas échouer la collecte : il rend "
+                + "un rapport vide, indiscernable d'un rapport où rien n'est couvert.");
+        }
+    }
+
+    /// <summary>
+    /// The two jobs must measure disjoint assemblies. Let them overlap and the repository
+    /// publishes two percentages for the same code, measured by two suites on two operating
+    /// systems, that a reader will inevitably compare — the Windows suite exercises
+    /// <c>Rempart.Core</c> too, and counting it here would print a much lower Core figure
+    /// beside the real one.
+    /// </summary>
+    [Fact]
+    public void The_two_jobs_do_not_measure_the_same_assembly_twice()
+    {
+        var byAssembly = MeasuredAssemblies()
+            .GroupBy(measured => measured.Assembly, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .ToList();
+
+        Assert.True(byAssembly.Count == 0,
+            "Deux configurations de couverture mesurent la même assembly : "
+            + string.Join(" ; ", byAssembly.Select(group =>
+                $"{group.Key} dans {string.Join(" et ", group.Select(measured => measured.Settings))}"))
+            + ". Les deux chiffres publiés répondraient alors à la même question avec deux "
+            + "réponses différentes.");
+    }
+
+    /// <summary>
+    /// Both directions of the same wiring. A configuration file nobody reads is a file that
+    /// documents a measurement which is not taken; a job pointing at a file that is not there
+    /// silently loses its filter, since VSTest treats a missing settings path as no settings
+    /// at all.
+    /// </summary>
+    [Fact]
+    public void Every_coverage_configuration_is_read_by_a_job_and_every_job_reads_one_that_exists()
+    {
+        var workflow = RepositoryFiles.Read(Ci);
+
+        var onDisk = Directory
+            .EnumerateFiles(RepositoryFiles.Resolve("tests"), "*.runsettings",
+                SearchOption.TopDirectoryOnly)
+            .Select(path => "tests/" + Path.GetFileName(path))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.NotEmpty(onDisk);
+
+        foreach (var settings in onDisk)
+        {
+            Assert.True(workflow.Contains($"--settings {settings}", StringComparison.Ordinal),
+                $"{settings} existe mais aucun job de la CI ne le passe à dotnet test : il "
+                + "décrit une mesure que personne ne prend.");
+        }
+
+        foreach (var referenced in Regex
+            .Matches(workflow, @"--settings\s+(\S+)")
+            .Select(match => match.Groups[1].Value))
+        {
+            Assert.True(onDisk.Contains(referenced, StringComparer.Ordinal),
+                $"Un job de la CI passe --settings {referenced}, qui n'existe pas. VSTest ne "
+                + "s'en plaint pas : il collecte avec les valeurs par défaut, sans filtre, et "
+                + "le pourcentage publié n'est plus celui qu'on croit lire.");
+        }
+    }
+
+    /// <summary>
+    /// The measurement is worth nothing if it is not published. Each job that collects must
+    /// also hand its results to the summary script — the same script, with the assembly it
+    /// measured, because a second summariser is the divergence DET-SCRIPTS describes.
+    /// </summary>
+    [Fact]
+    public void Each_job_publishes_the_coverage_it_collects()
+    {
+        var workflow = RepositoryFiles.Read(Ci);
+
+        Assert.Contains("--settings tests/coverage.runsettings", workflow, StringComparison.Ordinal);
+        Assert.Contains("--settings tests/coverage.windows.runsettings", workflow, StringComparison.Ordinal);
+
+        var summaries = Regex.Matches(workflow, @"coverage-summary\.ps1").Count;
+
+        Assert.True(summaries == 2,
+            $"{summaries} appel(s) à coverage-summary.ps1 dans ci.yml, deux attendus : la "
+            + "couverture Linux et la couverture Windows. Une collecte sans résumé produit un "
+            + "artefact que personne n'ouvre.");
+
+        Assert.Contains("-Package Rempart.Windows", workflow, StringComparison.Ordinal);
+
+        // Reading the script's own parameter list rather than trusting the call site: the
+        // day -Package is renamed, the workflow keeps passing a switch nothing reads and
+        // publishes the Windows report under the Core heading.
+        Assert.Contains("$Package", RepositoryFiles.Read("scripts/coverage-summary.ps1"),
             StringComparison.Ordinal);
     }
 
     /// <summary>
     /// Coverage is an indicator, not a gate — stated in docs/DEBT.md under DET-COUVERTURE
     /// and enforced here, so that a threshold cannot be added without also removing the
-    /// paragraph that argues against one.
+    /// paragraph that argues against one. Widening the perimeter to the Windows layer does
+    /// not soften that: what changed is what is seen, not what is enforced.
     /// </summary>
     [Fact]
     public void The_coverage_step_carries_no_threshold()
     {
-        // The element, not the word: the file's own comment argues against a threshold,
-        // and matching prose would make this test fail on the sentence that explains it.
-        Assert.DoesNotContain("<Threshold", Read("tests/coverage.runsettings"),
-            StringComparison.OrdinalIgnoreCase);
+        foreach (var settings in Settings)
+        {
+            // The element, not the word: the files' own comments argue against a threshold,
+            // and matching prose would make this test fail on the sentence that explains it.
+            Assert.DoesNotContain("<Threshold", RepositoryFiles.Read(settings),
+                StringComparison.OrdinalIgnoreCase);
+        }
 
-        Assert.Contains("DET-COUVERTURE", Read("docs/DEBT.md"), StringComparison.Ordinal);
+        Assert.Contains("DET-COUVERTURE", RepositoryFiles.Read("docs/DEBT.md"), StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -103,7 +223,7 @@ public sealed class CoverageSettingsTests
     [Fact]
     public void Every_test_name_a_CI_job_filters_on_exists()
     {
-        var filtered = Regex.Matches(Read(".github/workflows/ci.yml"),
+        var filtered = Regex.Matches(RepositoryFiles.Read(Ci),
                 """FullyQualifiedName~([A-Za-z_][A-Za-z0-9_]*)""")
             .Select(m => m.Groups[1].Value)
             .ToList();
@@ -111,7 +231,7 @@ public sealed class CoverageSettingsTests
         Assert.NotEmpty(filtered);
 
         var declared = Directory
-            .EnumerateFiles(Path.Combine(RepositoryRoot, "tests"), "*.cs",
+            .EnumerateFiles(RepositoryFiles.Resolve("tests"), "*.cs",
                 SearchOption.AllDirectories)
             .Where(path => !path.Split(Path.DirectorySeparatorChar)
                 .Any(segment => segment is "bin" or "obj"))
@@ -128,24 +248,14 @@ public sealed class CoverageSettingsTests
             + "donc il est vert en permanence sans rien vérifier.");
     }
 
-    private static string Read(string relativePath) =>
-        File.ReadAllText(Path.Combine(RepositoryRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+    private static string[] Settings { get; } = [CoreSettings, WindowsSettings];
 
-    private static string RepositoryRoot { get; } = Locate();
-
-    private static string Locate()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (Directory.Exists(Path.Combine(directory.FullName, ".github")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Racine du dépôt introuvable.");
-    }
+    /// <summary>
+    /// Every assembly an <c>Include</c> filter names, with the file that named it. The
+    /// bracket form is coverlet's: <c>[Assembly]TypeGlob</c>.
+    /// </summary>
+    private static IEnumerable<(string Settings, string Assembly)> MeasuredAssemblies() =>
+        Settings.SelectMany(settings => Regex
+            .Matches(RepositoryFiles.Read(settings), @"<Include>\[([^\]]+)\]")
+            .Select(match => (Settings: settings, Assembly: match.Groups[1].Value)));
 }

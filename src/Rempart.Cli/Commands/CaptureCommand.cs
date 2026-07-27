@@ -21,30 +21,12 @@ internal static class CaptureCommand
         var raw = HasFlag(args, "--raw");
         var snapshot = new MachineSnapshot { CapturedAtUtc = UtcNow() };
 
-        var providers = new ProviderSet(
-            new RecordingRegistryProvider(new LiveRegistryProvider(), snapshot),
-            new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot),
-            services: new RecordingServiceStateProvider(new LiveServiceStateProvider(), snapshot),
-            policy: new RecordingSecurityPolicyProvider(new LiveSecurityPolicyProvider(), snapshot),
-            wmi: new RecordingWmiProvider(new Rempart.Windows.Wmi.LiveWmiProvider(), snapshot),
-            signatures: new RecordingSignatureProvider(new LiveSignatureProvider(), snapshot),
-            files: new RecordingFileSystemProvider(new LiveFileSystemProvider(), snapshot),
-            scheduledTasks: new RecordingScheduledTaskProvider(
-                new Rempart.Windows.Tasks.LiveScheduledTaskProvider(), snapshot),
-            drivers: new RecordingDriverProvider(new LiveDriverProvider(), snapshot),
-            processes: new RecordingProcessProvider(new LiveProcessProvider(), snapshot),
-            listeningPorts: new RecordingListeningPortProvider(new LiveListeningPortProvider(), snapshot),
-            firewall: new RecordingFirewallProvider(new LiveFirewallProvider(), snapshot),
-            dns: new RecordingDnsProvider(new LiveDnsProvider(), snapshot),
-            hostsFile: new RecordingHostsFileProvider(new LiveHostsFileProvider(), snapshot),
-            proxy: new RecordingProxyProvider(new LiveProxyProvider(), snapshot),
-            wifi: new RecordingWifiProfileProvider(new LiveWifiProfileProvider(), snapshot),
-            softwareInventory: new RecordingSoftwareInventoryProvider(
-                new LiveSoftwareInventoryProvider(), snapshot),
-            browserExtensions: new RecordingBrowserExtensionProvider(
-                new LiveBrowserExtensionProvider(), snapshot),
-            componentStore: new RecordingComponentStoreProvider(
-                new LiveComponentStoreProvider(), snapshot));
+        // The live set, wrapped one provider at a time so the scan below writes down
+        // everything it reads. Both halves are single lists now — LiveProviders.All in the
+        // Windows layer, SnapshotProviders.Recording in Core — and both carry a guard, which
+        // this file could not: Rempart.Cli is not compiled by the Linux job, so a twenty-
+        // line wiring written here was watched by nobody.
+        var providers = SnapshotProviders.Recording(LiveProviders.All(), snapshot);
 
         // The full engine, rules included: a fixture must be able to replay everything a
         // scan does, otherwise it would only test half the path. The update store is

@@ -193,114 +193,100 @@ public sealed class RecordingScheduledTaskProvider(
     public ScheduledTaskRead Enumerate() => snapshot.ScheduledTasks ??= inner.Enumerate();
 }
 
+// The four status-carrying reads below share their whole capture path — the three-way
+// reading of a snapshot, and the "already recorded means already read" of the recording
+// side. Both live in StatusChannel, written once. What stays here, one pair at a time, is
+// what genuinely differs: the three snapshot fields the read is stored in (they cannot be
+// named generically — they are separate properties because the JSON shape says so), and the
+// answer to "this capture never collected this surface", which is a judgement rather than a
+// shape. Zero driver cannot be true of a running machine; zero browser extension is
+// ordinary. Phase 2 settled that asymmetry and it is the one thing a generalisation here
+// must not flatten.
+
 public sealed class RecordingDriverProvider(
     IDriverProvider inner, MachineSnapshot snapshot) : IDriverProvider
 {
-    public DriverRead Enumerate()
-    {
-        if (snapshot.DriversStatus is { } recorded)
-        {
-            return new DriverRead(recorded, snapshot.Drivers ?? [], snapshot.DriversDiagnostic);
-        }
-
-        var read = inner.Enumerate();
-
+    public DriverRead Enumerate() => StatusChannel.Record(
+        snapshot.DriversStatus, snapshot.Drivers, snapshot.DriversDiagnostic,
+        inner.Enumerate,
         // The status is recorded alongside the list: a capture taken while WMI was mute
         // must replay as "could not look", not as a machine without drivers.
-        snapshot.Drivers = [.. read.Drivers];
-        snapshot.DriversStatus = read.Status;
-        snapshot.DriversDiagnostic = read.Diagnostic;
-
-        return read;
-    }
+        read =>
+        {
+            snapshot.Drivers = [.. read.Drivers];
+            snapshot.DriversStatus = read.Status;
+            snapshot.DriversDiagnostic = read.Diagnostic;
+        });
 }
 
 public sealed class SnapshotDriverProvider(MachineSnapshot snapshot) : IDriverProvider
 {
-    public DriverRead Enumerate() => snapshot switch
-    {
-        { DriversStatus: { } status } =>
-            new DriverRead(status, snapshot.Drivers ?? [], snapshot.DriversDiagnostic),
-
-        // A capture predating the status field recorded a list and nothing else: read it
-        // as the success it was taken to be, rather than inventing a failure.
-        { Drivers: { } drivers } => DriverRead.Found(drivers),
-
+    public DriverRead Enumerate() => StatusChannel.Replay(
+        snapshot.DriversStatus, snapshot.Drivers, snapshot.DriversDiagnostic,
         // Never an empty list: a fixture predating driver collection produces a "not
         // enumerated" finding, exactly as the scheduled tasks already do.
-        _ => DriverRead.Failed("Pilotes chargés absents de l'instantané."),
-    };
+        static () => DriverRead.Failed("Pilotes chargés absents de l'instantané."));
 }
 
 public sealed class RecordingProcessProvider(
     IProcessProvider inner, MachineSnapshot snapshot) : IProcessProvider
 {
-    public ProcessRead Enumerate()
-    {
-        if (snapshot.ProcessesStatus is { } recorded)
+    public ProcessRead Enumerate() => StatusChannel.Record(
+        snapshot.ProcessesStatus, snapshot.Processes, snapshot.ProcessesDiagnostic,
+        inner.Enumerate,
+        read =>
         {
-            return new ProcessRead(recorded, snapshot.Processes ?? [], snapshot.ProcessesDiagnostic);
-        }
-
-        var read = inner.Enumerate();
-
-        snapshot.Processes = [.. read.Processes];
-        snapshot.ProcessesStatus = read.Status;
-        snapshot.ProcessesDiagnostic = read.Diagnostic;
-
-        return read;
-    }
+            snapshot.Processes = [.. read.Processes];
+            snapshot.ProcessesStatus = read.Status;
+            snapshot.ProcessesDiagnostic = read.Diagnostic;
+        });
 }
 
 public sealed class SnapshotProcessProvider(MachineSnapshot snapshot) : IProcessProvider
 {
-    public ProcessRead Enumerate() => snapshot switch
-    {
-        { ProcessesStatus: { } status } =>
-            new ProcessRead(status, snapshot.Processes ?? [], snapshot.ProcessesDiagnostic),
-
-        { Processes: { } processes } => ProcessRead.Found(processes),
-
-        _ => ProcessRead.Failed("Processus courants absents de l'instantané."),
-    };
+    public ProcessRead Enumerate() => StatusChannel.Replay(
+        snapshot.ProcessesStatus, snapshot.Processes, snapshot.ProcessesDiagnostic,
+        static () => ProcessRead.Failed("Processus courants absents de l'instantané."));
 }
 
 public sealed class RecordingListeningPortProvider(
     IListeningPortProvider inner, MachineSnapshot snapshot) : IListeningPortProvider
 {
-    public ListeningPortRead Enumerate()
-    {
-        if (snapshot.ListeningPortsStatus is { } recorded)
+    public ListeningPortRead Enumerate() => StatusChannel.Record(
+        snapshot.ListeningPortsStatus, snapshot.ListeningPorts, snapshot.ListeningPortsDiagnostic,
+        inner.Enumerate,
+        read =>
         {
-            return new ListeningPortRead(
-                recorded, snapshot.ListeningPorts ?? [], snapshot.ListeningPortsDiagnostic);
-        }
-
-        var read = inner.Enumerate();
-
-        snapshot.ListeningPorts = [.. read.Ports];
-        snapshot.ListeningPortsStatus = read.Status;
-        snapshot.ListeningPortsDiagnostic = read.Diagnostic;
-
-        return read;
-    }
+            snapshot.ListeningPorts = [.. read.Ports];
+            snapshot.ListeningPortsStatus = read.Status;
+            snapshot.ListeningPortsDiagnostic = read.Diagnostic;
+        });
 }
 
 public sealed class SnapshotListeningPortProvider(MachineSnapshot snapshot) : IListeningPortProvider
 {
-    public ListeningPortRead Enumerate() => snapshot switch
-    {
-        { ListeningPortsStatus: { } status } => new ListeningPortRead(
-            status, snapshot.ListeningPorts ?? [], snapshot.ListeningPortsDiagnostic),
-
-        // A capture predating the status field recorded a list and nothing else: read it
-        // as the success it was taken to be, rather than inventing a failure.
-        { ListeningPorts: { } ports } => ListeningPortRead.Found(ports),
-
+    public ListeningPortRead Enumerate() => StatusChannel.Replay(
+        snapshot.ListeningPortsStatus, snapshot.ListeningPorts, snapshot.ListeningPortsDiagnostic,
         // Never an empty list: this used to answer [] and the collector concluded « aucun
         // port en écoute » over a capture that had simply never looked (DET-PORTS-MUET).
-        _ => ListeningPortRead.Failed("Points d'écoute absents de l'instantané."),
-    };
+        static () => ListeningPortRead.Failed("Points d'écoute absents de l'instantané."));
+}
+
+public sealed class RecordingDynamicPortRangeProvider(
+    IDynamicPortRangeProvider inner, MachineSnapshot snapshot) : IDynamicPortRangeProvider
+{
+    public DynamicPortRangeRead Read() => snapshot.DynamicPortRange ??= inner.Read();
+}
+
+public sealed class SnapshotDynamicPortRangeProvider(MachineSnapshot snapshot)
+    : IDynamicPortRangeProvider
+{
+    // Absent from an earlier capture: the range was never asked for. Said as a failed read
+    // rather than as the Windows default, so the finding falls back to that default while
+    // naming it as an assumption — the whole of DET-PLAGE-DYNAMIQUE in one branch.
+    public DynamicPortRangeRead Read() => snapshot.DynamicPortRange
+        ?? DynamicPortRangeRead.Failed(
+            "Cet instantané ne relève pas la plage de ports dynamique de la machine.");
 }
 
 public sealed class RecordingFirewallProvider(
@@ -379,34 +365,29 @@ public sealed class SnapshotWifiProfileProvider(MachineSnapshot snapshot) : IWif
 public sealed class RecordingBrowserExtensionProvider(
     IBrowserExtensionProvider inner, MachineSnapshot snapshot) : IBrowserExtensionProvider
 {
-    public BrowserExtensionRead Read()
-    {
-        if (snapshot.BrowserExtensionsStatus is { } recorded)
+    public BrowserExtensionRead Read() => StatusChannel.Record(
+        snapshot.BrowserExtensionsStatus, snapshot.BrowserExtensions,
+        snapshot.BrowserExtensionsDiagnostic,
+        inner.Read,
+        read =>
         {
-            return new BrowserExtensionRead(
-                recorded, snapshot.BrowserExtensions ?? [], snapshot.BrowserExtensionsDiagnostic);
-        }
-
-        var read = inner.Read();
-
-        snapshot.BrowserExtensions = [.. read.Extensions];
-        snapshot.BrowserExtensionsStatus = read.Status;
-        snapshot.BrowserExtensionsDiagnostic = read.Diagnostic;
-
-        return read;
-    }
+            snapshot.BrowserExtensions = [.. read.Extensions];
+            snapshot.BrowserExtensionsStatus = read.Status;
+            snapshot.BrowserExtensionsDiagnostic = read.Diagnostic;
+        });
 }
 
 public sealed class SnapshotBrowserExtensionProvider(MachineSnapshot snapshot)
     : IBrowserExtensionProvider
 {
-    // Absent from an earlier capture: an empty, successful read. Unlike drivers, no
-    // extension is a plausible state, so a fixture predating this collection replays as
-    // "nothing to report" rather than as a failure it never had.
-    public BrowserExtensionRead Read() => snapshot.BrowserExtensionsStatus is { } status
-        ? new BrowserExtensionRead(
-            status, snapshot.BrowserExtensions ?? [], snapshot.BrowserExtensionsDiagnostic)
-        : BrowserExtensionRead.Found(snapshot.BrowserExtensions ?? []);
+    public BrowserExtensionRead Read() => StatusChannel.Replay(
+        snapshot.BrowserExtensionsStatus, snapshot.BrowserExtensions,
+        snapshot.BrowserExtensionsDiagnostic,
+        // Absent from an earlier capture: an empty, successful read. Unlike drivers, no
+        // extension is a plausible state, so a fixture predating this collection replays as
+        // "nothing to report" rather than as a failure it never had. This is the line the
+        // shared shape must not standardise away.
+        static () => BrowserExtensionRead.Found([]));
 }
 
 public sealed class RecordingComponentStoreProvider(

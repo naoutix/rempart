@@ -1,0 +1,38 @@
+{
+  // Locks which SDK builds this repository. Without this file, whichever SDK a machine
+  // happens to carry compiles the binary a user is asked to run as Administrator, and
+  // "it builds on my machine" stops being evidence of anything.
+  //
+  // rollForward is the whole decision, and both extremes are wrong here:
+  //
+  //   "disable" demands 10.0.302 exactly; "patch" is looser than it sounds -- it accepts a
+  //   later patch of this feature band (10.0.3xx) but nothing beyond it. Both fail the same
+  //   day for the same reason: the GitHub runner images refresh their preinstalled SDK every
+  //   few weeks, setup-dotnet is asked for the '10.0.x' band, and the first time that band
+  //   resolves to 10.0.4xx every job stops with "compatible SDK not found" -- on a commit
+  //   that changed nothing. A lock that has to be edited to keep a correct build green is
+  //   one that gets deleted after the second time.
+  //
+  //   "latestMajor" would accept a .NET 11 SDK, which is to say it would lock nothing: it
+  //   is precisely a major this code has never been compiled with that must not silently
+  //   produce the deliverable.
+  //
+  // "latestFeature" is the range in between: a floor at 10.0.302 -- the SDK this repository
+  // is developed and released with -- and a ceiling at the end of 10.0, since it rolls
+  // forward across feature bands but never across major.minor.
+  //
+  // That range is exactly the '10.0.x' band .github/workflows/{ci,release}.yml ask
+  // setup-dotnet for. The difference is who enforces it: the band is a request made to one
+  // installer on one runner, this file is checked by MSBuild on every machine, including a
+  // workstation and a fork's self-hosted runner that never read the workflow.
+  // BuildChainParityTests holds the two spellings together, because they are two
+  // hand-written strings in two files that no tool relates to one another.
+  //
+  // Comments are legal here: the SDK resolver and setup-dotnet (which parses with JSON5)
+  // both accept them. Verified, not assumed -- "dotnet --version" resolves 10.0.302 with
+  // this header in place.
+  "sdk": {
+    "version": "10.0.302",
+    "rollForward": "latestFeature"
+  }
+}
