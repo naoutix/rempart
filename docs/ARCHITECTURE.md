@@ -1,6 +1,14 @@
 # Architecture — Rempart
 
-Decisions and their rationale: [ADR-001](adr/ADR-001-stack-et-perimetre.md) (French).
+Decisions and their rationale, in French:
+[ADR-001](adr/ADR-001-stack-et-perimetre.md) (stack and scope),
+[ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md) (signed data updates),
+[ADR-003](adr/ADR-003-pare-feu-par-registre.md) (reading the firewall through the registry
+rather than through COM),
+[ADR-004](adr/ADR-004-etat-systeme-en-champ-dedie.md) (bulky system state in a dedicated
+snapshot field),
+[ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) (splitting the CLI layer and
+generalising the providers).
 
 ## Overview
 
@@ -89,6 +97,22 @@ than it meant (DET-FIXTURE-MATERIEL). It is a real capture whose *form* is kept 
 | **Scrubbed** | The identity. Hostname, serial numbers, registered owner, account names in profile paths, SSIDs, proxy hosts, browser-profile salts — and, since DET-FIXTURE-MATERIEL, the hardware identity (mainboard model, BIOS version and date) and the path and name of every scheduled task outside `\Microsoft\`. `Anonymiser.Apply` now runs over the output of `synthesise`, so the `anonymised` flag is produced rather than asserted. |
 | **Inherited** | The shape, deliberately. A couple of hundred scheduled tasks, several hundred verified signatures, the paths of the executables they point at. Those are what the audit judges — the report exists to name the binary that runs — and a fixture with three tidy entries would prove that a collector reports, not that it picks the right line out of a crowd. A reader can therefore still tell which publishers were installed on the source machine; nobody can tell which machine it was. |
 
+**The four versioned fixtures**, and what each is the only one to prove. All four are
+replayed on every commit, and each freezes a JSON report and a console rendering.
+
+| Fixture | Posture | What it alone covers |
+|---|---|---|
+| `default-win11` | Windows defaults, elevated | 52/100, 49 controls failing: the report a machine nobody hardened produces. Exits `5` — `WIN-ENC-001` is unverifiable even from an elevated console |
+| `hardened-win11` | Hardened, elevated | 100/100, no `Unknown`: the only fixture that exits `0`, so the success path is exercised too |
+| `restricted-access` | Hardened, **not** elevated, LSA denied | 100/100 with four controls `Unknown`. Scoring full marks and having seen less than the machine, at once — which is the whole reason exit code `5` exists |
+| `compromised-win11` | Windows defaults, elevated, **intrusion planted** | 7 `Suspicious` findings and 3 `Notable`. Until it existed no reference had ever carried a `Suspicious` finding: the console, JSON and diff renderings all froze "nothing found" — the reassuring shape a broken scan also has |
+
+`rempart synthesise --compromised` plants the intrusion, and `--profile` picks the posture
+independently: a hardened machine can be compromised too, and that combination stays
+available. The pair `default-win11 → compromised-win11` is the comparison the tool exists
+for — a machine re-scanned after an intrusion — and it is frozen as a golden diff alongside
+the three others.
+
 ## Update channel
 
 Data ages; the binary does not ([ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md),
@@ -133,46 +157,145 @@ local file or HTTP transport. Same abstraction as the providers, applied to down
 
 ```
 rempart/
+├── global.json                 # the SDK version, pinned
+├── Directory.Build.props       # settings shared by every project
+├── Directory.Packages.props    # every package version, declared centrally
 ├── src/
-│   ├── Rempart.Cli/            # CLI: scan, report, diff, index, capture, explain,
-│   │                           #   synthesise, keygen, sign, seal, fetch-loldrivers,
-│   │                           #   update, diagnose-*, version
-│   ├── Rempart.Core/
+│   ├── Rempart.Cli/            # net10.0-windows — the host, and only the host
+│   │   ├── Program.cs          # 29 lines: console encoding, dispatch, exception → exit code
+│   │   ├── CommandTable.cs     # command word → command class, written out by hand
+│   │   ├── CliHost.cs          # what two or more commands share, and only the host can answer
+│   │   └── Commands/           # one class per command: scan, report, diff, index, capture,
+│   │                           #   explain, synthesise, keygen, sign, seal, update,
+│   │                           #   fetch-loldrivers, version, help, and
+│   │                           #   diagnose-{wmi,tasks,drivers,processes,store}
+│   ├── Rempart.Core/           # net10.0 — no Windows, so the Linux job compiles and tests it
+│   │   ├── Cli/                # the CLI contract that must be testable: ExitCodes,
+│   │   │                       #   CommandLine (parsing), CommandSurface (command → options)
 │   │   ├── Collectors/         # ICollector: describes the machine via known fields
 │   │   ├── Findings/           # IFindingCollector: enumerates persistence (autoruns,
 │   │   │                       #   tasks, drivers, WMI, processes, LSA, COM…) and network
 │   │   │                       #   (ports, DNS, hosts) + SignatureLadder
 │   │   ├── Engine/             # orchestration, field semantics, scoring
 │   │   ├── Diff/               # comparing two scans, pure
+│   │   ├── Browsers/           # Chromium and Firefox extension manifests, parsed
+│   │   ├── Dns/                # DoH/DoT probe and wire format — opt-in, --probe-dns
+│   │   ├── Pac/                # PAC retrieval and routing — opt-in, --fetch-pac
+│   │   ├── Reputation/         # VirusTotal enrichment — opt-in, --virustotal-key
+│   │   ├── Software/           # Appx package names
 │   │   ├── Json/               # source-generated serialization (AOT)
 │   │   ├── Packaging/          # the USB stick's signed integrity seal
-│   │   ├── Reports/            # pure ScanResult → HTML · Markdown · JSON · console
-│   │   │                       #   renderers. The console one lives here and not in the
+│   │   ├── Reports/            # pure ScanResult → HTML · Markdown · JSON · console · diff ·
+│   │   │                       #   fleet index. The console one lives here and not in the
 │   │   │                       #   CLI on purpose: Rempart.Cli targets net10.0-windows,
 │   │   │                       #   so its golden test would never run on the Linux job
 │   │   ├── Providers/          # IRegistryProvider, IWmiProvider, IDriverProvider,
 │   │   │                       #   IFirewallProvider, IDnsProvider, IListeningPortProvider…
+│   │   │                       #   + StatusChannel, shared by the five reads that carry one
 │   │   ├── Rules/              # YAML loading, evaluation, scoring, blocklist
-│   │   ├── Snapshots/          # capture, replay, anonymization, synthetic fixtures
-│   │   └── Updates/            # signed channel (ADR-002): manifest, verification,
-│   │                           #   signature, store, LOLDrivers, HTTP transport
+│   │   ├── Snapshots/          # capture, replay, anonymization, synthetic fixtures,
+│   │   │                       #   ProviderSets (the recording and replaying wirings),
+│   │   │                       #   CompromiseMarkers (the planted intrusion)
+│   │   ├── Updates/            # signed channel (ADR-002): manifest, verification,
+│   │   │                       #   signature, store, LOLDrivers, HTTP transport
+│   │   └── data/               # the embedded bloatware baseline
 │   └── Rempart.Windows/        # P/Invoke, registry, WMI, tasks — Live implementations
 ├── rules/security/             # the shipped checks, embedded as resources
 ├── tests/
-│   ├── Rempart.Tests.Unit/     # engine, rules, channel — no Windows required
+│   ├── Rempart.Tests.Unit/     # engine, rules, channel, repository guards — no Windows
 │   ├── Rempart.Tests.Windows/  # real registry, WMI, tasks, drivers — Windows only
+│   ├── coverage.runsettings            # what the Linux job measures: Rempart.Core
+│   ├── coverage.windows.runsettings    # what the Windows job measures: Rempart.Windows
 │   └── fixtures/
 │       ├── synthetic/          # versioned — produced by "rempart synthesise"
 │       └── local/              # out of the repo — captures of real machines
-├── scripts/                    # verify.ps1, regenerate-fixtures.ps1
-└── .github/workflows/
+├── scripts/                    # verify.ps1, regenerate-fixtures.ps1, coverage-summary.ps1
+└── .github/workflows/          # ci.yml, release.yml
 ```
+
+## The executable is a host, and nothing more
+
+[ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) (French). `Program.cs` is **29 non-empty
+lines**: it sets the console to UTF-8, hands the first word to the dispatch table, and turns
+an escaped exception into an exit code. It used to be that plus sixteen commands in the same
+file, growing by half a milestone at a time.
+
+```mermaid
+flowchart TB
+    ARGS["args"] --> PROG["Program.cs — 29 lines<br/>UTF-8 · dispatch · exception → exit code"]
+    PROG --> TABLE["CommandTable<br/>command word → command class"]
+    TABLE --> CMDS["Commands/<br/>19 classes, one per command"]
+    CMDS --> HOST["CliHost<br/>what two or more commands share:<br/>base directory, clock, console, hidden input"]
+    CMDS --> CORE["Rempart.Core"]
+
+    subgraph CONTRACT["Rempart.Core/Cli — the contract CI can test"]
+        CL["CommandLine<br/>the argument readers"]
+        CS["CommandSurface<br/>command → options"]
+        EC["ExitCodes<br/>mapping · wording · help block"]
+    end
+
+    CMDS --> CONTRACT
+    TABLE -. read by the guards .-> CONTRACT
+```
+
+**Why the contract sits in Core and not beside the commands.** `Rempart.Cli` targets
+`net10.0-windows`; the Linux job does not compile it. A table of commands and options
+declared there could carry no test that CI runs. So what must be tested — the argument
+grammar, the option surface, the exit-code contract — lives in `Rempart.Core/Cli/`, and what
+stays in the CLI is thin enough to read in one sitting.
+
+**Both tables are written out by hand, and that is the decision, not an omission.** A
+registry built from `Assembly.GetTypes` or from an attribute would not survive Native AOT
+(ADR-001), and a source generator would add a second build-time dependency to a tool whose
+supply chain is one of its arguments. What that costs is a table that can drift: a command
+class added without its line is simply unreachable, and nothing complains. So
+`CommandSurfaceTests` confronts the table with **the classes present on disk**, not with a
+second list written by the same hand in the same batch — the lesson of DET-REPLAY-CABLAGE,
+applied again.
+
+The rule for landing in `CliHost` rather than beside a command: at least two commands call
+it. A helper used by one command travels with that command, private, so that reading the
+command shows the whole of it.
+
+## Collectors
 
 Two collector families, deliberately distinct. `ICollector` describes fields known in
 advance (model, build, state of a service); `IFindingCollector` **enumerates** what is
 present — autorun programs, tasks, drivers, listening ports — and judges each element.
 The two never mix in the score: a 94 % configuration must not hide an unsigned kernel
 driver or a network-exposed port.
+
+### A read carries its own status
+
+Five reads have the same shape — a list, whether it could be obtained, and why not when it
+could not: loaded drivers, running processes, listening ports, browser extensions, directory
+listings. `Providers/StatusChannel.cs` holds that shape once, through
+`IStatusCarryingRead<TSelf, TItem>`.
+
+The reason is that **an empty list is the shape a failed read also has**. WMI on a degraded
+machine answers every query with zero rows; a refused folder enumerates as nothing. Before
+these reads carried a status, a scan that could not look at the driver table produced a
+report showing no drivers — which is what a clean kernel looks like, on the one surface
+where "nothing found" must never be produced by a failure to look. Five debts closed the
+same silence one collector at a time before the shape was written down once.
+
+The status is stored **beside** the list in a snapshot, never in place of it: `driversStatus`
+and `driversDiagnostic` next to `drivers`, and the same three fields for each of the other
+four. Turning `drivers` from a JSON array into an object would make every existing capture
+unreadable, the real-machine ones kept outside the repository included. Three loose fields is
+the price of that promise, and it is what forces replay to be a decision rather than a
+deserialisation. Three cases, and the middle one is the point:
+
+| What the capture holds | How it replays |
+|---|---|
+| A status | Exactly as it was taken, failure included — a capture made while WMI was mute must replay as « je n'ai pas pu regarder », never as a machine with nothing loaded |
+| A list and no status | A capture predating the field: read as the success it was taken to be, which is no worse than what that capture used to produce |
+| Neither | The surface was never collected. What that is worth is the caller's judgement, not a constant: zero driver cannot be true of a running machine, so it fails; zero browser extension is ordinary, so it succeeds |
+
+The generalisation uses `static abstract` on the interface rather than a factory delegate
+handed in at each call site: the call is resolved at compile time through the type
+parameter, so it survives Native AOT (ADR-001) with no reflection, no `Activator`, and no
+type resolved at run time.
 
 Directories planned by the roadmap but not created yet — hardware add-on, remediation
 profiles, image layer — are described in [ROADMAP.md](ROADMAP.md) rather than announced
@@ -198,9 +321,21 @@ dropped. Two mechanisms, deliberately distinct:
 | `transitoire` | Windows removes it on its own — a consumed `RunOnce`, a task deleted once expired | its disappearance only; one appearing is news |
 | `éphémère` | its identity churns by design — a socket in the dynamic port range | both directions: the one that vanished and the one that appeared are the same fact |
 
-Both are set by the collector, which knows the mechanism, never inferred by the diff from
-a source path. Neither is applied to a finding that was judged anything other than
-benign: they silence noise, never a judgement.
+Both marks are set by the collector, which knows the mechanism, never inferred by the diff
+from a source path.
+
+They are not gated the same way, and the asymmetry is deliberate. `éphémère` is only ever
+set on a finding already judged benign — `ListeningPortsCollector` hands the finding back
+untouched otherwise — because a port that is suspicious for some other reason must not be
+excused by the range it happens to sit in. `transitoire` is set whatever the judgement: an
+unsigned binary launched by a task Windows deletes on expiry is exactly as suspicious,
+arguably more, and the mark does not lower its severity
+(`Being_transient_does_not_lower_the_severity`). What `transitoire` excuses is the
+*disappearance* of that finding from a later scan, never the finding itself. The entry
+really was consumed by Windows; reporting its absence as an improvement in posture would be
+the lie, and reporting it as news would be noise. So a suspicious `RunOnce` entry is printed
+at full severity by `scan`, and its later absence is filed under expected movement by
+`diff` — two different questions, two different answers.
 
 Two reports built from different catalogs are still compared — refusing would make the
 command useless the day after any update — with the gap stated and the rules present on
@@ -209,8 +344,22 @@ one side only listed as such.
 ## Reports
 
 Rendering is a pure function of the scan: `ScanResult → text`, with no filesystem, no
-clock, no Windows. `rempart report --from <rapport.json>` therefore runs anywhere, and
-both renderers are tested by property rather than by screenshot.
+clock, no Windows. `rempart report --from <rapport.json>` therefore runs anywhere, and so
+does everything below it.
+
+`Reports/` holds more than the three scan formats: the diff rendering (`rempart diff
+--report`, HTML and Markdown), the fleet aggregation page (`rempart index`), and the console
+output itself. The console renderer lives in Core rather than in the CLI on purpose —
+`Rempart.Cli` targets `net10.0-windows`, so a golden test placed beside it would never run
+on the Linux job.
+
+**Two testing regimes, chosen per renderer.** HTML and Markdown are tested by **property**:
+escaping holds for any machine-supplied string, the document references nothing outside
+itself, a domain gauge is as long as its score. A golden file over a whole page would break
+on every wording change and be re-blessed without being read. The console and diff
+renderings are frozen as **goldens** instead — one per fixture, one per diff pair — because
+they are short, they are what a user actually sees, and until they were frozen a change in
+what the tool says was invisible: CI checks an exit code, not a text.
 
 | Format | Reader | Content |
 |---|---|---|
@@ -239,6 +388,7 @@ update was refused", exactly the silence [ADR-002](adr/ADR-002-mise-a-jour-des-d
 E:\
 ├── rempart.exe                       # sealed
 ├── rules/                            # sealed — loaded without an option
+├── baseline.json                     # sealed — the reference posture "rempart diff" defaults to
 ├── rempart-data/                     # excluded: re-verified at every scan (D13)
 ├── reports/<machine>-<date>/         # excluded: written by every scan
 └── rempart-integrity.json            # the seal itself
@@ -247,6 +397,11 @@ E:\
 `rules/` and `rempart-data/` are found beside the binary with nothing to configure: the
 stick is plugged in and run. Extra rules are never picked up silently — the scan header
 names the folder, and the catalog fingerprint changes.
+
+`rempart diff <rapport.json>` given a single report compares it against `baseline.json`
+beside the binary. The reference posture therefore travels with the stick, like the rules and
+the update store, and a fleet comparison needs no path typed on site. Being sealed, it is
+also the one file of the three whose alteration the integrity check reports.
 
 `rempart seal` signs the listing with the publisher key of ADR-002 — the same trust
 anchor as the update channel. A bare list of hashes stored next to the files it describes
@@ -466,8 +621,8 @@ Remediation ships in a later milestone; its data format is already settled:
 |---|---|
 | v1 writes nothing | No write-capable provider exists before M9 |
 | Critical components untouchable | Hard-coded blocklist + property test over all profiles in CI |
-| No network leakage | External calls are opt-in per run; offline by default |
-| No silent failure | Every collector reports `insufficient_privileges` rather than omitting |
+| No network leakage | Offline by default. Every external call is opt-in and named: `--virustotal-key` (**or the `REMPART_VT_KEY` environment variable**, which is opt-in once rather than per run — worth knowing before setting it on a shared machine), `--fetch-pac`, `--probe-dns`, `update --url`, `fetch-loldrivers`. None of them fires on a replay: `scan --from` reads a past snapshot, not the current machine |
+| No silent failure | Two channels, deliberately. A collector that could not read reports `InsufficientPrivileges` rather than dropping its surface — and inside a collector, an individual read carries its own `ReadStatus` beside the list it returned, so a refused enumeration replays as « je n'ai pas pu regarder » and never as a machine with nothing on it |
 | Verifiable rollback *(planned, M9)* | JSON journal on the stick + VM test: apply → rollback → assert initial state |
 | Irreversible actions isolated *(planned, M9)* | `/ResetBase` and equivalents: never in a profile, individually confirmed |
 
@@ -475,16 +630,47 @@ Remediation ships in a later milestone; its data format is already settled:
 
 | Level | Scope | Runs | Speed |
 |---|---|---|---|
-| 1 — Unit | Rule engine, parsing, scoring, report | CI, local | ms |
-| 2 — Fixtures | Collectors on real snapshots, golden outputs | CI, local | ms |
-| 3 — Integration | Real Windows: does not crash, handles missing privileges | GH Actions + VM | s |
-| 4 — Remediation | apply → verify → rollback → assert back to initial | Hyper-V VM | min |
+| 1 — Unit | Rule engine, parsing, scoring, reports | CI, local | ms |
+| 2 — Fixtures | Collectors replayed on versioned snapshots; golden JSON, console and diff outputs | CI, local | ms |
+| 3 — Repository guards | Invariants spanning files no compiler reads together: the dispatch table against the classes on disk, the coverage filters against the workflow that asks for them, `verify.ps1` against both workflows | CI, local | ms |
+| 4 — Integration | Real Windows: `Rempart.Windows` against the live registry, WMI, Task Scheduler | GH Actions (`windows-latest`) | s |
+| 5 — The deliverable | The published Native AOT binary: `version`, a real `scan`, and one diagnostic per COM surface — WMI, Task Scheduler, drivers, processes | GH Actions (`windows-latest`) | s |
+| 6 — Remediation *(planned, M9)* | apply → verify → rollback → assert back to initial | Hyper-V VM | min |
 
-Levels 1 and 2 cover most of the code and run on every commit. The VM is reserved
-for level 4, where nothing else will do.
+Levels 1 to 3 cover most of the code and run on every push to `main` and every pull request.
 
-Hyper-V snapshot matrix: Win11 Pro 25H2, Win11 Home (different SKU → different
-policies), one already-hardened snapshot to verify idempotence.
+**Level 3 is the one that is easy to skip and expensive to have skipped.** Three failures in
+this repository were a list updated in one place and forgotten in another — D2, D2b, the
+component store — and every one of them stayed green. Guards at this level therefore read
+repository files from the test process, and they always compare an artefact to *what exists*
+rather than to a third list written in the test itself: the dispatch table against the
+`Commands/` directory, `verify.ps1` against the workflows and against `ExitCodes`. A guard
+confronted with a second list written by the same hand in the same batch guards nothing. New
+guards are also checked by **mutation** — the assertion is made to fail on purpose before it
+is trusted — because a guard nobody has ever seen red is a guard nobody has tested.
+
+**Level 5 exists because JIT is not AOT.** COM interop behaves differently once trimmed and
+compiled ahead of time, and the failure is silent: an interop bug once left WMI dead in the
+published binary with the scan still exiting `0` and every WMI check reported « non
+vérifiable ». One diagnostic command per COM surface turns that into a red job.
+
+**Coverage is measured and never gated.** The Linux job measures `Rempart.Core`; the Windows
+job measures `Rempart.Windows`, which the Linux job cannot even compile — so the layer this
+repository calls its least tested was also, until that step existed, the one nobody counted.
+Neither step has a threshold and neither can turn a job red: a percentage is a number to read
+next to the diff, not a gate, and gating it buys tests written to move it.
+`scripts/coverage-summary.ps1` prints both, one parameter apart, because a second summariser
+would be the divergence it exists to prevent. The six reasons for keeping it ungated are in
+[DEBT.md](DEBT.md) under `DET-COUVERTURE`.
+
+A separate `fixtures-anonymised` job runs the anonymisation check on its own, so that a raw
+capture committed by mistake fails under a readable job name instead of one line inside a
+suite log.
+
+The Hyper-V matrix below belongs to level 6 and does not exist yet: `.github/workflows/`
+carries `ubuntu-latest` and `windows-latest` runners and nothing else. Win11 Pro 25H2, Win11
+Home (different SKU → different policies), one already-hardened snapshot to verify
+idempotence.
 
 Out of a VM's reach, to be tested on physical machines: SMART, temperatures,
 throttling, battery, hardware TPM, OEM bloatware.

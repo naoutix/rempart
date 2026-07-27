@@ -22,9 +22,11 @@ from a USB stick.
   catalog; browser extensions (Chrome, Edge, Brave, Firefox) with the permissions
   they were actually granted, sideloads flagged.
 
-The scan is read-only and works offline. The only two features that touch the
-network — VirusTotal lookups and active DoH/DoT probing — are opt-in flags, never
-defaults.
+The scan is read-only and works offline. Three scan features can reach the network —
+VirusTotal hash lookups, active DoH/DoT probing, and fetching a proxy's PAC script — and
+all three are opt-in flags, never defaults. Outside the scan, only `fetch-loldrivers` and
+`update --url` go online, and neither trusts the transport: a dataset is accepted on its
+signature alone.
 
 ## What it looks like
 
@@ -109,7 +111,9 @@ from a copy you already trust:
 rempart seal --dir <dossier> --check
 ```
 
-Or build from source with the [.NET SDK 10](docs/BUILD.md):
+Or build from source — this needs the **.NET SDK 10.0.302 or later**, which `global.json`
+pins ([BUILD.md](docs/BUILD.md); an older 10.0 SDK stops with `A compatible .NET SDK was
+not found`):
 
 ```bash
 git clone https://github.com/naoutix/rempart
@@ -143,12 +147,20 @@ compliant.
 | `rempart scan --report [dir]` | Also write `rapport.html`, `.md` and `.json` to `<dir>/<machine>-<date>/`. |
 | `rempart scan --from <capture>` | Replay a snapshot without the machine. |
 | `rempart report --from <rapport.json>` | Re-render HTML and Markdown without scanning again. Runs anywhere. |
-| `rempart diff <a.json> <b.json>` | Compare two scans: what regressed, what the audit stopped seeing. |
+| `rempart diff <a.json> <b.json>` | Compare two scans: what regressed, what the audit stopped seeing. Exits `4` on a regression. |
 | `rempart index [dir]` | Build the fleet page from a folder of reports, worst first. |
 | `rempart explain [<ID>]` | List all checks, or detail one: rationale, references, cost of fixing. |
 | `rempart capture [--raw]` | Record a replayable snapshot, anonymized by default. |
+| `rempart synthesise --from <capture> --out <file>` | Turn a real capture into a versioned test fixture — `--profile hardened\|defaults`, `--domain-joined`, `--not-elevated`, and `--compromised` to plant fabricated signs of intrusion. |
 | `rempart seal --dir … ` | Seal the USB stick, or `--check` that it is still what it was. |
+| `rempart version` | Print the version the binary was built as. |
 | `rempart update …` | Verify and apply a signed data update (see below). |
+
+Five `diagnose-*` commands exist for CI rather than for users: `diagnose-wmi`,
+`diagnose-tasks`, `diagnose-drivers`, `diagnose-processes` and `diagnose-store` each check
+that one system interface still answers **from the published binary**, where COM interop
+behaves differently than it does under the JIT. Four of them run on every build;
+`diagnose-store` needs elevation and is run by hand.
 
 The HTML report is a single self-contained file — inline styles and script, no
 external reference of any kind, light and dark theme. The JSON is the complete
@@ -159,6 +171,28 @@ latency test), `--fetch-pac` (retrieve the PAC script, analyzed statically, neve
 executed) — the three network ones — and `--analyze-store`, which measures
 reclaimable space in the component store. That last one is local but slow and needs
 elevation; it reports, and deletes nothing.
+
+## Exit codes
+
+A scan piped into a scheduler or another tool is judged on this number alone. The contract
+is a pure function of the result (`src/Rempart.Core/Cli/ExitCodes.cs`), and `rempart help`
+prints the same six lines because it derives them from that one source.
+
+| Code | Meaning |
+|---|---|
+| `0` | Everything the tool was asked to look at, it looked at |
+| `1` | The run failed — a collector broke, a file could not be written |
+| `2` | A replayed snapshot lacks what the rules need |
+| `3` | A **collector** was refused — re-run elevated |
+| `4` | `diff` found a control that used to pass and no longer does |
+| `5` | The scan finished and some **rules** still have no answer — the score covers less of the machine than it looks |
+
+**`5` is the ordinary outcome, not the edge case.** Three of the four versioned fixtures
+exit `5`, including `default-win11`, which is a plain unhardened Windows 11: `WIN-ENC-001`
+(BitLocker) comes back unverifiable even from an elevated console when the machine has no
+volume-encryption WMI class to ask. Treating anything but `0` as a failure will alert on
+healthy machines; treating `5` as success will hide that part of the audit never ran. CI
+accepts `0`, `3` and `5` from a scan, and nothing else.
 
 ## What it is not
 

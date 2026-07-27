@@ -142,3 +142,13 @@ signalés, leurs pourcentages n'étant pas sur la même échelle.
   réelle. Suivi en `DET-TACHE-EXPIREE`.
 - La plage dynamique est constante plutôt que lue : suffisant tant qu'aucune machine
   auditée ne la personnalise, à reprendre si le cas se présente.
+
+> **Addendum du 2026-07-27 — tranché.** La plage dynamique est désormais **lue de la
+> machine** par un fournisseur (`IDynamicPortRangeProvider`), donc enregistrée dans
+> l'instantané et rejouable ; la constante 49152/16384 n'est plus que le repli quand la
+> lecture échoue, et le constat dit lequel des deux il a utilisé. La prémisse de la section
+> ci-dessus était d'ailleurs optimiste : sur une machine reconfigurée, la constante ne
+> rendait pas une comparaison « un peu plus bruyante » mais une affirmation fausse, en
+> marquant éphémères des ports qui ne l'étaient pas et en taisant ceux qui l'étaient.
+> Consigné dans [DEBT](../../DEBT.md) (DET-PLAGE-DYNAMIQUE, fermée). Le reste de ce
+> document est conservé tel qu'écrit le 2026-07-24.

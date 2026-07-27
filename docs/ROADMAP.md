@@ -21,8 +21,11 @@ tant que l'outil vise un public francophone.
 
 ## v1 — Audit en lecture seule
 
-**État au 2026-07-26 : les huit lots M0 → M7 sont livrés**, chacun avec son critère de
-sortie atteint. Ce qui reste ouvert dans v1 ne demande pas de code mais une machine :
+**État au 2026-07-27 : les huit lots M0 → M7 sont livrés**, et la première version
+empaquetée — **v1.0.0-rc.1**, du 2026-07-26 — est sortie (voir
+[CHANGELOG.md](../CHANGELOG.md)). Deux critères de sortie ne sont **pas** atteints, ceux de
+M5 et de M6 ; ils demandent une machine, pas du code. C'est d'ailleurs le cas de tout ce
+qui reste ouvert dans v1 :
 
 - **TLS/SCHANNEL** (M2b) et **IPv6** (M4) — reportés faute de pouvoir observer les défauts
   effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
@@ -476,6 +479,55 @@ de trois lignes de ports Chrome.
 
 ---
 
+### Consolidation post-v1 — ✅ 2026-07-26 → 2026-07-27
+
+Un lot sans nouveau jalon : la première version empaquetée, puis les trois phases du plan
+de remédiation de [DEBT.md](DEBT.md). Consigné ici parce que
+[CHANGELOG.md](../CHANGELOG.md) renvoie à cette feuille de route pour l'histoire jalon par
+jalon, et qu'elle n'en portait aucune trace.
+
+- [x] **v1.0.0-rc.1 publiée** le 2026-07-26 — binaire AOT et manifeste d'intégrité signé,
+      construits et mis en brouillon par la CI.
+- [x] **Découpage de la couche CLI**, conçu dans
+      [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) et livré en trois étapes.
+      `Program.cs` passe de 1 881 lignes non vides à **29** : l'encodage console, un appel à
+      `CommandTable`, et le `try`/`catch` qui traduit une exception en code de sortie. Les
+      19 commandes sont une classe chacune ; le rendu console, le parsing d'arguments et le
+      contrat de sortie vivent dans `Rempart.Core`, donc sous test sur le job Linux —
+      `Rempart.Cli` cible `net10.0-windows`, qu'aucun job Linux ne compile.
+- [x] **Nouveau code de sortie 5, « audit partiel »** — un scan qui va au bout mais dont
+      des règles reviennent `Unknown` ne rend plus 0. Distinct du 3 (droits insuffisants),
+      où c'est un *collecteur* qui a été refusé : ici tout a été lu et le score répond pour
+      moins de machine qu'il n'en a l'air. `restricted-access` est le cas exact — 100 %,
+      quatre contrôles invérifiables, et jusqu'ici un 0 indiscernable, pour un
+      ordonnanceur, d'une machine entièrement vérifiée.
+- [x] **`diagnose-drivers` et `diagnose-processes`** — même garde-fou que `diagnose-wmi` et
+      `diagnose-tasks` : aucune machine allumée ne fait tourner zéro pilote ni zéro
+      processus, donc une énumération vide depuis le binaire publié est une panne et non
+      une réponse.
+- [x] **Quatrième fixture versionnée, `compromised-win11`** — 7 constats `Suspicious` et 3
+      `Notable`, chacun apparié à un jumeau bénin que le collecteur doit laisser tranquille.
+      Elle a montré de bout en bout ce qui n'avait jamais été vérifié : le score d'une
+      machine portant un implant, un port de commande joignable et un DNS détourné est
+      **identique** à celui d'une machine simplement non durcie et saine — 52 %, domaine par
+      domaine. Voulu, les constats n'entrant pas au score, mais jamais montré avant.
+- [x] **Cinq silences fermés**, tous de la même forme : une liste vide était indiscernable
+      d'une lecture refusée. Pilotes, processus, extensions de navigateur, ports en écoute,
+      dossiers de démarrage portent désormais un statut **à côté** de la liste, jamais à sa
+      place — une capture antérieure se relit comme le succès qu'elle était.
+- [x] **Couverture instrumentée, sans seuil** — `Rempart.Core` sur le job Linux,
+      `Rempart.Windows` sur le job Windows, seul capable de le compiler. L'absence de porte
+      est un choix argumenté dans [DEBT.md](DEBT.md), pas un oubli.
+- [x] **Chaîne de construction verrouillée** — `global.json` fixe le SDK,
+      `Directory.Packages.props` centralise les versions, actionlint est épinglé par digest
+      d'image et non par tag.
+
+**Ce qui reste au registre** : cinq entrées, toutes suspendues à une machine ou à une
+décision — `DET-TACHE-EXPIREE`, `DET-WINDEFAULT`, `DET-TLS`, et la moitié de
+`DET-COUVERTURE` et de `DET-DIRTY`.
+
+---
+
 ## Post-v1
 
 ### M8 · Mode appairé
@@ -484,7 +536,20 @@ filtre réellement, plutôt que de constater qu'il *devrait* filtrer. Pertinent 
 plusieurs machines sont préparées.
 
 ### M9 · Remédiation
+
 Le lot le plus sensible. Ne démarre qu'une fois l'audit éprouvé.
+
+**Préconditions techniques : levées le 2026-07-27.** Le découpage de la couche CLI était
+une précondition explicite de ce lot — [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md)
+l'a ouvert pour cette raison : greffer des fournisseurs en écriture, des confirmations
+individuelles et un journal de rollback sur un `Program.cs` de 1 881 lignes sans test,
+c'était ajouter l'écriture au seul endroit non couvert du projet. `Program.cs` en porte
+aujourd'hui 29, chaque commande est une classe testable, le contrat de sortie est une
+fonction pure, et la couche `Rempart.Windows` est mesurée.
+
+**Précondition restante : la seule qui ne s'écrive pas.** L'audit doit avoir tourné sur
+plusieurs machines réelles — ce sont les deux critères de sortie de M5 et de M6, toujours
+ouverts.
 
 - [ ] Providers en écriture (les premiers du projet)
 - [ ] `--dry-run` par défaut, écriture derrière un flag explicite
