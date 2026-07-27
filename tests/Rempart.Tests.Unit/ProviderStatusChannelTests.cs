@@ -69,14 +69,12 @@ public sealed class ProviderStatusChannelTests
         // Un fichier hosts sans entrée est l'état par défaut de Windows.
         "IHostsFileProvider.ReadLines → aucun",
 
-        // LA PROCHAINE OCCURRENCE, et elle est déjà là. Aucune machine allumée n'écoute
-        // sur zéro port — RPC, SMB, le résolveur local. Une lecture ratée rend pourtant la
-        // même liste vide qu'une machine sans service exposé, et le rapport conclut « aucun
-        // port en écoute », qui se lit comme une bonne nouvelle. Exactement la forme de
-        // DET-WMI-MUET, sur le collecteur d'exposition réseau. Inscrit en DET-PORTS-MUET
-        // plutôt que corrigé ici : changer la forme d'une lecture touche l'instantané et le
-        // rejeu, et ce lot-ci porte déjà deux commandes et une extraction.
-        "IListeningPortProvider.Enumerate → aucun",
+        // DET-PORTS-MUET, fermée. C'est la ligne pour laquelle ce test existe : elle est
+        // arrivée ici en « aucun », inscrite au registre à sa première exécution, et le
+        // canal a été posé avant qu'une seule capture n'ait figé « aucun port en écoute »
+        // sur une lecture ratée. Aucune machine allumée n'écoute sur zéro port — RPC, SMB,
+        // le résolveur local — donc zéro ne peut être qu'une panne.
+        "IListeningPortProvider.Enumerate → statut + diagnostic",
 
         // DET-WMI-MUET même : aucune machine n'exécute zéro processus.
         "IProcessProvider.Enumerate → statut + diagnostic",
@@ -106,8 +104,10 @@ public sealed class ProviderStatusChannelTests
         "IServiceStateProvider.Read → statut seul",
 
         // SignatureStatus.Unknown tient le rôle du diagnostic : SignatureLadder le rend
-        // « non vérifiable », jamais « non signé ». Voir DET-CATALOGUE-MUET pour l'endroit
-        // où cette distinction est perdue avant d'arriver ici.
+        // « non vérifiable », jamais « non signé ». La distinction était perdue une couche
+        // plus bas — le catalogue rendait le même null pour « aucun catalogue » et pour
+        // « je n'ai pas pu demander » — jusqu'à ce que CatalogOutcome la nomme
+        // (DET-CATALOGUE-MUET, fermée).
         "ISignatureProvider.Verify → statut seul",
 
         // Zéro logiciel installé est faux sur une machine réelle, mais un inventaire vide

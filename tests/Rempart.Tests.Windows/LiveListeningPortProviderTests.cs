@@ -13,8 +13,10 @@ namespace Rempart.Tests.Windows;
 /// </summary>
 public sealed class LiveListeningPortProviderTests
 {
-    private readonly IReadOnlyList<Core.Providers.ListeningPort> ports =
+    private readonly Core.Providers.ListeningPortRead read =
         new LiveListeningPortProvider().Enumerate();
+
+    private IReadOnlyList<Core.Providers.ListeningPort> ports => read.Ports;
 
     [Fact]
     public void At_least_one_port_is_listening()
@@ -22,6 +24,30 @@ public sealed class LiveListeningPortProviderTests
         // Every Windows machine runs at least the RPC endpoint mapper (135). An empty
         // list means a broken P/Invoke, not a machine without services.
         Assert.NotEmpty(ports);
+    }
+
+    /// <summary>
+    /// The four tables all answered, on a machine that is plainly working.
+    ///
+    /// <para>
+    /// This is the check that gives the status channel its meaning, and it is why the
+    /// channel does not simply say « Found » whenever the list is non-empty: the IPv4 and
+    /// IPv6 tables are four separate calls and they fail one at a time. A run where the
+    /// IPv6 tables stopped answering — an offset that stopped matching a row shape, a
+    /// stack unbound on the machine — would still return dozens of IPv4 endpoints and look
+    /// perfectly healthy without this.
+    /// </para>
+    ///
+    /// <para>
+    /// Not probed and not skippable, unlike the WMI and catalog suites: this call needs no
+    /// privilege and no service, so a refusal here is a defect and never a quiet runner.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_read_reports_itself_as_complete()
+    {
+        Assert.Equal(Core.Providers.ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
     }
 
     [Fact]
@@ -55,6 +81,6 @@ public sealed class LiveListeningPortProviderTests
     {
         // The exact list changes from one moment to the next; what is tested is that the
         // second call completes and frees its native buffer like the first.
-        _ = new LiveListeningPortProvider().Enumerate();
+        Assert.NotEmpty(new LiveListeningPortProvider().Enumerate().Ports);
     }
 }

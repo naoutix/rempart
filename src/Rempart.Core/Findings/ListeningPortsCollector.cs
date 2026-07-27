@@ -27,6 +27,26 @@ public sealed class ListeningPortsCollector : IFindingCollector
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
+        var read = providers.ListeningPorts.Enumerate();
+        var findings = new List<Finding>();
+
+        if (read.Status != ReadStatus.Found)
+        {
+            // An unreadable listening table is not a machine with nothing exposed: no
+            // running machine listens on zero ports. Said out loud rather than shown as an
+            // empty inventory, which is how it read before DET-PORTS-MUET was closed.
+            //
+            // Added rather than returned: a partial read keeps the endpoints it did get.
+            // Only the total failure leaves this finding on its own, because Ports is then
+            // empty and the loop below has nothing to iterate.
+            findings.Add(new Finding(
+                "listening-port", "ports en écoute", "—",
+                FindingSeverity.Notable,
+                [read.Diagnostic ?? "Lecture des points d'écoute refusée. Un service exposé "
+                    + "au réseau resterait invisible."],
+                new Dictionary<string, string>()));
+        }
+
         // PID → path of the owning binary. Ports only carry a PID; the process table is
         // what links it to a file, hence to a signature.
         // A failed process read is not fatal here: the ports are still worth reporting,
@@ -48,7 +68,7 @@ public sealed class ListeningPortsCollector : IFindingCollector
         // tuple makes a single finding, judged once, carrying the instance count;
         // repeating them would drown the report, as with processes. Two distinct bind
         // addresses remain two findings: the address is what carries the exposure.
-        var groups = providers.ListeningPorts.Enumerate()
+        var groups = read.Ports
             .GroupBy(p => (p.Protocol, p.LocalAddress, p.Port,
                 Owner: ownerByPid.TryGetValue(p.Pid, out var op) && op.Length > 0
                     ? op : $"pid:{p.Pid}"))
@@ -56,7 +76,6 @@ public sealed class ListeningPortsCollector : IFindingCollector
             .ThenBy(g => g.Key.Port)
             .ThenBy(g => g.Key.LocalAddress, StringComparer.Ordinal);
 
-        var findings = new List<Finding>();
         foreach (var group in groups)
         {
             var finding = Judge(

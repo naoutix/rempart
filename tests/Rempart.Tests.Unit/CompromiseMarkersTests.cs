@@ -99,17 +99,26 @@ public sealed class CompromiseMarkersTests
     }
 
     /// <summary>
-    /// The two absences the clean fixtures report — drivers and processes missing from the
-    /// snapshot — must be gone here, and gone because the data is present rather than
-    /// because the collector fell silent. Left in place they would be the only two flagged
-    /// findings on a fixture whose whole purpose is the seven below them.
+    /// The three absences the clean fixtures report — drivers, processes and listening
+    /// ports missing from the snapshot — must be gone here, and gone because the data is
+    /// present rather than because a collector fell silent. Left in place they would be
+    /// the only flagged findings on a fixture whose whole purpose is the seven below them.
+    ///
+    /// <para>
+    /// Listed by source and not by counting severities: all three are <c>Notable</c>, so a
+    /// gap reopening would leave the seven <c>Suspicious</c> untouched and slip past a
+    /// count. That is not hypothetical — this test named only two of the three for as long
+    /// as the third existed, and setting the port status back to a refusal left the whole
+    /// suite green.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_gaps_the_clean_fixtures_report_are_filled()
     {
         var findings = Findings(Build(compromised: true));
 
-        Assert.DoesNotContain(findings, f => f.Source is "pilotes chargés" or "processus courants");
+        Assert.DoesNotContain(findings,
+            f => f.Source is "pilotes chargés" or "processus courants" or "ports en écoute");
         Assert.Equal(7, findings.Count(f => f.Severity == FindingSeverity.Suspicious));
     }
 

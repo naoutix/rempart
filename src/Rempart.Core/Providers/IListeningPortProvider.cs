@@ -28,6 +28,48 @@ public sealed record ListeningPort(string Protocol, string LocalAddress, int Por
 }
 
 /// <summary>
+/// The listening endpoints, plus whether they could be read at all.
+///
+/// <para>
+/// The status is not decoration, and this is the fourth surface to need it (DET-WMI-MUET
+/// for drivers and processes, DET-EXT-MUET for browser profiles, DET-PORTS-MUET here).
+/// <b>No machine that is switched on listens on zero ports</b> — the RPC endpoint mapper,
+/// SMB, the local resolver — so an empty list can only ever be a failed read. Before this
+/// record existed the provider returned a bare list, and the report concluded « aucun port
+/// en écoute », which reads like good news on the one surface that says what the network
+/// can reach.
+/// </para>
+///
+/// <para>
+/// The asymmetry with browser extensions is deliberate, and it is the same one phase 2
+/// settled: zero extensions is an ordinary state of a machine, so it stays silent; zero
+/// ports cannot be true, so it speaks.
+/// </para>
+/// </summary>
+public sealed record ListeningPortRead(
+    ReadStatus Status,
+    IReadOnlyList<ListeningPort> Ports,
+    string? Diagnostic = null)
+{
+    public static ListeningPortRead Found(IReadOnlyList<ListeningPort> ports) =>
+        new(ReadStatus.Found, ports);
+
+    public static ListeningPortRead Failed(string reason) =>
+        new(ReadStatus.AccessDenied, [], reason);
+
+    /// <summary>
+    /// What was read, and what could not be — four tables are queried (TCP and UDP, IPv4
+    /// and IPv6) and they fail one at a time. The endpoints that were read stay in the
+    /// report and the missing table is named beside them: dropping the IPv4 ports because
+    /// the IPv6 table refused would trade one silence for another. Same shape as
+    /// <see cref="BrowserExtensionRead.Partial"/>.
+    /// </summary>
+    public static ListeningPortRead Partial(
+        IReadOnlyList<ListeningPort> ports, string reason) =>
+        new(ReadStatus.AccessDenied, ports, reason);
+}
+
+/// <summary>
 /// Enumerates TCP and UDP listening endpoints.
 ///
 /// Abstracted like the rest (ADR-001, D5): the judgment — an unsigned binary exposing a
@@ -36,5 +78,5 @@ public sealed record ListeningPort(string Protocol, string LocalAddress, int Por
 /// </summary>
 public interface IListeningPortProvider
 {
-    IReadOnlyList<ListeningPort> Enumerate();
+    ListeningPortRead Enumerate();
 }

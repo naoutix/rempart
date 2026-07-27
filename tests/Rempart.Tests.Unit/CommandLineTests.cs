@@ -13,9 +13,11 @@ namespace Rempart.Tests.Unit;
 /// </para>
 ///
 /// <para>
-/// Two of these tests pin defects rather than features — cases 15 and 18. They are named
-/// as such. Freezing a defect is not endorsing it: it is making sure the fix, when it
-/// comes, is visible in a diff.
+/// Two of these tests used to pin defects rather than features — DET-ARITE-REPORT and
+/// DET-EXPLAIN-POSITIONNEL, both now closed. Freezing a defect was never endorsing it: it
+/// was making sure the fix, when it came, was visible in a diff. It was, and the last
+/// section is what the diff shows — the assertions inverted rather than deleted, each
+/// carrying the sentence it used to make.
 /// </para>
 /// </summary>
 public sealed class CommandLineTests
@@ -142,40 +144,85 @@ public sealed class CommandLineTests
     public void A_bare_dash_is_not_a_positional() =>
         Assert.Equal(["a.json"], CommandLine.Positional(["diff", "-", "a.json"], []));
 
-    // ---- known defects, frozen ---------------------------------------------
+    // ---- defects that were frozen here, now closed --------------------------
 
     /// <summary>
-    /// DEFECT, frozen. On <c>rempart diff --report --baseline b.json a.json</c> the two
-    /// readers disagree: <c>Positional</c> applies the no-dash rule, so <c>--report</c>
-    /// consumes nothing and the single file to compare is <c>a.json</c> — while
-    /// <c>OptionValue("--report")</c> returns <c>"--baseline"</c> and the comparison is
-    /// written into a folder of that name.
+    /// The defect DET-ARITE-REPORT recorded, now asserted the other way round.
     ///
     /// <para>
-    /// The cause is an arity mismatch: <c>diff</c> reads <c>--report</c> with
-    /// <c>OptionValue</c> while <c>scan</c> reads it with <c>OptionalValue</c>. Recorded as
-    /// DET-ARITE-REPORT in <c>docs/DEBT.md</c>; fixing it changes what an existing command
-    /// line does, so it gets its own change rather than riding along with an extraction.
+    /// <b>What this used to say.</b> The test living here was named
+    /// <c>Positional_and_OptionValue_disagree_on_a_value_that_starts_with_a_dash</c>, and
+    /// it asserted the disagreement: on <c>rempart diff --report --baseline b.json a.json</c>
+    /// <c>Positional</c> applied the no-dash rule, so <c>--report</c> consumed nothing —
+    /// while <c>OptionValue("--report")</c>, the reader <c>diff</c> actually used, returned
+    /// <c>"--baseline"</c> and the comparison went into a folder of that name. Two readers
+    /// of one spelling, giving two answers about the same five tokens.
+    /// </para>
+    ///
+    /// <para>
+    /// <c>diff</c> now reads <c>--report</c> with <c>OptionalValue</c>, as <c>scan</c>
+    /// always did. Both assertions below are about the same array on purpose: agreement is
+    /// the property, and it cannot be stated by looking at either reader alone.
+    /// <c>OptionValue</c> is still asserted for what it is — the disagreement was never a
+    /// bug in that reader, only in choosing it here.
     /// </para>
     /// </summary>
     [Fact]
-    public void Positional_and_OptionValue_disagree_on_a_value_that_starts_with_a_dash()
+    public void Positional_and_OptionalValue_agree_on_a_value_that_starts_with_a_dash()
     {
         string[] args = ["diff", "--report", "--baseline", "b.json", "a.json"];
 
         Assert.Equal(["a.json"], CommandLine.Positional(args, ["--report", "--baseline"]));
+        Assert.Null(CommandLine.OptionalValue(args, "--report"));
+
+        // Unchanged, and still the reason the two readers are not interchangeable: this is
+        // the answer diff used to file its report under.
         Assert.Equal("--baseline", CommandLine.OptionValue(args, "--report"));
     }
 
     /// <summary>
-    /// DEFECT, frozen. <c>explain</c> reads its identifier at a fixed slot instead of
-    /// through <c>Positional</c>, so <c>rempart explain --rules ./mes-regles WIN-CRED-001</c>
-    /// finds no identifier and lists the whole catalog instead of explaining the rule.
-    /// Recorded as DET-EXPLAIN-POSITIONNEL; fixed where the commands are split.
+    /// <c>WordAt</c> at a non-zero index does not see an identifier written after an
+    /// option — unchanged behaviour, and the reason <c>explain</c> stopped calling it that
+    /// way.
+    ///
+    /// <para>
+    /// This test froze DET-EXPLAIN-POSITIONNEL: <c>rempart explain --rules ./mes-regles
+    /// WIN-CRED-001</c> read <c>--rules</c> at index 1, found no identifier, and listed the
+    /// whole catalog instead of explaining the rule. The defect is closed and this
+    /// assertion is untouched, because <c>WordAt</c> was never wrong — it answers about a
+    /// fixed slot, which is exactly right for the command word at index 0 and exactly wrong
+    /// for anything that an option may precede. What changed is the call site; the test
+    /// below is the other half of the story.
+    /// </para>
     /// </summary>
     [Fact]
     public void An_identifier_placed_after_an_option_is_not_seen() =>
         Assert.Null(CommandLine.WordAt(["explain", "--rules", "d", "WIN-CRED-001"], 1));
+
+    /// <summary>
+    /// And <c>Positional</c>, which <c>explain</c> now calls, does see it — with the
+    /// command's real option list rather than a literal one, since a list that forgot
+    /// <c>--rules</c> would hand back <c>["d", "WIN-CRED-001"]</c> and explain the folder.
+    ///
+    /// <para>
+    /// The three orders are one property: where the identifier sits stops mattering. The
+    /// bare form still yields nothing, which is what makes <c>rempart explain</c> list the
+    /// catalog — closing the defect must not cost the listing.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_identifier_is_found_wherever_it_sits_among_the_options()
+    {
+        var valueTaking = CommandSurface.ValueTaking("explain");
+
+        Assert.Equal(["WIN-CRED-001"], CommandLine.Positional(
+            ["explain", "--rules", "d", "WIN-CRED-001"], valueTaking));
+
+        Assert.Equal(["WIN-CRED-001"], CommandLine.Positional(
+            ["explain", "WIN-CRED-001", "--rules", "d"], valueTaking));
+
+        Assert.Empty(CommandLine.Positional(["explain", "--rules", "d"], valueTaking));
+    }
 
     [Fact]
     public void The_command_word_is_read_only_when_it_is_not_an_option()

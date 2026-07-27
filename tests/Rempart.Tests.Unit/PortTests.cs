@@ -5,7 +5,7 @@ namespace Rempart.Tests.Unit;
 
 internal sealed class FakeListeningPortProvider(params ListeningPort[] ports) : IListeningPortProvider
 {
-    public IReadOnlyList<ListeningPort> Enumerate() => ports;
+    public ListeningPortRead Enumerate() => ListeningPortRead.Found(ports);
 }
 
 internal sealed class FakeFirewallProvider(FirewallState state) : IFirewallProvider

@@ -35,9 +35,10 @@ public sealed class AuthenticodeVerdictTests
     [Fact]
     public void A_valid_embedded_signature_settles_it_without_a_catalog()
     {
-        // The catalog argument is deliberately absurd: if it were consulted at all, this
-        // would come back Unsigned.
-        Assert.Equal(SignatureStatus.Valid, AuthenticodeVerdict.Judge(Ok, catalog: null));
+        // The catalog argument is deliberately the least favourable one: if it were
+        // consulted at all, this would come back Unknown.
+        Assert.Equal(SignatureStatus.Valid,
+            AuthenticodeVerdict.Judge(Ok, CatalogOutcome.NotAsked));
     }
 
     [Theory]
@@ -49,12 +50,16 @@ public sealed class AuthenticodeVerdictTests
         Assert.True(AuthenticodeVerdict.HasNoEmbeddedSignature(embedded));
 
         // The point of the redirection: cmd.exe carries no embedded signature and must
-        // not come out unsigned. Same three inputs, opposite verdicts, decided only by
-        // what the catalog answered.
-        Assert.Equal(SignatureStatus.Valid, AuthenticodeVerdict.Judge(embedded, catalog: Ok));
-        Assert.Equal(SignatureStatus.Unsigned, AuthenticodeVerdict.Judge(embedded, catalog: null));
+        // not come out unsigned. Same three inputs, four different verdicts, decided only
+        // by what the catalog answered.
+        Assert.Equal(SignatureStatus.Valid,
+            AuthenticodeVerdict.Judge(embedded, CatalogOutcome.Verified));
+        Assert.Equal(SignatureStatus.Unsigned,
+            AuthenticodeVerdict.Judge(embedded, CatalogOutcome.NotCatalogued));
         Assert.Equal(SignatureStatus.Invalid,
-            AuthenticodeVerdict.Judge(embedded, catalog: CertExpired));
+            AuthenticodeVerdict.Judge(embedded, CatalogOutcome.Refused));
+        Assert.Equal(SignatureStatus.Unknown,
+            AuthenticodeVerdict.Judge(embedded, CatalogOutcome.Unaskable));
     }
 
     [Fact]
@@ -63,10 +68,12 @@ public sealed class AuthenticodeVerdictTests
         Assert.False(AuthenticodeVerdict.HasNoEmbeddedSignature(CertExpired));
 
         // Whatever the catalog would have said, including that it validates: a file that
-        // answered for itself badly is not rescued by a catalog. Passing Ok here would
-        // flip the verdict if the order of the two checks were ever swapped.
-        Assert.Equal(SignatureStatus.Invalid, AuthenticodeVerdict.Judge(CertExpired, catalog: null));
-        Assert.Equal(SignatureStatus.Invalid, AuthenticodeVerdict.Judge(CertExpired, catalog: Ok));
+        // answered for itself badly is not rescued by a catalog. Passing Verified here
+        // would flip the verdict if the order of the two checks were ever swapped.
+        Assert.Equal(SignatureStatus.Invalid,
+            AuthenticodeVerdict.Judge(CertExpired, CatalogOutcome.NotAsked));
+        Assert.Equal(SignatureStatus.Invalid,
+            AuthenticodeVerdict.Judge(CertExpired, CatalogOutcome.Verified));
     }
 
     /// <summary>
@@ -77,39 +84,54 @@ public sealed class AuthenticodeVerdictTests
     [Fact]
     public void Only_zero_counts_as_verified()
     {
-        Assert.Equal(SignatureStatus.Invalid,
-            AuthenticodeVerdict.Judge(TrustNoSignature, catalog: 1));
-        Assert.Equal(SignatureStatus.Invalid,
-            AuthenticodeVerdict.Judge(TrustNoSignature, catalog: unchecked((int)0x80092003)));
+        Assert.Equal(CatalogOutcome.Verified, AuthenticodeVerdict.FromCatalogHResult(Ok));
+
+        Assert.Equal(CatalogOutcome.Refused, AuthenticodeVerdict.FromCatalogHResult(1));
+        Assert.Equal(CatalogOutcome.Refused,
+            AuthenticodeVerdict.FromCatalogHResult(unchecked((int)0x80092003)));
+
+        // And through to the verdict, because that is what the scan reads: a catalog that
+        // covers the file and refuses it is an accusation about the file, distinct from a
+        // store that could not be asked.
+        Assert.Equal(SignatureStatus.Invalid, AuthenticodeVerdict.Judge(
+            TrustNoSignature, AuthenticodeVerdict.FromCatalogHResult(1)));
     }
 
     /// <summary>
-    /// The defect this extraction found and deliberately did not fix, recorded as
-    /// DET-CATALOGUE-MUET.
+    /// The defect DET-CATALOGUE-MUET recorded, now asserted the other way round.
     ///
     /// <para>
-    /// The Windows layer answers <c>null</c> for two different things: « no catalog
-    /// references this file », which is an answer, and « the catalog API could not be
-    /// asked » — a context it failed to acquire, a hash it could not compute, a file it
-    /// could not open — which is not. This test asserts the collapse rather than the
-    /// behaviour anyone would want, so that closing it has to come here and say so.
+    /// <b>What this used to say.</b> The Windows layer answered <c>int?</c>, and its
+    /// <c>null</c> stood for two different things: « no catalog references this file »,
+    /// which is an answer, and « the catalog API could not be asked » — a context it
+    /// failed to acquire, a hash it could not compute, a file it could not open — which is
+    /// not. Both came out <c>Unsigned</c>, and the test that lived here was named
+    /// <c>An_unaskable_catalog_is_reported_as_unsigned_rather_than_unverifiable</c>: it
+    /// froze the collapse on purpose, so that undoing it would have to be a decision taken
+    /// here rather than a side effect noticed later.
     /// </para>
     ///
     /// <para>
-    /// It is the exact shape of DET-WMI-MUET, one layer down, and it lands on the wrong
-    /// side: the chain below turns it into an accusation.
+    /// It was the exact shape of DET-WMI-MUET one layer down, and on the wrong side of it:
+    /// the other occurrences hid a breakdown, this one invented an accusation. The two
+    /// severities asserted below are the whole difference between a false positive and a
+    /// stated gap, and they are asserted here rather than left to inference because
+    /// nothing else in this file would notice if <c>SignatureLadder</c> started treating
+    /// <c>Unknown</c> like <c>Unsigned</c>.
     /// </para>
     /// </summary>
     [Fact]
-    public void An_unaskable_catalog_is_reported_as_unsigned_rather_than_unverifiable()
+    public void An_unaskable_catalog_is_reported_as_unverifiable_rather_than_unsigned()
     {
-        Assert.Equal(SignatureStatus.Unsigned,
-            AuthenticodeVerdict.Judge(TrustNoSignature, catalog: null));
+        Assert.Equal(SignatureStatus.Unknown,
+            AuthenticodeVerdict.Judge(TrustNoSignature, CatalogOutcome.Unaskable));
 
-        // What that costs downstream, spelled out rather than left to inference: an
-        // unreadable file is accused, where an honest « non vérifiable » would only be
-        // reported. The two severities are the whole difference between a false positive
-        // and a stated gap.
+        // And the answer that legitimately accuses is untouched: a store that answered and
+        // found no catalog still yields Unsigned. Without this line the fix could have been
+        // « never accuse anything », which would be the opposite failure.
+        Assert.Equal(SignatureStatus.Unsigned,
+            AuthenticodeVerdict.Judge(TrustNoSignature, CatalogOutcome.NotCatalogued));
+
         Assert.Equal(FindingSeverity.Suspicious,
             SignatureLadder.Judge(@"C:\Windows\System32\drivers\x.sys",
                 new FixedSignature(SignatureStatus.Unsigned)).Severity);
@@ -120,21 +142,43 @@ public sealed class AuthenticodeVerdictTests
     }
 
     /// <summary>
+    /// A catalog lookup that was never run is not a lookup that found nothing.
+    ///
+    /// <para>
+    /// <see cref="CatalogOutcome.NotAsked"/> is the default value of the enum, so this is
+    /// what a caller that forgets to fill the argument in produces. It must land on
+    /// <c>Unknown</c>: mapping the default onto <c>NotCatalogued</c> would turn a wiring
+    /// mistake into an accusation against every catalog-signed binary on the machine —
+    /// which is precisely how the defect this file records came about in the first place.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_lookup_that_never_ran_concludes_nothing()
+    {
+        Assert.Equal(CatalogOutcome.NotAsked, default);
+
+        Assert.Equal(SignatureStatus.Unknown,
+            AuthenticodeVerdict.Judge(TrustNoSignature, default));
+    }
+
+    /// <summary>
     /// The publisher read follows the file, not the verdict: it is skipped exactly when
     /// there is no embedded certificate to read and the answer would be null anyway.
     /// </summary>
     [Fact]
     public void The_publisher_is_read_only_where_a_certificate_could_be()
     {
-        Assert.True(AuthenticodeVerdict.ReadsPublisher(Ok, catalog: null));
-        Assert.True(AuthenticodeVerdict.ReadsPublisher(CertExpired, catalog: null));
+        Assert.True(AuthenticodeVerdict.ReadsPublisher(Ok, CatalogOutcome.NotAsked));
+        Assert.True(AuthenticodeVerdict.ReadsPublisher(CertExpired, CatalogOutcome.NotAsked));
 
         // Catalog-signed: no embedded certificate, and the read happens anyway. Frozen as
         // it stands — see the remark on ReadsPublisher.
-        Assert.True(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, catalog: Ok));
+        Assert.True(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, CatalogOutcome.Verified));
 
-        Assert.False(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, catalog: null));
-        Assert.False(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, catalog: CertExpired));
+        Assert.False(
+            AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, CatalogOutcome.NotCatalogued));
+        Assert.False(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, CatalogOutcome.Refused));
+        Assert.False(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, CatalogOutcome.Unaskable));
     }
 
     /// <summary>A signature provider that answers the same thing whatever it is asked.</summary>

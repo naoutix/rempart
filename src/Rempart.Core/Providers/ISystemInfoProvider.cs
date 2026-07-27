@@ -91,9 +91,13 @@ public sealed class ProviderSet(
     /// machine runs none, so an empty list could only ever be a failure to look.</summary>
     public IProcessProvider Processes { get; } = processes ?? UnavailableProcesses.Instance;
 
-    /// <summary>Absent, no port is enumerated — no listening is invented.</summary>
+    /// <summary>
+    /// Absent, enumeration yields "denied" rather than "no port": no running machine
+    /// listens on none, so an empty list could only ever be a failure to look — the same
+    /// reasoning as drivers and processes above.
+    /// </summary>
     public IListeningPortProvider ListeningPorts { get; } =
-        listeningPorts ?? EmptyListeningPorts.Instance;
+        listeningPorts ?? UnavailableListeningPorts.Instance;
 
     /// <summary>Absent, the firewall state stays "unknown" — the cross-check rule stands down.</summary>
     public IFirewallProvider Firewall { get; } = firewall ?? UnreadFirewall.Instance;
@@ -185,11 +189,12 @@ internal sealed class UnreadFirewall : IFirewallProvider
     public FirewallState Read() => FirewallState.Unread;
 }
 
-internal sealed class EmptyListeningPorts : IListeningPortProvider
+internal sealed class UnavailableListeningPorts : IListeningPortProvider
 {
-    public static readonly EmptyListeningPorts Instance = new();
+    public static readonly UnavailableListeningPorts Instance = new();
 
-    public IReadOnlyList<ListeningPort> Enumerate() => [];
+    public ListeningPortRead Enumerate() =>
+        ListeningPortRead.Failed("Aucun fournisseur de points d'écoute n'a été fourni à ce scan.");
 }
 
 internal sealed class UnavailableProcesses : IProcessProvider

@@ -268,15 +268,39 @@ public sealed class SnapshotProcessProvider(MachineSnapshot snapshot) : IProcess
 public sealed class RecordingListeningPortProvider(
     IListeningPortProvider inner, MachineSnapshot snapshot) : IListeningPortProvider
 {
-    public IReadOnlyList<ListeningPort> Enumerate() =>
-        snapshot.ListeningPorts ??= [.. inner.Enumerate()];
+    public ListeningPortRead Enumerate()
+    {
+        if (snapshot.ListeningPortsStatus is { } recorded)
+        {
+            return new ListeningPortRead(
+                recorded, snapshot.ListeningPorts ?? [], snapshot.ListeningPortsDiagnostic);
+        }
+
+        var read = inner.Enumerate();
+
+        snapshot.ListeningPorts = [.. read.Ports];
+        snapshot.ListeningPortsStatus = read.Status;
+        snapshot.ListeningPortsDiagnostic = read.Diagnostic;
+
+        return read;
+    }
 }
 
 public sealed class SnapshotListeningPortProvider(MachineSnapshot snapshot) : IListeningPortProvider
 {
-    // Absent from an earlier capture: empty list, the fixture stays replayable and
-    // simply produces fewer findings.
-    public IReadOnlyList<ListeningPort> Enumerate() => snapshot.ListeningPorts ?? [];
+    public ListeningPortRead Enumerate() => snapshot switch
+    {
+        { ListeningPortsStatus: { } status } => new ListeningPortRead(
+            status, snapshot.ListeningPorts ?? [], snapshot.ListeningPortsDiagnostic),
+
+        // A capture predating the status field recorded a list and nothing else: read it
+        // as the success it was taken to be, rather than inventing a failure.
+        { ListeningPorts: { } ports } => ListeningPortRead.Found(ports),
+
+        // Never an empty list: this used to answer [] and the collector concluded « aucun
+        // port en écoute » over a capture that had simply never looked (DET-PORTS-MUET).
+        _ => ListeningPortRead.Failed("Points d'écoute absents de l'instantané."),
+    };
 }
 
 public sealed class RecordingFirewallProvider(

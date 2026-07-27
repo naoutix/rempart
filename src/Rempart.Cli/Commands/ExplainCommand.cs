@@ -1,3 +1,4 @@
+using Rempart.Core.Cli;
 using Rempart.Core.Rules;
 using static Rempart.Cli.CliHost;
 using static Rempart.Core.Cli.CommandLine;
@@ -13,7 +14,15 @@ internal static class ExplainCommand
 {
     public static int Run(string[] args)
     {
-        var id = WordAt(args, 1);
+        // Through Positional, not from a fixed slot. Read at index 1, the identifier of
+        // "rempart explain --rules ./mes-regles WIN-CRED-001" was "--rules": no identifier
+        // found, so the command listed the whole catalog instead of explaining the rule
+        // asked for — and said nothing, since listing is what an argument-less explain
+        // legitimately does (DET-EXPLAIN-POSITIONNEL). Positional skips an option and the
+        // value it carries, so the identifier is found wherever it is written. WordAt stays
+        // right for the command word at index 0, which nothing can precede.
+        var positional = Positional(args, CommandSurface.ValueTaking("explain"));
+        var id = positional.Count > 0 ? positional[0] : null;
         var rules = RuleCatalog.Load(RulesDirectory(args));
 
         if (id is null)

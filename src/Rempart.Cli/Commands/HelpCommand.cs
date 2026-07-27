@@ -67,6 +67,8 @@ internal static class HelpCommand
               Les mouvements que le système cause lui-même sortent de l'écart de
               posture sans être tus : entrée RunOnce consommée, tâche supprimée
               après expiration, port de la plage dynamique renuméroté.
+              --report écrit comparaison.html, .md et .json dans <dossier> ;
+              sans valeur, dans le dossier courant.
               Ne demande pas Windows. Code de sortie 4 s'il y a une régression.
 
           rempart index [dossier] [--out <fichier>]

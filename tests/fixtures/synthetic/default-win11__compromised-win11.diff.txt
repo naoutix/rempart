@@ -5,7 +5,7 @@ anon:000000000002 contre anon:000000000004
 [synthèse] 15 constat(s) apparu(s).
   conformité 52 % → 52 %
 
-[constats] 17 écart(s)
+[constats] 18 écart(s)
 
   apparu    C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\OneDriveSync.exe
             HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\OneDriveSync
@@ -51,6 +51,9 @@ anon:000000000002 contre anon:000000000004
 
   disparu   —
             pilotes chargés
+
+  disparu   —
+            ports en écoute
 
   disparu   —
             processus courants

@@ -30,7 +30,7 @@ données : catalogue au 2026-07-21, à jour
 
   « rempart explain <ID> » détaille une règle et ce que coûte sa correction.
 
-[constats] 1 driver, 2 logon-extension, 4 lsa-package, 1 process, 196 scheduled-task, 1 wmi-subscription — 6 à examiner
+[constats] 1 driver, 1 listening-port, 2 logon-extension, 4 lsa-package, 1 process, 196 scheduled-task, 1 wmi-subscription — 7 à examiner
 
   NOTABLE     pilotes chargés
               —
@@ -55,6 +55,10 @@ données : catalogue au 2026-07-21, à jour
   NOTABLE     Lsa\Security Packages
               —
               → Liste refusée à la lecture. Relancer en administrateur : un paquet LSA ajouté resterait invisible.
+
+  NOTABLE     ports en écoute
+              —
+              → Points d'écoute absents de l'instantané.
 
 [inventory] Ok
   os.name                          Windows 11 Pro
