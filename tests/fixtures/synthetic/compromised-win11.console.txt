@@ -184,17 +184,17 @@ données : catalogue au 2026-07-21, à jour
   os.installationType              Client
   os.version                       10.0.26200.0
   os.is64Bit                       True
-  hardware.manufacturer            Micro-Star International Co., Ltd.
-  hardware.model                   MS-7E80
-  hardware.family                  To be filled by O.E.M.
-  hardware.baseboardManufacturer   Micro-Star International Co., Ltd.
-  hardware.baseboardProduct        PRO B850-S WIFI6E (MS-7E80)
+  hardware.manufacturer            anon:4c0452f8e995
+  hardware.model                   anon:425e3f562473
+  hardware.family                  anon:4da0d798e550
+  hardware.baseboardManufacturer   anon:4c0452f8e995
+  hardware.baseboardProduct        anon:f3b307aa2962
   machine.name                     anon:000000000004
   machine.processorCount           16
   machine.uptimeSeconds            3600
   firmware.type                    uefi
-  firmware.biosVersion             2.A41
-  firmware.biosDate                03/17/2026
+  firmware.biosVersion             anon:cf2f12ebf4d7
+  firmware.biosDate                anon:5901e8014ad1
   security.secureBoot              unsupported
   security.tpmService              absent
   scan.elevated                    True

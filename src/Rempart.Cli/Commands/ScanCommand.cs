@@ -181,9 +181,10 @@ internal static class ScanCommand
             return 1;
         }
 
-        // Missing privileges are not an execution error, but the caller must be able
-        // to detect them without re-reading the output.
-        return (int)ExitCodes.ForScan(result.Collectors);
+        // Neither a missing privilege nor a control left unverifiable is an execution
+        // error, and the caller who reads nothing but this number must still be able to
+        // tell them apart from a scan that saw the whole machine.
+        return (int)ExitCodes.ForScan(result);
     }
 
     /// <summary>

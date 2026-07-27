@@ -72,12 +72,22 @@ meaningful test bench for the software catalog.
 
 | Directory | Regime | Content |
 |---|---|---|
-| `tests/fixtures/synthetic/` | Versioned | Fabricated values, no real machine |
+| `tests/fixtures/synthetic/` | Versioned | Fabricated posture and threat material, machine identity scrubbed |
 | `tests/fixtures/local/` | Out of the repo | Captures of real machines, replayed when present |
 
 Anonymization masks the hostname and serial numbers, not the security posture. From
 M2 onward, a real capture would reveal which hardening controls are disabled on an
 identifiable machine — hence exclusion from the repo, not mere anonymization.
+
+**What a synthetic fixture actually is**, since "fabricated" alone was once read as more
+than it meant (DET-FIXTURE-MATERIEL). It is a real capture whose *form* is kept and whose
+*identity* is scrubbed, not a machine invented from nothing:
+
+| | |
+|---|---|
+| **Fabricated** | Everything a rule reads. The posture is written by `rempart synthesise` from the rule catalogue itself, and the intrusion markers are invented on purpose — RFC 5737 addresses, digests of repeated `deadbeef`. No verdict in these files was ever observed on a machine. |
+| **Scrubbed** | The identity. Hostname, serial numbers, registered owner, account names in profile paths, SSIDs, proxy hosts, browser-profile salts — and, since DET-FIXTURE-MATERIEL, the hardware identity (mainboard model, BIOS version and date) and the path and name of every scheduled task outside `\Microsoft\`. `Anonymiser.Apply` now runs over the output of `synthesise`, so the `anonymised` flag is produced rather than asserted. |
+| **Inherited** | The shape, deliberately. A couple of hundred scheduled tasks, several hundred verified signatures, the paths of the executables they point at. Those are what the audit judges — the report exists to name the binary that runs — and a fixture with three tidy entries would prove that a collector reports, not that it picks the right line out of a crowd. A reader can therefore still tell which publishers were installed on the source machine; nobody can tell which machine it was. |
 
 ## Update channel
 
@@ -407,6 +417,36 @@ which is precisely the knowledge that makes the rule correct.
 `null`, not zero: "I don't know" calls for elevation, "it's bad" calls for a fix.
 Severity weighting is non-linear — ten minor settings do not offset one critical
 weakness.
+
+### Exit codes
+
+`src/Rempart.Core/Cli/ExitCodes.cs` is the single source: the mapping, the French
+wording, and the block `rempart help` prints all derive from it, so the help cannot
+list a code the tool does not return — which it did, for code 4, for months.
+
+| Code | Meaning | Said by |
+|---|---|---|
+| `0` | succès | Everything asked for was looked at |
+| `1` | échec | A collector broke, or a file could not be written |
+| `2` | instantané incomplet | A replayed snapshot lacks what the rules need |
+| `3` | droits insuffisants | A **collector** was refused — re-run elevated |
+| `4` | régression | `diff` found a control that used to pass |
+| `5` | audit partiel | A **rule** came back `Unknown` — the score covers less than the machine |
+
+`3` and `5` are deliberately distinct: the first says a collector was denied, the
+second that every collector read fine and controls still have no answer. Precedence for
+a scan is `1 > 3 > 5 > 0`, ordered by what the caller can act on — a breakdown does
+not repair itself by re-running elevated, a refused collector does, and an unevaluable
+rule is the weakest of the three signals without being nothing.
+
+**`5` does not always mean "re-run elevated", and assuming it does is the mistake to
+avoid.** Elevation is the usual remedy, not the only one: `WIN-ENC-001` (BitLocker) comes
+back `Unknown` from an elevated console too, when the machine has no volume-encryption WMI
+class to ask. Two of the four versioned fixtures were captured elevated and still exit
+`5`. The three CI guards — both workflows and `scripts/verify.ps1` — therefore accept
+`0`, `3` or `5`, and narrowing that set after elevating a runner would redden a correct
+build. For an auditor, `5` is a result to act on: the score covers less of the machine
+than its percentage suggests.
 
 ### Cleanup actions (planned, M9)
 

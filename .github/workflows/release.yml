@@ -70,8 +70,14 @@ jobs:
           # actually ships: no runtime to install, and a real scan completes.
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
           & $exe scan
-          # 0 = success, 3 = insufficient rights (acceptable on a runner).
-          if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan failed ($LASTEXITCODE)" }
+          # 0 = saw everything, 3 = a collector was refused, 5 = a control could not be
+          # evaluated. All three are acceptable *here*: what this step proves is that the
+          # shipped artifact runs a scan end to end, not that the runner is well configured.
+          # 5 is the ordinary case, not the edge one -- WIN-ENC-001 (BitLocker) comes back
+          # unverifiable even from an elevated console when the WMI class is absent, so
+          # elevating the runner would not turn this into a 0. Narrowing the set back to
+          # {0, 3} after elevating would redden a correct release.
+          if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "rempart scan failed ($LASTEXITCODE)" }
 
       - name: Assemble the stick
         shell: pwsh

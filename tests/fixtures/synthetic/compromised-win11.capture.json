@@ -55,7 +55,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Micro-Star International Co., Ltd.",
+        "text": "anon:4c0452f8e995",
         "number": null
       }
     },
@@ -63,7 +63,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "MS-7E80",
+        "text": "anon:425e3f562473",
         "number": null
       }
     },
@@ -71,7 +71,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "To be filled by O.E.M.",
+        "text": "anon:4da0d798e550",
         "number": null
       }
     },
@@ -79,7 +79,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "2.A41",
+        "text": "anon:cf2f12ebf4d7",
         "number": null
       }
     },
@@ -87,7 +87,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "03/17/2026",
+        "text": "anon:5901e8014ad1",
         "number": null
       }
     },
@@ -95,7 +95,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Micro-Star International Co., Ltd.",
+        "text": "anon:4c0452f8e995",
         "number": null
       }
     },
@@ -103,7 +103,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "PRO B850-S WIFI6E (MS-7E80)",
+        "text": "anon:f3b307aa2962",
         "number": null
       }
     },
@@ -4335,8 +4335,8 @@
     "status": "Found",
     "tasks": [
       {
-        "path": "\\AMDRyzenMasterSDKTask",
-        "name": "AMDRyzenMasterSDKTask",
+        "path": "anon:8af6eb6d1607",
+        "name": "anon:c6beca784e93",
         "enabled": true,
         "state": "running",
         "author": "Advanced Micro Devices",
@@ -4353,8 +4353,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\Launch Adobe CCXProcess",
-        "name": "Launch Adobe CCXProcess",
+        "path": "anon:a45f283ed39f",
+        "name": "anon:a69fb8166f14",
         "enabled": true,
         "state": "ready",
         "author": "anon:e4c93a1ab859",
@@ -4371,8 +4371,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
-        "name": "NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+        "path": "anon:ed63246e5ade",
+        "name": "anon:b6d2bde3f5ca",
         "enabled": true,
         "state": "ready",
         "author": "NVIDIA Corporation",
@@ -4389,8 +4389,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\StartCN",
-        "name": "StartCN",
+        "path": "anon:78549b7ab0e6",
+        "name": "anon:6d1880f9651c",
         "enabled": true,
         "state": "ready",
         "author": "Advanced Micro Devices",
@@ -4407,8 +4407,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\StartDVR",
-        "name": "StartDVR",
+        "path": "anon:a5650ec35432",
+        "name": "anon:5e0ff918e51b",
         "enabled": true,
         "state": "ready",
         "author": "Advanced Micro Devices",
@@ -7765,8 +7765,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:cca6beabe766\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:7009838f1197",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7783,8 +7783,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:a2fe9328c52f",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7801,8 +7801,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
-        "name": "SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
+        "path": "anon:3e34e657efe3",
+        "name": "anon:ba375a1cea12",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7819,8 +7819,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
-        "name": "SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
+        "path": "anon:574fa166b301",
+        "name": "anon:9647c0cae447",
         "enabled": false,
         "state": "disabled",
         "author": null,
@@ -7837,8 +7837,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9ec9fa350c22\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:471d45d67de0",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7855,8 +7855,8 @@
         "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:fe2a3f975474\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:aea02ffab3f9",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,

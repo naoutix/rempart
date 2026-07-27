@@ -156,14 +156,20 @@ if (-not $SkipPublish) {
                 if ($LASTEXITCODE -ne 0) { throw "rempart version a echoue" }
 
                 & .\rempart.exe scan | Out-Null
-                # 0 = success, 3 = insufficient rights — acceptable without elevation.
-                if ($LASTEXITCODE -notin @(0, 3)) { throw "rempart scan a echoue ($LASTEXITCODE)" }
+                # 0 = tout vu, 3 = un collecteur refuse, 5 = un controle non verifiable.
+                # Les trois sont acceptables ici : ce script controle que le binaire tourne
+                # sans dependance, pas la posture de la machine qui l'execute. Le 5 est le
+                # cas ORDINAIRE et non le cas de bord -- WIN-ENC-001 (BitLocker) revient
+                # non verifiable meme en console elevee quand la classe WMI est absente.
+                if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "rempart scan a echoue ($LASTEXITCODE)" }
 
                 & .\rempart.exe capture --out t.capture.json | Out-Null
                 if ($LASTEXITCODE -ne 0) { throw "rempart capture a echoue" }
 
                 & .\rempart.exe scan --from t.capture.json | Out-Null
-                if ($LASTEXITCODE -notin @(0, 3)) { throw "le rejeu a echoue ($LASTEXITCODE)" }
+                # Le rejeu relit la capture qui vient d'etre prise ici : il porte donc les
+                # memes controles non verifiables, et rend le meme code.
+                if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "le rejeu a echoue ($LASTEXITCODE)" }
 
                 Write-Host "scan, capture et rejeu fonctionnent sans dependance"
             }
