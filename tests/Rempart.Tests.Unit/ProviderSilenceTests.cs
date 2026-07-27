@@ -33,10 +33,28 @@ public class ProviderSilenceTests
         public DriverRead Enumerate() => DriverRead.Found([]);
     }
 
+    private sealed class DeniedPorts : IListeningPortProvider
+    {
+        public ListeningPortRead Enumerate() =>
+            ListeningPortRead.Failed("Les tables d'écoute n'ont rendu aucune ligne.");
+    }
+
+    /// <summary>
+    /// The IPv6 tables refused, the IPv4 ones answered. Four calls fail one at a time, so
+    /// « lecture ratée » and « rien à lire » are not the only two states.
+    /// </summary>
+    private sealed class PartiallyReadPorts(params ListeningPort[] ports) : IListeningPortProvider
+    {
+        public ListeningPortRead Enumerate() =>
+            ListeningPortRead.Partial(ports, "Table(s) sans réponse : TCP/IPv6, UDP/IPv6.");
+    }
+
     private static ProviderSet Providers(
-        IDriverProvider? drivers = null, IProcessProvider? processes = null) =>
+        IDriverProvider? drivers = null,
+        IProcessProvider? processes = null,
+        IListeningPortProvider? listeningPorts = null) =>
         new(new FakeRegistryProvider(), new FakeSystemInfoProvider(),
-            drivers: drivers, processes: processes);
+            drivers: drivers, processes: processes, listeningPorts: listeningPorts);
 
     [Fact]
     public void A_failed_driver_enumeration_is_reported_rather_than_read_as_no_drivers()
@@ -68,6 +86,57 @@ public class ProviderSilenceTests
             .Collect(Providers(drivers: new EmptyButSuccessfulDrivers()));
 
         Assert.Empty(findings);
+    }
+
+    /// <summary>
+    /// DET-PORTS-MUET, the fourth occurrence of this shape and the one the guard in
+    /// <c>ProviderStatusChannelTests</c> found before it did any harm.
+    ///
+    /// <para>
+    /// The asymmetry that settles it: <b>no machine that is switched on listens on zero
+    /// ports</b> — the RPC endpoint mapper, SMB, the local resolver — so an empty list here
+    /// cannot be an answer. It used to produce « aucun port en écoute », on the one surface
+    /// that says what the network can reach, which reads as good news.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_failed_port_enumeration_is_reported_rather_than_read_as_no_exposure()
+    {
+        var findings = new ListeningPortsCollector()
+            .Collect(Providers(listeningPorts: new DeniedPorts()));
+
+        var finding = Assert.Single(findings);
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Contains("aucune ligne", string.Join(" ", finding.Reasons));
+    }
+
+    /// <summary>
+    /// A partial read keeps what it read. Reporting the gap must not cost the endpoints
+    /// that were collected: answering with the finding alone would hide an exposed IPv4
+    /// service because the IPv6 table refused, which is the same silence one table over.
+    /// </summary>
+    [Fact]
+    public void A_partial_port_read_names_the_gap_without_dropping_what_it_saw()
+    {
+        var findings = new ListeningPortsCollector().Collect(Providers(
+            listeningPorts: new PartiallyReadPorts(
+                new ListeningPort("TCP", "0.0.0.0", 445, 4))));
+
+        Assert.Equal(2, findings.Count);
+        Assert.Contains(findings, f => f.Source == "ports en écoute");
+        Assert.Contains(findings, f => f.Source == "TCP 0.0.0.0:445");
+    }
+
+    [Fact]
+    public void An_absent_port_provider_is_a_coverage_gap_not_a_machine_without_services()
+    {
+        // No provider supplied at all — the default inside ProviderSet, which used to be an
+        // empty list. Same trap as the drivers below, on the network exposure surface.
+        var findings = new ListeningPortsCollector().Collect(Providers());
+
+        Assert.NotEmpty(findings);
+        Assert.All(findings, finding =>
+            Assert.NotEqual(FindingSeverity.Benign, finding.Severity));
     }
 
     [Theory]

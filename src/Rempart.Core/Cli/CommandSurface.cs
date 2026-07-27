@@ -89,14 +89,15 @@ public static class CommandSurface
             new("--format", OptionArity.Value),
         ], Positionals: 0),
 
-        // --report is a Value here and an OptionalValue on "scan": the same spelling, two
-        // readers, so "rempart diff --report --baseline b.json a.json" writes the
-        // comparison into a folder named "--baseline". Recorded as DET-ARITE-REPORT and
-        // frozen by a test — described here as it behaves, not as it should behave.
+        // --report is an OptionalValue here as it is on "scan". It was declared Value,
+        // faithfully describing a diff that read it with OptionValue: "rempart diff
+        // --report --baseline b.json a.json" then wrote the comparison into a folder named
+        // "--baseline". DET-ARITE-REPORT, closed — the same spelling now names the same
+        // reader on both commands.
         new("diff",
         [
             new("--baseline", OptionArity.Value),
-            new("--report", OptionArity.Value),
+            new("--report", OptionArity.OptionalValue),
         ], Positionals: 2),
 
         new("index",
@@ -113,10 +114,11 @@ public static class CommandSurface
             new("--analyze-store", OptionArity.Flag),
         ], Positionals: 0),
 
-        // The identifier is read at index 1 rather than through Positional, so
-        // "rempart explain --rules <dir> WIN-CRED-001" lists everything instead of
-        // explaining the rule. DET-EXPLAIN-POSITIONNEL; the count states what the command
-        // accepts, and the defect is that it only accepts it in one place.
+        // The identifier is read through Positional, so it is found wherever it sits among
+        // the options. It used to be read at index 1, which made
+        // "rempart explain --rules <dir> WIN-CRED-001" list the whole catalog instead of
+        // explaining the rule — DET-EXPLAIN-POSITIONNEL, closed, and held shut by
+        // Only_the_command_word_is_read_at_a_fixed_index.
         new("explain",
         [
             new("--rules", OptionArity.Value),

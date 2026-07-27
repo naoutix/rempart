@@ -30,11 +30,31 @@ public sealed class CommandSurfaceTests
     /// <summary>
     /// Every option any command reads, and the four readers it can read it with. Anchored
     /// on <c>args</c> so that a call built from a variable does not slip past unseen — the
-    /// count below is what makes that visible.
+    /// count below is what makes that visible. The reader is captured too: which of the
+    /// four is used is what the declared arity has to name, and reading it with the wrong
+    /// one is DET-ARITE-REPORT.
     /// </summary>
     private static readonly Regex OptionRead = new(
-        """(?:OptionValue|OptionalValue|OptionValues|HasFlag)\(args,\s*"(--[a-z0-9-]+)"\)""",
+        """(OptionValue|OptionalValue|OptionValues|HasFlag)\(args,\s*"(--[a-z0-9-]+)"\)""",
         RegexOptions.Compiled);
+
+    /// <summary>
+    /// A read at a fixed slot, and the slot. Only index 0 — the command word, which nothing
+    /// can precede — is a fact rather than an assumption.
+    /// </summary>
+    private static readonly Regex WordAtCall = new(
+        @"WordAt\(args,\s*(\d+)\)",
+        RegexOptions.Compiled);
+
+    /// <summary>The reader a command calls, and the arity that names it.</summary>
+    private static readonly Dictionary<string, OptionArity> ArityOfReader =
+        new(StringComparer.Ordinal)
+        {
+            ["HasFlag"] = OptionArity.Flag,
+            ["OptionValue"] = OptionArity.Value,
+            ["OptionalValue"] = OptionArity.OptionalValue,
+            ["OptionValues"] = OptionArity.RepeatableValue,
+        };
 
     /// <summary>The rows of the dispatch table: a quoted command word mapped to a class.</summary>
     private static readonly Regex TableRow = new(
@@ -90,7 +110,7 @@ public sealed class CommandSurfaceTests
     public void Every_option_the_CLI_reads_is_declared_in_the_surface()
     {
         var reads = CliSources()
-            .SelectMany(source => OptionRead.Matches(source).Select(m => m.Groups[1].Value))
+            .SelectMany(source => OptionRead.Matches(source).Select(m => m.Groups[2].Value))
             .ToList();
 
         // A call written as OptionValue(args, name) would match nothing and take this
@@ -152,9 +172,7 @@ public sealed class CommandSurfaceTests
     [Fact]
     public void Every_command_class_on_disk_is_wired_into_the_dispatch_table()
     {
-        var onDisk = Directory
-            .EnumerateFiles(Path.Combine(RepositoryRoot, "src", "Rempart.Cli", "Commands"),
-                "*Command.cs", SearchOption.TopDirectoryOnly)
+        var onDisk = CommandFiles()
             .Select(path => Path.GetFileNameWithoutExtension(path))
             .ToHashSet(StringComparer.Ordinal);
 
@@ -193,9 +211,7 @@ public sealed class CommandSurfaceTests
 
         var misattributed = new List<string>();
 
-        foreach (var path in Directory.EnumerateFiles(
-                     Path.Combine(RepositoryRoot, "src", "Rempart.Cli", "Commands"),
-                     "*Command.cs", SearchOption.TopDirectoryOnly))
+        foreach (var path in CommandFiles())
         {
             if (!byClass.TryGetValue(Path.GetFileNameWithoutExtension(path), out var command))
             {
@@ -207,7 +223,7 @@ public sealed class CommandSurfaceTests
                 .ToHashSet(StringComparer.Ordinal);
 
             misattributed.AddRange(OptionRead.Matches(File.ReadAllText(path))
-                .Select(m => m.Groups[1].Value)
+                .Select(m => m.Groups[2].Value)
                 .Where(option => !declared.Contains(option))
                 .Distinct(StringComparer.Ordinal)
                 .Select(option => $"{command} lit {option}"));
@@ -217,6 +233,152 @@ public sealed class CommandSurfaceTests
             "Une commande lit une option qui n'est pas déclarée pour elle : "
             + $"{Join(misattributed)}. ValueTaking rendra donc une liste incomplète, et "
             + "Positional prendra la valeur de cette option pour un argument.");
+    }
+
+    /// <summary>
+    /// The arity a command declares is the reader it actually calls — the guard the surface
+    /// was missing, and the one DET-ARITE-REPORT was.
+    ///
+    /// <para>
+    /// The global check above passes as long as an option is read by <em>one of</em> the
+    /// four readers, so <c>diff</c> could declare <c>--report</c> a <c>Value</c> and read it
+    /// with <c>OptionValue</c> while <c>scan</c> declared the same spelling an
+    /// <c>OptionalValue</c>: both green, both accurate, and
+    /// <c>rempart diff --report --baseline b.json a.json</c> wrote the comparison into a
+    /// folder named <c>--baseline</c>. An arity is not documentation — it is the promise
+    /// that <see cref="CommandLine.Positional"/> and the option's own reader draw the same
+    /// line between a value and a bare argument, and only the reader can keep it.
+    /// </para>
+    ///
+    /// <para>
+    /// <c>HasFlag</c> beside a value reader is not a contradiction but the <c>--report</c>
+    /// shape itself: presence decides whether to write anything, the value decides where.
+    /// The value reader is the one the arity has to name; <c>HasFlag</c> on its own means a
+    /// real flag. Two <em>different</em> value readers on one option is the ambiguity this
+    /// guard exists for, and is reported as such.
+    /// </para>
+    /// </summary>
+    /// <summary>
+    /// One spelling, one arity, everywhere it is declared — the guard the previous one
+    /// cannot stand in for.
+    ///
+    /// <para>
+    /// DET-ARITE-REPORT was never a command disagreeing with its own declaration; it was
+    /// two commands disagreeing with <em>each other</em> about the same word.
+    /// <c>--report</c> was read with <c>OptionalValue</c> on <c>scan</c> and with
+    /// <c>OptionValue</c> on <c>diff</c>, and both were internally consistent — so the
+    /// per-command check goes green on the defect as long as the surface is reverted
+    /// alongside the code. Proven: reverting <c>DiffCommand</c> and <c>CommandSurface</c>
+    /// together left the whole suite passing with the defect back in place.
+    /// </para>
+    ///
+    /// <para>
+    /// A reader typing <c>--report</c> should not have to remember which command they are
+    /// in to know whether the next token will be swallowed.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_option_spelled_the_same_way_carries_the_same_arity_everywhere()
+    {
+        var divergent = CommandSurface.All
+            .SelectMany(command => command.Options,
+                (command, option) => (Option: option.Name, option.Arity, Command: command.Name))
+            .GroupBy(entry => entry.Option, StringComparer.Ordinal)
+            .Where(spelling => spelling.Select(entry => entry.Arity).Distinct().Count() > 1)
+            .Select(spelling => $"{spelling.Key} — "
+                + Join(spelling.Select(entry => $"{entry.Command}:{entry.Arity}")))
+            .ToList();
+
+        Assert.True(divergent.Count == 0,
+            "La même option porte des arités différentes selon la commande : "
+            + $"{Join(divergent)}. Le token qui suit sera avalé ici et pas là, et personne "
+            + "n'a à retenir dans quelle commande il se trouve pour savoir laquelle.");
+    }
+
+    [Fact]
+    public void Every_option_a_command_reads_is_declared_with_the_reader_it_is_read_with()
+    {
+        var byClass = TableRow.Matches(Read("src/Rempart.Cli/CommandTable.cs"))
+            .ToDictionary(m => m.Groups[2].Value, m => m.Groups[1].Value, StringComparer.Ordinal);
+
+        var mismatched = new List<string>();
+
+        foreach (var path in CommandFiles())
+        {
+            if (!byClass.TryGetValue(Path.GetFileNameWithoutExtension(path), out var command))
+            {
+                continue;
+            }
+
+            var declared = (CommandSurface.Find(command)?.Options ?? [])
+                .ToDictionary(option => option.Name, option => option.Arity, StringComparer.Ordinal);
+
+            foreach (var option in OptionRead.Matches(File.ReadAllText(path))
+                         .GroupBy(m => m.Groups[2].Value, m => m.Groups[1].Value,
+                             StringComparer.Ordinal))
+            {
+                // An option read here but declared elsewhere — or not at all — is the other
+                // guard's finding, and reporting it twice would bury this one.
+                if (!declared.TryGetValue(option.Key, out var arity))
+                {
+                    continue;
+                }
+
+                var readers = option.Distinct(StringComparer.Ordinal).ToList();
+                var deciding = readers.Count > 1
+                    ? [.. readers.Where(reader => reader != "HasFlag")]
+                    : readers;
+
+                if (deciding.Count != 1 || ArityOfReader[deciding[0]] != arity)
+                {
+                    mismatched.Add($"{command} {option.Key} — lue par {Join(readers)}, "
+                        + $"déclarée {arity}");
+                }
+            }
+        }
+
+        Assert.True(mismatched.Count == 0,
+            "Une option est déclarée avec une arité que sa commande ne lit pas : "
+            + $"{Join(mismatched)}. L'arité nomme lequel des quatre lecteurs sert, et ces "
+            + "lecteurs sont en désaccord par construction — celui qui refuse une valeur "
+            + "commençant par un tiret et celui qui prend le jeton suivant quoi qu'il "
+            + "arrive. Positional suit l'arité déclarée, la commande suit son lecteur : "
+            + "quand les deux divergent, la valeur d'une option est comptée pour un "
+            + "argument, ou l'option suivante est prise pour une valeur.");
+    }
+
+    /// <summary>
+    /// <see cref="CommandLine.WordAt"/> is called once, on the command word.
+    ///
+    /// <para>
+    /// Index 0 is the one slot where a fixed index is a fact: no option can precede the
+    /// command word. Every other position is an assumption, and DET-EXPLAIN-POSITIONNEL was
+    /// that assumption — <c>explain</c> read its identifier at index 1, so
+    /// <c>rempart explain --rules ./mes-regles WIN-CRED-001</c> found <c>--rules</c> there
+    /// and listed the whole catalog instead of explaining the rule. Nothing failed: listing
+    /// is what an argument-less <c>explain</c> legitimately does, which is why the defect
+    /// survived to be catalogued rather than reported.
+    /// </para>
+    ///
+    /// <para>
+    /// Equality rather than a ceiling, and on the whole list rather than a count: a second
+    /// call at index 0 would be a second place deciding which command runs, and any call at
+    /// a non-zero index is the defect coming back. Both have to be a decision taken here.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Only_the_command_word_is_read_at_a_fixed_index()
+    {
+        var slots = CliSources()
+            .SelectMany(source => WordAtCall.Matches(source).Select(m => m.Groups[1].Value))
+            .ToList();
+
+        Assert.True(slots is ["0"],
+            $"WordAt est appelée sur les indices {Join(slots)}, attendu : le seul indice 0. "
+            + "Un argument lu à un indice fixe au-delà du mot de commande n'est pas vu "
+            + "quand une option le précède, et la commande se rabat en silence sur son "
+            + "comportement sans argument. Tout ce qui suit le mot de commande passe par "
+            + "Positional, qui sait qu'une option avale le jeton derrière elle.");
     }
 
     /// <summary>
@@ -418,6 +580,12 @@ public sealed class CommandSurfaceTests
                 segment => segment is "bin" or "obj"))
             .OrderBy(path => path, StringComparer.Ordinal)
             .Select(File.ReadAllText);
+
+    /// <summary>The one class per command, as ADR-005 laid them out.</summary>
+    private static IEnumerable<string> CommandFiles() =>
+        Directory.EnumerateFiles(
+            Path.Combine(RepositoryRoot, "src", "Rempart.Cli", "Commands"),
+            "*Command.cs", SearchOption.TopDirectoryOnly);
 
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(RepositoryRoot,

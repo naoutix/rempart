@@ -222,6 +222,8 @@ public static class CompromiseMarkers
             // what the collector stays quiet about.
             new ListeningPort("TCP", "127.0.0.1", 49669, 8321),
         ];
+        snapshot.ListeningPortsStatus = ReadStatus.Found;
+        snapshot.ListeningPortsDiagnostic = null;
 
         snapshot.Firewall = new FirewallState(
             Rules:

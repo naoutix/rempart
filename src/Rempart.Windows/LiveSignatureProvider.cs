@@ -16,6 +16,12 @@ namespace Rempart.Windows;
 /// A verification that cannot complete returns <see cref="SignatureStatus.Unknown"/>,
 /// never <c>Unsigned</c>: conflating "could not verify" with "not signed" would
 /// produce false alerts on the least auditable machines.
+///
+/// That promise used to stop at this file. The catalog lookup below answered <c>int?</c>
+/// and its <c>null</c> meant both "no catalog covers this file" and "the store could not
+/// be asked", so a locked file came back <c>Unsigned</c> — accused — through the very path
+/// this paragraph claimed to protect. <see cref="CatalogOutcome"/> separates the two
+/// (DET-CATALOGUE-MUET).
 /// </summary>
 public sealed partial class LiveSignatureProvider : ISignatureProvider
 {
@@ -77,7 +83,7 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
             // runs when the embedded check found nothing to judge.
             var catalog = AuthenticodeVerdict.HasNoEmbeddedSignature(embedded)
                 ? CatalogSignature.Verify(path)
-                : null;
+                : CatalogOutcome.NotAsked;
 
             // What the two numbers mean is decided in Core, where the Linux job can hold
             // it to account. This file keeps only what genuinely needs Windows.

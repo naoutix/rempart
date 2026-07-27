@@ -19,6 +19,13 @@ namespace Rempart.Windows;
 /// TCP uses the "listener" table class: Windows then returns only listening sockets,
 /// not established connections. UDP has no state — every open UDP socket "listens".
 /// </para>
+///
+/// <para>
+/// Four tables are read and the result carries a status beside the list
+/// (<see cref="ListeningPortRead"/>). Before DET-PORTS-MUET was closed, a table that
+/// refused simply contributed nothing and the scan concluded « aucun port en écoute » —
+/// indistinguishable from a machine exposing no service, which no running machine is.
+/// </para>
 /// </summary>
 public sealed partial class LiveListeningPortProvider : IListeningPortProvider
 {
@@ -45,18 +52,25 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
         IntPtr table, ref uint size, [MarshalAs(UnmanagedType.Bool)] bool order,
         uint af, int tableClass, uint reserved);
 
-    public IReadOnlyList<ListeningPort> Enumerate()
+    public ListeningPortRead Enumerate()
     {
         var ports = new List<ListeningPort>();
 
+        // Which of the four tables refused to answer. Named individually because they fail
+        // individually: a machine whose IPv6 stack is unbound still has an IPv4 table worth
+        // reading, and dropping it would replace one silence with another.
+        var refused = new List<string>();
+
         // MIB_TCPROW_OWNER_PID: state(0) localAddr(4) localPort(8) remoteAddr(12)
         // remotePort(16) owningPid(20) — 24 bytes.
-        ReadTable(ports, "TCP", rowSize: 24, portOffset: 8, addrOffset: 4, addrSize: 4, pidOffset: 20,
+        ReadTable(ports, refused, "TCP", "TCP/IPv4",
+            rowSize: 24, portOffset: 8, addrOffset: 4, addrSize: 4, pidOffset: 20,
             (IntPtr buffer, ref uint size) => GetExtendedTcpTable(buffer, ref size, false,
                 AfInet, TcpTableOwnerPidListener, 0));
 
         // MIB_UDPROW_OWNER_PID: localAddr(0) localPort(4) owningPid(8) — 12 bytes.
-        ReadTable(ports, "UDP", rowSize: 12, portOffset: 4, addrOffset: 0, addrSize: 4, pidOffset: 8,
+        ReadTable(ports, refused, "UDP", "UDP/IPv4",
+            rowSize: 12, portOffset: 4, addrOffset: 0, addrSize: 4, pidOffset: 8,
             (IntPtr buffer, ref uint size) => GetExtendedUdpTable(buffer, ref size, false,
                 AfInet, UdpTableOwnerPid, 0));
 
@@ -64,25 +78,54 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
         // id sits between the address and the port, which shifts every field after it.
         // MIB_TCP6ROW_OWNER_PID: localAddr(0,16) localScopeId(16) localPort(20)
         // remoteAddr(24,16) remoteScopeId(40) remotePort(44) state(48) owningPid(52) — 56.
-        ReadTable(ports, "TCP", rowSize: 56, portOffset: 20, addrOffset: 0, addrSize: 16, pidOffset: 52,
+        ReadTable(ports, refused, "TCP", "TCP/IPv6",
+            rowSize: 56, portOffset: 20, addrOffset: 0, addrSize: 16, pidOffset: 52,
             (IntPtr buffer, ref uint size) => GetExtendedTcpTable(buffer, ref size, false,
                 AfInet6, TcpTableOwnerPidListener, 0));
 
         // MIB_UDP6ROW_OWNER_PID: localAddr(0,16) localScopeId(16) localPort(20)
         // owningPid(24) — 28 bytes.
-        ReadTable(ports, "UDP", rowSize: 28, portOffset: 20, addrOffset: 0, addrSize: 16, pidOffset: 24,
+        ReadTable(ports, refused, "UDP", "UDP/IPv6",
+            rowSize: 28, portOffset: 20, addrOffset: 0, addrSize: 16, pidOffset: 24,
             (IntPtr buffer, ref uint size) => GetExtendedUdpTable(buffer, ref size, false,
                 AfInet6, UdpTableOwnerPid, 0));
 
-        return ports;
+        // Zero cannot be true. Every Windows machine answers on the RPC endpoint mapper
+        // (135) at the very least, so an empty result is a broken read — a P/Invoke whose
+        // size argument stopped travelling by ref once did exactly that — and never a
+        // machine with nothing exposed.
+        if (ports.Count == 0)
+        {
+            return ListeningPortRead.Failed(
+                "Aucun point d'écoute lu"
+                + (refused.Count > 0 ? $" ({string.Join(", ", refused)} sans réponse)" : string.Empty)
+                + ". Une machine allumée écoute au moins sur le mappeur de points de "
+                + "terminaison RPC : un service exposé au réseau resterait invisible.");
+        }
+
+        if (refused.Count > 0)
+        {
+            return ListeningPortRead.Partial(ports,
+                $"Table(s) de points d'écoute sans réponse : {string.Join(", ", refused)}. "
+                + "Un service exposé par ce protocole n'apparaît pas dans l'inventaire.");
+        }
+
+        return ListeningPortRead.Found(ports);
     }
 
     /// <summary>
     /// Every MIB table has the same shape: a four-byte entry count, then the rows.
     /// Only the row size and the field offsets differ between TCP and UDP.
+    ///
+    /// <para>
+    /// A table that answers with no row is not a refusal and is not recorded as one: an
+    /// empty table still needs its four-byte count, so Windows asks for 4 bytes and returns
+    /// <c>ERROR_INSUFFICIENT_BUFFER</c> like any other. Only a call that never got that far
+    /// lands in <paramref name="refused"/>.
+    /// </para>
     /// </summary>
     private static void ReadTable(
-        List<ListeningPort> ports, string protocol,
+        List<ListeningPort> ports, List<string> refused, string protocol, string table,
         int rowSize, int portOffset, int addrOffset, int addrSize, int pidOffset,
         TableCall call)
     {
@@ -91,6 +134,7 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
         // First call: the empty buffer is used to obtain the required size.
         if (call(IntPtr.Zero, ref size) != ErrorInsufficientBuffer || size == 0)
         {
+            refused.Add(table);
             return;
         }
 
@@ -99,6 +143,7 @@ public sealed partial class LiveListeningPortProvider : IListeningPortProvider
         {
             if (call(buffer, ref size) != 0)
             {
+                refused.Add(table);
                 return;
             }
 

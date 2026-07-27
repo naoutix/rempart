@@ -98,16 +98,18 @@ public static class CommandLine
 
     /// <summary>
     /// The word at a fixed slot, when it is a word and not an option — the command name at
-    /// 0, the rule identifier <c>explain</c> reads at 1.
+    /// index 0, and nothing else.
     ///
     /// <para>
-    /// Both sites open-coded the same test. Naming it does not make it right: reading a
-    /// positional argument at a fixed index means <c>rempart explain --rules d W-001</c>
-    /// finds no identifier and lists everything instead. That defect is frozen by
-    /// <c>CommandLineTests</c>, and tracked as DET-EXPLAIN-POSITIONNEL rather than fixed
-    /// here — it changes what an existing command line does, so it gets its own change.
-    /// Splitting the commands moved this call without touching it, deliberately: a pass
-    /// that proves it changed nothing cannot also change something.
+    /// Index 0 is the one slot where a fixed index is the right tool: no option can precede
+    /// the command word, so the position is a fact rather than an assumption.
+    /// <c>explain</c> used to read its identifier at index 1 the same way, and that was the
+    /// assumption — <c>rempart explain --rules d W-001</c> found <c>--rules</c> there, so it
+    /// listed the whole catalog instead of explaining the rule (DET-EXPLAIN-POSITIONNEL).
+    /// It goes through <see cref="Positional"/> now, which is what knows that an option
+    /// swallows the token behind it. Anything after the command word belongs to
+    /// <c>Positional</c>; a second <c>WordAt</c> call at a non-zero index would be that
+    /// defect coming back, and <c>CommandSurfaceTests</c> refuses one.
     /// </para>
     /// </summary>
     public static string? WordAt(string[] args, int index) =>

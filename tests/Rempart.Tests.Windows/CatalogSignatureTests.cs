@@ -81,14 +81,30 @@ public sealed class CatalogSignatureTests(ITestOutputHelper output)
             "Aucun des binaires système cherchés n'est présent : cette machine n'a pas la "
             + "disposition attendue, le contrôle ne peut rien conclure.");
 
-        var covered = present.Where(path => CatalogSignature.Verify(path) is not null).ToList();
+        var covered = present.Where(path => IsCovered(CatalogSignature.Verify(path))).ToList();
 
         Assert.True(covered.Count > 0,
             $"Le magasin de catalogues n'a répondu pour aucun des {present.Count} binaires "
             + "système présents. Ce n'est pas une machine sans catalogue — il n'en existe "
             + "pas — c'est le sous-système qui ne répond plus. Tout binaire signé par "
-            + "catalogue sera alors rendu « non signé », donc « suspect ».");
+            + "catalogue sera alors rendu « non vérifiable », donc invisible à l'audit : "
+            + string.Join(", ", present.Select(p => $"{p} → {CatalogSignature.Verify(p)}")));
     }
+
+    /// <summary>
+    /// A catalog was found and consulted — validated or refused. Both mean the store
+    /// answered about this file, which is what every probe below actually needs to know.
+    ///
+    /// <para>
+    /// This used to be written <c>Verify(path) is not null</c>, and that expression was
+    /// the defect DET-CATALOGUE-MUET named: <c>null</c> covered « no catalog references
+    /// this file » together with « the store could not be asked », so a probe could not
+    /// tell a quiet machine from a broken one, and neither could the audit — which turned
+    /// the second into a <c>Suspicious</c> finding.
+    /// </para>
+    /// </summary>
+    private static bool IsCovered(CatalogOutcome outcome) =>
+        outcome is CatalogOutcome.Verified or CatalogOutcome.Refused;
 
     /// <summary>
     /// The system binaries a catalog actually covers on this machine, or an empty list if
@@ -105,7 +121,7 @@ public sealed class CatalogSignatureTests(ITestOutputHelper output)
     private IReadOnlyList<string> Catalogued(string reason)
     {
         var present = SystemBinaries.Where(File.Exists).ToList();
-        var covered = present.Where(path => CatalogSignature.Verify(path) is not null).ToList();
+        var covered = present.Where(path => IsCovered(CatalogSignature.Verify(path))).ToList();
 
         if (covered.Count > 0)
         {
@@ -141,7 +157,8 @@ public sealed class CatalogSignatureTests(ITestOutputHelper output)
             return null;
         }
 
-        if (covered.FirstOrDefault(path => CatalogSignature.Verify(path) == 0) is { } valid)
+        if (covered.FirstOrDefault(path =>
+                CatalogSignature.Verify(path) == CatalogOutcome.Verified) is { } valid)
         {
             return valid;
         }
@@ -168,11 +185,10 @@ public sealed class CatalogSignatureTests(ITestOutputHelper output)
 
         var verdicts = covered.ToDictionary(path => path, CatalogSignature.Verify);
 
-        Assert.True(verdicts.Values.Any(hresult => hresult == 0),
+        Assert.True(verdicts.Values.Any(outcome => outcome == CatalogOutcome.Verified),
             "Aucun binaire système n'est validé par son catalogue, alors que le magasin "
-            + "répond. La chaîne hachage → catalogue → WinVerifyTrust rend un HRESULT et "
-            + "pas zéro : " + string.Join(", ", verdicts.Select(
-                v => $"{v.Key} → 0x{v.Value:X8}")));
+            + "répond. La chaîne hachage → catalogue → WinVerifyTrust ne rend pas zéro : "
+            + string.Join(", ", verdicts.Select(v => $"{v.Key} → {v.Value}")));
     }
 
     /// <summary>
@@ -196,7 +212,60 @@ public sealed class CatalogSignatureTests(ITestOutputHelper output)
 
         try
         {
-            Assert.Null(CatalogSignature.Verify(fabricated));
+            Assert.Equal(CatalogOutcome.NotCatalogued, CatalogSignature.Verify(fabricated));
+        }
+        finally
+        {
+            File.Delete(fabricated);
+        }
+    }
+
+    /// <summary>
+    /// The distinction DET-CATALOGUE-MUET was opened for, exercised on the real store:
+    /// <b>the same file, twice, differing only in whether it can be opened.</b>
+    ///
+    /// <para>
+    /// Closed, the answer is « aucun catalogue ne le référence », which the ladder is
+    /// entitled to turn into a <c>Suspicious</c> finding. Held open by another handle, the
+    /// hash cannot be computed and nothing was ever looked up — and until this batch both
+    /// produced the same <c>null</c>, so a driver locked by the process holding it came out
+    /// <c>Unsigned</c> and was accused. That is the wrong way round for an audit: a tool
+    /// that cannot look must say so, not blame the file it could not read.
+    /// </para>
+    ///
+    /// <para>
+    /// The lock is taken with <see cref="FileShare.None"/> by this very process, so the
+    /// failure is deterministic and needs no privilege, no unreadable system file, and no
+    /// degraded machine to reproduce.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_file_that_cannot_be_opened_is_unaskable_and_not_uncatalogued()
+    {
+        var fabricated = Path.Combine(Path.GetTempPath(), $"rempart-{Guid.NewGuid():N}.bin");
+        File.WriteAllBytes(fabricated, Guid.NewGuid().ToByteArray());
+
+        try
+        {
+            Assert.Equal(CatalogOutcome.NotCatalogued, CatalogSignature.Verify(fabricated));
+
+            using (File.Open(fabricated, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                Assert.Equal(CatalogOutcome.Unaskable, CatalogSignature.Verify(fabricated));
+            }
+
+            // And the whole ladder above it, which is where the difference is spent: the
+            // unreadable file is « non vérifiable », never « non signé ».
+            Assert.Equal(SignatureStatus.Unsigned,
+                AuthenticodeVerdict.Judge(
+                    unchecked((int)0x800B0100), CatalogSignature.Verify(fabricated)));
+
+            using (File.Open(fabricated, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                Assert.Equal(SignatureStatus.Unknown,
+                    AuthenticodeVerdict.Judge(
+                        unchecked((int)0x800B0100), CatalogSignature.Verify(fabricated)));
+            }
         }
         finally
         {
@@ -229,7 +298,7 @@ public sealed class CatalogSignatureTests(ITestOutputHelper output)
 
         try
         {
-            Assert.Equal(0, CatalogSignature.Verify(copy));
+            Assert.Equal(CatalogOutcome.Verified, CatalogSignature.Verify(copy));
         }
         finally
         {

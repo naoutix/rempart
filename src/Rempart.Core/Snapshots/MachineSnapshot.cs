@@ -90,6 +90,15 @@ public sealed class MachineSnapshot
     /// <summary>Network listening endpoints, or null if the snapshot predates their collection.</summary>
     public List<ListeningPort>? ListeningPorts { get; set; }
 
+    /// <summary>Whether the listening tables could be read. Same reasoning as
+    /// <see cref="DriversStatus"/>, and the same shape for the same reason: an object in
+    /// place of the <c>listeningPorts</c> array would make every existing capture
+    /// unreadable, including the real ones kept outside the repository.</summary>
+    public ReadStatus? ListeningPortsStatus { get; set; }
+
+    /// <summary>Which listening table could not be read, when one could not.</summary>
+    public string? ListeningPortsDiagnostic { get; set; }
+
     /// <summary>Firewall state, or null if the snapshot predates its collection.</summary>
     public FirewallState? Firewall { get; set; }
 

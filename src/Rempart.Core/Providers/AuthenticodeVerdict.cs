@@ -1,12 +1,12 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// Turns the two <c>WinVerifyTrust</c> results — the embedded one and the catalog one —
-/// into the status the rest of the tool reasons about.
+/// Turns the two <c>WinVerifyTrust</c> results — the embedded HRESULT and the catalog
+/// outcome — into the status the rest of the tool reasons about.
 ///
 /// <para>
-/// Pure, testable without Windows: the Windows layer does the interop and hands over two
-/// numbers. That split is the whole point. Verifying a signature is irreducibly
+/// Pure, testable without Windows: the Windows layer does the interop and hands over what
+/// it observed. That split is the whole point. Verifying a signature is irreducibly
 /// <c>wintrust.dll</c>, but <b>deciding what the answer means</b> is arithmetic on
 /// HRESULTs, and it is the half that decides a binary is sound — the half that had no
 /// test at all, on either side of the line, because it lived inside a
@@ -47,17 +47,30 @@ public static class AuthenticodeVerdict
         embedded is TrustNoSignature or TrustSubjectFormUnknown or TrustProviderUnknown;
 
     /// <summary>
+    /// What the HRESULT of a catalog's own <c>WinVerifyTrust</c> means, once a catalog
+    /// covering the file has been found.
+    ///
+    /// <para>
+    /// Success is the exact zero. An HRESULT is a bit field whose sign bit carries the
+    /// failure, so a test written as "not negative", or as "below some threshold", would
+    /// let a warning-level status through as a signature that held. Kept here rather than
+    /// at the call site because it is arithmetic on a number, and arithmetic is the half
+    /// of this check the Linux job can hold to account.
+    /// </para>
+    /// </summary>
+    public static CatalogOutcome FromCatalogHResult(int hresult) =>
+        hresult == Ok ? CatalogOutcome.Verified : CatalogOutcome.Refused;
+
+    /// <summary>
     /// The status a file gets, from the embedded HRESULT and the catalog outcome.
     /// </summary>
     /// <param name="embedded">What <c>WinVerifyTrust</c> said about the file itself.</param>
     /// <param name="catalog">
-    /// What the catalog lookup said: <c>0</c> for a catalog that covers and validates the
-    /// file, another HRESULT for one that covers it without validating, and <c>null</c>
-    /// for « no catalog references it ». Only consulted when
-    /// <see cref="HasNoEmbeddedSignature"/> holds, so the caller may pass <c>null</c>
-    /// whenever it did not run the lookup.
+    /// What the catalog lookup said. Only consulted when
+    /// <see cref="HasNoEmbeddedSignature"/> holds, so the caller may pass
+    /// <see cref="CatalogOutcome.NotAsked"/> whenever it did not run the lookup.
     /// </param>
-    public static SignatureStatus Judge(int embedded, int? catalog)
+    public static SignatureStatus Judge(int embedded, CatalogOutcome catalog)
     {
         if (embedded == Ok)
         {
@@ -73,22 +86,22 @@ public static class AuthenticodeVerdict
 
         return catalog switch
         {
-            Ok => SignatureStatus.Valid,
+            CatalogOutcome.Verified => SignatureStatus.Valid,
 
-            // No catalog references this file, so it is signed in no way at all.
-            //
-            // FROZEN, NOT ENDORSED — see DET-CATALOGUE-MUET. The Windows layer also
-            // returns null when the catalog API could not answer: a context it failed to
-            // acquire, a hash it could not compute, a file it could not open. Those are
-            // « could not verify », and they arrive here indistinguishable from « not
-            // signed », which SignatureLadder turns into a Suspicious finding. The
-            // conflation is older than this extraction and correcting it here would
-            // silently move verdicts on real machines; it is named and tested as it
-            // behaves, so that the fix is a decision rather than a side effect.
-            null => SignatureStatus.Unsigned,
+            // The store answered and no catalog references this file, so it is signed in
+            // no way at all. This is the only branch that may accuse.
+            CatalogOutcome.NotCatalogued => SignatureStatus.Unsigned,
 
             // A catalog covers it and refuses it.
-            _ => SignatureStatus.Invalid,
+            CatalogOutcome.Refused => SignatureStatus.Invalid,
+
+            // Unaskable, and NotAsked on a file that needed asking: nobody answered, so
+            // there is nothing to conclude. Until DET-CATALOGUE-MUET was closed these
+            // arrived as the same null as NotCatalogued and came out Unsigned, which
+            // SignatureLadder turns into a Suspicious finding — a driver the scan could
+            // not open was accused of being unsigned instead of reported as unverifiable,
+            // and that happened most on the machines that are hardest to audit.
+            _ => SignatureStatus.Unknown,
         };
     }
 
@@ -105,11 +118,12 @@ public static class AuthenticodeVerdict
     ///
     /// <para>
     /// The one case that looks inconsistent and is deliberate: a catalog-signed file
-    /// (<paramref name="catalog"/> is <c>0</c>) has no embedded certificate either, and
-    /// the read still happens. It yields null, harmlessly. Frozen as it stands rather than
-    /// tidied, because this extraction is meant to prove it changed nothing.
+    /// (<paramref name="catalog"/> is <see cref="CatalogOutcome.Verified"/>) has no
+    /// embedded certificate either, and the read still happens. It yields null,
+    /// harmlessly. Frozen as it stands rather than tidied, because the extraction that
+    /// brought this here was meant to prove it changed nothing.
     /// </para>
     /// </summary>
-    public static bool ReadsPublisher(int embedded, int? catalog) =>
-        !HasNoEmbeddedSignature(embedded) || catalog == Ok;
+    public static bool ReadsPublisher(int embedded, CatalogOutcome catalog) =>
+        !HasNoEmbeddedSignature(embedded) || catalog == CatalogOutcome.Verified;
 }

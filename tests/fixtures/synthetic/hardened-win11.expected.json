@@ -3611,6 +3611,16 @@
         "signature": "Valid",
         "sha256": "e434527aa58a9e0c071c3ea0c04b7fb5fc9d53f2117e24fb3cbb566169c1930b"
       }
+    },
+    {
+      "kind": "listening-port",
+      "source": "ports en \u00E9coute",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Points d\u0027\u00E9coute absents de l\u0027instantan\u00E9."
+      ],
+      "details": {}
     }
   ],
   "score": {

@@ -7,6 +7,73 @@ changed between releases.
 
 ## Unreleased
 
+### Two command lines now do what they read like
+
+The two defects the previous batches froze rather than fixed are closed. Both were held
+back for the same reason and released for it too: each changes what an existing command
+line does, so neither could ride along with a pass whose whole claim was that it changed
+nothing.
+
+- **`rempart diff --report --baseline b.json a.json` no longer files the comparison into a
+  folder named `--baseline`** (`DET-ARITE-REPORT`). `--report` was read by `OptionalValue`
+  on `scan` and by `OptionValue` on `diff` — one spelling, two readers, and the second
+  takes whatever follows it. `diff` now reads it the way `scan` always did, and the
+  declared arity follows the reader. Measured on the built binary: the three files moved
+  from `--baseline\` to the current folder, `--report ./sortie` still writes to `./sortie`,
+  and the comparison itself is byte-for-byte identical — `Positional` was never wrong, and
+  `--baseline b.json` was already naming the "before" report. The scope of the defect was
+  the output folder, not the choice of files.
+- **`rempart explain --rules <dir> WIN-CRED-001` explains the rule instead of listing the
+  catalog** (`DET-EXPLAIN-POSITIONNEL`). The identifier was read at index 1, where an
+  option had been written, so `explain` found none and did what an argument-less `explain`
+  legitimately does: list everything. Nothing failed, which is why it lasted. It goes
+  through `Positional` now — 110 lines of catalog became the 28 lines of the rule asked
+  for. `WordAt` is unchanged and still reads the command word at index 0, the one fixed
+  index that is a fact rather than an assumption: nothing can precede it.
+- **The guards now watch the cause, not the symptom** — and it took two attempts to find
+  the cause. Nothing related a declared arity to the reader a command actually calls, so a
+  guard was added comparing the two per command. Review then showed that guard goes green
+  on the very defect it was written for: reverting `DiffCommand` *and* the surface together
+  restores `--report` swallowing `--baseline`, both files internally consistent, whole suite
+  passing. The defect was never a command disagreeing with its own declaration — it was two
+  commands disagreeing with **each other** about the same word. A third guard now holds one
+  spelling to one arity everywhere, and reverting the pair reddens it.
+- A reader typing `--report` should not have to remember which command they are in to know
+  whether the next token gets swallowed.
+
+### An unreadable file is no longer accused, and zero exposed ports is no longer good news
+
+The two silences the previous batch found and deliberately froze are now closed. They are
+the same defect on opposite sides: one hid a breakdown, the other invented an accusation.
+
+- **A signature that could not be verified comes back "non vérifiable", never "non signé"**
+  (`DET-CATALOGUE-MUET`). The catalog lookup answered `int?` and its `null` meant two
+  different things — "no catalog references this file", which is an answer, and "the store
+  could not be asked", which is not: a context `wintrust` refused, a hash that would not
+  compute, a file another process held open. Both became `Unsigned`, and the ladder turns
+  `Unsigned` into a **`Suspicious`** finding. A driver locked by the process holding it was
+  therefore blamed for it, on precisely the machines that are hardest to audit, and under a
+  header comment promising the opposite. A named `CatalogOutcome` separates the four cases
+  and the two that mean "nobody answered" map to `Unknown`, which the ladder reports as a
+  stated gap. **Measured on this machine: 303 signatures, 0 verdicts moved** — a file that
+  opens fine goes down exactly the same path as before, so the change bites only where a
+  read actually fails.
+- **Listening ports gained a status channel** (`DET-PORTS-MUET`, fourth occurrence of
+  `DET-WMI-MUET`). `Enumerate` returned a bare list, so a failed read looked like a machine
+  exposing no service — and no machine that is switched on listens on zero ports: the RPC
+  endpoint mapper, SMB, the local resolver. The report nonetheless concluded "aucun port en
+  écoute", which reads as good news on the one surface that says what the network can
+  reach. The status is **beside** the list and never in its place: turning the
+  `listeningPorts` array into an object would have made every existing capture unreadable,
+  including the real ones kept outside the repository. A capture written before this change
+  replays as the success it was — verified on one, 54 endpoints, no finding invented.
+- **Four tables, four ways to fail.** IPv4 and IPv6, TCP and UDP are separate calls, so the
+  read also reports itself *partial*: the endpoints that were read stay in the report and
+  the silent table is named beside them. Dropping the IPv4 ports because the IPv6 table
+  refused would only have moved the silence one protocol over. A new Windows test refuses to
+  skip and pins the whole read as complete — asking one table with a wrong address family
+  leaves three of the four old tests green and reddens only that one.
+
 ### The anonymiser washes what identifies a machine, not just who owns it
 
 - **Hardware identity is now scrubbed** — manufacturer, model, family, mainboard, BIOS
@@ -106,10 +173,11 @@ changed between releases.
   real System32 files. The remaining interop is held by probed Windows tests, plus one that
   refuses to skip: no catalog covering any System32 binary is a dead subsystem, not a quiet
   machine, and it would turn every catalog-signed binary into "suspicious".
-- Two more silences found and frozen: `CatalogSignature` returns the same `null` for "no
-  catalog" and "could not ask", so an unreadable file is **accused** (`DET-CATALOGUE-MUET`);
+- Two more silences found and frozen: `CatalogSignature` returned the same `null` for "no
+  catalog" and "could not ask", so an unreadable file was **accused** (`DET-CATALOGUE-MUET`);
   and listening ports had no status channel (`DET-PORTS-MUET`) — the fourth occurrence of
-  DET-WMI-MUET, found by the new reflection guard *before* it did harm.
+  DET-WMI-MUET, found by the new reflection guard *before* it did harm. Both are closed in
+  this same Unreleased section, above.
 
 ### Fixed
 
@@ -126,7 +194,7 @@ changed between releases.
   and the helpers that touch the host sit in `CliHost`. Nothing changed in what the tool
   does: every command's output and exit code was captured before and after and compared —
   63 invocations, byte for byte identical, including the error paths.
-- **Ten guards watch the table**, all verified by mutation rather than merely green. Two of
+- **Thirteen guards watch the table**, all verified by mutation rather than merely green. Two of
   them exist only because review showed the first version compared the dispatch table to
   another hand-written list instead of to the command classes that actually exist —
   the same list, written twice, cannot check itself.
@@ -152,11 +220,13 @@ changed between releases.
   The summary states which figure it is: a workstation holding real captures in
   `tests/fixtures/local/` measures a different one, and the two are not comparable.
 
-Two real defects are still **frozen by tests rather than fixed**, each recorded in
-`docs/DEBT.md`: `rempart diff --report --baseline b.json a.json` writes into a folder named
-`--baseline` (DET-ARITE-REPORT), and `rempart explain --rules <dir> <ID>` lists everything
+Two real defects were **frozen by tests rather than fixed** in this batch, each recorded in
+`docs/DEBT.md`: `rempart diff --report --baseline b.json a.json` wrote into a folder named
+`--baseline` (DET-ARITE-REPORT), and `rempart explain --rules <dir> <ID>` listed everything
 instead of explaining the rule (DET-EXPLAIN-POSITIONNEL). Each changes what an existing
-command line does, so each gets its own change — as the exit code above did.
+command line does, so each got its own change — as the exit code above did. Both are closed
+in this same Unreleased section, at the top: the frozen assertions were inverted rather than
+deleted, so the fix is visible in a diff, which was the whole point of freezing them.
 
 ## 1.0.0-rc.1 — 2026-07-26
 

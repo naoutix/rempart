@@ -79,7 +79,14 @@ internal static class DiffCommand
 
         if (HasFlag(args, "--report"))
         {
-            var directory = OptionValue(args, "--report") ?? ".";
+            // OptionalValue, like "scan" reads the same option — not OptionValue, which
+            // takes whatever follows. On "rempart diff --report --baseline b.json a.json"
+            // it returned "--baseline", and the comparison was filed into a folder of that
+            // name while Positional, applying the no-dash rule, had already decided
+            // --report carried no value. Two readers, one spelling, two answers
+            // (DET-ARITE-REPORT). They now agree by construction: both refuse a value that
+            // starts with a dash, so the bare form falls back to the current folder.
+            var directory = OptionalValue(args, "--report") ?? ".";
 
             try
             {

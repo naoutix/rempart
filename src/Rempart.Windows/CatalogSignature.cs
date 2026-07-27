@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Rempart.Core.Providers;
 
 namespace Rempart.Windows;
 
@@ -99,17 +100,25 @@ internal static unsafe partial class CatalogSignature
 
     /// <summary>
     /// Checks whether the file is covered by a valid catalog.
+    ///
+    /// <para>
+    /// <b>Every early return names which of the two it is.</b> This method used to answer
+    /// <c>int?</c>, and <c>null</c> stood for « no catalog references this file » as well as
+    /// for every way the store could refuse to answer — the context not acquired, the hash
+    /// not computed, the file not opened. The judgement in Core turned that single null into
+    /// <c>Unsigned</c> and the ladder turned <c>Unsigned</c> into a <c>Suspicious</c>
+    /// finding, so a driver held open by another process was accused rather than reported
+    /// as unverifiable (DET-CATALOGUE-MUET). Only this method knows which happened, so this
+    /// is where the two are told apart.
+    /// </para>
     /// </summary>
-    /// <returns>
-    /// <c>0</c> if a valid catalog covers the file, an HRESULT otherwise, and
-    /// <c>null</c> if no catalog references it — in which case the file is simply
-    /// not signed this way.
-    /// </returns>
-    internal static int? Verify(string path)
+    internal static CatalogOutcome Verify(string path)
     {
         if (!AcquireContext(out var admin, IntPtr.Zero, "SHA256", IntPtr.Zero, 0))
         {
-            return null;
+            // Without a context nothing was ever looked up. Answering « not catalogued »
+            // here would report the whole machine as unsigned.
+            return CatalogOutcome.Unaskable;
         }
 
         try
@@ -122,21 +131,23 @@ internal static unsafe partial class CatalogSignature
             CalcHash(admin, handle, ref size, null, 0);
             if (size == 0)
             {
-                return null;
+                return CatalogOutcome.Unaskable;
             }
 
             var hash = new byte[size];
             if (!CalcHash(admin, handle, ref size, hash, 0))
             {
-                return null;
+                // No hash, no lookup key: the catalogs were never consulted.
+                return CatalogOutcome.Unaskable;
             }
 
             var catalog = EnumCatalogFromHash(admin, hash, size, 0, IntPtr.Zero);
             if (catalog == IntPtr.Zero)
             {
-                // No catalog covers this file: this is not a verification failure,
-                // the file just has no catalog signature.
-                return null;
+                // The store answered, and no catalog covers this file: this is not a
+                // verification failure, the file just has no catalog signature. The one
+                // outcome here that legitimately leads to an accusation.
+                return CatalogOutcome.NotCatalogued;
             }
 
             try
@@ -150,7 +161,9 @@ internal static unsafe partial class CatalogSignature
         }
         catch (Exception)
         {
-            return null;
+            // A file that could not be opened — locked, denied, gone between the two
+            // calls. Nothing was verified, and nothing is claimed.
+            return CatalogOutcome.Unaskable;
         }
         finally
         {
@@ -158,13 +171,15 @@ internal static unsafe partial class CatalogSignature
         }
     }
 
-    private static int? VerifyAgainstCatalog(
+    private static CatalogOutcome VerifyAgainstCatalog(
         IntPtr admin, IntPtr catalog, string path, byte[] hash)
     {
         var info = new CatalogInfo { StructSize = (uint)sizeof(CatalogInfo) };
         if (!CatalogInfoFromContext(catalog, ref info, 0))
         {
-            return null;
+            // A catalog was found and its path could not be read: the verification never
+            // ran, so this is a gap and not a refusal.
+            return CatalogOutcome.Unaskable;
         }
 
         // The buffer is a fixed array in the local struct: read it directly.
@@ -214,7 +229,9 @@ internal static unsafe partial class CatalogSignature
             data.StateAction = WtdStateActionClose;
             WinVerifyTrust(IntPtr.Zero, ref action, ref data);
 
-            return result;
+            // What the number means is decided in Core, where the Linux job compiles it:
+            // only the exact zero is a signature that held.
+            return AuthenticodeVerdict.FromCatalogHResult(result);
         }
         finally
         {

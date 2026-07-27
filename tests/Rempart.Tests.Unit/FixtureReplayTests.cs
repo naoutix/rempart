@@ -94,7 +94,12 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
 
         if (!File.Exists(expectedPath))
         {
-            File.WriteAllText(expectedPath, actual);
+            // Normalised on the way out, like the console and diff references beside it:
+            // the serialiser indents with the platform's newline, so a reference first
+            // written on this Windows workstation landed in CRLF while every existing one
+            // is LF. Git hides that — .gitattributes normalises on commit — so the whole
+            // file would have been rewritten with nothing to show for it in the diff.
+            File.WriteAllText(expectedPath, Normalise(actual));
             Assert.Fail(
                 $"Référence absente pour « {fixture} » : elle vient d'être écrite dans " +
                 $"{expectedPath}. Relire le contenu, puis le versionner.");
