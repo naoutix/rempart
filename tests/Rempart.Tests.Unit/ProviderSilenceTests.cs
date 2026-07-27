@@ -159,6 +159,122 @@ public class ProviderSilenceTests
         Assert.Equal(allInterfaces, port.IsAllInterfaces);
     }
 
+    private const string MachineShellFolders =
+        @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders";
+
+    private const string UserShellFolders =
+        @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders";
+
+    private const string CommonStartup =
+        @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup";
+
+    private const string UserStartup =
+        @"C:\Users\anon\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup";
+
+    private static IReadOnlyList<Finding> Autoruns(
+        FakeRegistryProvider registry, IFileSystemProvider files) =>
+        new AutorunsCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(),
+            signatures: new FakeSignatureProvider(), files: files));
+
+    /// <summary>
+    /// DET-FICHIERS-MUET, the fifth occurrence of this shape and the one the four before it
+    /// left standing.
+    ///
+    /// <para>
+    /// A startup folder the scan is refused used to return the same bare list as an empty
+    /// one, so the report said « aucun autorun » about the first place a persistence is
+    /// dropped. The refusal is now a finding of its own, naming the folder.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_startup_folder_is_reported_rather_than_read_as_no_autorun()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithText(MachineShellFolders, "Common Startup", CommonStartup);
+
+        var finding = Assert.Single(
+            Autoruns(registry, new FakeFileSystemProvider().WithDenied(CommonStartup)));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal(CommonStartup, finding.Source);
+        Assert.Contains("accès refusé", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+
+        // The kind decides how the finding is grouped and labelled — "[constats] 8 autorun"
+        // in the console, ReportLabels.Family in the HTML and the Markdown. Left
+        // unasserted, renaming it to anything at all kept the whole suite green while the
+        // report grew a family nobody named.
+        Assert.Equal("autorun", finding.Kind);
+
+        // The sentence the collector falls back to when the read carries no diagnostic of
+        // its own. A capture holding a status with no matching diagnostic — hand-edited, or
+        // written by some later provider — would otherwise print a NOTABLE whose reason
+        // line is blank, which is a finding that says nothing.
+        // The reason TEXT, not the reason list: a list holding one empty string is
+        // non-empty, and the console prints it as a blank arrow under the finding.
+        Assert.NotEmpty(Assert.Single(Assert.Single(
+            Autoruns(registry,
+                new FakeFileSystemProvider().WithDenied(CommonStartup, reason: null))).Reasons));
+    }
+
+    /// <summary>
+    /// The other half of the asymmetry, and the reason the fix is not « always warn ».
+    ///
+    /// <para>
+    /// <b>An empty startup folder is the ordinary state of most machines</b> — unlike zero
+    /// drivers or zero listening ports, which cannot be true of a running machine. Turning
+    /// this into a finding would put a Notable on nearly every scan, and a report nobody
+    /// finishes reading protects nothing. Two folders in one test because it is the
+    /// <em>difference</em> that is the invariant: asserting them apart would let someone
+    /// align them without failing anything.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_empty_or_absent_startup_folder_says_nothing_where_a_refused_one_speaks()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithText(MachineShellFolders, "Common Startup", CommonStartup)
+            .WithText(UserShellFolders, "Startup", UserStartup);
+
+        // Listed and empty on one side, not on disk at all on the other — the fake answers
+        // NotFound for a folder it was never told about. Neither is a hole in what the scan
+        // saw, so neither speaks.
+        var silent = Autoruns(registry, new FakeFileSystemProvider().With(CommonStartup));
+
+        Assert.Empty(silent);
+    }
+
+    /// <summary>
+    /// The partial case, and the answer to « faut-il un <c>Partial</c> comme les ports ? ».
+    ///
+    /// <para>
+    /// <c>ListFiles</c> takes the directory as an argument, so one call is one folder and a
+    /// read cannot come back half-done the way the four listening tables behind a single
+    /// <c>Enumerate</c> can. The partiality is real all the same, one level up: the machine
+    /// folder can be refused while the user folder answers. Dropping the executable found in
+    /// the readable one because the other refused would trade one silence for another —
+    /// exactly what <c>ListeningPortRead.Partial</c> exists to prevent, obtained here by the
+    /// collector adding the finding instead of returning it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_folder_does_not_cost_the_files_of_the_one_that_answered()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithText(MachineShellFolders, "Common Startup", CommonStartup)
+            .WithText(UserShellFolders, "Startup", UserStartup);
+
+        var files = new FakeFileSystemProvider()
+            .WithDenied(CommonStartup)
+            .With(UserStartup, $@"{UserStartup}\evil.exe");
+
+        var findings = Autoruns(registry, files);
+
+        Assert.Equal(2, findings.Count);
+        Assert.Contains(findings, f => f.Source == CommonStartup && f.Target == "—");
+        Assert.Contains(findings, f => f.Target == $@"{UserStartup}\evil.exe");
+    }
+
     [Fact]
     public void An_unreadable_browser_profile_is_named_rather_than_dropped()
     {

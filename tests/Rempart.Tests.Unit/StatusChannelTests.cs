@@ -143,6 +143,116 @@ public sealed class StatusChannelTests
         Assert.Equal(first.Diagnostic, second.Diagnostic);
     }
 
+    private const string Startup =
+        @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup";
+
+    /// <summary>
+    /// The same three-way reading on the fifth read, which is the only one keyed by an
+    /// argument (DET-FICHIERS-MUET). Three snapshot maps instead of three properties, so the
+    /// branch worth checking is that the status still travels with <em>its own</em> directory
+    /// rather than with the snapshot as a whole.
+    /// </summary>
+    [Fact]
+    public void A_refused_directory_replays_as_refused_and_not_as_an_empty_folder()
+    {
+        var snapshot = new MachineSnapshot
+        {
+            Directories = { [Startup] = [] },
+            DirectoriesStatus = { [Startup] = ReadStatus.AccessDenied },
+            DirectoriesDiagnostic = { [Startup] = "Dossier illisible : accès refusé." },
+        };
+
+        var read = new SnapshotFileSystemProvider(snapshot).ListFiles(Startup);
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Equal("Dossier illisible : accès refusé.", read.Diagnostic);
+        Assert.Empty(read.Files);
+    }
+
+    /// <summary>
+    /// The branch every capture taken before this batch sits in: a listing and no status.
+    /// Read as the success it was taken to be — <c>tests/fixtures/local/</c> holds exactly
+    /// this shape, and inventing a refusal for it would make a real capture report two
+    /// unreadable startup folders that were read perfectly well.
+    /// </summary>
+    [Fact]
+    public void A_directory_recorded_without_a_status_replays_as_the_success_it_was_taken_to_be()
+    {
+        var snapshot = new MachineSnapshot
+        {
+            Directories = { [Startup] = [$@"{Startup}\desktop.ini"] },
+        };
+
+        var read = new SnapshotFileSystemProvider(snapshot).ListFiles(Startup);
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.Equal($@"{Startup}\desktop.ini", Assert.Single(read.Files));
+    }
+
+    /// <summary>
+    /// A directory the capture holds nothing about. <c>AccessDenied</c> and not an empty
+    /// listing, for the reason the debt was opened over: the replay would otherwise conclude
+    /// « aucun autorun » about a folder this capture never walked. Not <c>NotFound</c>
+    /// either — that would claim the folder was missing from the machine, which is a fact the
+    /// capture never recorded.
+    /// </summary>
+    [Fact]
+    public void A_directory_absent_from_a_capture_is_not_a_directory_that_was_empty()
+    {
+        var read = new SnapshotFileSystemProvider(new MachineSnapshot()).ListFiles(Startup);
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Empty(read.Files);
+        Assert.Contains(Startup, read.Diagnostic ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The recording half, per directory. Two things at once, and both matter: the folder is
+    /// asked once (a scan walks the collectors twice, and a fixture that is not the same
+    /// twice is not a fixture), and the failure of one folder does not follow the other into
+    /// the capture — the maps are keyed, so a single status for the whole set would have to
+    /// lie about one of them.
+    /// </summary>
+    [Fact]
+    public void Recording_writes_one_status_per_directory_and_asks_each_one_once()
+    {
+        const string Other = @"C:\Users\anon\Startup";
+
+        var snapshot = new MachineSnapshot();
+        var source = new CountingFileSystemProvider(new Dictionary<string, DirectoryRead>
+        {
+            [Startup] = DirectoryRead.Failed("Accès refusé."),
+            [Other] = DirectoryRead.Found([$@"{Other}\app.lnk"]),
+        });
+        var recording = new RecordingFileSystemProvider(source, snapshot);
+
+        recording.ListFiles(Startup);
+        recording.ListFiles(Other);
+        var again = recording.ListFiles(Startup);
+
+        Assert.Equal(2, source.Calls);
+
+        Assert.Equal(ReadStatus.AccessDenied, snapshot.DirectoriesStatus[Startup]);
+        Assert.Equal("Accès refusé.", snapshot.DirectoriesDiagnostic[Startup]);
+        Assert.Empty(snapshot.Directories[Startup]);
+
+        Assert.Equal(ReadStatus.Found, snapshot.DirectoriesStatus[Other]);
+        Assert.DoesNotContain(Other, snapshot.DirectoriesDiagnostic.Keys);
+
+        // The listing itself, and not only the status beside it. A capture that wrote the
+        // status and dropped the files replays as « lu, et vide » — the very silence this
+        // channel was added to remove, one step further along. Found by mutation: removing
+        // this write broke nothing, because the recorded status alone was enough to stop the
+        // provider re-asking.
+        Assert.Equal($@"{Other}\app.lnk", Assert.Single(snapshot.Directories[Other]));
+
+        // The second ask rebuilds from the snapshot: the capture and the scan that produced
+        // it have to say the same thing.
+        Assert.Equal(ReadStatus.AccessDenied, again.Status);
+        Assert.Equal("Accès refusé.", again.Diagnostic);
+    }
+
     private sealed class CountingDriverProvider(DriverRead answer) : IDriverProvider
     {
         public int Calls { get; private set; }
@@ -151,6 +261,18 @@ public sealed class StatusChannelTests
         {
             Calls++;
             return answer;
+        }
+    }
+
+    private sealed class CountingFileSystemProvider(
+        Dictionary<string, DirectoryRead> answers) : IFileSystemProvider
+    {
+        public int Calls { get; private set; }
+
+        public DirectoryRead ListFiles(string directory)
+        {
+            Calls++;
+            return answers[directory];
         }
     }
 }

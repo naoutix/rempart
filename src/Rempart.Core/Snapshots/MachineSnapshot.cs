@@ -52,6 +52,30 @@ public sealed class MachineSnapshot
     public Dictionary<string, List<string>> Directories { get; set; } = [];
 
     /// <summary>
+    /// Whether each of those directories could be listed, or absent from this map on a
+    /// capture predating the field.
+    ///
+    /// <para>
+    /// Three parallel maps on the same key rather than a map of read objects, for the reason
+    /// <see cref="DriversStatus"/> gives and this repository has now re-taken four times:
+    /// turning a <c>directories</c> entry from a JSON array into an object would make every
+    /// existing capture unreadable, the real-machine ones kept outside the repository
+    /// included. A directory carrying a list and no status replays as the success it was
+    /// taken to be.
+    /// </para>
+    ///
+    /// <para>
+    /// Keyed per directory because the read is: <c>ListFiles</c> takes one, so the machine
+    /// startup folder can be refused while the user one answers, and a single status for the
+    /// whole map would have to lie about one of them.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, ReadStatus> DirectoriesStatus { get; set; } = [];
+
+    /// <summary>Why a directory could not be listed, for those that could not.</summary>
+    public Dictionary<string, string> DirectoriesDiagnostic { get; set; } = [];
+
+    /// <summary>
     /// Scheduled tasks, or null if the snapshot predates their collection. The null
     /// matters: it distinguishes "not yet captured" from "empty scheduler".
     /// </summary>

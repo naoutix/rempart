@@ -71,8 +71,12 @@ public sealed class ProviderSet(
     /// <summary>Absent, every signature stays undetermined — never "unsigned".</summary>
     public ISignatureProvider Signatures { get; } = signatures ?? UnavailableSignatures.Instance;
 
-    /// <summary>Absent, no directory is enumerated — no content is invented.</summary>
-    public IFileSystemProvider Files { get; } = files ?? EmptyFileSystem.Instance;
+    /// <summary>
+    /// Absent, every directory comes back « refusé » rather than empty: a startup folder
+    /// nobody enumerated is not a startup folder with nothing in it, and the report has to
+    /// say which of the two it is looking at.
+    /// </summary>
+    public IFileSystemProvider Files { get; } = files ?? UnavailableFileSystem.Instance;
 
     /// <summary>
     /// Absent, enumeration yields "denied" rather than "no tasks". Returning an
@@ -238,11 +242,16 @@ internal sealed class UnavailableScheduledTasks : IScheduledTaskProvider
         ScheduledTaskRead.Failed("Aucun énumérateur de tâches planifiées n'est disponible.");
 }
 
-internal sealed class EmptyFileSystem : IFileSystemProvider
+internal sealed class UnavailableFileSystem : IFileSystemProvider
 {
-    public static readonly EmptyFileSystem Instance = new();
+    public static readonly UnavailableFileSystem Instance = new();
 
-    public IReadOnlyList<string> ListFiles(string directory) => [];
+    // Denied, not empty: a scan wired without a file provider has looked at no startup
+    // folder at all, and answering [] made the autoruns collector conclude « aucun autorun »
+    // over a surface nobody had opened (DET-FICHIERS-MUET).
+    public DirectoryRead ListFiles(string directory) => DirectoryRead.Failed(
+        $"Aucun fournisseur de système de fichiers n'a été fourni à ce scan : le contenu de "
+        + $"« {directory} » n'a pas été regardé.");
 }
 
 internal sealed class UnavailableSignatures : ISignatureProvider

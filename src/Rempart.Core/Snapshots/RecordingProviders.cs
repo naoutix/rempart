@@ -170,21 +170,51 @@ public sealed class SnapshotSignatureProvider(MachineSnapshot snapshot) : ISigna
             : new FileSignature(SignatureStatus.Unknown);
 }
 
+// The fifth read to carry the status channel, and the only one keyed by an argument: the
+// three snapshot fields are three maps instead of three properties, but the reading of them
+// is the same three-way decision StatusChannel holds — which is exactly why it is reused
+// here rather than copied a fifth time (DET-FICHIERS-MUET, DET-RECPROV).
 public sealed class RecordingFileSystemProvider(
     IFileSystemProvider inner, MachineSnapshot snapshot) : IFileSystemProvider
 {
-    public IReadOnlyList<string> ListFiles(string directory)
-    {
-        var files = inner.ListFiles(directory);
-        snapshot.Directories[directory] = [.. files];
-        return files;
-    }
+    public DirectoryRead ListFiles(string directory) => StatusChannel.Record(
+        snapshot.DirectoriesStatus.TryGetValue(directory, out var status) ? status : null,
+        snapshot.Directories.TryGetValue(directory, out var files) ? files : null,
+        snapshot.DirectoriesDiagnostic.TryGetValue(directory, out var diagnostic)
+            ? diagnostic
+            : null,
+        () => inner.ListFiles(directory),
+        // The status is recorded alongside the listing: a capture taken on a folder the scan
+        // was refused must replay as « je n'ai pas pu regarder », not as a folder with
+        // nothing in it.
+        read =>
+        {
+            snapshot.Directories[directory] = [.. read.Files];
+            snapshot.DirectoriesStatus[directory] = read.Status;
+
+            if (read.Diagnostic is { } reason)
+            {
+                snapshot.DirectoriesDiagnostic[directory] = reason;
+            }
+        });
 }
 
 public sealed class SnapshotFileSystemProvider(MachineSnapshot snapshot) : IFileSystemProvider
 {
-    public IReadOnlyList<string> ListFiles(string directory) =>
-        snapshot.Directories.TryGetValue(directory, out var files) ? files : [];
+    public DirectoryRead ListFiles(string directory) => StatusChannel.Replay(
+        snapshot.DirectoriesStatus.TryGetValue(directory, out var status) ? status : null,
+        snapshot.Directories.TryGetValue(directory, out var files) ? files : null,
+        snapshot.DirectoriesDiagnostic.TryGetValue(directory, out var diagnostic)
+            ? diagnostic
+            : null,
+        // Never an empty list. A directory the capture holds nothing about is a directory
+        // this capture never walked — the key it recorded and the key being asked for differ
+        // — and answering [] would let the collector report « aucun autorun » over it. Not
+        // NotFound either: that would claim the folder was absent from the machine, which
+        // the capture never said.
+        () => DirectoryRead.Failed(
+            $"Dossier « {directory} » absent de l'instantané : cette capture n'a rien "
+            + "enregistré à ce chemin, son contenu n'est donc pas rejouable."));
 }
 
 public sealed class RecordingScheduledTaskProvider(
@@ -193,15 +223,15 @@ public sealed class RecordingScheduledTaskProvider(
     public ScheduledTaskRead Enumerate() => snapshot.ScheduledTasks ??= inner.Enumerate();
 }
 
-// The four status-carrying reads below share their whole capture path — the three-way
-// reading of a snapshot, and the "already recorded means already read" of the recording
-// side. Both live in StatusChannel, written once. What stays here, one pair at a time, is
-// what genuinely differs: the three snapshot fields the read is stored in (they cannot be
-// named generically — they are separate properties because the JSON shape says so), and the
-// answer to "this capture never collected this surface", which is a judgement rather than a
-// shape. Zero driver cannot be true of a running machine; zero browser extension is
-// ordinary. Phase 2 settled that asymmetry and it is the one thing a generalisation here
-// must not flatten.
+// The four status-carrying reads below — five with the directory pair above — share their
+// whole capture path: the three-way reading of a snapshot, and the "already recorded means
+// already read" of the recording side. Both live in StatusChannel, written once. What stays
+// here, one pair at a time, is what genuinely differs: the three snapshot fields the read is
+// stored in (they cannot be named generically — they are separate properties because the
+// JSON shape says so), and the answer to "this capture never collected this surface", which
+// is a judgement rather than a shape. Zero driver cannot be true of a running machine; zero
+// browser extension is ordinary. Phase 2 settled that asymmetry and it is the one thing a
+// generalisation here must not flatten.
 
 public sealed class RecordingDriverProvider(
     IDriverProvider inner, MachineSnapshot snapshot) : IDriverProvider

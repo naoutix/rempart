@@ -10,6 +10,47 @@ namespace Rempart.Tests.Unit;
 /// </summary>
 public sealed class AnonymiserTests
 {
+    /// <summary>
+    /// The account name's newest way out of a capture, opened by DET-FICHIERS-MUET.
+    ///
+    /// <para>
+    /// A refused directory now records a sentence beside its listing, and that sentence
+    /// <em>quotes the directory</em> so the report can say which folder went unseen. The
+    /// startup folder of a user is <c>C:\Users\&lt;compte&gt;\AppData\…</c>, so the
+    /// diagnostic carries the account name into a field the anonymiser had never had to
+    /// look at. Scrubbing the keys of the three maps and forgetting their values would leave
+    /// the name in a capture that calls itself anonymised — and the map keys would still
+    /// look perfectly clean.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_reason_a_directory_could_not_be_read_is_scrubbed_like_the_directory()
+    {
+        const string Startup =
+            @"C:\Users\leoar\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup";
+
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default,
+            Directories = { [Startup] = [] },
+            DirectoriesStatus = { [Startup] = ReadStatus.AccessDenied },
+            DirectoriesDiagnostic =
+            {
+                [Startup] = $"Dossier « {Startup} » illisible : accès refusé.",
+            },
+        };
+
+        var result = Anonymiser.Apply(snapshot);
+
+        Assert.DoesNotContain("leoar", RempartJson.Serialise(result), StringComparison.Ordinal);
+
+        // And the three maps still agree on the key, or the status stops describing the
+        // listing it was written beside.
+        var scrubbed = Assert.Single(result.Directories.Keys);
+        Assert.Equal(ReadStatus.AccessDenied, result.DirectoriesStatus[scrubbed]);
+        Assert.Contains(scrubbed, result.DirectoriesDiagnostic[scrubbed], StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Firewall_rule_application_paths_are_scrubbed()
     {

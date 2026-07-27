@@ -59,7 +59,30 @@ public sealed class AutorunsCollector : IFindingCollector
 
         foreach (var folder in StartupFolders(providers.Registry))
         {
-            foreach (var file in providers.Files.ListFiles(folder))
+            var read = providers.Files.ListFiles(folder);
+
+            // AccessDenied, and not "anything other than Found" as the four sibling
+            // collectors test: here a third state is a genuine answer. A startup folder that
+            // is not on disk (NotFound) runs nothing, and most machines have one missing —
+            // reporting it would put a Notable on nearly every scan, which is how a report
+            // stops being read. An empty folder that WAS listed is the same: an answer.
+            // Only a refusal is a hole in what the scan saw.
+            if (read.Status == ReadStatus.AccessDenied)
+            {
+                // Added, not returned: the loop continues so a refused machine folder does
+                // not cost the files of the user folder that answered. Same shape as the
+                // partial port read, one level up — see DirectoryRead on why the shape is
+                // here rather than in the read.
+                findings.Add(new Finding(
+                    "autorun", folder, "—",
+                    FindingSeverity.Notable,
+                    [read.Diagnostic ?? "Contenu du dossier de démarrage illisible. Un "
+                        + "programme déposé là s'exécuterait à l'ouverture de session sans "
+                        + "apparaître ici."],
+                    new Dictionary<string, string>()));
+            }
+
+            foreach (var file in read.Files)
             {
                 if (IsIgnored(file))
                 {

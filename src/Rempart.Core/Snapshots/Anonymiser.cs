@@ -131,6 +131,18 @@ public static class Anonymiser
             entry => ScrubProfile(entry.Key),
             entry => entry.Value.Select(ScrubProfile).ToList());
 
+        // The three maps are keyed by the same path, so they are scrubbed the same way or
+        // the status stops matching its listing. The diagnostic is scrubbed as a *value*
+        // too, and that is the load-bearing half: it quotes the directory it failed on, so
+        // an unscrubbed one would put « C:\Users\<compte>\... » back into a capture that
+        // calls itself anonymised — through the one field the account name had no way in
+        // before.
+        snapshot.DirectoriesStatus = snapshot.DirectoriesStatus.ToDictionary(
+            entry => ScrubProfile(entry.Key), entry => entry.Value);
+
+        snapshot.DirectoriesDiagnostic = snapshot.DirectoriesDiagnostic.ToDictionary(
+            entry => ScrubProfile(entry.Key), entry => ScrubProfile(entry.Value));
+
         if (snapshot.SystemInfo is { } info)
         {
             snapshot.SystemInfo = info with { MachineName = Hash(info.MachineName) };

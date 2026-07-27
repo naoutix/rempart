@@ -1,3 +1,4 @@
+using Rempart.Core.Providers;
 using Rempart.Windows;
 using Xunit.Abstractions;
 
@@ -7,7 +8,7 @@ namespace Rempart.Tests.Windows;
 /// The directory listing the autoruns collector walks.
 ///
 /// <para>
-/// The smallest provider in the layer — twelve lines around <c>Directory.GetFiles</c> — and
+/// The smallest provider in the layer — a dozen lines around <c>Directory.GetFiles</c> — and
 /// the one whose contract matters most to a collector that judges what it finds. It feeds the
 /// startup folders to the signature check, so what comes back has to be something the
 /// signature check can open: full paths, not bare names. A listing of names would make every
@@ -20,6 +21,8 @@ namespace Rempart.Tests.Windows;
 /// does not already define — and nothing that could behave differently under Native AOT:
 /// <c>Directory.GetFiles</c> is managed code with no interop and no reflection. What is worth
 /// pinning is the <em>shape of what it returns</em>, and that only a real filesystem can say.
+/// That shape is now three states rather than a list (DET-FICHIERS-MUET), and the three are
+/// what these tests separate.
 /// </para>
 /// </summary>
 public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
@@ -35,14 +38,16 @@ public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
     public void A_real_directory_yields_paths_that_open()
     {
         var directory = Environment.SystemDirectory;
-        var listed = files.ListFiles(directory);
+        var read = files.ListFiles(directory);
 
-        Assert.NotEmpty(listed);
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.NotEmpty(read.Files);
 
         // Full paths, not names. This is the property the autoruns collector depends on and
         // the one a rewrite would most plausibly break, since GetFiles returns names when
         // handed a relative directory.
-        var relative = listed.Where(path => !Path.IsPathRooted(path)).Take(3).ToList();
+        var relative = read.Files.Where(path => !Path.IsPathRooted(path)).Take(3).ToList();
         Assert.True(relative.Count == 0,
             $"Chemin(s) non absolu(s) rendus pour {directory} : {string.Join(", ", relative)}. "
             + "La vérification de signature ne les ouvrirait pas, et chaque élément de "
@@ -50,31 +55,43 @@ public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
 
         // And they designate files that exist: a listing nobody can open is a listing of
         // nothing, whatever its length.
-        Assert.Contains(listed, path =>
+        Assert.Contains(read.Files, path =>
             path.EndsWith(@"\kernel32.dll", StringComparison.OrdinalIgnoreCase));
-        Assert.All(listed.Take(20), path => Assert.True(File.Exists(path), path));
+        Assert.All(read.Files.Take(20), path => Assert.True(File.Exists(path), path));
     }
 
     /// <summary>
     /// A folder that is not there is not an error: the scan walks a fixed list of startup
     /// locations and most machines have several of them missing.
-    /// </summary>
-    [Fact]
-    public void A_directory_that_does_not_exist_yields_nothing_rather_than_an_exception() =>
-        Assert.Empty(files.ListFiles(@"C:\Rempart-ce-dossier-n-existe-pas-42"));
-
-    /// <summary>
-    /// The documented degradation, and the silence it leaves behind — pinned rather than
-    /// praised.
     ///
     /// <para>
-    /// A refused directory comes back as an empty list, exactly like an empty one. On this
-    /// surface that is the DET-*-MUET shape phase 2 spent itself removing elsewhere: a
-    /// startup folder the scan could not read is reported as a startup folder with nothing in
-    /// it, and « aucun autorun » reads like good news. It is left as it is here because
-    /// changing it means giving <c>IFileSystemProvider</c> a status channel, which changes
-    /// what a snapshot stores — a decision of its own, not a side effect of a test. What this
-    /// test buys is that the behaviour is a decision somebody took and can be found again.
+    /// <c>NotFound</c> and not <c>Found</c> with an empty list, and the distinction is the
+    /// whole reason this state exists: « j'ai listé ce dossier, il était vide » is a claim,
+    /// and about a folder that is not on disk the scan never made it. It stays silent all the
+    /// same — the collector reports refusals, not absences.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_directory_that_does_not_exist_is_absent_rather_than_empty()
+    {
+        var read = files.ListFiles(@"C:\Rempart-ce-dossier-n-existe-pas-42");
+
+        Assert.Equal(ReadStatus.NotFound, read.Status);
+        Assert.Empty(read.Files);
+    }
+
+    /// <summary>
+    /// The silence this provider used to leave behind, now removed — DET-FICHIERS-MUET, the
+    /// fifth occurrence of the DET-*-MUET shape and the last one phase 2 had left open.
+    ///
+    /// <para>
+    /// A refused directory used to come back as an empty list, exactly like an empty one, so
+    /// a startup folder the scan could not read was reported as a startup folder with nothing
+    /// in it and « aucun autorun » read like good news. The previous version of this test was
+    /// named <c>A_directory_the_scan_may_not_read_yields_nothing_and_says_nothing</c> and
+    /// froze that behaviour on purpose, on the grounds that fixing it changed what a snapshot
+    /// stores. It now does: the status sits beside the listing, and this test asserts the
+    /// opposite of what its predecessor did.
     /// </para>
     ///
     /// <para>
@@ -84,7 +101,7 @@ public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
     /// </para>
     /// </summary>
     [Fact]
-    public void A_directory_the_scan_may_not_read_yields_nothing_and_says_nothing()
+    public void A_directory_the_scan_may_not_read_says_so_instead_of_looking_empty()
     {
         const string Denied = @"C:\System Volume Information";
 
@@ -107,6 +124,19 @@ public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
             // Denied, as expected: the provider must swallow this rather than propagate it.
         }
 
-        Assert.Empty(files.ListFiles(Denied));
+        var read = files.ListFiles(Denied);
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Empty(read.Files);
+
+        // The diagnostic names the folder, because the collector walks several of them and
+        // « accès refusé » without a path says nothing about which surface went unseen.
+        Assert.NotNull(read.Diagnostic);
+        Assert.Contains(Denied, read.Diagnostic, StringComparison.Ordinal);
+
+        // And it is the category of the failure, not the BCL's own localised sentence: that
+        // string would differ between a French and an English install and land, character
+        // for character, inside a capture.
+        Assert.Contains("accès refusé", read.Diagnostic, StringComparison.Ordinal);
     }
 }

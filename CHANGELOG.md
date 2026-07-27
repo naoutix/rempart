@@ -7,6 +7,51 @@ changed between releases.
 
 ## Unreleased
 
+### A startup folder the scan could not open no longer reports as an empty one
+
+The fifth and last occurrence of the shape phase 2 closed four times — mute drivers and
+processes, mute browser profiles, mute listening tables, mute catalog. It was found while
+writing the `LiveFileSystemProvider` tests and left standing on purpose, because fixing it
+changes what a snapshot stores and that is a decision, not the side effect of a test batch.
+
+- **`IFileSystemProvider.ListFiles` gained a status channel** (`DET-FICHIERS-MUET`). It
+  returned a bare list, so a startup folder the scan was **refused** came back exactly like
+  an **empty** one and the report concluded « aucun autorun » about the first place a
+  persistence is dropped. The refusal is now a `Notable` finding naming the folder, the way
+  the four sibling collectors already name theirs.
+- **Three states, because three facts exist.** A listed folder that is empty stays silent —
+  an empty startup folder is the ordinary state of most machines, unlike zero drivers or
+  zero listening ports, which cannot be true of a running one. A folder that is not on disk
+  stays silent too, but is recorded as its own state rather than as an empty listing: « I
+  listed this folder and it was empty » is a claim, and about a folder that is not there the
+  scan never made it. Only a refusal speaks. The collector therefore tests for
+  `AccessDenied` where its four siblings test for "anything but `Found`", and the deviation
+  is commented where it sits — testing "anything but `Found`" here would put a finding on
+  nearly every scan.
+- **No `Partial` factory, unlike the port read, and the difference is the argument.** A port
+  `Enumerate` spans four tables behind one call and can come back half-read. `ListFiles`
+  takes the directory as a parameter: one call is one directory, and `Directory.GetFiles`
+  either returns the whole listing or throws. The partiality is real all the same, one level
+  up — a refused machine folder must not cost the files of the user folder that answered —
+  so the collector adds its finding instead of returning it, and a test pins exactly that.
+- **The status sits beside the listing, never in its place.** Two maps keyed like
+  `directories` itself, so the JSON stays an array of paths: turning it into an object would
+  have made every existing capture unreadable, the real ones kept outside the repository
+  included. Keyed per directory because the read is — the machine folder can be refused
+  while the user folder answers, and one status for the whole map would have to lie about
+  one of them. A capture written before this change replays as the success it was.
+- **A leak closed on the way past.** The diagnostic quotes the directory it failed on, so a
+  user's startup folder writes an account name into it. The anonymiser now scrubs that
+  **value** and not only the map keys; without it a capture calling itself anonymised would
+  have carried the name out through the one field it had never had a way into.
+- **The four versioned fixtures and their twelve references did not move a byte**, checked
+  rather than hoped: the synthetic captures record no enumerated registry key for
+  `Shell Folders`, so no startup folder is resolved and `ListFiles` is never called on them.
+- Verified on the published AOT binary: a real capture carries both new fields, and the same
+  capture with one folder marked refused prints a `NOTABLE` naming it where it used to print
+  nothing at all.
+
+
 ### Two command lines now do what they read like
 
 The two defects the previous batches froze rather than fixed are closed. Both were held
