@@ -102,6 +102,16 @@ Les éléments suivants ne peuvent être ciblés par aucun profil YAML, même pa
 Un test de propriété en CI parcourt tous les profils livrés et échoue si l'un d'eux
 cible un élément protégé.
 
+> **Où cette garantie vit réellement, au 2026-07-27.** Il n'existe pas encore de profil : la
+> v1 est en lecture seule (D2) et la remédiation est renvoyée à M9. Le test de propriété
+> porte donc sur les **règles**, par leur champ de remédiation —
+> `ShippedRulesTests.No_rule_targets_a_protected_component`, qui appelle
+> `ProtectedComponents.FindViolations`. Il couvre plus que ce que D7 demandait :
+> `ExternalRulesTests.External_rules_are_held_to_the_protected_component_list` tient la même
+> liste noire sur les règles reçues par le canal signé d'[ADR-002](ADR-002-mise-a-jour-des-donnees.md),
+> c'est-à-dire sur des règles qui ne sont pas livrées avec le binaire. Le jour où un profil
+> existera, il devra entrer dans le même garde.
+
 ### D8 — Pas de nettoyage de registre
 
 Microsoft ne le supporte pas et le déconseille. Le registre ne se dégrade pas de façon

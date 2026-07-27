@@ -38,8 +38,9 @@ violation caused a real bug.
   (`IRegistryProvider`, `IServiceStateProvider`, `IWmiProvider`, …). This is what
   makes a scan replayable offline, and therefore testable without a Windows VM.
 - **`Unknown` is never `Fail`.** A check that could not be read is excluded from
-  the score, and a fully unreadable domain scores `n/a`, not zero. "Could not
-  verify" and "verified bad" call for different actions.
+  the score, and a fully unreadable domain scores `n/d` — *non déterminé*, the report
+  language is French — never zero. "Could not verify" and "verified bad" call for
+  different actions, and the exit code says so too: `5` for the first, not `1`.
 - **Never translate a failure into "access denied".** A catch-all handler once
   converted a WMI interop bug into what looked like missing privileges; WMI was
   silently broken in the published binary for two milestones. Failures must

@@ -21,6 +21,10 @@ Le fichier mélange trois responsabilités :
 | Rendu console | ~420 l. | `WriteHumanReadable`, `WritePosture`, `WriteFindings`, `WriteDiff`, `DescribeStatus` |
 | Arguments et chemins | ~60 l. | `OptionValue`, `RulesDirectory`, `StoreDirectory`, `BaselinePath` |
 
+> Correction de comptage, faite après coup et sans toucher au relevé : le `switch` portait
+> **16** bras nommés à cette date (`scan` … `version`), plus le repli vers l'aide. La ligne
+> ci-dessus en annonce 15. Les volumes en lignes, eux, sont exacts.
+
 **Le fait qui décide de tout le reste : cette couche n'a aucun test.** Les 534 tests
 unitaires et 56 tests Windows n'en touchent pas une ligne. La CI se contente de vérifier
 des codes de sortie (`rempart version`, `rempart scan`, `diagnose-wmi`, `diagnose-tasks`).
@@ -110,6 +114,13 @@ src/Rempart.Core/Cli/
   CommandLine.cs          parsing d'arguments, pur
   ExitCodes.cs            le contrat de sortie, pur
 ```
+
+> **Ce que le découpage a fait de ce croquis, pour qui vient y chercher un fichier.** La
+> table n'est pas restée dans `Program.cs` : elle vit dans `src/Rempart.Cli/CommandTable.cs`,
+> et `Program.cs` est descendu bien plus bas que les ~80 lignes prévues — **29 lignes non
+> vides** : l'encodage console, un appel à la table, le `try/catch`. Les auxiliaires liés à
+> l'hôte sont dans `src/Rempart.Cli/CliHost.cs`, et `Rempart.Core/Cli/` a gagné un troisième
+> fichier, `CommandSurface.cs`, qui n'était pas prévu ici. Voir l'action 5.
 
 **Le rendu va dans Core, pas dans le CLI** — corrigé après coup, le premier jet le plaçait
 sous `Rempart.Cli/Rendering/`. `Rempart.Cli` cible `net10.0-windows` : un test golden qui y
@@ -281,6 +292,14 @@ l'interop.
    > lisant *autour* du code n'est pas une cotation faite en l'ouvrant.
 7. [x] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette. Onze fermées le
        2026-07-27 ; les cinq qui restent attendent des machines ou une décision, pas du code.
+
+> **État des chiffres au 2026-07-27, phase 3 close.** Les nombres des actions 4 et 5
+> décrivent ce que leur PR a livré, et restent tels quels : les réécrire effacerait le point
+> de comparaison. Ce que le code porte aujourd'hui a bougé du fait de lots ultérieurs —
+> `ExitCodes` porte **6** codes et non 5 (le 5, « audit partiel », vient de
+> `DET-SORTIE-PARTIELLE`), `Commands/` porte **19** classes et non 17 (`diagnose-drivers` et
+> `diagnose-processes`, action 6), `CommandSurface` porte **48** paires et non 47
+> (`synthesise --compromised`), et `CommandSurfaceTests` porte **13** gardes et non 10.
 
 **Faisable avant M9, pas pendant.** Aucune de ces trois PR ne devrait être ouverte en même
 temps qu'un lot fonctionnel : elles touchent le point de passage de toutes les commandes.
