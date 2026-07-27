@@ -17,6 +17,11 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 | Dépendances de production | **une seule** — YamlDotNet 18.1.0 |
 | `catch` vides | 3, tous `JsonException` dans les parseurs d'extensions (voir DET-EXT-MUET) |
 
+**Relevé au 2026-07-27**, après les phases 1 et 2 et les deux premières tranches de la
+phase 3 : production **15 364 lignes** (Core 10 906, Windows 2 780, CLI 1 678), **538 tests
+unitaires** et 56 Windows. Le tableau ci-dessus reste tel que mesuré le 2026-07-26 : c'est
+la photo qui a servi à prioriser, et la réécrire effacerait le point de comparaison.
+
 **Ce qui est sain, et mérite d'être dit.** Aucun marqueur de dette laissé dans le code :
 elle est écrite en prose là où elle se trouve, et rassemblée ici. Une seule dépendance de
 production sur un outil de sécurité, ce qui réduit d'autant la surface d'attaque de chaîne
@@ -59,7 +64,7 @@ Classé par priorité décroissante.
 | DET-DIRTY | Aucune fixture « sale » **versionnée** : 4 fixtures existent (réelle anonymisée, défaut, durcie, accès restreint), aucune compromise. Les chemins de menace ne sont testés que par fakes | Test | 3 | 3 | 4 | 12 | Une capture réelle compromise, anonymisée, serait le banc de test le plus honnête |
 | DET-TLS | Règles SCHANNEL/TLS non livrées : les défauts varient selon la build | Code | 3 | 3 | 4 | 12 | Demande une vérification sur plusieurs machines (ROADMAP M2b) |
 | DET-RECPROV | 13 paires `Recording`/`Snapshot` quasi-identiques — `RecordingProviders.cs` fait 327 lignes | Code | 2 | 2 | 3 | 12 | Généraliser par `RecordingProvider<T>`/`SnapshotProvider<T>`. Lié à DET-REPLAY-CABLAGE : moins de répétition, moins d'occasions d'oublier un câblage |
-| DET-PROGRAM | `Program.cs` monolithe. **Mesuré à 1 881 lignes le 2026-07-26, contre ~1 240 à l'inscription** : +52 % en trois lots, dispatch + 13 commandes + rendu + parsing d'args | Architecture | 3 | 2 | 4 | 10 | La trajectoire compte autant que la taille : chaque lot y ajoute une commande. Découper en commandes + couche de rendu **avant** M9, qui ajoutera l'écriture et ses confirmations |
+| DET-PROGRAM | `Program.cs` monolithe. **Mesuré à 1 881 lignes le 2026-07-26, contre ~1 240 à l'inscription** : +52 % en trois lots. **1 610 au 2026-07-27**, après les deux tranches de rendu sorties en phase 3 (#78, #79), dispatch + 13 commandes + rendu + parsing d'args | Architecture | 3 | 2 | 4 | 10 | La trajectoire compte autant que la taille : chaque lot y ajoute une commande. Découper en commandes + couche de rendu **avant** M9, qui ajoutera l'écriture et ses confirmations |
 | DET-PLAGE-DYNAMIQUE | Le premier port de la plage dynamique (49152) est une constante, non lue de la machine | Code | 1 | 1 | 3 | 6 | Dégradation gracieuse, jamais une affirmation fausse |
 
 ## Plan de remédiation par phases

@@ -55,7 +55,8 @@ Three features touch the network and none is ever a default: VirusTotal enrichme
 
 - **TLS/SCHANNEL and IPv6 rules are not shipped.** Their effective defaults vary by
   Windows build, and a guessed default would produce false findings. IPv6 also has code
-  left: listening ports are collected over `AF_INET` only.
+  left: listening ports are collected over `AF_INET` only. **Fixed after this release** —
+  IPv6 listeners are collected as of 2026-07-26; only the hardening rules remain deferred.
 - **Two exit criteria are unmet**, both needing a machine rather than code: the bloatware
   catalogue validated on a real OEM machine, and the stick run on a third-party machine
   without installing anything.

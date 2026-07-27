@@ -136,7 +136,10 @@ rempart/
 │   │   ├── Diff/               # comparing two scans, pure
 │   │   ├── Json/               # source-generated serialization (AOT)
 │   │   ├── Packaging/          # the USB stick's signed integrity seal
-│   │   ├── Reports/            # pure ScanResult → HTML · Markdown · JSON renderers
+│   │   ├── Reports/            # pure ScanResult → HTML · Markdown · JSON · console
+│   │   │                       #   renderers. The console one lives here and not in the
+│   │   │                       #   CLI on purpose: Rempart.Cli targets net10.0-windows,
+│   │   │                       #   so its golden test would never run on the Linux job
 │   │   ├── Providers/          # IRegistryProvider, IWmiProvider, IDriverProvider,
 │   │   │                       #   IFirewallProvider, IDnsProvider, IListeningPortProvider…
 │   │   ├── Rules/              # YAML loading, evaluation, scoring, blocklist

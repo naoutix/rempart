@@ -1,13 +1,13 @@
 # ADR-005 : Découpage de la couche CLI et généralisation des fournisseurs
 
-**Statut :** Proposé
+**Statut :** Accepté — en cours d'exécution (PR 1a et 1b faites)
 **Date :** 2026-07-27
 **Décide :** l'éditeur du projet
 **Dettes visées :** DET-PROGRAM, DET-RECPROV, DET-WINDOWS-TESTS (phase 3 du plan de [DEBT.md](../DEBT.md))
 
 ## Contexte
 
-L'audit du 2026-07-26 a mesuré `Program.cs` à **1 881 lignes**, contre ~1 240 à son
+L'audit du 2026-07-26 a mesuré `Program.cs` à **1 881 lignes** — 1 610 depuis PR 1a et 1b, contre ~1 240 à son
 inscription au registre : **+52 % en trois lots**. La trajectoire compte plus que la
 taille, parce que chaque milestone y ajoute une commande et que M9 — la remédiation — y
 ajoutera des fournisseurs en écriture, des confirmations individuelles et un journal de
@@ -95,9 +95,16 @@ non couvert du projet.
 src/Rempart.Cli/
   Program.cs              dispatch seul, ~80 l. : table nom → commande
   Commands/ScanCommand.cs …  une par commande, ~60-250 l. chacune
-  Rendering/ConsoleReport.cs  ScanResult → string, pur, testable
   Options/CommandLine.cs      parsing et résolution de chemins
+
+src/Rempart.Core/Reports/
+  ConsoleReport.cs        ScanResult → string, pur, testable
 ```
+
+**Le rendu va dans Core, pas dans le CLI** — corrigé après coup, le premier jet le plaçait
+sous `Rempart.Cli/Rendering/`. `Rempart.Cli` cible `net10.0-windows` : un test golden qui y
+vivrait ne tournerait **jamais sur le job Linux**. Dans `Core/Reports/` il rejoint
+`HtmlReport` et `MarkdownReport`, et tourne partout où ils tournent.
 
 **Pour :** chaque commande devient lisible seule ; le rendu devient testable, donc les
 régressions d'affichage cessent d'être invisibles ; M9 ajoute un fichier au lieu d'une
@@ -173,17 +180,29 @@ l'interop.
 
 ## Actions
 
-1. [ ] **PR 1 — rendu console pur.** Extraire `Write*`/`Describe*` vers
-       `Rendering/ConsoleReport.cs`, signature `ScanResult → string`. Figer la sortie
-       actuelle comme référence **avant** tout déplacement, pour que la PR prouve qu'elle
-       ne change rien.
-2. [ ] **PR 2 — découpage des commandes.** Une classe par commande, table explicite dans
+1. [x] **PR 1a — rendu du scan.** Fait (#78) : `Rempart.Core/Reports/ConsoleReport.cs`,
+       `ScanResult → string`, plus un test golden par fixture. Sortie figée avant
+       déplacement puis rediffée : identique sur les trois fixtures.
+2. [x] **PR 1b — rendu du diff.** Fait (#79) : `ConsoleReport.Diff`, même preuve
+       avant/après.
+3. [ ] **PR 1c — finir le filet.** Test golden pour `diff` (il en manque un : une
+       référence de diff demande **deux** `ScanResult` montés dans le harnais de fixtures,
+       là où `HumanReadable` en réutilisait un déjà construit), puis extraire et couvrir
+       `index`.
+
+   > **Précondition découverte en livrant PR 1a, absente de la première rédaction de cet
+   > ADR.** Le filet doit couvrir `scan`, `diff` **et** `index` avant que la moindre
+   > commande ne bouge. À la fin de PR 1a il ne couvrait qu'un chemin sur trois, et
+   > déplacer des commandes dans cet état serait exactement ce que la section « Analyse
+   > des compromis » interdit. C'est la vraie porte d'entrée de PR 2.
+
+4. [ ] **PR 2 — découpage des commandes.** Une classe par commande, table explicite dans
        `Program.cs`, plus le test qui compare la table aux commandes existantes.
-3. [ ] **PR 3 — fournisseurs.** `RecordingProvider<T>`/`SnapshotProvider<T>` génériques
+5. [ ] **PR 3 — fournisseurs.** `RecordingProvider<T>`/`SnapshotProvider<T>` génériques
        (`DET-RECPROV`), puis `diagnose-drivers`/`diagnose-processes` sur le modèle
        `diagnose-wmi`, et un projet de fakes partagé pour `CatalogSignature`
        (`DET-WINDOWS-TESTS`).
-4. [ ] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette.
+6. [ ] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette.
 
 **Faisable avant M9, pas pendant.** Aucune de ces trois PR ne devrait être ouverte en même
 temps qu'un lot fonctionnel : elles touchent le point de passage de toutes les commandes.
