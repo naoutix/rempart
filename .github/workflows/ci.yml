@@ -129,6 +129,30 @@ jobs:
           & $exe diagnose-tasks
           if ($LASTEXITCODE -ne 0) { throw "Task Scheduler does not respond from the AOT binary" }
 
+      - name: Loaded drivers enumerate from the AOT binary
+        shell: pwsh
+        run: |
+          # The driver table is the surface a BYOVD attack lands on, so an empty
+          # enumeration reads as a clean kernel rather than as a failed read. The rows
+          # come from WMI and are then filtered on State and PathName: a VARIANT decode
+          # that comes back plausible and wrong on either property empties the list
+          # without failing anything. DET-WMI-MUET gave the read a status channel; this
+          # is what makes the failure visible before a user meets it.
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe diagnose-drivers
+          if ($LASTEXITCODE -ne 0) { throw "Loaded drivers do not enumerate from the AOT binary" }
+
+      - name: Running processes enumerate from the AOT binary
+        shell: pwsh
+        run: |
+          # Same failure as the drivers, same silence: no machine runs zero processes,
+          # so an empty inventory can only be a failed read. The command also checks that
+          # the enumeration finds itself, which holds the ProcessId decode -- it yields 0
+          # when parsing fails -- and proves the query covers this machine.
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe diagnose-processes
+          if ($LASTEXITCODE -ne 0) { throw "Running processes do not enumerate from the AOT binary" }
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rempart-win-x64
@@ -149,4 +173,4 @@ jobs:
       - name: Check fixture anonymisation
         run: >
           dotnet test tests/Rempart.Tests.Unit --configuration Release
-          --filter "FullyQualifiedName~Anonymised_fixtures_carry_no_machine_name"
+          --filter "FullyQualifiedName~Versioned_fixtures_are_anonymised"

@@ -3,7 +3,7 @@
 ## Getting started
 
 ```bash
-dotnet test                                   # 660 tests (56 require Windows), ~10 s
+dotnet test                                   # 699 tests (62 require Windows), ~10 s
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 

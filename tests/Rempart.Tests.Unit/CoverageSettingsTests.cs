@@ -81,6 +81,53 @@ public sealed class CoverageSettingsTests
         Assert.Contains("DET-COUVERTURE", Read("docs/DEBT.md"), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A CI job that filters on a test name and matches nothing exits 0. It is green
+    /// forever, and it is green precisely because it checks nothing.
+    ///
+    /// <para>
+    /// Not hypothetical: <c>fixtures-anonymised</c> — the job whose whole purpose is to
+    /// keep a raw capture of a real machine out of a public repository, and whose comment
+    /// promises to "make the failure readable without opening the logs" — filtered on
+    /// <c>Anonymised_fixtures_carry_no_machine_name</c> for months after that test was
+    /// renamed. Measured: "No test matches the given testcase filter", exit code 0. The
+    /// suite still ran the real assertion inside the <c>test</c> job, so nothing was ever
+    /// exposed; what was lost is the dedicated guard, silently.
+    /// </para>
+    ///
+    /// <para>
+    /// Same shape as the drift this repository keeps paying for: two hand-written names,
+    /// in two files, that no compiler relates to one another.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_test_name_a_CI_job_filters_on_exists()
+    {
+        var filtered = Regex.Matches(Read(".github/workflows/ci.yml"),
+                """FullyQualifiedName~([A-Za-z_][A-Za-z0-9_]*)""")
+            .Select(m => m.Groups[1].Value)
+            .ToList();
+
+        Assert.NotEmpty(filtered);
+
+        var declared = Directory
+            .EnumerateFiles(Path.Combine(RepositoryRoot, "tests"), "*.cs",
+                SearchOption.AllDirectories)
+            .Where(path => !path.Split(Path.DirectorySeparatorChar)
+                .Any(segment => segment is "bin" or "obj"))
+            .SelectMany(path => Regex.Matches(File.ReadAllText(path),
+                    """public\s+void\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(""")
+                .Select(m => m.Groups[1].Value))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var missing = filtered.Where(name => !declared.Contains(name)).ToList();
+
+        Assert.True(missing.Count == 0,
+            "Un job de la CI filtre sur un test qui n'existe pas : "
+            + $"{string.Join(", ", missing)}. Le job n'exécute alors aucun test et sort 0, "
+            + "donc il est vert en permanence sans rien vérifier.");
+    }
+
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(RepositoryRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
 

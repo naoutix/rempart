@@ -94,13 +94,28 @@ internal static class HelpCommand
           rempart synthesise --from <capture> --out <fichier>
                              [--profile hardened|defaults] [--name <nom>]
                              [--domain-joined] [--not-elevated] [--deny <fragment>]
+                             [--compromised]
               Fabrique une fixture de test à partir d'une capture réelle.
+              --compromised y plante des signes d'intrusion fabriqués — pilote
+              non signé, autorun dans %TEMP%, port joignable, abonnement WMI,
+              résolveur DNS détourné, extension chargée hors magasin, tâche
+              planifiée non signée. Indépendant du profil : une machine durcie
+              se fait compromettre aussi.
 
           rempart diagnose-wmi
               Vérifie que WMI répond. Destiné à la CI, contre le binaire AOT.
 
           rempart diagnose-tasks
               Vérifie que le planificateur de tâches répond. Même usage.
+
+          rempart diagnose-drivers
+              Vérifie que l'énumération des pilotes chargés répond, et que
+              leurs chemins désignent des fichiers. Même usage : zéro pilote
+              sur une machine allumée est une panne, jamais une réponse.
+
+          rempart diagnose-processes
+              Vérifie que l'énumération des processus répond, et qu'elle
+              trouve le processus courant. Même usage.
 
           rempart diagnose-store [--raw]
               Vérifie que l'analyse du magasin de composants répond et que ses

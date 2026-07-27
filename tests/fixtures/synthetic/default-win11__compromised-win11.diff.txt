@@ -1,0 +1,77 @@
+anon:000000000002 contre anon:000000000004
+  avant : 2026-01-01T00:00:00.0000000Z
+  après : 2026-01-01T00:00:00.0000000Z
+
+[synthèse] 15 constat(s) apparu(s).
+  conformité 52 % → 52 %
+
+[constats] 17 écart(s)
+
+  apparu    C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\OneDriveSync.exe
+            HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\OneDriveSync
+            → Binaire non signé : rien n'atteste de son origine ni de son intégrité.
+            → Lancé depuis un emplacement inhabituel pour un programme installé.
+
+  apparu    Secure Browsing Helper
+            Chrome/anon:7c1e05b4a930
+            → Installée hors du magasin d'extensions (sideload) — le vecteur classique d'extension malveillante.
+
+  apparu    C:\Windows\System32\drivers\syndrv64.sys
+            syndrv64
+            → Binaire non signé : rien n'atteste de son origine ni de son intégrité.
+
+  apparu    C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\svchost.exe
+            TCP 0.0.0.0:4444
+            → Joignable depuis un réseau public (écoute sur toutes les interfaces, autorisé par le pare-feu) et tenu par un binaire non attesté.
+            → Binaire non signé : rien n'atteste de son origine ni de son intégrité.
+            → Lancé depuis un emplacement inhabituel pour un programme installé.
+
+  apparu    C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\svchost.exe
+            svchost.exe
+            → Binaire non signé : rien n'atteste de son origine ni de son intégrité.
+            → Lancé depuis un emplacement inhabituel pour un programme installé.
+
+  apparu    C:\ProgramData\SystemMaintenance\svcupdate.exe
+            \Microsoft\Windows\Maintenance\SystemMaintenance
+            → Binaire non signé : rien n'atteste de son origine ni de son intégrité.
+
+  apparu    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+            CommandLineEventConsumer / SystemUpdater
+            → Exécute une ligne de commande à chaque déclenchement.
+            → Persistance sans fichier : invisible des clés Run et des tâches planifiées.
+
+  apparu    Password Vault
+            Chrome/anon:7c1e05b4a930
+            → Accès à toutes les pages web : peut lire et modifier tout ce qui s'affiche.
+            → Permission sensible : nativeMessaging.
+
+  apparu    198.51.100.23
+            Ethernet
+            → Résolveur DNS statique non reconnu (198.51.100.23) — un serveur posé par-dessus celui du réseau est le levier d'un détournement DNS.
+
+  disparu   —
+            pilotes chargés
+
+  disparu   —
+            processus courants
+
+  apparu    SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System'
+            __EventFilter / SystemUpdaterFilter
+            → Filtre d'événement enregistré. Seul il n'exécute rien ; associé à un consommateur, il déclenche du code.
+
+  apparu    C:\Windows\System32\SecurityHealthSystray.exe
+            HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\SecurityHealth
+
+  apparu    192.0.2.1
+            Wi-Fi
+
+  apparu    C:\Windows\System32\drivers\ntfs.sys
+            Ntfs
+
+  apparu    C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\svchost.exe
+            TCP 0.0.0.0:5555
+
+  apparu    C:\Windows\System32\svchost.exe
+            svchost.exe
+
+[mouvements attendus] 1 — Windows les retire ou les renumérote de lui-même, hors de l'écart de posture

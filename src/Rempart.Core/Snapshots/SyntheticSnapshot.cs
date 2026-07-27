@@ -34,7 +34,8 @@ public static class SyntheticSnapshot
         string machineName,
         bool domainJoined = false,
         bool elevated = true,
-        IReadOnlyList<string>? denyPathFragments = null)
+        IReadOnlyList<string>? denyPathFragments = null,
+        bool compromised = false)
     {
         var snapshot = new MachineSnapshot
         {
@@ -79,6 +80,15 @@ public static class SyntheticSnapshot
         foreach (var fragment in denyPathFragments ?? [])
         {
             Deny(snapshot, fragment);
+        }
+
+        // Kept orthogonal to the profile, and applied last. A compromise is not a
+        // posture: a hardened machine gets compromised too, and folding it into the
+        // profile enum would have made "hardened yet compromised" — the question this
+        // tool exists to answer — impossible to express.
+        if (compromised)
+        {
+            CompromiseMarkers.PlantInto(snapshot);
         }
 
         return snapshot;

@@ -32,6 +32,7 @@ internal static class SynthesiseCommand
         };
 
         var deny = OptionValues(args, "--deny");
+        var compromised = HasFlag(args, "--compromised");
 
         var built = SyntheticSnapshot.Build(
             RempartJson.DeserialiseSnapshot(File.ReadAllText(sourcePath)),
@@ -40,7 +41,8 @@ internal static class SynthesiseCommand
             machineName: OptionValue(args, "--name") ?? "anon:synthetic",
             domainJoined: HasFlag(args, "--domain-joined"),
             elevated: !HasFlag(args, "--not-elevated"),
-            denyPathFragments: deny);
+            denyPathFragments: deny,
+            compromised: compromised);
 
         File.WriteAllText(outPath, RempartJson.Serialise(built));
 
@@ -48,6 +50,12 @@ internal static class SynthesiseCommand
         Console.WriteLine($"  profil               : {profile}");
         Console.WriteLine($"  lectures             : {built.Registry.Count}");
         Console.WriteLine($"  jointe à un domaine  : {built.SystemInfo?.IsDomainJoined}");
+        if (compromised)
+        {
+            Console.WriteLine("  signes d'intrusion   : plantés (pilote, autorun, port, "
+                              + "abonnement WMI, résolveur, extension, tâche)");
+        }
+
         if (deny.Count > 0)
         {
             Console.WriteLine($"  accès refusé sur     : {string.Join(", ", deny)}");
