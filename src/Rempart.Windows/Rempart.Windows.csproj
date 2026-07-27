@@ -14,4 +14,13 @@
     <ProjectReference Include="..\Rempart.Core\Rempart.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- CatalogSignature stays internal: nothing outside this assembly has any business
+         calling wintrust directly, and the tool reaches it through ISignatureProvider.
+         The Windows test suite is the exception, because the alternative was to widen the
+         public surface of a security tool in order to test it. Only that assembly, and
+         only on Windows — the Linux job compiles neither. -->
+    <InternalsVisibleTo Include="Rempart.Tests.Windows" />
+  </ItemGroup>
+
 </Project>

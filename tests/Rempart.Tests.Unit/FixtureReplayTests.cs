@@ -139,8 +139,8 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The pairs worth freezing, named rather than discovered. Three fixtures would give
-    /// nine combinations and eight of them prove the same thing twice; and a discovered
+    /// The pairs worth freezing, named rather than discovered. Four fixtures would give
+    /// sixteen combinations and most of them prove the same thing twice; and a discovered
     /// list would eventually pair a <c>local/</c> capture of a real machine, whose
     /// rendering would land in a public repository.
     ///
@@ -150,12 +150,21 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
     /// The third compares a capture with itself — the only way to freeze what the tool
     /// says when nothing moved.
     /// </para>
+    ///
+    /// <para>
+    /// The fourth is the comparison the tool exists for: a machine re-scanned after an
+    /// intrusion. Until the compromised fixture existed, no reference had ever carried a
+    /// <c>Suspicious</c> finding — the highest severity the diff rendering had ever been
+    /// asked to print was <c>Notable</c>, so the one output a scheduled re-scan is read
+    /// for was frozen by nothing.
+    /// </para>
     /// </summary>
     public static TheoryData<string, string> DiffPairs() => new()
     {
         { "synthetic/restricted-access", "synthetic/default-win11" },
         { "synthetic/default-win11", "synthetic/restricted-access" },
         { "synthetic/default-win11", "synthetic/default-win11" },
+        { "synthetic/default-win11", "synthetic/compromised-win11" },
     };
 
     /// <summary>

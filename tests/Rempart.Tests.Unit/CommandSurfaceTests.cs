@@ -95,7 +95,7 @@ public sealed class CommandSurfaceTests
 
         // A call written as OptionValue(args, name) would match nothing and take this
         // guard down with it, silently. The count says out loud how much it is watching.
-        Assert.Equal(42, reads.Count);
+        Assert.Equal(43, reads.Count);
 
         var declared = CommandSurface.All
             .SelectMany(command => command.Options)
@@ -122,7 +122,7 @@ public sealed class CommandSurfaceTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(17, dispatched.Count);
+        Assert.Equal(19, dispatched.Count);
 
         var declared = CommandSurface.All.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
 
@@ -139,11 +139,14 @@ public sealed class CommandSurfaceTests
     /// <para>
     /// Comparing the table to <see cref="CommandSurface"/> compares two lists written by
     /// the same hand in the same sitting; neither knows whether a class was ever wired up.
-    /// The case is not hypothetical — ADR-005 action 6 adds <c>diagnose-drivers</c> and
-    /// <c>diagnose-processes</c> on the model of <c>diagnose-wmi</c>, which reads no option
-    /// at all. Dropping such a file in and forgetting the table line leaves every other
-    /// guard green and the command unreachable: D2, D2b and the component store, a fourth
-    /// time.
+    /// The case was not hypothetical, and is no longer future tense — ADR-005 action 6
+    /// added <c>diagnose-drivers</c> and <c>diagnose-processes</c> on the model of
+    /// <c>diagnose-wmi</c>, and neither reads a single option. Dropping such a file in and
+    /// forgetting the table line leaves every other guard green and the command
+    /// unreachable: D2, D2b and the component store, a fourth time. What actually caught
+    /// the addition was the count above rather than this set comparison, because the two
+    /// commands were wired everywhere at once — the count is what makes an addition
+    /// impossible to make in silence, whichever place it lands in.
     /// </para>
     /// </summary>
     [Fact]

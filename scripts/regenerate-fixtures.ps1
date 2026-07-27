@@ -62,6 +62,13 @@ try {
     dotnet $cli synthesise --from $Source --out "$out/restricted-access.capture.json" `
         --profile hardened --name 'anon:000000000003' --domain-joined --not-elevated --deny 'Control\Lsa'
 
+    # Machine carrying fabricated signs of intrusion (DET-DIRTY). Windows defaults rather
+    # than hardened, so the posture and the findings can be read against default-win11:
+    # same verdicts, opposite findings. --compromised is orthogonal to the profile — a
+    # hardened machine gets compromised too, and that combination stays available.
+    dotnet $cli synthesise --from $Source --out "$out/compromised-win11.capture.json" `
+        --profile defaults --name 'anon:000000000004' --compromised
+
     # The expected references are rewritten by the test suite, which fails once to
     # force their review before they are committed.
     Remove-Item "$out/*.expected.json" -ErrorAction SilentlyContinue

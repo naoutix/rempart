@@ -28,12 +28,6 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
     private const uint WtdStateActionVerify = 1;
     private const uint WtdStateActionClose = 2;
 
-    // 0x800B0100 TRUST_E_NOSIGNATURE, 0x800B0003 TRUST_E_SUBJECT_FORM_UNKNOWN,
-    // 0x800B0001 TRUST_E_PROVIDER_UNKNOWN: no usable signature.
-    private const int TrustNoSignature = unchecked((int)0x800B0100);
-    private const int TrustSubjectFormUnknown = unchecked((int)0x800B0003);
-    private const int TrustProviderUnknown = unchecked((int)0x800B0001);
-
     [StructLayout(LayoutKind.Sequential)]
     private struct WintrustFileInfo
     {
@@ -77,30 +71,20 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
         {
             var embedded = Check(path);
 
-            if (embedded == 0)
-            {
-                return new FileSignature(SignatureStatus.Valid, ReadPublisher(path), hash);
-            }
+            // No embedded signature: most Windows binaries are catalog-signed. Stopping
+            // here would classify cmd.exe as unsigned, along with almost every autostart
+            // entry of a healthy system. The lookup opens and hashes the file, so it only
+            // runs when the embedded check found nothing to judge.
+            var catalog = AuthenticodeVerdict.HasNoEmbeddedSignature(embedded)
+                ? CatalogSignature.Verify(path)
+                : null;
 
-            // No embedded signature: most Windows binaries are catalog-signed.
-            // Stopping here would classify cmd.exe as unsigned, along with almost
-            // every autostart entry of a healthy system.
-            if (embedded is TrustNoSignature or TrustSubjectFormUnknown or TrustProviderUnknown)
-            {
-                return CatalogSignature.Verify(path) switch
-                {
-                    0 => new FileSignature(SignatureStatus.Valid, ReadPublisher(path), hash),
-
-                    // No catalog references this file: it is not signed in any way.
-                    null => new FileSignature(SignatureStatus.Unsigned, null, hash),
-
-                    // A catalog covers it, but does not validate.
-                    _ => new FileSignature(SignatureStatus.Invalid, null, hash),
-                };
-            }
-
-            // Signed, but the chain does not hold: expired, revoked, or tampered.
-            return new FileSignature(SignatureStatus.Invalid, ReadPublisher(path), hash);
+            // What the two numbers mean is decided in Core, where the Linux job can hold
+            // it to account. This file keeps only what genuinely needs Windows.
+            return new FileSignature(
+                AuthenticodeVerdict.Judge(embedded, catalog),
+                AuthenticodeVerdict.ReadsPublisher(embedded, catalog) ? ReadPublisher(path) : null,
+                hash);
         }
         catch (Exception)
         {

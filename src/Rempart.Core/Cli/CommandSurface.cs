@@ -132,11 +132,16 @@ public static class CommandSurface
             new("--deny", OptionArity.RepeatableValue),
             new("--domain-joined", OptionArity.Flag),
             new("--not-elevated", OptionArity.Flag),
+            new("--compromised", OptionArity.Flag),
         ], Positionals: 0),
 
         new("diagnose-wmi", [], Positionals: 0),
 
         new("diagnose-tasks", [], Positionals: 0),
+
+        new("diagnose-drivers", [], Positionals: 0),
+
+        new("diagnose-processes", [], Positionals: 0),
 
         new("diagnose-store",
         [

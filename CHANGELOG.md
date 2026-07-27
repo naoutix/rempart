@@ -7,6 +7,52 @@ changed between releases.
 
 ## Unreleased
 
+### The audit is now tested against a compromised machine
+
+- **A fourth versioned fixture, deliberately dirty** — `synthesise --compromised` plants a
+  single coherent intrusion: an unsigned autorun in `%TEMP%`, a fileless WMI subscription,
+  a scheduled task launching an unsigned binary, an unsigned loaded driver, a process
+  running from `%TEMP%`, a command port the intrusion opened a firewall rule for, a
+  hijacked DNS resolver, a sideloaded extension. **Every suspicious item is paired with a
+  benign twin the collector must not flag** — signed `svchost.exe` against the one in
+  `%TEMP%`, `ntfs.sys` against the planted driver. A fixture where everything is
+  suspicious proves the tool alerts, not that it discriminates.
+- Until now the only flagged findings in the entire versioned corpus were two *absences*,
+  and the autoruns collector — the first place anyone looks — produced nothing at all.
+- **What it revealed goes past coverage.** A machine carrying an active implant, a
+  reachable command port and a hijacked resolver scores **52 %** — identical, domain by
+  domain, to a merely unhardened clean machine. Intended (findings do not enter the score)
+  but never demonstrated end to end before.
+- **Three judgement defects found and recorded, not silently fixed**: a listening port
+  blocked by a firewall rule drops to benign with no reason given, while a *disabled*
+  scheduled task keeps its severity — two opposite doctrines for "the mitigation is one
+  click away"; the C2 command line never reaches the console rendering; and WMI
+  subscriptions are the one persistence collector that checks no signature.
+
+### Windows layer
+
+- **`diagnose-drivers` and `diagnose-processes`**, on the `diagnose-wmi` model, run against
+  the published AOT binary in CI. Each checks more than a count: drivers verify a path
+  resolves to a file, processes verify the enumeration finds itself. Zero drivers or zero
+  processes on a running machine is a breakdown, never an answer.
+- **`CatalogSignature`'s judgement moved into Core** (`AuthenticodeVerdict`), so the part
+  that decides a binary is sound is now tested **on the Linux job**. Proven neutral on 459
+  real System32 files. The remaining interop is held by probed Windows tests, plus one that
+  refuses to skip: no catalog covering any System32 binary is a dead subsystem, not a quiet
+  machine, and it would turn every catalog-signed binary into "suspicious".
+- Two more silences found and frozen: `CatalogSignature` returns the same `null` for "no
+  catalog" and "could not ask", so an unreadable file is **accused** (`DET-CATALOGUE-MUET`);
+  and listening ports had no status channel (`DET-PORTS-MUET`) — the fourth occurrence of
+  DET-WMI-MUET, found by the new reflection guard *before* it did harm.
+
+### Fixed
+
+- **The `fixtures-anonymised` CI job ran no tests and exited 0.** Its filter named a test
+  renamed long ago, so the guard whose whole purpose is keeping a real machine's capture
+  out of a public repository had been green while checking nothing. The assertion itself
+  always ran inside the main test job, so nothing was exposed — what was lost was the
+  dedicated guard. A test now checks that every test name a CI job filters on exists.
+
 ### Structure
 
 - **`Program.cs` is 29 lines.** It was 1 881 at its worst, growing by half a milestone at a

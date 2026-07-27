@@ -38,6 +38,8 @@ internal static class CommandTable
         "synthesise" => SynthesiseCommand.Run,
         "diagnose-wmi" => DiagnoseWmiCommand.Run,
         "diagnose-tasks" => DiagnoseTasksCommand.Run,
+        "diagnose-drivers" => DiagnoseDriversCommand.Run,
+        "diagnose-processes" => DiagnoseProcessesCommand.Run,
         "diagnose-store" => DiagnoseStoreCommand.Run,
         "keygen" => KeygenCommand.Run,
         "seal" => SealCommand.Run,
