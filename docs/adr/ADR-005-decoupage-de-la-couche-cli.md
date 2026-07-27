@@ -1,6 +1,6 @@
 # ADR-005 : Découpage de la couche CLI et généralisation des fournisseurs
 
-**Statut :** Accepté — en cours d'exécution (PR 1a et 1b faites)
+**Statut :** Accepté — en cours d'exécution (étape 1 terminée : PR 1a, 1b, 1c et 1c-bis)
 **Date :** 2026-07-27
 **Décide :** l'éditeur du projet
 **Dettes visées :** DET-PROGRAM, DET-RECPROV, DET-WINDOWS-TESTS (phase 3 du plan de [DEBT.md](../DEBT.md))
@@ -27,6 +27,13 @@ des codes de sortie (`rempart version`, `rempart scan`, `diagnose-wmi`, `diagnos
 Un découpage de 1 400 lignes sans filet, dans un dépôt qui a déjà produit trois fois la
 même régression silencieuse (D2, D2b, `componentStore`), est le scénario le plus risqué
 que ce projet puisse s'offrir.
+
+> **État au 2026-07-27, l'étape 1 livrée.** Le constat ci-dessus est celui qui a motivé
+> cet ADR ; il n'est plus vrai, et c'est le but. Le rendu des trois commandes qui écrivent
+> sur la console est figé par des références, et les deux surfaces pures du CLI — le
+> contrat de sortie et le parsing d'arguments — vivent dans Core avec 44 tests. Ce qui
+> reste sans test, c'est le corps des commandes : la lecture de fichiers, l'écriture des
+> rapports, l'enchaînement. C'est précisément l'objet de la PR 2.
 
 ### Correction d'une affirmation antérieure
 
@@ -95,16 +102,25 @@ non couvert du projet.
 src/Rempart.Cli/
   Program.cs              dispatch seul, ~80 l. : table nom → commande
   Commands/ScanCommand.cs …  une par commande, ~60-250 l. chacune
-  Options/CommandLine.cs      parsing et résolution de chemins
+                          + la résolution de chemins, qui reste côté hôte
 
 src/Rempart.Core/Reports/
   ConsoleReport.cs        ScanResult → string, pur, testable
+src/Rempart.Core/Cli/
+  CommandLine.cs          parsing d'arguments, pur
+  ExitCodes.cs            le contrat de sortie, pur
 ```
 
 **Le rendu va dans Core, pas dans le CLI** — corrigé après coup, le premier jet le plaçait
 sous `Rempart.Cli/Rendering/`. `Rempart.Cli` cible `net10.0-windows` : un test golden qui y
 vivrait ne tournerait **jamais sur le job Linux**. Dans `Core/Reports/` il rejoint
 `HtmlReport` et `MarkdownReport`, et tourne partout où ils tournent.
+
+**Et la même correction s'applique au parsing**, que ce croquis plaçait d'abord sous
+`src/Rempart.Cli/Options/`. Le raisonnement est identique et il a été refait deux fois :
+tout ce qui doit être testé en CI vit dans Core. Ne restent dans le CLI que les fonctions
+qui touchent réellement à l'hôte — `Path.Combine`, `AppContext.BaseDirectory`,
+`Environment` — dont la place n'est pas dans une bibliothèque rejouée sur Linux.
 
 **Pour :** chaque commande devient lisible seule ; le rendu devient testable, donc les
 régressions d'affichage cessent d'être invisibles ; M9 ajoute un fichier au lieu d'une
@@ -185,10 +201,10 @@ l'interop.
        déplacement puis rediffée : identique sur les trois fixtures.
 2. [x] **PR 1b — rendu du diff.** Fait (#79) : `ConsoleReport.Diff`, même preuve
        avant/après.
-3. [ ] **PR 1c — finir le filet.** Test golden pour `diff` (il en manque un : une
-       référence de diff demande **deux** `ScanResult` montés dans le harnais de fixtures,
-       là où `HumanReadable` en réutilisait un déjà construit), puis extraire et couvrir
-       `index`.
+3. [x] **PR 1c — finir le filet.** Fait : trois références golden pour `ConsoleReport.Diff`
+       (`restricted-access` → `default-win11`, son miroir, et un auto-diff), plus
+       `ConsoleReport.Fleet` extrait de `Index` avec son golden. Sortie de `index` figée
+       avant déplacement puis rediffée : identique octet pour octet.
 
    > **Précondition découverte en livrant PR 1a, absente de la première rédaction de cet
    > ADR.** Le filet doit couvrir `scan`, `diff` **et** `index` avant que la moindre
@@ -196,13 +212,29 @@ l'interop.
    > déplacer des commandes dans cet état serait exactement ce que la section « Analyse
    > des compromis » interdit. C'est la vraie porte d'entrée de PR 2.
 
-4. [ ] **PR 2 — découpage des commandes.** Une classe par commande, table explicite dans
-       `Program.cs`, plus le test qui compare la table aux commandes existantes.
-5. [ ] **PR 3 — fournisseurs.** `RecordingProvider<T>`/`SnapshotProvider<T>` génériques
+   > **Angle mort assumé du golden, à ne pas croire couvert.** Aucune fixture versionnée
+   > ne porte de constat `transitoire` ou `éphémère`, et les trois partagent la même
+   > empreinte de catalogue : ni le bloc « mouvements attendus », ni la bannière des
+   > catalogues divergents, ni les sections « contrôles apparus/disparus » ne sont
+   > atteignables par une paire de fixtures. Ces quatre-là sont couverts par des tests
+   > unitaires dans `DiffReportTests` et `ScanDiffTests`, pas par une référence.
+
+4. [x] **PR 1c-bis — contrat de sortie et parsing extraits.** Fait :
+       `Rempart.Core/Cli/ExitCodes.cs` (les 5 codes, dont l'aide dérive désormais son
+       propre texte — elle omettait le code 4 depuis son introduction) et
+       `Rempart.Core/Cli/CommandLine.cs` (les 6 primitives). Aucune commande déplacée.
+       La couche CLI passe de 0 à 44 tests, et trois défauts réels sont **figés** plutôt
+       que corrigés au passage : `DET-SORTIE-PARTIELLE`, `DET-ARITE-REPORT`,
+       `DET-EXPLAIN-POSITIONNEL`.
+5. [ ] **PR 2 — découpage des commandes.** Une classe par commande, table explicite dans
+       `Program.cs`, plus le test qui compare la table aux commandes existantes, la table
+       `commande → options` (47 paires) qui remplace les deux listes `valueTaking` tenues
+       à la main, et le garde de dérive entre la table et le texte d'aide.
+6. [ ] **PR 3 — fournisseurs.** `RecordingProvider<T>`/`SnapshotProvider<T>` génériques
        (`DET-RECPROV`), puis `diagnose-drivers`/`diagnose-processes` sur le modèle
        `diagnose-wmi`, et un projet de fakes partagé pour `CatalogSignature`
        (`DET-WINDOWS-TESTS`).
-6. [ ] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette.
+7. [ ] Mettre à jour [DEBT.md](../DEBT.md) à la fermeture de chaque dette.
 
 **Faisable avant M9, pas pendant.** Aucune de ces trois PR ne devrait être ouverte en même
 temps qu'un lot fonctionnel : elles touchent le point de passage de toutes les commandes.

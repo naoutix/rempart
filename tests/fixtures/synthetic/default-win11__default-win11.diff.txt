@@ -1,0 +1,6 @@
+anon:000000000002 — évolution
+  avant : 2026-01-01T00:00:00.0000000Z
+  après : 2026-01-01T00:00:00.0000000Z
+
+[synthèse] Aucun écart de posture.
+  conformité 52 % → 52 %

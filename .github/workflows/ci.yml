@@ -39,7 +39,25 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Unit and fixture-replay tests
-        run: dotnet test tests/Rempart.Tests.Unit --configuration Release
+        run: >
+          dotnet test tests/Rempart.Tests.Unit --configuration Release
+          --collect:"XPlat Code Coverage"
+          --settings tests/coverage.runsettings
+          --results-directory artifacts/coverage
+
+      - name: Coverage summary
+        # Measured, never gated: this step has no threshold and cannot turn the job red.
+        # It runs even after a failing test — the report is still written, and what was
+        # covered on the way to the failure is worth reading.
+        if: always()
+        shell: pwsh
+        run: ./scripts/coverage-summary.ps1 -ResultsDirectory artifacts/coverage
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: coverage-cobertura
+          path: artifacts/coverage/**/coverage.cobertura.xml
 
   test-windows:
     # The Rempart.Windows layer -- P/Invoke, registry -- can only be tested on

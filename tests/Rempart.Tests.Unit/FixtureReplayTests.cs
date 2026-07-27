@@ -1,3 +1,4 @@
+using Rempart.Core.Diff;
 using Rempart.Core.Engine;
 using Rempart.Core.Rules;
 using Rempart.Core.Json;
@@ -123,13 +124,7 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
     [MemberData(nameof(Fixtures))]
     public void The_console_rendering_matches_its_reference(string fixture)
     {
-        var snapshot = RempartJson.DeserialiseSnapshot(
-            File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
-
-        var result = ScanEngine.Default().Run(
-            ReplayProviders(snapshot), "test", snapshot.CapturedAtUtc);
-
-        var actual = Normalise(ConsoleReport.HumanReadable(result));
+        var actual = Normalise(ConsoleReport.HumanReadable(Scan(fixture)));
         var referencePath = Path.Combine(FixtureDirectory, $"{fixture}.console.txt");
 
         if (!File.Exists(referencePath))
@@ -138,6 +133,57 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
             Assert.Fail(
                 $"Référence console absente pour « {fixture} » : elle vient d'être écrite "
                 + $"dans {referencePath}. Relire le contenu, puis le versionner.");
+        }
+
+        Assert.Equal(Normalise(File.ReadAllText(referencePath)), actual);
+    }
+
+    /// <summary>
+    /// The pairs worth freezing, named rather than discovered. Three fixtures would give
+    /// nine combinations and eight of them prove the same thing twice; and a discovered
+    /// list would eventually pair a <c>local/</c> capture of a real machine, whose
+    /// rendering would land in a public repository.
+    ///
+    /// <para>
+    /// The first two are the same pair read in both directions, which is what it takes to
+    /// cover both signs of the delta: no two fixtures here regress and improve at once.
+    /// The third compares a capture with itself — the only way to freeze what the tool
+    /// says when nothing moved.
+    /// </para>
+    /// </summary>
+    public static TheoryData<string, string> DiffPairs() => new()
+    {
+        { "synthetic/restricted-access", "synthetic/default-win11" },
+        { "synthetic/default-win11", "synthetic/restricted-access" },
+        { "synthetic/default-win11", "synthetic/default-win11" },
+    };
+
+    /// <summary>
+    /// Freezes the comparison rendering, on the discipline
+    /// <see cref="The_console_rendering_matches_its_reference"/> applies to the scan.
+    ///
+    /// <para>
+    /// <c>ConsoleReport.Diff</c> shipped with no test at all: <c>ScanDiffTests</c> pins how
+    /// a move is classified and <c>DiffReportTests</c> pins the HTML and the Markdown, but
+    /// the lines that decide what the terminal prints were observed by nobody. The pairs
+    /// are chosen so that between them the reference carries a regression, a correction, a
+    /// control that went blind, one that came back, a scope change, and findings that
+    /// disappeared and were retargeted.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(DiffPairs))]
+    public void The_diff_rendering_matches_its_reference(string before, string after)
+    {
+        var actual = Normalise(ConsoleReport.Diff(ScanDiff.Compare(Scan(before), Scan(after))));
+        var referencePath = Path.Combine(FixtureDirectory, DiffReferenceName(before, after));
+
+        if (!File.Exists(referencePath))
+        {
+            File.WriteAllText(referencePath, actual);
+            Assert.Fail(
+                $"Référence de comparaison absente pour « {before} → {after} » : elle vient "
+                + $"d'être écrite dans {referencePath}. Relire le contenu, puis le versionner.");
         }
 
         Assert.Equal(Normalise(File.ReadAllText(referencePath)), actual);
@@ -303,6 +349,37 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
             "Fournisseur(s) non câblé(s) au rejeu de fixtures, donc collecteur tournant à "
             + "vide derrière une référence qui fige « rien trouvé » : "
             + string.Join(", ", missing));
+    }
+
+    /// <summary>
+    /// The scan a fixture replays to, result and all. Shared by the console goldens, which
+    /// need the object rather than the JSON <see cref="Replay"/> returns.
+    ///
+    /// <para>
+    /// The inventory fields are left intact here, unlike in <see cref="Replay"/>. The
+    /// comparison reads <c>machine.name</c> to decide whether it spans one machine or two;
+    /// stripping it first would turn every pair into "machine inconnue" against itself,
+    /// flip <c>SameMachine</c> to true and silently rewrite the header of every reference.
+    /// </para>
+    /// </summary>
+    private static ScanResult Scan(string fixture)
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(
+            File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
+
+        return ScanEngine.Default().Run(ReplayProviders(snapshot), "test", snapshot.CapturedAtUtc);
+    }
+
+    /// <summary>
+    /// <c>{before}__{after}.diff.txt</c>, beside the captures it compares. The separator is
+    /// split by hand: these identifiers always use '/', and going through
+    /// <see cref="Path"/> would have the reference change name between the Windows
+    /// workstation and the Linux job.
+    /// </summary>
+    private static string DiffReferenceName(string before, string after)
+    {
+        var leaf = after[(after.LastIndexOf('/') + 1)..];
+        return $"{before}__{leaf}.diff.txt";
     }
 
     private static string Replay(string fixture)

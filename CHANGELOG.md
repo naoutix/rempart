@@ -5,6 +5,33 @@ release. The milestone-by-milestone account of how the tool got here, including 
 tried and rejected, lives in [docs/ROADMAP.md](docs/ROADMAP.md) — this file records what
 changed between releases.
 
+## Unreleased
+
+### Tests and tooling
+
+- **The CLI layer has tests.** It had none: 1 872 lines that every command passes through,
+  watched only by CI asserting an exit code. The two pure surfaces now live in
+  `Rempart.Core/Cli/` and are covered on the Linux job — the exit-code contract (5 codes)
+  and the argument parser (6 primitives), 44 tests between them. No command was moved.
+- **`rempart index` renders through `ConsoleReport.Fleet`**, like `scan` and `diff` before
+  it, with a golden test. Output verified identical byte for byte before and after.
+- **Three golden references for `rempart diff`**, covering a regression, a correction, a
+  control that went blind, one that came back, a scope change, findings that disappeared
+  and were retargeted — and a capture compared with itself, which freezes what the tool
+  says when nothing moved.
+- **`rempart help` lists all five exit codes.** It stopped at 3 and never mentioned 4
+  (regression), from the day that code was introduced; the help now derives its own text
+  from the contract, so it cannot drift again.
+- **Code coverage is measured** on the Linux job and summarised in the run — Rempart.Core
+  only, deliberately without a threshold. Six reasons in `docs/DEBT.md` (DET-COUVERTURE).
+
+Three real defects were **frozen by tests rather than fixed here**, each recorded in
+`docs/DEBT.md`: a scan exits 0 when controls could not be verified (DET-SORTIE-PARTIELLE),
+`rempart diff --report --baseline b.json a.json` writes into a folder named `--baseline`
+(DET-ARITE-REPORT), and `rempart explain --rules <dir> <ID>` lists everything instead of
+explaining the rule (DET-EXPLAIN-POSITIONNEL). Each changes what an existing command line
+does, so each gets its own change.
+
 ## 1.0.0-rc.1 — 2026-07-26
 
 First packaged release of the read-only audit, and a release **candidate** on purpose:

@@ -17,9 +17,12 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 | Dépendances de production | **une seule** — YamlDotNet 18.1.0 |
 | `catch` vides | 3, tous `JsonException` dans les parseurs d'extensions (voir DET-EXT-MUET) |
 
-**Relevé au 2026-07-27**, après les phases 1 et 2 et les deux premières tranches de la
-phase 3 : production **15 364 lignes** (Core 10 906, Windows 2 780, CLI 1 678), **538 tests
-unitaires** et 56 Windows. Le tableau ci-dessus reste tel que mesuré le 2026-07-26 : c'est
+**Relevé au 2026-07-27**, après les phases 1 et 2 et l'étape 1 complète de la phase 3
+(ADR-005 : rendus figés, contrat de sortie et parsing extraits). Lignes **non vides**,
+convention retenue ici parce que c'est celle des relevés précédents de `Program.cs` :
+Core 11 066, Windows 2 712, CLI **1 543** — soit 1 610 → 1 543 sur `Program.cs` dans cette
+seule étape, et 1 881 → 1 543 depuis l'ouverture de DET-PROGRAM. **597 tests unitaires**
+et 56 Windows, soit 653. Le tableau ci-dessus reste tel que mesuré le 2026-07-26 : c'est
 la photo qui a servi à prioriser, et la réécrire effacerait le point de comparaison.
 
 **Ce qui est sain, et mérite d'être dit.** Aucun marqueur de dette laissé dans le code :
@@ -55,6 +58,10 @@ Classé par priorité décroissante.
 
 | Réf | Dette | Catégorie | I | R | E | Prio | Note |
 |---|---|---|:-:|:-:|:-:|:-:|---|
+| DET-SORTIE-PARTIELLE | `rempart scan` rend **0** quand les collecteurs ont lu mais que des règles n'ont pas pu être évaluées : le code de sortie est décidé par le statut des collecteurs, jamais par les verdicts `Unknown`. Un scan non élevé dont la moitié des contrôles sont illisibles est, pour un appelant qui ne lit que le code, indistinguable d'un scan complet | Code | 3 | 3 | 3 | 18 | Découvert en extrayant le contrat (PR « filet »), figé par `An_unverifiable_control_does_not_reach_the_exit_code`. La console et les rapports **disent** que le score est partiel ; seul le code de sortie se tait, et c'est justement le canal de celui qui ne lit rien d'autre. Corriger déplace le contrat sur lequel la CI s'appuie (`{0,3}`), donc à faire seul |
+| DET-ARITE-REPORT | `--report` est lu par `OptionalValue` sur `scan` et par `OptionValue` sur `diff`. Sur `rempart diff --report --baseline b.json a.json`, la comparaison part donc dans un dossier nommé `--baseline` | Code | 2 | 2 | 2 | 16 | Figé par `Positional_and_OptionValue_disagree_on_a_value_that_starts_with_a_dash`. Se corrige en alignant `diff` sur `OptionalValue` — changement de comportement d'une ligne de commande existante, donc son propre commit |
+| DET-EXPLAIN-POSITIONNEL | `explain` lit son identifiant à l'indice 1 au lieu de passer par `Positional` : `rempart explain --rules <dossier> WIN-CRED-001` liste les 82 contrôles au lieu d'expliquer la règle demandée | Code | 1 | 1 | 1 | 10 | Figé par `An_identifier_placed_after_an_option_is_not_seen`. Se referme au découpage des commandes (ADR-005, PR 2) |
+| DET-COUVERTURE | La couverture n'est mesurée que sur `Rempart.Core`, par le job Linux : `Rempart.Windows` (2 780 l.) et `Rempart.Cli` (1 794 l.) n'entrent pas au dénominateur, et aucun seuil ne garde le chiffre | Test | 1 | 1 | 2 | 8 | **L'absence de seuil est un choix, pas un oubli** — voir l'encadré ci-dessous, à lire avant de le « corriger ». Lié à [DET-WINDOWS-TESTS] et [DET-PROGRAM] : ce sont les deux couches absentes de la mesure, et les deux que ce registre désigne comme les moins testées |
 | DET-TACHE-EXPIREE | La branche « tâche supprimée après expiration » n'a aucun cas positif sur machine réelle : 196 tâches sur le poste de test, aucune concernée. Couverte par fixture fabriquée seulement | Test | 2 | 2 | 2 | 16 | Se ferme sur la première capture d'une machine qui en porte une ; le zéro a été vérifié, pas supposé |
 | DET-WINDEFAULT | ~60 `windowsDefault` validés sur **une seule machine** — la « dette n°4 » d'ADR-002 | Code | 2 | 3 | 3 | 15 | Se corrige à mesure des captures réelles |
 | DET-CI-SHA | Toutes les actions GitHub sont épinglées par SHA (vérifié). Ce qui flotte encore : le tag Docker d'actionlint (`:1.7.12`) et la bande `dotnet-version: '10.0.x'` | Infrastructure | 1 | 2 | 1 | 15 | Épingler actionlint par digest ; un `global.json` fermerait le SDK en même temps que DET-SDK |
@@ -64,8 +71,35 @@ Classé par priorité décroissante.
 | DET-DIRTY | Aucune fixture « sale » **versionnée** : 4 fixtures existent (réelle anonymisée, défaut, durcie, accès restreint), aucune compromise. Les chemins de menace ne sont testés que par fakes | Test | 3 | 3 | 4 | 12 | Une capture réelle compromise, anonymisée, serait le banc de test le plus honnête |
 | DET-TLS | Règles SCHANNEL/TLS non livrées : les défauts varient selon la build | Code | 3 | 3 | 4 | 12 | Demande une vérification sur plusieurs machines (ROADMAP M2b) |
 | DET-RECPROV | 13 paires `Recording`/`Snapshot` quasi-identiques — `RecordingProviders.cs` fait 327 lignes | Code | 2 | 2 | 3 | 12 | Généraliser par `RecordingProvider<T>`/`SnapshotProvider<T>`. Lié à DET-REPLAY-CABLAGE : moins de répétition, moins d'occasions d'oublier un câblage |
-| DET-PROGRAM | `Program.cs` monolithe. **Mesuré à 1 881 lignes le 2026-07-26, contre ~1 240 à l'inscription** : +52 % en trois lots. **1 610 au 2026-07-27**, après les deux tranches de rendu sorties en phase 3 (#78, #79), dispatch + 13 commandes + rendu + parsing d'args | Architecture | 3 | 2 | 4 | 10 | La trajectoire compte autant que la taille : chaque lot y ajoute une commande. Découper en commandes + couche de rendu **avant** M9, qui ajoutera l'écriture et ses confirmations |
+| DET-PROGRAM | `Program.cs` monolithe. **Mesuré à 1 881 lignes le 2026-07-26, contre ~1 240 à l'inscription** : +52 % en trois lots. **1 543 au 2026-07-27**, après les deux tranches de rendu (#78, #79) puis l'étape 1 d'ADR-005 (rendu du parc, contrat de sortie, parsing) : dispatch + 16 commandes, le rendu et le parsing en étant sortis | Architecture | 3 | 2 | 4 | 10 | La trajectoire compte autant que la taille : chaque lot y ajoute une commande. Découper en commandes + couche de rendu **avant** M9, qui ajoutera l'écriture et ses confirmations |
 | DET-PLAGE-DYNAMIQUE | Le premier port de la plage dynamique (49152) est une constante, non lue de la machine | Code | 1 | 1 | 3 | 6 | Dégradation gracieuse, jamais une affirmation fausse |
+
+### Pourquoi la couverture n'a pas de seuil
+
+Six raisons, dans l'ordre où elles mordent. Écrites ici pour qu'un prochain audit ne
+prenne pas l'absence de porte pour un oubli.
+
+1. **Le chiffre ne couvre pas ce qu'il a l'air de couvrir.** Le job Linux ne construit que
+   `Rempart.Core`. Un seuil global poserait donc une porte sur la couche **déjà la mieux
+   testée**, en restant aveugle aux deux que ce registre désigne comme les moins testées.
+2. **Il bougerait dans le mauvais sens.** Ajouter du code non testé dans `Rempart.Cli`
+   *améliore* le pourcentage mesuré, puisque ça n'entre pas au dénominateur. Une métrique
+   qu'on améliore en écrivant du code non testé au mauvais endroit ne peut pas être une porte.
+3. **La phase 3 déplace précisément du code de Cli vers Core.** #78, #79 et la PR « filet »
+   ont sorti plus de 400 lignes de `Program.cs` vers Core. Chaque tranche suivante ajoute
+   d'un coup des lignes au dénominateur et fait chuter le pourcentage sans qu'aucun test
+   n'ait disparu. Un cliquet bloquerait exactement le refactoring que ce registre réclame.
+4. **Ligne exécutée n'est pas ligne vérifiée.** `FixtureReplayTests` appelle
+   `ScanEngine.Default().Run(...)`, moteur et règles compris, sur chaque fixture : un seul
+   test marque presque tout Core comme couvert. Un seuil récompenserait l'ajout de
+   fixtures, pas l'ajout d'assertions.
+5. **Il n'est pas reproductible d'une machine à l'autre.** `tests/fixtures/local/` est
+   gitignoré : ce poste rejoue plus de captures que la CI (DET-FIXTURE-LOCALE, déjà payé
+   une fois avec l'écart 513/511 que rien n'annonçait).
+6. **Le dépôt a déjà payé une CI qui rougit sans rapport avec le changement**
+   (DET-WMI-FLAKY, cinq builds rouges en une journée dont un sur une PR sans C#). Ajouter
+   un second moyen de rougir pour une raison étrangère à la modification serait refaire
+   l'erreur en connaissance de cause.
 
 ## Plan de remédiation par phases
 

@@ -279,6 +279,38 @@ public static class ConsoleReport
         return text.ToString();
     }
 
+    /// <summary>
+    /// The fleet page, announced on the console. The command's real deliverable is the
+    /// HTML file; this is the receipt — where it landed, how many reports it covers, and
+    /// the same worst-first order the page uses, so a reader who never opens a browser
+    /// still knows which machine to look at next.
+    /// </summary>
+    /// <param name="outputPath">
+    /// Where the page was written. Passed in rather than computed: building it needs
+    /// <c>Path.Combine</c>, which belongs to the CLI and to Windows. Taking it as data is
+    /// what keeps this renderer pure, and replayable on the Linux job.
+    /// </param>
+    /// <param name="unreadable">
+    /// Reports the caller could not parse. Counted and stated, never silent: a page built
+    /// from nine of eleven machines must not read like a page built from all of them.
+    /// </param>
+    public static string Fleet(IReadOnlyList<FleetEntry> entries, string outputPath, int unreadable)
+    {
+        var text = new StringBuilder();
+
+        text.AppendLine($"Parc écrit dans {outputPath} — {entries.Count} rapport(s)"
+                        + (unreadable > 0 ? $", {unreadable} illisible(s)" : string.Empty));
+
+        foreach (var entry in FleetIndex.Ordered(entries))
+        {
+            text.AppendLine($"  {entry.Machine,-24} {entry.Date}  " +
+                            $"{(entry.Score is { } s ? $"{s,3} %" : "  n/d")}  " +
+                            $"échecs {entry.Failures}, à examiner {entry.FlaggedFindings}");
+        }
+
+        return text.ToString();
+    }
+
     private static string Percent(int? score) => score is { } value ? $"{value} %" : "n/d";
 
     private static string DescribeStatus(VerdictStatus? status) => status switch
