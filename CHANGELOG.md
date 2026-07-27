@@ -7,6 +7,18 @@ changed between releases.
 
 ## Unreleased
 
+### Structure
+
+- **`Program.cs` is 29 lines.** It was 1 881 at its worst, growing by half a milestone at a
+  time. The dispatch is now an explicit table, each of the 17 commands is its own class,
+  and the helpers that touch the host sit in `CliHost`. Nothing changed in what the tool
+  does: every command's output and exit code was captured before and after and compared —
+  63 invocations, byte for byte identical, including the error paths.
+- **Ten guards watch the table**, all verified by mutation rather than merely green. Two of
+  them exist only because review showed the first version compared the dispatch table to
+  another hand-written list instead of to the command classes that actually exist —
+  the same list, written twice, cannot check itself.
+
 ### Tests and tooling
 
 - **The CLI layer has tests.** It had none: 1 872 lines that every command passes through,

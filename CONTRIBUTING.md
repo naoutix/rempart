@@ -3,7 +3,7 @@
 ## Getting started
 
 ```bash
-dotnet test                                   # 650 tests (56 require Windows), ~10 s
+dotnet test                                   # 660 tests (56 require Windows), ~10 s
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 
@@ -133,7 +133,9 @@ gh pr merge --squash --delete-branch
 ```
 
 `verify.ps1` replays locally what CI runs; `-SkipPublish` skips the AOT step for
-a faster loop.
+a faster loop. `-Coverage` collects line coverage for `Rempart.Core` and prints the
+same summary CI prints — off by default, because a workstation replays captures CI
+does not have, so the two figures are not comparable.
 
 The roadmap also records what was tried and discarded, with reasons — check
 [ROADMAP.md](docs/ROADMAP.md) (French) before reimplementing something that

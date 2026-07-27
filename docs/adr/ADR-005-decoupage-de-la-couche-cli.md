@@ -1,6 +1,6 @@
 # ADR-005 : Découpage de la couche CLI et généralisation des fournisseurs
 
-**Statut :** Accepté — en cours d'exécution (étape 1 terminée : PR 1a, 1b, 1c et 1c-bis)
+**Statut :** Accepté — étapes 1 et 2 faites (PR 1a, 1b, 1c, 1c-bis, puis le découpage) ; reste l'étape 3, les fournisseurs
 **Date :** 2026-07-27
 **Décide :** l'éditeur du projet
 **Dettes visées :** DET-PROGRAM, DET-RECPROV, DET-WINDOWS-TESTS (phase 3 du plan de [DEBT.md](../DEBT.md))
@@ -226,10 +226,25 @@ l'interop.
        La couche CLI passe de 0 à 44 tests, et trois défauts réels sont **figés** plutôt
        que corrigés au passage : `DET-SORTIE-PARTIELLE`, `DET-ARITE-REPORT`,
        `DET-EXPLAIN-POSITIONNEL`.
-5. [ ] **PR 2 — découpage des commandes.** Une classe par commande, table explicite dans
-       `Program.cs`, plus le test qui compare la table aux commandes existantes, la table
-       `commande → options` (47 paires) qui remplace les deux listes `valueTaking` tenues
-       à la main, et le garde de dérive entre la table et le texte d'aide.
+5. [x] **PR 2 — découpage des commandes.** Fait : 17 classes sous `Commands/`, table
+       explicite dans `CommandTable.cs`, `Program.cs` réduit à **29 lignes non vides**
+       (1 543 avant, 1 881 à l'ouverture de DET-PROGRAM). `CommandSurface` porte les 47
+       paires `commande → option` et remplace les deux listes `valueTaking` tenues à la
+       main. Dix gardes, **tous vérifiés par mutation** et non seulement verts.
+
+   > **Ce que la relecture a corrigé, et qui mérite d'être retenu.** Le premier jet
+   > comparait la table de dispatch à `CommandSurface` — deux listes écrites de la même
+   > main dans le même lot, donc un garde qui ne garde rien. Ce que cette section réclamait
+   > était la table contre **les classes réellement présentes sur le disque**, et l'écart
+   > n'est pas théorique : l'étape 3 ajoute `diagnose-drivers`, qui ne lit aucune option et
+   > serait donc passée entre les mailles de tous les autres gardes. De même, la
+   > vérification « toute option lue est déclarée » était **globale** : déplacer une
+   > lecture d'une commande vers une autre la laissait verte, alors que c'est précisément
+   > ce qui rend `ValueTaking` incomplète. Elle est désormais faite **par commande**.
+   >
+   > La leçon est celle de `DET-REPLAY-CABLAGE`, une fois de plus : un garde qui compare
+   > deux artefacts écrits ensemble ne prouve rien. Il faut le confronter à ce qui existe
+   > vraiment — le disque, pas une seconde liste.
 6. [ ] **PR 3 — fournisseurs.** `RecordingProvider<T>`/`SnapshotProvider<T>` génériques
        (`DET-RECPROV`), puis `diagnose-drivers`/`diagnose-processes` sur le modèle
        `diagnose-wmi`, et un projet de fakes partagé pour `CatalogSignature`

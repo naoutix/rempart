@@ -104,7 +104,10 @@ public static class CommandLine
     /// Both sites open-coded the same test. Naming it does not make it right: reading a
     /// positional argument at a fixed index means <c>rempart explain --rules d W-001</c>
     /// finds no identifier and lists everything instead. That defect is frozen by
-    /// <c>CommandLineTests</c> and fixed where the commands are split, not here.
+    /// <c>CommandLineTests</c>, and tracked as DET-EXPLAIN-POSITIONNEL rather than fixed
+    /// here — it changes what an existing command line does, so it gets its own change.
+    /// Splitting the commands moved this call without touching it, deliberately: a pass
+    /// that proves it changed nothing cannot also change something.
     /// </para>
     /// </summary>
     public static string? WordAt(string[] args, int index) =>
