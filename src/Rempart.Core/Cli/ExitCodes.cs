@@ -1,5 +1,7 @@
 using Rempart.Core.Collectors;
 using Rempart.Core.Diff;
+using Rempart.Core.Engine;
+using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
 
 namespace Rempart.Core.Cli;
@@ -10,8 +12,8 @@ namespace Rempart.Core.Cli;
 /// <para>
 /// A scan piped into a scheduler, a script or another tool is judged on this number alone.
 /// It was decided by two ternaries buried in <c>Program.cs</c> and by a pair of
-/// <c>catch</c> blocks, none of which any test observed: CI asserts that a scan exits 0
-/// <em>or</em> 3 without distinguishing them, so a build that returned 3 forever would
+/// <c>catch</c> blocks, none of which any test observed: CI asserts that a scan exits 0,
+/// 3 <em>or</em> 5 without distinguishing them, so a build that returned 3 forever would
 /// stay green. Here the contract is a pure function of the scan, and it is tested.
 /// </para>
 /// </summary>
@@ -34,6 +36,17 @@ public enum ExitCode
 
     /// <summary>A comparison found a control that used to pass and no longer does.</summary>
     Regression = 4,
+
+    /// <summary>
+    /// The scan ran to the end, and some rules still have no answer. Distinct from
+    /// <see cref="InsufficientPrivileges"/>, which says a <em>collector</em> was refused:
+    /// here every collector read fine and controls came back <c>Unknown</c> anyway, so the
+    /// score answers for less of the machine than it appears to. The fixture
+    /// <c>restricted-access</c> is the case: 100 %, four controls unverifiable, and until
+    /// this code existed it exited 0 — indistinguishable, for a scheduler, from a machine
+    /// that was fully checked.
+    /// </summary>
+    Partial = 5,
 }
 
 /// <summary>An exit code and the sentence printed on stderr alongside it.</summary>
@@ -53,6 +66,7 @@ public static class ExitCodes
         ExitCode.SnapshotIncomplete,
         ExitCode.InsufficientPrivileges,
         ExitCode.Regression,
+        ExitCode.Partial,
     ];
 
     public static string Describe(ExitCode code) => code switch
@@ -62,6 +76,7 @@ public static class ExitCodes
         ExitCode.SnapshotIncomplete => "instantané incomplet",
         ExitCode.InsufficientPrivileges => "droits insuffisants",
         ExitCode.Regression => "régression",
+        ExitCode.Partial => "audit partiel",
         _ => throw new ArgumentOutOfRangeException(nameof(code)),
     };
 
@@ -77,18 +92,40 @@ public static class ExitCodes
     /// What a finished scan is worth to its caller.
     ///
     /// <para>
-    /// A broken collector outranks a denied one, and the order matters: a run that both
-    /// failed somewhere and was refused elsewhere is a failure, because the failure is the
-    /// part that will not fix itself by re-running as administrator. CI relies on this
-    /// precedence — it accepts 0 and 3 from a scan on a runner whose rights vary, and
-    /// nothing else.
+    /// Takes the whole result rather than the two lists it reads, for the reason
+    /// <see cref="ForDiff"/> takes a <see cref="DiffResult"/> rather than a list of shifts:
+    /// with <c>ForScan(collectors, verdicts)</c> nothing would stop a caller handing over
+    /// the collectors of one scan and the verdicts of another — two same-shaped arguments,
+    /// no compiler to object — and the exit code is precisely the value nobody re-reads
+    /// afterwards to notice. One argument, one scan.
+    /// </para>
+    ///
+    /// <para>
+    /// Precedence, strictly in this order: <see cref="ExitCode.Failure"/>,
+    /// <see cref="ExitCode.InsufficientPrivileges"/>, <see cref="ExitCode.Partial"/>,
+    /// <see cref="ExitCode.Success"/>. Ranked by what the caller can do about it. A
+    /// breakdown does not repair itself by re-running elevated; a refused collector does;
+    /// a rule that could not be evaluated is the weakest of the three signals and is still
+    /// not nothing — it separates "verified compliant" from "compliant as far as could be
+    /// seen". CI relies on this precedence: it accepts 0, 3 and 5 from a scan on a runner
+    /// whose rights vary, and nothing else.
+    /// </para>
+    ///
+    /// <para>
+    /// The partial case reads the verdicts, never <see cref="ScanResult.Score"/>: the score
+    /// is <c>null</c> when nothing at all could be evaluated, which is the most partial
+    /// scan there is, and any check going through a nullable score would answer 0 for it.
+    /// An <c>Unknown</c> verdict is the same condition <see cref="ScoreCard.IsPartial"/>
+    /// states, read where it is decided.
     /// </para>
     /// </summary>
-    public static ExitCode ForScan(IReadOnlyList<CollectorResult> collectors) =>
-        collectors.Any(c => c.Status == CollectorStatus.Failed) ? ExitCode.Failure
-        : collectors.Any(c => c.Status == CollectorStatus.InsufficientPrivileges)
+    public static ExitCode ForScan(ScanResult scan) =>
+        scan.Collectors.Any(c => c.Status == CollectorStatus.Failed) ? ExitCode.Failure
+        : scan.Collectors.Any(c => c.Status == CollectorStatus.InsufficientPrivileges)
             ? ExitCode.InsufficientPrivileges
-            : ExitCode.Success;
+            : scan.Verdicts.Any(v => v.Status == VerdictStatus.Unknown)
+                ? ExitCode.Partial
+                : ExitCode.Success;
 
     /// <summary>
     /// A regression is what the caller most likely wants to act on, so it is detectable

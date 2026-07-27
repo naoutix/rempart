@@ -276,7 +276,64 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
             // mistake fails the test now, not six months later while rereading the repo.
             Assert.True(snapshot.Anonymised, $"Fixture non anonymisée : {path}");
             Assert.StartsWith("anon:", snapshot.SystemInfo?.MachineName, StringComparison.Ordinal);
+
+            AssertNoHardwareIdentity(snapshot, path);
+            AssertNoThirdPartyTaskLabel(snapshot, path);
         }
+    }
+
+    /// <summary>
+    /// The mainboard and the firmware, which the flag above says nothing about.
+    ///
+    /// <para>
+    /// Everything recorded under the BIOS key is hardware identity — model, board, BIOS
+    /// version and release date — so the check is the key rather than a list of value
+    /// names. A list would have to be kept in step with the anonymiser's own, and a value
+    /// dropped from one would silently stop being checked by the other; here a new read
+    /// under that key fails until somebody decides what it is.
+    /// </para>
+    /// </summary>
+    private static void AssertNoHardwareIdentity(MachineSnapshot snapshot, string path)
+    {
+        const string BiosKey = @"HKLM\HARDWARE\DESCRIPTION\System\BIOS||";
+
+        var readable = snapshot.Registry
+            .Where(entry => entry.Key.StartsWith(BiosKey, StringComparison.OrdinalIgnoreCase))
+            .Where(entry => entry.Value.Value?.Text is { Length: > 0 } text
+                && !text.StartsWith("anon:", StringComparison.Ordinal))
+            .Select(entry => $"{entry.Key[BiosKey.Length..]} = {entry.Value.Value!.Text}")
+            .ToList();
+
+        Assert.True(readable.Count == 0,
+            $"Identité matérielle en clair dans {Path.GetFileName(path)} — modèle de carte "
+            + "mère, version ou date de BIOS désignent la machine d'origine et le dépôt est "
+            + $"public : {string.Join(", ", readable)}");
+    }
+
+    /// <summary>
+    /// The task labels, which name the installed software.
+    ///
+    /// <para>
+    /// Everything outside <c>\Microsoft\</c> was put there by an installer, so its path
+    /// and its name are an inventory line. The exclusion is the point of the criterion and
+    /// not an oversight: the compromised fixture plants a task inside that folder on
+    /// purpose, and a check that demanded a digest everywhere would force it out of the one
+    /// place where it means something.
+    /// </para>
+    /// </summary>
+    private static void AssertNoThirdPartyTaskLabel(MachineSnapshot snapshot, string path)
+    {
+        var readable = (snapshot.ScheduledTasks?.Tasks ?? [])
+            .Where(task => !task.Path.StartsWith(@"\Microsoft\", StringComparison.OrdinalIgnoreCase))
+            .Where(task => !task.Path.StartsWith("anon:", StringComparison.Ordinal)
+                || !task.Name.StartsWith("anon:", StringComparison.Ordinal))
+            .Select(task => $"{task.Path} ({task.Name})")
+            .ToList();
+
+        Assert.True(readable.Count == 0,
+            $"Tâche(s) planifiée(s) tierce(s) en clair dans {Path.GetFileName(path)} — le "
+            + "chemin nomme le logiciel installé, et parfois un GUID d'installation ou un "
+            + $"SID : {string.Join(", ", readable)}");
     }
 
     [Fact]
@@ -362,7 +419,11 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
 
     /// <summary>
     /// The scan a fixture replays to, result and all. Shared by the console goldens, which
-    /// need the object rather than the JSON <see cref="Replay"/> returns.
+    /// need the object rather than the JSON <see cref="Replay"/> returns, and by
+    /// <c>ExitCodeTests</c>, which needs the scan the exit code answers for. Internal
+    /// rather than copied there: a second nineteen-provider wiring would drift from this
+    /// one, and the claim being made — that the fixture scoring 100 % exits 5 — is only
+    /// worth anything about the scan these references freeze.
     ///
     /// <para>
     /// The inventory fields are left intact here, unlike in <see cref="Replay"/>. The
@@ -371,7 +432,7 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
     /// flip <c>SameMachine</c> to true and silently rewrite the header of every reference.
     /// </para>
     /// </summary>
-    private static ScanResult Scan(string fixture)
+    internal static ScanResult Scan(string fixture)
     {
         var snapshot = RempartJson.DeserialiseSnapshot(
             File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));

@@ -7,6 +7,72 @@ changed between releases.
 
 ## Unreleased
 
+### The anonymiser washes what identifies a machine, not just who owns it
+
+- **Hardware identity is now scrubbed** — manufacturer, model, family, mainboard, BIOS
+  version and release date. A board model plus a firmware version plus its build date
+  narrows a machine down about as far as a serial number does, and nothing reads them
+  back: no shipped rule touches that key, the inventory only prints what it finds. The
+  scope is the registry **key**, not the value name — `ProductName` under
+  `CurrentVersion` is "Windows 11 Pro" and stays readable, because the whole OS-version
+  derivation rests on it.
+- **Scheduled tasks outside `\Microsoft\` lose their path and name.** A third-party task
+  label is an inventory line: it names the product that installed it, sometimes with an
+  install GUID or a per-user folder on top. The criterion is the folder and not the
+  author, deliberately — a task that *borrows* Microsoft's folder is exactly what an
+  intrusion does, and hashing by author would have hidden the impostor while scrubbing its
+  innocent neighbours.
+- **What stays readable, and why**: the executable a task launches, and the paths of every
+  verified signature. They are the object of the audit — the signature ladder judges them
+  and the report exists to name the binary that runs — and the collector reads their
+  *shape* to tell a resolved path from a bare name, so a digest would invent a "chemin non
+  résolu" finding on every third-party task.
+- **`Anonymiser.Hash` is idempotent.** "Anonymised" now means "stays anonymised": a value
+  already reduced to a digest crosses a second pass unchanged, instead of becoming a
+  digest of a digest.
+- **`synthesise` runs the anonymiser instead of declaring its output anonymised.** The
+  builder used to set the flag and stop there, trusting the source capture for fields the
+  anonymiser did not know about — which is how eleven task paths, a mainboard model and a
+  BIOS date reached a public repository. The flag is now produced, not asserted.
+- `Versioned_fixtures_are_anonymised` checked a boolean and a machine-name prefix, so it
+  could see none of this. It now fails on any hardware value or any third-party task label
+  left in the clear, and it was verified to fail on the fixtures as they stood before the
+  fix.
+- **No intrusion marker was damaged**: the four fixtures were regenerated with identical
+  verdicts and identical findings — the compromised one still renders exactly seven
+  `Suspicious` and three `Notable` — and the four comparison references came back
+  character for character identical.
+
+### A scan that could not see everything says so in its exit code
+
+- **New exit code `5` — *audit partiel***, returned by `rempart scan` when one or more
+  rules came back `Unknown`. Until now the code answered for the *collectors* only: a
+  machine where every collector read fine while controls stayed unverifiable for want of
+  elevation exited `0`, and to a scheduler or a fleet script that is indistinguishable
+  from a machine that was fully checked. The console and the reports have always said the
+  score was partial; the exit code — the one channel of the caller who reads nothing else
+  — was the one staying silent.
+- **`5` is deliberately not `3`.** `3` says a *collector* was refused; `5` says every
+  collector read fine and *rules* still have no answer. Precedence is `1 > 3 > 5 > 0`,
+  ordered by what the caller can act on: a breakdown does not repair itself by re-running
+  elevated, a refused collector does, and an unevaluable rule is the weakest of the three
+  signals without being nothing.
+- **Measured on the four versioned fixtures.** `restricted-access` — which scores **100 %
+  with four controls it never managed to look at**, the case the debt entry was written
+  about — goes from `0` to `5`. `hardened-win11` stays at `0`. `default-win11` and
+  `compromised-win11` move to `5`, both on an unreadable `WIN-ENC-001`. No report
+  changed: the exit code is not rendered anywhere.
+- The three exit-code guards — both CI workflows **and `scripts/verify.ps1`**, the gate
+  CONTRIBUTING puts before every pull request — now accept `0`, `3` or `5` from the real
+  scan they run. What those steps prove is that the binary runs a scan end to end, not that
+  the machine running it is well configured. That tolerance belongs there and nowhere else:
+  for an auditor, `5` is a result to act on.
+- **`5` is not a symptom of a non-elevated runner, and assuming so is the trap.** Elevation
+  is the usual remedy, not the only one: two of the four versioned fixtures were captured
+  *elevated* and still exit `5`, because `WIN-ENC-001` (BitLocker) has no volume-encryption
+  WMI class to ask. Narrowing the accepted set back to `{0, 3}` after elevating a runner
+  would redden a correct build.
+
 ### The audit is now tested against a compromised machine
 
 - **A fourth versioned fixture, deliberately dirty** — `synthesise --compromised` plants a
@@ -69,28 +135,28 @@ changed between releases.
 
 - **The CLI layer has tests.** It had none: 1 872 lines that every command passes through,
   watched only by CI asserting an exit code. The two pure surfaces now live in
-  `Rempart.Core/Cli/` and are covered on the Linux job — the exit-code contract (5 codes)
-  and the argument parser (6 primitives), 44 tests between them. No command was moved.
+  `Rempart.Core/Cli/` and are covered on the Linux job — the exit-code contract (6 codes)
+  and the argument parser (6 primitives), 55 tests between them. No command was moved.
 - **`rempart index` renders through `ConsoleReport.Fleet`**, like `scan` and `diff` before
   it, with a golden test. Output verified identical byte for byte before and after.
 - **Three golden references for `rempart diff`**, covering a regression, a correction, a
   control that went blind, one that came back, a scope change, findings that disappeared
   and were retargeted — and a capture compared with itself, which freezes what the tool
   says when nothing moved.
-- **`rempart help` lists all five exit codes.** It stopped at 3 and never mentioned 4
+- **`rempart help` lists all six exit codes.** It stopped at 3 and never mentioned 4
   (regression), from the day that code was introduced; the help now derives its own text
-  from the contract, so it cannot drift again.
+  from the contract, so it cannot drift again — code 5 above reached it without anyone
+  having to remember.
 - **Code coverage is measured** on the Linux job and summarised in the run — Rempart.Core
   only, deliberately without a threshold. Six reasons in `docs/DEBT.md` (DET-COUVERTURE).
   The summary states which figure it is: a workstation holding real captures in
   `tests/fixtures/local/` measures a different one, and the two are not comparable.
 
-Three real defects were **frozen by tests rather than fixed here**, each recorded in
-`docs/DEBT.md`: a scan exits 0 when controls could not be verified (DET-SORTIE-PARTIELLE),
-`rempart diff --report --baseline b.json a.json` writes into a folder named `--baseline`
-(DET-ARITE-REPORT), and `rempart explain --rules <dir> <ID>` lists everything instead of
-explaining the rule (DET-EXPLAIN-POSITIONNEL). Each changes what an existing command line
-does, so each gets its own change.
+Two real defects are still **frozen by tests rather than fixed**, each recorded in
+`docs/DEBT.md`: `rempart diff --report --baseline b.json a.json` writes into a folder named
+`--baseline` (DET-ARITE-REPORT), and `rempart explain --rules <dir> <ID>` lists everything
+instead of explaining the rule (DET-EXPLAIN-POSITIONNEL). Each changes what an existing
+command line does, so each gets its own change — as the exit code above did.
 
 ## 1.0.0-rc.1 — 2026-07-26
 

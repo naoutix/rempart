@@ -55,7 +55,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Micro-Star International Co., Ltd.",
+        "text": "anon:4c0452f8e995",
         "number": null
       }
     },
@@ -63,7 +63,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "MS-7E80",
+        "text": "anon:425e3f562473",
         "number": null
       }
     },
@@ -71,7 +71,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "To be filled by O.E.M.",
+        "text": "anon:4da0d798e550",
         "number": null
       }
     },
@@ -79,7 +79,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "2.A41",
+        "text": "anon:cf2f12ebf4d7",
         "number": null
       }
     },
@@ -87,7 +87,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "03/17/2026",
+        "text": "anon:5901e8014ad1",
         "number": null
       }
     },
@@ -95,7 +95,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "Micro-Star International Co., Ltd.",
+        "text": "anon:4c0452f8e995",
         "number": null
       }
     },
@@ -103,7 +103,7 @@
       "status": "Found",
       "value": {
         "kind": "String",
-        "text": "PRO B850-S WIFI6E (MS-7E80)",
+        "text": "anon:f3b307aa2962",
         "number": null
       }
     },
@@ -667,6 +667,350 @@
         "number": null
       }
     },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common Administrative Tools": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Administrative Tools",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common AppData": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\ProgramData",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common Desktop": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\Public\\Desktop",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common Documents": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\Public\\Documents",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common Programs": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common Start Menu": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common Startup": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Common Templates": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\ProgramData\\Microsoft\\Windows\\Templates",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||CommonMusic": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\Public\\Music",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||CommonPictures": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\Public\\Pictures",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||CommonVideo": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\Public\\Videos",
+        "number": null
+      }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||OEM Links": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\ProgramData\\OEM\\Links",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Personal": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Documents",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Desktop": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Desktop",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||My Pictures": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Pictures",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||!Do not use this registry key": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "Use the SHGetFolderPath or SHGetKnownFolderPath function instead",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||AppData": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Local AppData": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||CD Burning": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Microsoft\\Windows\\Burn\\Burn",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{1B3EA5DC-B587-4786-B4EF-BD1DC332AEAE}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Libraries",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||My Video": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Videos",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||History": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Microsoft\\Windows\\History",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||NetHood": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Network Shortcuts",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{56784854-C6CB-462B-8169-88E350ACB882}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Contacts",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{00BCFC5A-ED94-4E48-96A1-3F6217F21990}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Microsoft\\Windows\\RoamingTiles",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Cookies": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Microsoft\\Windows\\INetCookies",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Favorites": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Favorites",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||SendTo": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\SendTo",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Start Menu": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||My Music": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Music",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Programs": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Recent": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Recent",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||PrintHood": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Printer Shortcuts",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{7D1D3A04-DEBB-4115-95CF-2F29DA2920DA}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Searches",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{374DE290-123F-4565-9164-39C4925E467B}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Downloads",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{A520A1A4-1780-4FF6-BD18-167343C5AF16}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\LocalLow",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Startup": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Administrative Tools": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Administrative Tools",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{BFB9D5E0-C6A9-404C-B2B2-AE6DB6AF4968}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Links",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Cache": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Local\\Microsoft\\Windows\\INetCache",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Templates": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\AppData\\Roaming\\Microsoft\\Windows\\Templates",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Users\\anon:dcbbdf833cfe\\Saved Games",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders||Fonts": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\WINDOWS\\Fonts",
+        "number": null
+      }
+    },
     "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon||Userinit": {
       "status": "Found",
       "value": {
@@ -726,6 +1070,54 @@
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig||Security Packages": {
       "status": "NotFound",
       "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{0003000A-0000-0000-C000-000000000046}\\InprocServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{0003000A-0000-0000-C000-000000000046}\\LocalServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{031E4825-7B94-4dc3-B131-E946B44C8DD5}\\InprocServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{031E4825-7B94-4dc3-B131-E946B44C8DD5}\\LocalServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{2cc5ca98-6485-489a-920e-b3e88a6ccce3}\\InprocServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{2cc5ca98-6485-489a-920e-b3e88a6ccce3}\\LocalServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{2F81B25E-7507-4844-BFF2-77D2CC24CED4}\\InprocServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{2F81B25E-7507-4844-BFF2-77D2CC24CED4}\\LocalServer32||": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "\u0022C:\\Program Files\\Adobe\\Adobe Creative Cloud\\ACC\\Creative Cloud.exe\u0022 -ToastActivated",
+        "number": null
+      }
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{D3E34B21-9D75-101A-8C3D-00AA001A1652}\\InprocServer32||": {
+      "status": "NotFound",
+      "value": null
+    },
+    "HKCU\\Software\\Classes\\CLSID\\{D3E34B21-9D75-101A-8C3D-00AA001A1652}\\LocalServer32||": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Program Files\\WindowsApps\\Microsoft.Paint_11.2605.71.0_x64__8wekyb3d8bbwe\\PaintApp\\mspaint.exe",
+        "number": null
+      }
     },
     "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile||AllowLocalPolicyMerge": {
       "status": "Found",
@@ -2633,6 +3025,7 @@
     }
   },
   "registryLists": {},
+  "subKeyLists": {},
   "signatures": {
     "C:\\WINDOWS\\system32\\SecurityHealthSystray.exe": {
       "status": "Valid",
@@ -4054,11 +4447,6 @@
       "publisher": null,
       "sha256": "290ae7ed27562a2db99533d9070351caf8b97cd407b4fae0cd16e90c9063055c"
     },
-    "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\libs\\node.exe": {
-      "status": "Valid",
-      "publisher": "NAVER Global Root Certification Authority",
-      "sha256": "d14ba95cdce1ef7dc9ad3ac74949ca5db38b27378ee30f30a23cf26f9e875a11"
-    },
     "C:\\WINDOWS\\system32\\wwahost.exe": {
       "status": "Valid",
       "publisher": null,
@@ -4104,25 +4492,20 @@
       "publisher": "NAVER Global Root Certification Authority",
       "sha256": "f14452d1e199273795f2920c00fd7a7f818178ddf1f3efb4d005a7e3d4ec4eff"
     },
-    "C:\\Program Files\\dotnet\\dotnet.exe": {
-      "status": "Valid",
-      "publisher": null,
-      "sha256": "4377f10c78400f0370b88156773de9843c07f14e65b3232005ec3179ef38d463"
-    },
     "C:\\Program Files\\dotnet\\sdk\\10.0.302\\Roslyn\\bincore\\VBCSCompiler.exe": {
       "status": "Valid",
       "publisher": null,
       "sha256": "33e4d98be8a19efaa9077da96fb24964eba45e41266678c2cf54527089cd4268"
     },
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\VCTIP.EXE": {
+    "C:\\Program Files\\dotnet\\dotnet.exe": {
       "status": "Valid",
       "publisher": null,
-      "sha256": "0438198f79ccba1ad170f4344632e74bbf8b0d8ae55f92446565c54bedb26e37"
+      "sha256": "4377f10c78400f0370b88156773de9843c07f14e65b3232005ec3179ef38d463"
     },
     "C:\\Users\\anon:dcbbdf833cfe\\Documents\\3 - Projects\\CleanProject\\src\\Rempart.Cli\\bin\\Debug\\net10.0-windows\\win-x64\\rempart.exe": {
       "status": "Unsigned",
       "publisher": null,
-      "sha256": "a734c8900294b07295103dbc40129935a83d189934626e816c0ce4f0e396007f"
+      "sha256": "9baf5fb831a753544b807524ec09095e390a2077dc2e727d496d156e292d14f4"
     },
     "C:\\WINDOWS\\system32\\userinit.exe": {
       "status": "Valid",
@@ -4143,6 +4526,11 @@
       "status": "Valid",
       "publisher": null,
       "sha256": "e434527aa58a9e0c071c3ea0c04b7fb5fc9d53f2117e24fb3cbb566169c1930b"
+    },
+    "C:\\Program Files\\WindowsApps\\Microsoft.Paint_11.2605.71.0_x64__8wekyb3d8bbwe\\PaintApp\\mspaint.exe": {
+      "status": "Unsigned",
+      "publisher": null,
+      "sha256": "609367052180dbcd088b0ac5919d2ca41cfd57f69a2ff0a39ff2e5397d7c6234"
     }
   },
   "directories": {},
@@ -4150,8 +4538,8 @@
     "status": "Found",
     "tasks": [
       {
-        "path": "\\AMDRyzenMasterSDKTask",
-        "name": "AMDRyzenMasterSDKTask",
+        "path": "anon:8af6eb6d1607",
+        "name": "anon:c6beca784e93",
         "enabled": true,
         "state": "running",
         "author": "Advanced Micro Devices",
@@ -4163,11 +4551,13 @@
             "path": "C:\\Program Files\\AMD\\CNext\\CNext\\cpumetricsserver.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\Launch Adobe CCXProcess",
-        "name": "Launch Adobe CCXProcess",
+        "path": "anon:a45f283ed39f",
+        "name": "anon:a69fb8166f14",
         "enabled": true,
         "state": "ready",
         "author": "anon:e4c93a1ab859",
@@ -4179,11 +4569,13 @@
             "path": "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
-        "name": "NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+        "path": "anon:ed63246e5ade",
+        "name": "anon:b6d2bde3f5ca",
         "enabled": true,
         "state": "ready",
         "author": "NVIDIA Corporation",
@@ -4195,11 +4587,13 @@
             "path": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\StartCN",
-        "name": "StartCN",
+        "path": "anon:78549b7ab0e6",
+        "name": "anon:6d1880f9651c",
         "enabled": true,
         "state": "ready",
         "author": "Advanced Micro Devices",
@@ -4211,11 +4605,13 @@
             "path": "C:\\Program Files\\AMD\\CNext\\CNext\\cncmd.exe",
             "arguments": "startwithdelay"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\StartDVR",
-        "name": "StartDVR",
+        "path": "anon:a5650ec35432",
+        "name": "anon:5e0ff918e51b",
         "enabled": true,
         "state": "ready",
         "author": "Advanced Micro Devices",
@@ -4227,7 +4623,9 @@
             "path": "C:\\Program Files\\AMD\\CNext\\CNext\\RSServCmd.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Office\\Office Automatic Updates 2.0",
@@ -4243,7 +4641,9 @@
             "path": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe",
             "arguments": "/frequentupdate SCHEDULEDTASK displaylevel=False"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Office\\Office ClickToRun Service Monitor",
@@ -4259,7 +4659,9 @@
             "path": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe",
             "arguments": "/WatchService"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Office\\Office Feature Updates",
@@ -4275,7 +4677,9 @@
             "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Office\\Office Feature Updates Logon",
@@ -4291,7 +4695,9 @@
             "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\sdxhelper.exe",
             "arguments": "/onlogon"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Office\\Office Performance Monitor",
@@ -4307,7 +4713,9 @@
             "path": "C:\\Program Files\\Microsoft Office\\root\\VFS\\ProgramFilesCommonX64\\Microsoft Shared\\Office16\\operfmon.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319",
@@ -4323,7 +4731,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 64",
@@ -4339,7 +4749,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 64 Critical",
@@ -4355,7 +4767,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\.NET Framework\\.NET Framework NGEN v4.0.30319 Critical",
@@ -4371,7 +4785,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\AccountHealth\\RecoverabilityToastTask",
@@ -4387,7 +4803,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\AD RMS Rights Policy Template Management (Automated)",
@@ -4403,7 +4821,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\AD RMS Rights Policy Template Management (Manual)",
@@ -4419,7 +4839,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\AppID\\PolicyConverter",
@@ -4435,7 +4857,9 @@
             "path": "C:\\WINDOWS\\system32\\appidpolicyconverter.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\AppID\\VerifiedPublisherCertStoreCheck",
@@ -4451,7 +4875,9 @@
             "path": "C:\\WINDOWS\\system32\\appidcertstorecheck.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Application Experience\\MareBackup",
@@ -4477,7 +4903,9 @@
             "path": "C:\\WINDOWS\\system32\\compattelrunner.exe",
             "arguments": "-m:aemarebackup.dll -f:BackupMareData"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser Exp",
@@ -4493,7 +4921,9 @@
             "path": "C:\\WINDOWS\\system32\\compattelrunner.exe",
             "arguments": "-m:appraiser.dll -f:DoScheduledTelemetryRun express"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask",
@@ -4509,7 +4939,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "%windir%\\system32\\PcaSvc.dll,PcaPatchSdbTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Application Experience\\SdbinstMergeDbTask",
@@ -4525,7 +4957,9 @@
             "path": "C:\\WINDOWS\\system32\\sdbinst.exe",
             "arguments": "-mm"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Application Experience\\StartupAppTask",
@@ -4541,7 +4975,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "Startupscan.dll,SusRunTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\ApplicationData\\appuriverifierdaily",
@@ -4557,7 +4993,9 @@
             "path": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\ApplicationData\\appuriverifierinstall",
@@ -4573,7 +5011,9 @@
             "path": "C:\\WINDOWS\\system32\\AppHostRegistrationVerifier.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\ApplicationData\\CleanupTemporaryState",
@@ -4589,7 +5029,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "Windows.Storage.ApplicationData.dll,CleanupTemporaryState"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\ApplicationData\\DsSvcCleanup",
@@ -4605,7 +5047,9 @@
             "path": "C:\\WINDOWS\\system32\\dstokenclean.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\AppListBackup\\Backup",
@@ -4621,7 +5065,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\AppListBackup\\BackupNonMaintenance",
@@ -4637,7 +5083,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\AppxDeploymentClient\\Pre-staged app cleanup",
@@ -4653,7 +5101,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "%windir%\\system32\\AppxDeploymentClient.dll,AppxPreStageCleanupRunTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Autochk\\Proxy",
@@ -4669,7 +5119,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "/d acproxy.dll,PerformAutochkOperations"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\BitLocker\\BitLocker Encrypt All Drives",
@@ -4685,7 +5137,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\BitLocker\\BitLocker MDM policy Refresh",
@@ -4701,7 +5155,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Bluetooth\\UninstallDeviceTask",
@@ -4717,7 +5173,9 @@
             "path": "C:\\WINDOWS\\system32\\BthUdTask.exe",
             "arguments": "$(Arg0)"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\BrokerInfrastructure\\BgTaskRegistrationMaintenanceTask",
@@ -4733,7 +5191,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\capabilityaccessmanager\\maintenancetasks",
@@ -4749,7 +5209,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "%windir%\\system32\\CapabilityAccessManager.dll,CapabilityAccessManagerDoStoreMaintenance"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\CertificateServicesClient\\UserTask",
@@ -4765,7 +5227,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\CertificateServicesClient\\UserTask-Roam",
@@ -4781,7 +5245,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Chkdsk\\ProactiveScan",
@@ -4797,7 +5263,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Chkdsk\\SyspartRepair",
@@ -4813,7 +5281,9 @@
             "path": "C:\\WINDOWS\\system32\\bcdboot.exe",
             "arguments": "%windir% /sysrepair"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\CloudExperienceHost\\CreateObjectTask",
@@ -4829,7 +5299,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\CloudRestore\\Backup",
@@ -4845,7 +5317,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\CloudRestore\\Restore",
@@ -4861,7 +5335,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\ConsentUX\\UnifiedConsent\\UnifiedConsentSyncTask",
@@ -4877,7 +5353,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Containers\\CmCleanup",
@@ -4893,7 +5371,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator",
@@ -4909,7 +5389,9 @@
             "path": "C:\\WINDOWS\\System32\\wsqmcons.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip",
@@ -4925,7 +5407,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Check And Scan",
@@ -4941,7 +5425,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Scan",
@@ -4957,7 +5443,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Data Integrity Scan\\Data Integrity Scan for Crash Recovery",
@@ -4973,7 +5461,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Defrag\\ScheduledDefrag",
@@ -4989,7 +5479,9 @@
             "path": "C:\\WINDOWS\\system32\\defrag.exe",
             "arguments": "-c -h -o -$"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Device Information\\Device",
@@ -5005,7 +5497,9 @@
             "path": "C:\\WINDOWS\\system32\\devicecensus.exe",
             "arguments": "SystemCxt"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Device Information\\Device User",
@@ -5021,7 +5515,9 @@
             "path": "C:\\WINDOWS\\system32\\devicecensus.exe",
             "arguments": "UserCxt"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Device Setup\\Driver Recovery on Reboot",
@@ -5037,7 +5533,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Diagnosis\\RecommendedTroubleshootingScanner",
@@ -5053,7 +5551,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Diagnosis\\Scheduled",
@@ -5069,7 +5569,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Diagnosis\\UnexpectedCodepath",
@@ -5085,7 +5587,9 @@
             "path": "C:\\WINDOWS\\system32\\UCConfigTask.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DirectX\\DirectXDatabaseUpdater",
@@ -5101,7 +5605,9 @@
             "path": "C:\\WINDOWS\\system32\\directxdatabaseupdater.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DirectX\\DXGIAdapterCache",
@@ -5117,7 +5623,9 @@
             "path": "C:\\WINDOWS\\system32\\dxgiadaptercache.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DiskCleanup\\SilentCleanup",
@@ -5133,7 +5641,9 @@
             "path": "C:\\WINDOWS\\system32\\cleanmgr.exe",
             "arguments": "/autocleanstoragesense /d %systemdrive%"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector",
@@ -5149,7 +5659,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "dfdts.dll,DfdGetDefaultPolicyAndSMART"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticResolver",
@@ -5165,7 +5677,9 @@
             "path": "C:\\WINDOWS\\system32\\DFDWiz.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DiskFootprint\\Diagnostics",
@@ -5181,7 +5695,9 @@
             "path": "C:\\WINDOWS\\system32\\disksnapshot.exe",
             "arguments": "-z"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DiskFootprint\\StorageSense",
@@ -5197,7 +5713,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\DUSM\\dusmtask",
@@ -5213,7 +5731,9 @@
             "path": "C:\\WINDOWS\\System32\\dusmtask.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\EDP\\EDP App Launch Task",
@@ -5229,7 +5749,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\EDP\\EDP Auth Task",
@@ -5245,7 +5767,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\EDP\\EDP Inaccessible Credentials Task",
@@ -5261,7 +5785,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\EDP\\StorageCardEncryption Task",
@@ -5277,7 +5803,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh",
@@ -5293,7 +5821,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient",
@@ -5309,7 +5839,9 @@
             "path": "C:\\WINDOWS\\system32\\dmclient.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload",
@@ -5325,7 +5857,9 @@
             "path": "C:\\WINDOWS\\system32\\dmclient.exe",
             "arguments": "utcwnf"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\File Classification Infrastructure\\Property Definition Sync",
@@ -5341,7 +5875,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\FileHistory\\File History (maintenance mode)",
@@ -5357,7 +5893,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\BootstrapUsageDataReporting",
@@ -5373,7 +5911,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\GovernedFeatureUsageProcessing",
@@ -5389,7 +5929,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\ReconcileConfigs",
@@ -5405,7 +5947,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\ReconcileFeatures",
@@ -5421,7 +5965,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\SafeguardsReconciliation",
@@ -5437,7 +5983,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataFlushing",
@@ -5453,7 +6001,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataReceiver",
@@ -5469,7 +6019,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\UsageDataReporting",
@@ -5485,7 +6037,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Flighting\\OneSettings\\RefreshCache",
@@ -5501,7 +6055,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Hotpatch\\Monitoring",
@@ -5517,7 +6073,9 @@
             "path": "C:\\WINDOWS\\system32\\cmd.exe",
             "arguments": "/d /c %systemroot%\\system32\\hpatchmonTask.cmd"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\InputSettingsRestoreDataAvailable",
@@ -5533,7 +6091,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\LocalUserSyncDataAvailable",
@@ -5549,7 +6109,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\MouseSyncDataAvailable",
@@ -5565,7 +6127,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\PenSyncDataAvailable",
@@ -5581,7 +6145,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\RemoteMouseSyncDataAvailable",
@@ -5597,7 +6163,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\RemotePenSyncDataAvailable",
@@ -5613,7 +6181,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\RemoteTouchpadSyncDataAvailable",
@@ -5629,7 +6199,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\syncpensettings",
@@ -5645,7 +6217,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\input\\TouchpadSyncDataAvailable",
@@ -5661,7 +6235,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\InstallService\\RestoreDevice",
@@ -5677,7 +6253,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\InstallService\\ScanForUpdates",
@@ -5693,7 +6271,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\InstallService\\ScanForUpdatesAsUser",
@@ -5709,7 +6289,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\InstallService\\WakeUpAndContinueUpdates",
@@ -5725,7 +6307,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\InstallService\\WakeUpAndScanForUpdates",
@@ -5741,7 +6325,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\International\\Synchronize Language Settings",
@@ -5757,7 +6343,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Kernel\\La57Cleanup",
@@ -5773,7 +6361,9 @@
             "path": "C:\\WINDOWS\\system32\\la57setup.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\LanguageComponentsInstaller\\Installation",
@@ -5789,7 +6379,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\LanguageComponentsInstaller\\ReconcileLanguageResources",
@@ -5805,7 +6397,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Location\\WindowsActionDialog",
@@ -5821,7 +6415,9 @@
             "path": "C:\\WINDOWS\\System32\\WindowsActionDialog.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Maintenance\\WinSAT",
@@ -5837,7 +6433,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Management\\Autopilot\\DetectHardwareChange",
@@ -5853,7 +6451,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Management\\Autopilot\\RemediateHardwareChange",
@@ -5869,7 +6469,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Management\\Provisioning\\Cellular",
@@ -5885,7 +6487,9 @@
             "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
             "arguments": "/turn 7 /source CellStateChangeTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Management\\Provisioning\\Logon",
@@ -5901,7 +6505,9 @@
             "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
             "arguments": "/turn 5 /source LogonIdleTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Management\\Provisioning\\MdmDiagnosticsCleanup",
@@ -5917,7 +6523,9 @@
             "path": "C:\\WINDOWS\\system32\\MdmDiagnosticsTool.exe",
             "arguments": "/clean"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Management\\Provisioning\\Retry",
@@ -5933,7 +6541,9 @@
             "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
             "arguments": "/turn 5 /source ProvRetryTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Management\\Provisioning\\RunOnReboot",
@@ -5949,7 +6559,9 @@
             "path": "C:\\WINDOWS\\system32\\ProvTool.exe",
             "arguments": "/turn 5 /source ContinueSessionTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Maps\\MapsToastTask",
@@ -5965,7 +6577,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Maps\\MapsUpdateTask",
@@ -5981,7 +6595,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\MemoryDiagnostic\\AutomaticOfflineMemoryDiagnostic",
@@ -5997,7 +6613,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\MemoryDiagnostic\\ProcessMemoryDiagnosticEvents",
@@ -6013,7 +6631,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\MemoryDiagnostic\\RunFullMemoryDiagnostic",
@@ -6029,7 +6649,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\MUI\\LPRemove",
@@ -6045,7 +6667,9 @@
             "path": "C:\\WINDOWS\\system32\\lpremove.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Multimedia\\SystemSoundsService",
@@ -6061,7 +6685,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Network Connectivity Status Indicator\\NcsiIdentifyUserProxies",
@@ -6077,7 +6703,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\NlaSvc\\WiFiTask",
@@ -6093,7 +6721,9 @@
             "path": "C:\\WINDOWS\\System32\\WiFiTask.exe",
             "arguments": "nla"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Offline Files\\Background Synchronization",
@@ -6109,7 +6739,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Offline Files\\Logon Synchronization",
@@ -6125,7 +6757,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\PCRPF\\PCR Prediction Framework Firmware Update Task",
@@ -6141,7 +6775,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "%windir%\\system32\\pcrpf.dll,NotifyFirmwareUpdateStaged"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\PerformanceTrace\\ShowFeedbackToast",
@@ -6157,7 +6793,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\PerformanceTrace\\WhesvcToast",
@@ -6173,7 +6811,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Plug and Play\\Device Install Group Policy",
@@ -6189,7 +6829,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Plug and Play\\Device Install Reboot Required",
@@ -6205,7 +6847,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Plug and Play\\Sysprep Generalize Drivers",
@@ -6221,7 +6865,9 @@
             "path": "C:\\WINDOWS\\System32\\drvinst.exe",
             "arguments": "6"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Power Efficiency Diagnostics\\AnalyzeSystem",
@@ -6237,7 +6883,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Printing\\EduPrintProv",
@@ -6253,7 +6901,9 @@
             "path": "C:\\WINDOWS\\system32\\eduprintprov.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Printing\\PrinterCleanupTask",
@@ -6269,7 +6919,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Printing\\PrintJobCleanupTask",
@@ -6285,7 +6937,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\RecoveryEnvironment\\VerifyWinRE",
@@ -6301,7 +6955,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\ReFsDedupSvc\\Initialization",
@@ -6317,7 +6973,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Registry\\RegIdleBackup",
@@ -6333,7 +6991,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Servicing\\OOBEFodSetup",
@@ -6349,7 +7009,9 @@
             "path": "C:\\WINDOWS\\system32\\OOBEFodSetup.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Servicing\\StartComponentCleanup",
@@ -6365,7 +7027,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Setup\\PITRTask",
@@ -6381,7 +7045,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Setup\\SetupRecoveryDataTask",
@@ -6397,7 +7063,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\SharedPC\\Account Cleanup",
@@ -6413,7 +7081,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Shell\\CreateObjectTask",
@@ -6429,7 +7099,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Shell\\FamilySafetyMonitor",
@@ -6445,7 +7117,9 @@
             "path": "C:\\WINDOWS\\System32\\wpcmon.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Shell\\FamilySafetyRefreshTask",
@@ -6461,7 +7135,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Shell\\IndexerAutomaticMaintenance",
@@ -6477,7 +7153,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Shell\\ThemesSyncedImageDownload",
@@ -6493,7 +7171,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\SvcRestartTaskLogon",
@@ -6509,7 +7189,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\SpacePort\\SpaceAgentTask",
@@ -6525,7 +7207,9 @@
             "path": "C:\\WINDOWS\\system32\\SpaceAgent.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\SpacePort\\SpaceManagerTask",
@@ -6541,7 +7225,9 @@
             "path": "C:\\WINDOWS\\system32\\spaceman.exe",
             "arguments": "/Work"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\StateRepository\\MaintenanceTasks",
@@ -6557,7 +7243,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "%windir%\\system32\\Windows.StateRepositoryClient.dll,StateRepositoryDoMaintenanceTasks"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Storage Tiers Management\\Storage Tiers Management Initialization",
@@ -6573,7 +7261,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Storage Tiers Management\\Storage Tiers Optimization",
@@ -6589,7 +7279,9 @@
             "path": "C:\\WINDOWS\\system32\\defrag.exe",
             "arguments": "-c -h -g -# -m 8 -i 13500"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Subscription\\EnableLicenseAcquisition",
@@ -6605,7 +7297,9 @@
             "path": "C:\\WINDOWS\\system32\\ClipRenew.exe",
             "arguments": "-e"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Subscription\\LicenseAcquisition",
@@ -6621,7 +7315,9 @@
             "path": "C:\\WINDOWS\\system32\\ClipRenew.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Sustainability\\PowerGridForecastTask",
@@ -6637,7 +7333,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Sustainability\\SustainabilityTelemetry",
@@ -6653,7 +7351,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Sysmain\\HybridDriveCachePrepopulate",
@@ -6669,7 +7369,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Sysmain\\HybridDriveCacheRebalance",
@@ -6685,7 +7387,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Sysmain\\ResPriStaticDbSync",
@@ -6701,7 +7405,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Sysmain\\WsSwapAssessmentTask",
@@ -6717,7 +7423,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "sysmain.dll,PfSvWsSwapAssessmentTask"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\SystemRestore\\SR",
@@ -6733,7 +7441,9 @@
             "path": "C:\\WINDOWS\\system32\\srtasks.exe",
             "arguments": "ExecuteScheduledSPPCreation"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Task Manager\\Interactive",
@@ -6749,7 +7459,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\TextServicesFramework\\MsCtfMonitor",
@@ -6765,7 +7477,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Time Synchronization\\ForceSynchronizeTime",
@@ -6781,7 +7495,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Time Synchronization\\SynchronizeTime",
@@ -6797,7 +7513,9 @@
             "path": "C:\\WINDOWS\\system32\\sc.exe",
             "arguments": "start w32time task_started"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Time Zone\\SynchronizeTimeZone",
@@ -6813,7 +7531,9 @@
             "path": "C:\\WINDOWS\\system32\\tzsync.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\UPnP\\UPnPHostConfig",
@@ -6829,7 +7549,9 @@
             "path": "C:\\WINDOWS\\system32\\sc.exe",
             "arguments": "config upnphost start= auto"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\USB\\Usb-Notifications",
@@ -6845,7 +7567,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WCM\\WiFiTask",
@@ -6861,7 +7585,9 @@
             "path": "C:\\WINDOWS\\System32\\WiFiTask.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WDI\\ResolutionHost",
@@ -6877,7 +7603,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance",
@@ -6893,7 +7621,9 @@
             "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
             "arguments": "-IdleTask -TaskName WdCacheMaintenance"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Cleanup",
@@ -6909,7 +7639,9 @@
             "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
             "arguments": "-IdleTask -TaskName WdCleanup"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan",
@@ -6925,7 +7657,9 @@
             "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
             "arguments": "Scan -ScheduleJob -ScanTrigger 55 -IdleScheduledJob"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Windows Defender\\Windows Defender Verification",
@@ -6941,7 +7675,9 @@
             "path": "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26060.3008-0\\MpCmdRun.exe",
             "arguments": "-IdleTask -TaskName WdVerification"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting",
@@ -6957,7 +7693,9 @@
             "path": "C:\\WINDOWS\\system32\\wermgr.exe",
             "arguments": "-upload"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Windows Filtering Platform\\BfeOnServiceStartTypeChange",
@@ -6973,7 +7711,9 @@
             "path": "C:\\WINDOWS\\system32\\rundll32.exe",
             "arguments": "bfe.dll,BfeOnServiceStartTypeChange"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Windows Media Sharing\\UpdateLibrary",
@@ -6989,7 +7729,9 @@
             "path": "C:\\Program Files\\Windows Media Player\\wmpnscfg.exe",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WindowsColorSystem\\Calibration Loader",
@@ -7005,7 +7747,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WindowsUpdate\\Scheduled Start",
@@ -7021,7 +7765,9 @@
             "path": "C:\\WINDOWS\\System32\\sc.exe",
             "arguments": "start wuauserv"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Wininet\\CacheTask",
@@ -7037,7 +7783,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WlanSvc\\CDSSync",
@@ -7053,7 +7801,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WlanSvc\\MoProfileManagement",
@@ -7069,7 +7819,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Work Folders\\Work Folders Logon Synchronization",
@@ -7085,7 +7837,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Work Folders\\Work Folders Maintenance Work",
@@ -7101,7 +7855,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Workplace Join\\Automatic-Device-Join",
@@ -7117,7 +7873,9 @@
             "path": "C:\\WINDOWS\\System32\\dsregcmd.exe",
             "arguments": "$(Arg0) $(Arg1) $(Arg2)"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Workplace Join\\Device-Sync",
@@ -7133,7 +7891,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\Workplace Join\\Recovery-Check",
@@ -7149,7 +7909,9 @@
             "path": "C:\\WINDOWS\\System32\\dsregcmd.exe",
             "arguments": "/checkrecovery"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WwanSvc\\NotificationTask",
@@ -7165,7 +7927,9 @@
             "path": "C:\\WINDOWS\\System32\\WiFiTask.exe",
             "arguments": "wwan"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\Windows\\WwanSvc\\OobeDiscovery",
@@ -7181,7 +7945,9 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
         "path": "\\Microsoft\\XblGameSave\\XblGameSaveTask",
@@ -7197,11 +7963,13 @@
             "path": "C:\\WINDOWS\\System32\\XblGameSaveTask.exe",
             "arguments": "standby"
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:cca6beabe766\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:7009838f1197",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7213,11 +7981,13 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:a2fe9328c52f",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7229,11 +7999,13 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
-        "name": "SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
+        "path": "anon:3e34e657efe3",
+        "name": "anon:ba375a1cea12",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7245,11 +8017,13 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
-        "name": "SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
+        "path": "anon:574fa166b301",
+        "name": "anon:9647c0cae447",
         "enabled": false,
         "state": "disabled",
         "author": null,
@@ -7261,11 +8035,13 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:9ec9fa350c22\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:471d45d67de0",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7277,11 +8053,13 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       },
       {
-        "path": "\\SoftLanding\\anon:fe2a3f975474\\SoftLandingCreativeManagementTask",
-        "name": "SoftLandingCreativeManagementTask",
+        "path": "anon:aea02ffab3f9",
+        "name": "anon:0acd4f741ca0",
         "enabled": true,
         "state": "ready",
         "author": null,
@@ -7293,11 +8071,28 @@
             "path": "",
             "arguments": ""
           }
-        ]
+        ],
+        "deleteExpiredTaskAfter": null,
+        "hasExpiringTrigger": false
       }
     ],
     "diagnostic": null
   },
   "drivers": null,
-  "processes": null
+  "driversStatus": null,
+  "driversDiagnostic": null,
+  "processes": null,
+  "processesStatus": null,
+  "processesDiagnostic": null,
+  "listeningPorts": null,
+  "firewall": null,
+  "dns": null,
+  "hostsFile": null,
+  "proxy": null,
+  "wifi": null,
+  "software": null,
+  "browserExtensions": null,
+  "browserExtensionsStatus": null,
+  "browserExtensionsDiagnostic": null,
+  "componentStore": null
 }

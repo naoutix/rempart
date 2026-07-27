@@ -27,11 +27,25 @@ namespace Rempart.Core.Snapshots;
 /// <see cref="SyntheticSnapshot"/> copies from the source capture — autoruns onto the
 /// registry, the subscription onto WMI, and the task onto a scheduled-task list that keeps
 /// its couple of hundred real entries. A synthetic fixture is a real capture with its
-/// identifying fields scrubbed, not a machine invented from nothing, and the residue is
-/// visible: product names in task paths, a mainboard model, a BIOS date. It predates this
-/// fixture — the three versioned before it carry the same — and it is recorded as
-/// DET-FIXTURE-MATERIEL rather than quietly relied upon. The repository is public, and a
-/// fixture named "compromised" is the last place to be vague about what is real.
+/// identifying fields scrubbed, not a machine invented from nothing.
+/// </para>
+///
+/// <para>
+/// What that used to leave behind was an identity: product names in task paths, a mainboard
+/// model, a BIOS date. It is gone — <see cref="SyntheticSnapshot.Build"/> now runs
+/// <see cref="Anonymiser"/> over its own output instead of merely declaring the result
+/// anonymised, and the anonymiser reaches those fields (DET-FIXTURE-MATERIEL).
+/// <c>Versioned_fixtures_are_anonymised</c> fails if any of it comes back.
+/// </para>
+///
+/// <para>
+/// What is still inherited is a <b>form</b>, and that is deliberate: a couple of hundred
+/// scheduled tasks, the paths of the executables they launch, the several hundred verified
+/// signatures. Those are the object of the audit — the report exists to name the binary
+/// that runs — and a fixture where the only task is the malicious one would prove that the
+/// collector reports, not that it picks the right line out of a crowd. The repository is
+/// public, and a fixture named "compromised" is the last place to be vague about what is
+/// real: the shape is real, the identity is not, and the threat material is fabricated.
 /// </para>
 ///
 /// <para>
@@ -46,10 +60,11 @@ public static class CompromiseMarkers
 {
     /// <summary>
     /// Account segment, in the shape <see cref="Anonymiser"/> leaves behind. Written
-    /// pre-hashed rather than as a name: a path already starting with <c>anon:</c> is
-    /// left alone by <see cref="Anonymiser.ScrubProfile"/>, so this fixture survives a
-    /// second pass through the anonymiser unchanged — a plain first name would not, and
-    /// the fixture would stop matching its own references.
+    /// pre-hashed rather than as a name, and no longer as a precaution: the markers are
+    /// planted before <see cref="Anonymiser.Apply"/> runs, so a plain first name here
+    /// would come out as a digest and the fixture would stop matching its own references.
+    /// <see cref="Anonymiser.Hash"/> being idempotent, this value crosses that pass
+    /// untouched.
     /// </summary>
     private const string Account = "anon:1a2b3c4d5e6f";
 

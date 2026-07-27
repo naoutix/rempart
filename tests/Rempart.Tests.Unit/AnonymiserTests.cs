@@ -1,3 +1,4 @@
+using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Snapshots;
 
@@ -84,14 +85,157 @@ public sealed class AnonymiserTests
         Assert.Equal(17, Anonymiser.Hash("POSTE-A").Length);
     }
 
-    private static MachineSnapshot WithValue(string valueName, string text) => new()
+    [Fact]
+    public void Hashing_an_already_hashed_value_returns_it_unchanged()
+    {
+        // "Anonymised" has to mean "stays anonymised". A synthetic fixture is built from
+        // a capture that was anonymised and is anonymised again on the way out; without
+        // this, every hostname and every browser profile came out a digest of a digest,
+        // no longer comparable with the capture it was derived from.
+        var once = Anonymiser.Hash("POSTE-A");
+
+        Assert.Equal(once, Anonymiser.Hash(once));
+    }
+
+    [Theory]
+    [InlineData("SystemProductName", "MS-7E80")]
+    [InlineData("BaseBoardProduct", "PRO B850-S WIFI6E (MS-7E80)")]
+    [InlineData("BIOSVersion", "2.A41")]
+    [InlineData("BIOSReleaseDate", "03/17/2026")]
+    [InlineData("BaseBoardManufacturer", "Micro-Star International Co., Ltd.")]
+    public void Hardware_identity_is_replaced(string valueName, string text)
+    {
+        // A board model, a BIOS version and its release date narrow a machine down about
+        // as far as a serial number does, and no rule reads them: identity without
+        // posture, which is exactly what this pass is for (DET-FIXTURE-MATERIEL).
+        var snapshot = WithValue(BiosKey, valueName, text);
+
+        Anonymiser.Apply(snapshot);
+
+        Assert.StartsWith("anon:", Text(snapshot, BiosKey, valueName), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_same_value_name_outside_the_bios_key_is_left_alone()
+    {
+        // The scope is the key, not the value name: "ProductName" under CurrentVersion is
+        // "Windows 11 Pro", the string the whole OS-version derivation rests on.
+        var snapshot = WithValue(
+            @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", "Windows 11 Pro");
+
+        Anonymiser.Apply(snapshot);
+
+        Assert.Equal("Windows 11 Pro",
+            Text(snapshot, @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName"));
+    }
+
+    [Theory]
+    [InlineData(@"\StartDVR", "StartDVR")]
+    [InlineData(@"\NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}", "NVIDIA App SelfUpdate")]
+    [InlineData(@"\SoftLanding\anon:0123456789ab\SoftLandingDeferralTask-{31a32128}", "SoftLandingDeferralTask")]
+    public void Third_party_task_labels_are_replaced(string path, string name)
+    {
+        // The path of a task nobody at Microsoft created is an inventory line: it names
+        // the product that installed it, sometimes with an install GUID on top.
+        var task = Single(Task(path, name));
+
+        Assert.StartsWith("anon:", task.Path, StringComparison.Ordinal);
+        Assert.StartsWith("anon:", task.Name, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_task_borrowing_the_microsoft_folder_stays_readable()
+    {
+        // The criterion is the folder, and this is why. A task planted under Microsoft's
+        // folder is what an intrusion does — the compromised fixture plants exactly this
+        // one — and hashing it would remove the only thing that makes it legible as an
+        // impostor.
+        var task = Single(Task(
+            @"\Microsoft\Windows\Maintenance\SystemMaintenance", "SystemMaintenance"));
+
+        Assert.Equal(@"\Microsoft\Windows\Maintenance\SystemMaintenance", task.Path);
+        Assert.Equal("SystemMaintenance", task.Name);
+    }
+
+    [Fact]
+    public void The_executable_a_third_party_task_launches_stays_readable()
+    {
+        // It is what the signature ladder judges and what the report names, and the
+        // collector reads its shape to tell a resolved path from a bare name: a digest
+        // carries no separator, and hashing it would invent a "chemin non résolu" finding
+        // on every third-party task.
+        var task = Single(Task(@"\StartDVR", "StartDVR",
+            @"C:\Program Files\AMD\CNext\CNext\RSServCmd.exe"));
+
+        Assert.Equal(@"C:\Program Files\AMD\CNext\CNext\RSServCmd.exe", task.Actions[0].Path);
+    }
+
+    private const string BiosKey = @"HKLM\HARDWARE\DESCRIPTION\System\BIOS";
+
+    private static ScheduledTask Single(ScheduledTask task)
+    {
+        var snapshot = new MachineSnapshot { ScheduledTasks = ScheduledTaskRead.Found([task]) };
+
+        return Assert.Single(Anonymiser.Apply(snapshot).ScheduledTasks!.Tasks);
+    }
+
+    private static ScheduledTask Task(string path, string name, string executable = "") =>
+        new(path, name, Enabled: true, State: "ready", Author: null, UserId: null,
+            RunLevel: null, Actions: [new TaskAction("exec", executable, "")]);
+
+    private static MachineSnapshot WithValue(string valueName, string text) =>
+        WithValue(@"HKLM\SOFTWARE\Test", valueName, text);
+
+    private static MachineSnapshot WithValue(string keyPath, string valueName, string text) => new()
     {
         Registry =
         {
-            [$@"HKLM\SOFTWARE\Test||{valueName}"] = RegistryRead.Found(RegistryValue.OfText(text)),
+            [SnapshotKeys.Value(keyPath, valueName)] = RegistryRead.Found(RegistryValue.OfText(text)),
         },
     };
 
+    /// <summary>
+    /// Anonymised has to mean <em>stays</em> anonymised: <c>Apply</c> must be a fixed
+    /// point, or re-running the tool over its own output corrupts it. That is not a
+    /// hypothetical loop — <c>SyntheticSnapshot</c> now anonymises a capture that was
+    /// already anonymised at capture time.
+    ///
+    /// <para>
+    /// <c>Hash</c> guards itself, but <c>ScrubHostPort</c> cut the value up before calling
+    /// it, so the guard never saw the whole string. When the twelve hex characters of a
+    /// digest happen to be all digits — about one host in three hundred — the result reads
+    /// as <c>host:port</c> and a second pass hashes the <c>anon</c> prefix. The host below
+    /// is one of those: its digest is <c>anon:388883164900</c>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Anonymising_an_already_anonymised_snapshot_changes_nothing()
+    {
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default,
+            Proxy = new ProxyConfiguration(
+                new ProxyScope(true, "proxy92.corp.example", null, []),
+                ProxyScope.Disabled,
+                false),
+        };
+
+        // Snapshotted as text between the two passes, deliberately: Apply mutates its
+        // argument and hands the same instance back, so comparing the two return values
+        // would compare an object with itself and hold no matter what the second pass did.
+        var once = RempartJson.Serialise(Anonymiser.Apply(snapshot));
+        var hostAfterOnce = snapshot.Proxy!.WinInet.Server;
+
+        var twice = RempartJson.Serialise(Anonymiser.Apply(snapshot));
+
+        Assert.Equal("anon:388883164900", hostAfterOnce);
+        Assert.Equal(hostAfterOnce, snapshot.Proxy!.WinInet.Server);
+        Assert.Equal(once, twice);
+    }
+
     private static string? Text(MachineSnapshot snapshot, string valueName) =>
-        snapshot.Registry[$@"HKLM\SOFTWARE\Test||{valueName}"].Value?.Text;
+        Text(snapshot, @"HKLM\SOFTWARE\Test", valueName);
+
+    private static string? Text(MachineSnapshot snapshot, string keyPath, string valueName) =>
+        snapshot.Registry[SnapshotKeys.Value(keyPath, valueName)].Value?.Text;
 }

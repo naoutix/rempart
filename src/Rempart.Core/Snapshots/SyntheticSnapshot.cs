@@ -40,13 +40,12 @@ public static class SyntheticSnapshot
         var snapshot = new MachineSnapshot
         {
             CapturedAtUtc = "2026-01-01T00:00:00.0000000Z",
-            Anonymised = true,
             Registry = new Dictionary<string, RegistryRead>(source.Registry),
             Services = new Dictionary<string, ServiceRead>(source.Services),
             Policy = source.Policy,
             Wmi = new Dictionary<string, WmiRead>(source.Wmi),
 
-            // Copied unchanged from the source capture, which is anonymised. Synthetic
+            // Copied from the source capture, then re-anonymised on the way out. Synthetic
             // profiles vary the configuration judged by the rules, not the persistence
             // inventory: keeping it gives the finding collectors real data to replay,
             // whereas omitting it would make them run on empty input without the replay
@@ -91,7 +90,18 @@ public static class SyntheticSnapshot
             CompromiseMarkers.PlantInto(snapshot);
         }
 
-        return snapshot;
+        // Last, and actually run rather than merely asserted. This method used to set
+        // Anonymised = true and stop there, trusting the source capture to have been
+        // clean — which it is for the fields the anonymiser knew about, and was not for
+        // the ones it did not: eleven third-party task paths, a mainboard model and a
+        // BIOS date reached a public repository that way (DET-FIXTURE-MATERIEL). A flag
+        // that states a property instead of producing it is worth nothing, and it is the
+        // flag a reader trusts.
+        //
+        // Safe to run over already-anonymised data only because Hash is idempotent: the
+        // machine name given here and the pre-hashed account the compromise markers plant
+        // would otherwise come out as digests of digests, and every reference would churn.
+        return Anonymiser.Apply(snapshot);
     }
 
     private static void Apply(MachineSnapshot snapshot, CheckSpec check, SyntheticProfile profile)

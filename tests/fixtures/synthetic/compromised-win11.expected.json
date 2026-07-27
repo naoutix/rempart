@@ -14,15 +14,15 @@
         "os.installationType": "Client",
         "os.version": "10.0.26200.0",
         "os.is64Bit": "True",
-        "hardware.manufacturer": "Micro-Star International Co., Ltd.",
-        "hardware.model": "MS-7E80",
-        "hardware.family": "To be filled by O.E.M.",
-        "hardware.baseboardManufacturer": "Micro-Star International Co., Ltd.",
-        "hardware.baseboardProduct": "PRO B850-S WIFI6E (MS-7E80)",
+        "hardware.manufacturer": "anon:4c0452f8e995",
+        "hardware.model": "anon:425e3f562473",
+        "hardware.family": "anon:4da0d798e550",
+        "hardware.baseboardManufacturer": "anon:4c0452f8e995",
+        "hardware.baseboardProduct": "anon:f3b307aa2962",
         "machine.processorCount": "16",
         "firmware.type": "uefi",
-        "firmware.biosVersion": "2.A41",
-        "firmware.biosDate": "03/17/2026",
+        "firmware.biosVersion": "anon:cf2f12ebf4d7",
+        "firmware.biosDate": "anon:5901e8014ad1",
         "security.secureBoot": "unsupported",
         "security.tpmService": "absent",
         "scan.elevated": "True",
@@ -839,7 +839,7 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\AMDRyzenMasterSDKTask",
+      "source": "anon:8af6eb6d1607",
       "target": "C:\\Program Files\\AMD\\CNext\\CNext\\cpumetricsserver.exe",
       "severity": "Benign",
       "reasons": [],
@@ -855,7 +855,7 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\Launch Adobe CCXProcess",
+      "source": "anon:a45f283ed39f",
       "target": "C:\\Program Files\\Adobe\\Adobe Creative Cloud Experience\\CCXProcess.exe",
       "severity": "Benign",
       "reasons": [],
@@ -870,7 +870,7 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+      "source": "anon:ed63246e5ade",
       "target": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA App.exe",
       "severity": "Benign",
       "reasons": [],
@@ -885,7 +885,7 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\StartCN",
+      "source": "anon:78549b7ab0e6",
       "target": "C:\\Program Files\\AMD\\CNext\\CNext\\cncmd.exe",
       "severity": "Benign",
       "reasons": [],
@@ -899,7 +899,7 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\StartDVR",
+      "source": "anon:a5650ec35432",
       "target": "C:\\Program Files\\AMD\\CNext\\CNext\\RSServCmd.exe",
       "severity": "Benign",
       "reasons": [],
@@ -3521,8 +3521,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:cca6beabe766\\SoftLandingCreativeManagementTask",
-      "target": "SoftLandingCreativeManagementTask",
+      "source": "anon:7009838f1197",
+      "target": "anon:0acd4f741ca0",
       "severity": "Benign",
       "reasons": [],
       "details": {
@@ -3534,8 +3534,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingCreativeManagementTask",
-      "target": "SoftLandingCreativeManagementTask",
+      "source": "anon:a2fe9328c52f",
+      "target": "anon:0acd4f741ca0",
       "severity": "Benign",
       "reasons": [],
       "details": {
@@ -3547,8 +3547,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
-      "target": "SoftLandingDeferralTask-{31a32128-532a-482b-a9fa-cc36ec49bbbc}",
+      "source": "anon:3e34e657efe3",
+      "target": "anon:ba375a1cea12",
       "severity": "Benign",
       "reasons": [],
       "details": {
@@ -3560,8 +3560,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:9b7dfa1f0da9\\SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
-      "target": "SoftLandingTriggerTask-128000000001615609-render-{94c88dba-72d8-48a9-9134-ed8ed835dd5d}",
+      "source": "anon:574fa166b301",
+      "target": "anon:9647c0cae447",
       "severity": "Benign",
       "reasons": [],
       "details": {
@@ -3573,8 +3573,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:9ec9fa350c22\\SoftLandingCreativeManagementTask",
-      "target": "SoftLandingCreativeManagementTask",
+      "source": "anon:471d45d67de0",
+      "target": "anon:0acd4f741ca0",
       "severity": "Benign",
       "reasons": [],
       "details": {
@@ -3586,8 +3586,8 @@
     },
     {
       "kind": "scheduled-task",
-      "source": "\\SoftLanding\\anon:fe2a3f975474\\SoftLandingCreativeManagementTask",
-      "target": "SoftLandingCreativeManagementTask",
+      "source": "anon:aea02ffab3f9",
+      "target": "anon:0acd4f741ca0",
       "severity": "Benign",
       "reasons": [],
       "details": {

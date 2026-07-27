@@ -26,6 +26,59 @@ public static class Anonymiser
         "productid",
     ];
 
+    /// <summary>
+    /// The key holding the machine's hardware identity, and the values that spell it out.
+    ///
+    /// <para>
+    /// A mainboard model, a BIOS version and its release date designate one machine about
+    /// as narrowly as a serial number does: <c>MS-7E80</c> + <c>2.A41</c> +
+    /// <c>03/17/2026</c> is a single build of a single board, and it is what made the
+    /// versioned fixtures traceable back to the workstation they were derived from
+    /// (DET-FIXTURE-MATERIEL). They say nothing in return: no shipped rule reads this key,
+    /// and the inventory only prints what it finds there.
+    /// </para>
+    ///
+    /// <para>
+    /// Scoped to the key rather than matched on the value name, deliberately.
+    /// <c>ProductName</c> under <c>Windows NT\CurrentVersion</c> is "Windows 11 Pro" — the
+    /// same string on every Windows 11 workstation, and the one the whole OS-version
+    /// derivation rests on. A name-only match would have taken it too.
+    /// </para>
+    ///
+    /// <para>
+    /// The BIOS date is the one debatable entry: a firmware three years old is arguably a
+    /// posture, not just an identity. Nothing judges it today, so it goes. Should a rule
+    /// ever read it, it will have to derive its verdict before anonymisation rather than
+    /// from the capture — the same constraint the process command line already imposes.
+    /// </para>
+    /// </summary>
+    private const string HardwareIdentityKey = @"HKLM\HARDWARE\DESCRIPTION\System\BIOS";
+
+    /// <summary>
+    /// Exactly the values <see cref="Collectors.InventoryCollector"/> reads under that key,
+    /// and no speculative extras: a snapshot only ever holds what a collector asked for, so
+    /// a wider list would cover nothing while looking as though it covered more. A read
+    /// added there and forgotten here is caught — <c>Versioned_fixtures_are_anonymised</c>
+    /// checks the whole key, not this list, precisely so that the omission fails instead of
+    /// passing quietly.
+    /// </summary>
+    private static readonly string[] HardwareIdentityValues =
+    [
+        "SystemManufacturer",
+        "SystemProductName",
+        "SystemFamily",
+        "BIOSVersion",
+        "BIOSReleaseDate",
+        "BaseBoardManufacturer",
+        "BaseBoardProduct",
+    ];
+
+    /// <summary>
+    /// Folder Windows puts its own tasks under. Everything outside it was put there by an
+    /// installer, and its path is an inventory line rather than an observation.
+    /// </summary>
+    private const string MicrosoftTaskFolder = @"\Microsoft\";
+
     public static MachineSnapshot Apply(MachineSnapshot snapshot)
     {
         foreach (var (key, read) in snapshot.Registry)
@@ -35,12 +88,18 @@ public static class Anonymiser
                 continue;
             }
 
-            var valueName = key[(key.LastIndexOf("||", StringComparison.Ordinal) + 2)..];
+            // Split into key path and value name: the hardware identity is decided by
+            // the pair, not by the value name alone.
+            var separator = key.LastIndexOf("||", StringComparison.Ordinal);
+            var keyPath = separator < 0 ? key : key[..separator];
+            var valueName = separator < 0 ? string.Empty : key[(separator + 2)..];
 
             // The account name also sneaks into perfectly innocuous values: a Run
             // entry pointing at %LOCALAPPDATA% is stored as a full path, and thus
             // carries someone's first name.
-            var scrubbed = IsSensitive(valueName) ? Hash(text) : ScrubProfile(text);
+            var scrubbed = IsSensitive(valueName) || IsHardwareIdentity(keyPath, valueName)
+                ? Hash(text)
+                : ScrubProfile(text);
 
             if (!string.Equals(scrubbed, text, StringComparison.Ordinal))
             {
@@ -79,27 +138,7 @@ public static class Anonymiser
 
         if (snapshot.ScheduledTasks is { } tasks && tasks.Tasks.Count > 0)
         {
-            snapshot.ScheduledTasks = tasks with
-            {
-                Tasks =
-                [
-                    .. tasks.Tasks.Select(task => task with
-                    {
-                        Path = ScrubSegments(task.Path),
-                        Name = ScrubSegments(task.Name),
-                        Author = Depersonalise(task.Author),
-                        UserId = Depersonalise(task.UserId),
-                        Actions =
-                        [
-                            .. task.Actions.Select(action => action with
-                            {
-                                Path = ScrubProfile(action.Path),
-                                Arguments = ScrubProfile(action.Arguments),
-                            }),
-                        ],
-                    }),
-                ],
-            };
+            snapshot.ScheduledTasks = tasks with { Tasks = [.. tasks.Tasks.Select(ScrubTask)] };
         }
 
         if (snapshot.Drivers is { Count: > 0 } drivers)
@@ -194,6 +233,17 @@ public static class Anonymiser
             return server;
         }
 
+        // Checked before splitting, not after: this is the one reader that cuts the value
+        // up before handing the pieces to Hash, so Hash's own idempotence guard never sees
+        // the whole string. A digest whose twelve hex characters happen to be all digits —
+        // one host in about three hundred — then reads as "host:port", and a second pass
+        // hashes the "anon" prefix into anon:xxxx:388883164900. Anonymised has to mean
+        // stays anonymised, or re-running the tool over its own output corrupts it.
+        if (server.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            return server;
+        }
+
         var colon = server.LastIndexOf(':');
         // A trailing port (digits after the last ":") stays readable.
         return colon > 0 && server[(colon + 1)..].All(char.IsDigit)
@@ -218,18 +268,6 @@ public static class Anonymiser
         || value.Contains("[::1]", StringComparison.Ordinal)
         || value is "::1";
 
-    /// <summary>
-    /// Hashes what designates a person, leaves the rest readable.
-    ///
-    /// A scheduled task names its author and the account it runs under. Both are
-    /// sometimes harmless — "Microsoft Corporation", <c>S-1-5-18</c> which is the
-    /// system account — and sometimes directly identifying: the
-    /// <c>MACHINE\user</c> form, or a local account SID.
-    ///
-    /// Hashing everything would protect just as much but cost fixture readability: a
-    /// system task could no longer be told apart from a user task, which is precisely
-    /// what we want to be able to judge. The distinction is therefore explicit.
-    /// </summary>
     /// <summary>
     /// Profile accounts that designate nobody: they exist identically on every
     /// Windows installation.
@@ -275,9 +313,10 @@ public static class Anonymiser
             var account = path[start..end];
             builder.Append(path, cursor, start - cursor);
 
+            // An account already reduced to a digest needs no guard here: Hash leaves an
+            // "anon:" value alone, so a second pass over the same path is a no-op.
             builder.Append(
                 account.Length == 0
-                    || account.StartsWith(Prefix, StringComparison.Ordinal)
                     || ImpersonalProfiles.Contains(account, StringComparer.OrdinalIgnoreCase)
                     ? account
                     : Hash(account));
@@ -288,6 +327,65 @@ public static class Anonymiser
 
         builder.Append(path, cursor, path.Length - cursor);
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// Replaces what a task's own label says about the installation, keeps what the audit
+    /// judges.
+    ///
+    /// <para>
+    /// The path and the name of a third-party task are an inventory line and nothing else.
+    /// <c>\StartDVR</c>, <c>\AMDRyzenMasterSDKTask</c>,
+    /// <c>\NVIDIA App SelfUpdate_{B2FE1952-…}</c>,
+    /// <c>\SoftLanding\&lt;SID&gt;\SoftLandingTriggerTask-128000000001615609-render-{…}</c>:
+    /// they name installed products, and the last one adds an install GUID and a
+    /// serialised timestamp. No rule and no collector reads them — the label identifies a
+    /// machine without describing its posture, which is the whole criterion here.
+    /// </para>
+    ///
+    /// <para>
+    /// The criterion is the folder, not the author. A task that borrows Microsoft's folder
+    /// is precisely what an intrusion does, and it is what the compromised fixture plants
+    /// at <c>\Microsoft\Windows\Maintenance\SystemMaintenance</c> with
+    /// "Microsoft Corporation" as author. Deciding by author would hash the impostor's
+    /// neighbours and leave the impostor readable, which is backwards; deciding by folder
+    /// keeps it visible, and that visibility is the only reason the fixture exists.
+    /// </para>
+    ///
+    /// <para>
+    /// The executable stays readable on both sides. It is what
+    /// <see cref="Findings.SignatureLadder"/> judges and what the report names, and
+    /// <see cref="Findings.ScheduledTasksCollector"/> reads its shape to tell a resolved
+    /// path from a bare name: a digest carries no separator, so hashing it would invent a
+    /// "chemin non résolu" finding on every third-party task. Same reason the author is
+    /// left alone — a publisher name sitting beside a
+    /// <c>C:\Program Files\&lt;publisher&gt;\…</c> path the audit keeps readable would be
+    /// hashed for show. What that leaves behind is stated in docs/ARCHITECTURE.md rather
+    /// than implied.
+    /// </para>
+    /// </summary>
+    private static ScheduledTask ScrubTask(ScheduledTask task)
+    {
+        var thirdParty = !task.Path.StartsWith(MicrosoftTaskFolder, StringComparison.OrdinalIgnoreCase);
+
+        return task with
+        {
+            // Whole value rather than segment by segment: a third-party path identifies
+            // through its shape as much as through its words — five nested folders under
+            // one product name is itself a fingerprint.
+            Path = thirdParty ? Hash(task.Path) : ScrubSegments(task.Path),
+            Name = thirdParty ? Hash(task.Name) : ScrubSegments(task.Name),
+            Author = Depersonalise(task.Author),
+            UserId = Depersonalise(task.UserId),
+            Actions =
+            [
+                .. task.Actions.Select(action => action with
+                {
+                    Path = ScrubProfile(action.Path),
+                    Arguments = ScrubProfile(action.Arguments),
+                }),
+            ],
+        };
     }
 
     /// <summary>
@@ -306,6 +404,18 @@ public static class Anonymiser
                     : segment))
             : path;
 
+    /// <summary>
+    /// Hashes what designates a person, leaves the rest readable.
+    ///
+    /// A scheduled task names its author and the account it runs under. Both are
+    /// sometimes harmless — "Microsoft Corporation", <c>S-1-5-18</c> which is the
+    /// system account — and sometimes directly identifying: the
+    /// <c>MACHINE\user</c> form, or a local account SID.
+    ///
+    /// Hashing everything would protect just as much but cost fixture readability: a
+    /// system task could no longer be told apart from a user task, which is precisely
+    /// what we want to be able to judge. The distinction is therefore explicit.
+    /// </summary>
     private static string? Depersonalise(string? value) => value switch
     {
         null or "" => value,
@@ -326,9 +436,37 @@ public static class Anonymiser
         SensitiveValueFragments.Any(fragment =>
             valueName.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Truncated digest: enough to compare, not enough to identify.</summary>
+    private static bool IsHardwareIdentity(string keyPath, string valueName) =>
+        keyPath.Equals(HardwareIdentityKey, StringComparison.OrdinalIgnoreCase)
+        && HardwareIdentityValues.Contains(valueName, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Truncated digest: enough to compare, not enough to identify.
+    ///
+    /// <para>
+    /// Idempotent, and that is a requirement rather than a convenience: "anonymised" has
+    /// to mean "stays anonymised". A synthetic fixture is built from a capture that was
+    /// already anonymised and is anonymised again on the way out, so every hostname and
+    /// every browser profile went through here twice and came out a digest of a digest —
+    /// stable, but no longer the same value as the capture it was derived from, which
+    /// defeats the point of a stable hash. <see cref="ScrubProfile"/> had its own guard
+    /// against this; the rule belongs here, where every caller gets it.
+    /// </para>
+    ///
+    /// <para>
+    /// The cost is a value that genuinely starts with <c>anon:</c> passing through
+    /// unhashed. On a real machine that string is a hostname or an SSID somebody chose to
+    /// name after this tool's output format — worth the trade against silently corrupting
+    /// every second pass.
+    /// </para>
+    /// </summary>
     public static string Hash(string input)
     {
+        if (input.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            return input;
+        }
+
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Prefix + Convert.ToHexStringLower(digest)[..12];
     }
