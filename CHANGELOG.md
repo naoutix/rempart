@@ -24,6 +24,8 @@ changed between releases.
   from the contract, so it cannot drift again.
 - **Code coverage is measured** on the Linux job and summarised in the run — Rempart.Core
   only, deliberately without a threshold. Six reasons in `docs/DEBT.md` (DET-COUVERTURE).
+  The summary states which figure it is: a workstation holding real captures in
+  `tests/fixtures/local/` measures a different one, and the two are not comparable.
 
 Three real defects were **frozen by tests rather than fixed here**, each recorded in
 `docs/DEBT.md`: a scan exits 0 when controls could not be verified (DET-SORTIE-PARTIELLE),

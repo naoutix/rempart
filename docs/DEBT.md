@@ -21,9 +21,13 @@ Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 (ADR-005 : rendus figés, contrat de sortie et parsing extraits). Lignes **non vides**,
 convention retenue ici parce que c'est celle des relevés précédents de `Program.cs` :
 Core 11 066, Windows 2 712, CLI **1 543** — soit 1 610 → 1 543 sur `Program.cs` dans cette
-seule étape, et 1 881 → 1 543 depuis l'ouverture de DET-PROGRAM. **597 tests unitaires**
-et 56 Windows, soit 653. Le tableau ci-dessus reste tel que mesuré le 2026-07-26 : c'est
-la photo qui a servi à prioriser, et la réécrire effacerait le point de comparaison.
+seule étape, et 1 881 → 1 543 depuis l'ouverture de DET-PROGRAM. **594 tests unitaires en
+CI** et 56 Windows, soit 650 — 597 sur le poste de développement, qui porte une capture
+réelle dans `tests/fixtures/local/` et exécute donc trois théories de plus
+(DET-FIXTURE-LOCALE, dont c'est exactement le symptôme : le chiffre du poste et celui de
+la CI ne sont pas le même chiffre, et le second est le seul reproductible). Le tableau
+ci-dessus reste tel que mesuré le 2026-07-26 : c'est la photo qui a servi à prioriser, et
+la réécrire effacerait le point de comparaison.
 
 **Ce qui est sain, et mérite d'être dit.** Aucun marqueur de dette laissé dans le code :
 elle est écrite en prose là où elle se trouve, et rassemblée ici. Une seule dépendance de

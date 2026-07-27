@@ -190,7 +190,7 @@ using it.
 ## Status
 
 In development. The read-only audit described above is implemented and tested
-(653 tests), and so are the three report formats, the stick's signed integrity seal,
+(650 tests), and so are the three report formats, the stick's signed integrity seal,
 and fleet comparison (`diff`, `index`). Remediation is planned.
 [ROADMAP.md](docs/ROADMAP.md) (French) tracks milestones and records what was
 deliberately deferred or discarded, with reasons — including, right now, that the
@@ -206,7 +206,7 @@ dated internal records (ADRs, design specs, roadmap) remain in French.
 ## Developing
 
 ```bash
-dotnet test                                   # 653 tests (56 require Windows), ~10 s
+dotnet test                                   # 650 tests (56 require Windows), ~10 s
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 
