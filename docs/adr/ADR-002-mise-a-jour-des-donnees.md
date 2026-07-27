@@ -349,11 +349,6 @@ cette décision lui retire.
        vérification, car le transport n'est jamais de confiance, seule la signature
        l'est (option C écartée). Prouvé de bout en bout par un vrai serveur HTTP servant
        un manifeste signé, téléchargé et vérifié par le binaire AOT
-9. [x] `rempart sign` : l'acte de publication, pendant de `keygen`. Rassemble les jeux
-       de données d'un dossier, calcule leurs empreintes, et signe la charge utile avec
-       la clé privée chiffrée — hors ligne, la clé n'en sort jamais (D16). Le manifeste
-       produit est exactement ce qu'`update` sait vérifier ; une cérémonie complète
-       générer → signer → vérifier → appliquer est prouvée en test avec une vraie paire
 4. [x] Chargement des données externes avec priorité sur l'embarqué (D12) — le scan
        résout le magasin, re-vérifie signature et empreintes (D13), fusionne par-dessus
        le socle sans jamais en retirer, et prend la date de publication comme date des
@@ -367,3 +362,9 @@ cette décision lui retire.
        `168e543a9424` est épinglée dans `PinnedKeys`, sa cohérence avec l'empreinte
        vérifiée par un test qui refuse de livrer une faute de recopie
 8. [x] Trancher le sort d'une donnée refusée — **D17**
+
+9. [x] `rempart sign` : l'acte de publication, pendant de `keygen`. Rassemble les jeux
+       de données d'un dossier, calcule leurs empreintes, et signe la charge utile avec
+       la clé privée chiffrée — hors ligne, la clé n'en sort jamais (D16). Le manifeste
+       produit est exactement ce qu'`update` sait vérifier ; une cérémonie complète
+       générer → signer → vérifier → appliquer est prouvée en test avec une vraie paire

@@ -82,7 +82,7 @@ alertes `CRITICAL` fausses sur une machine saine. Un outil qui crie au loup cess
 **Trouvé en chemin.** `RunAsPPL` vaut `1` (avec verrou UEFI) ou `2` (sans) ; exiger
 l'égalité rejetait une machine correctement configurée. D'où l'opérateur `atLeast`.
 
-**Écart à l'ADR-001.** YamlDotNet est utilisé par son API bas niveau (`YamlStream`),
+**Écart à l'[ADR-001](adr/ADR-001-stack-et-perimetre.md).** YamlDotNet est utilisé par son API bas niveau (`YamlStream`),
 sans réflexion donc compatible AOT, avec un mapping écrit à la main. Le générateur de
 source officiel n'est pas publié sur NuGet — seul un paquet tiers existe, écarté sur un
 outil de sécurité. Bénéfice collatéral : des erreurs situées, avec fichier et règle.
@@ -325,7 +325,7 @@ Découpé en trois sous-lots : **M5a** inventaire, **M5b** catalogue bloatware,
 - [x] Distinction **provisionné vs installé par utilisateur** (D6) — via M5a
 - [x] Champ `survives_feature_update` renseigné — via M5a ; un paquet Appx provisionné
       revient après une mise à jour de fonctionnalité (6 relevés sur la machine de test)
-- [x] **M5b — catalogue bloatware** : dataset signé (type `bloatware`, canal ADR-002)
+- [x] **M5b — catalogue bloatware** : dataset signé (type `bloatware`, canal [ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md))
       croisé avec l'inventaire, note d'impact obligatoire par entrée. Vérifié sur machine
       réelle : socle de 5 entrées, 3 installées (Xbox Gaming Overlay, Xbox App, Groove
       Musique) et confirmées via `Get-AppxPackage` — PFN exacts, aucune correction
@@ -337,7 +337,7 @@ Découpé en trois sous-lots : **M5a** inventaire, **M5b** catalogue bloatware,
       présent. **Ce faux positif est corrigé depuis** (DET-APPX-FAUXPOS) : une entrée dont
       le segment ressource commence par `split.` n'est plus prise pour une installation.
 - [x] Canal de rafraîchissement du catalogue — **déjà tranché** : le canal signé d'ADR-002,
-      comme LOLDrivers (ADR-001 le renvoyait à ADR-002)
+      comme LOLDrivers ([ADR-001](adr/ADR-001-stack-et-perimetre.md) le renvoyait à [ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md))
 - [x] **M5c — extensions navigateur** avec leurs permissions effectives. Parseurs purs
       (Chromium : manifeste + `Secure Preferences` ; Firefox : `extensions.json`),
       constat `browser-extension` par extension. La provenance décide du palier :
@@ -378,7 +378,7 @@ Espace récupérable par couche via `AnalyzeComponentStore`, sans rien supprimer
       raisonnement que le magasin de mise à jour, déjà résolu à côté de l'exécutable :
       la clé se branche et tourne. Jamais en silence : l'en-tête nomme le dossier et
       l'empreinte du catalogue change.
-- [x] Manifeste d'intégrité — `rempart seal`, **signé par la clé d'éditeur d'ADR-002**.
+- [x] Manifeste d'intégrité — `rempart seal`, **signé par la clé d'éditeur d'[ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)**.
       Une liste d'empreintes posée à côté des fichiers qu'elle décrit ne protège de
       rien : qui modifie un fichier recalcule la ligne. Rapports et magasin exclus du
       sceau (ils changent à l'usage normal ; le magasin est de toute façon revérifié à
@@ -418,7 +418,7 @@ réapparue par une PR ; corrigé ici.
 refusée, sceau vérifié ou rompu, règles supplémentaires chargées — sont portées **par
 `ScanResult`**, pas passées à côté du rendu. Sans cela, `rempart report --from` aurait
 re-fabriqué un rapport amputé de la phrase « la mise à jour a été refusée » : exactement
-le silence qu'ADR-002 (D14, D17) interdit. Trois notes, trois versions de la même
+le silence qu'[ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md) (D14, D17) interdit. Trois notes, trois versions de la même
 question que se pose le lecteur avant de comparer deux rapports.
 
 **Le rapport est construit à partir de chaînes choisies par la machine auditée** —
@@ -563,8 +563,9 @@ Ce dernier test est le plus important du projet : c'est lui qui autorise à lanc
 l'outil sur une machine réelle.
 
 ### M10 · Couche image
-`autounattend.xml` versionné dans `image/`. Pour toute machine réinstallable, c'est
-le chemin que l'outil recommande — une machine née propre plutôt que nettoyée après coup.
+`autounattend.xml` **à versionner** dans `image/`. Pour toute machine réinstallable, ce
+sera le chemin que l'outil recommande — une machine née propre plutôt que nettoyée après
+coup.
 
 - [ ] Marqueur registre posé à l'installation, détecté par `rempart`
 - [ ] Recommandations adaptées selon que la machine vient ou non de cette image

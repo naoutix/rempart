@@ -108,7 +108,7 @@ Each release archive is the stick layout — `rempart.exe`, `rules/`, and a
 from a copy you already trust:
 
 ```text
-rempart seal --dir <dossier> --check
+rempart seal --dir <dir> --check
 ```
 
 Or build from source — this needs the **.NET SDK 10.0.302 or later**, which `global.json`
@@ -146,7 +146,7 @@ compliant.
 | `rempart scan [--json]` | Audit the machine and print the scored report. |
 | `rempart scan --report [dir]` | Also write `rapport.html`, `.md` and `.json` to `<dir>/<machine>-<date>/`. |
 | `rempart scan --from <capture>` | Replay a snapshot without the machine. |
-| `rempart report --from <rapport.json>` | Re-render HTML and Markdown without scanning again. Runs anywhere. |
+| `rempart report --from <rapport.json>` | Re-render the HTML, Markdown and JSON without scanning again — `--format` narrows it to one. Runs anywhere. |
 | `rempart diff <a.json> <b.json>` | Compare two scans: what regressed, what the audit stopped seeing. Exits `4` on a regression. |
 | `rempart index [dir]` | Build the fleet page from a folder of reports, worst first. |
 | `rempart explain [<ID>]` | List all checks, or detail one: rationale, references, cost of fixing. |
@@ -251,8 +251,10 @@ rule, the test layout, and the known build pitfalls.
 
 | | |
 |---|---|
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Invariants, adding a rule, tests, workflow |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrams, rule format, test strategy |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Invariants, adding a rule or a command, tests, workflow |
+| [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and what counts as one here |
+| [CHANGELOG.md](CHANGELOG.md) | What changed between releases |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrams, rule format, exit codes, test strategy |
 | [BUILD.md](docs/BUILD.md) | Prerequisites, AOT publish, build pitfalls |
 | [ROADMAP.md](docs/ROADMAP.md) (French) | Milestones, including what was deferred and why |
 | [DEBT.md](docs/DEBT.md) (French) | Technical debt register |

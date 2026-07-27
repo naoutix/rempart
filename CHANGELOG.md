@@ -301,8 +301,9 @@ Two real defects were **frozen by tests rather than fixed** in this batch, each 
 `--baseline` (DET-ARITE-REPORT), and `rempart explain --rules <dir> <ID>` listed everything
 instead of explaining the rule (DET-EXPLAIN-POSITIONNEL). Each changes what an existing
 command line does, so each got its own change — as the exit code above did. Both are closed
-in this same Unreleased section, at the top: the frozen assertions were inverted rather than
-deleted, so the fix is visible in a diff, which was the whole point of freezing them.
+in this same Unreleased section, under "Two command lines now do what they read like": the
+frozen assertions were inverted rather than deleted, so the fix is visible in a diff, which
+was the whole point of freezing them.
 
 ## 1.0.0-rc.1 — 2026-07-26
 
