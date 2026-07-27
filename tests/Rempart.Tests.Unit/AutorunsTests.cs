@@ -5,17 +5,38 @@ namespace Rempart.Tests.Unit;
 
 internal sealed class FakeFileSystemProvider : IFileSystemProvider
 {
-    private readonly Dictionary<string, List<string>> byDirectory =
+    private readonly Dictionary<string, DirectoryRead> byDirectory =
         new(StringComparer.OrdinalIgnoreCase);
 
     public FakeFileSystemProvider With(string directory, params string[] files)
     {
-        byDirectory[directory] = [.. files];
+        byDirectory[directory] = DirectoryRead.Found(files);
         return this;
     }
 
-    public IReadOnlyList<string> ListFiles(string directory) =>
-        byDirectory.TryGetValue(directory, out var files) ? files : [];
+    /// <summary>A folder the scan is refused — the state that used to be indistinguishable
+    /// from an empty one (DET-FICHIERS-MUET).
+    ///
+    /// <para>
+    /// <paramref name="reason"/> defaults to the sentence a live provider writes; passing
+    /// <c>null</c> stands for a capture carrying a status with no diagnostic beside it,
+    /// which is what the collector's own fallback sentence exists for.
+    /// </para>
+    /// </summary>
+    public FakeFileSystemProvider WithDenied(string directory, string? reason = "")
+    {
+        byDirectory[directory] = reason is null
+            ? new DirectoryRead(ReadStatus.AccessDenied, [], null)
+            : DirectoryRead.Failed(
+                reason is "" ? $"Dossier « {directory} » illisible : accès refusé." : reason);
+        return this;
+    }
+
+    // Absent rather than Failed for a directory this fake was not told about: it stands for
+    // a machine where that folder is simply not there, so a test that forgets to set one up
+    // gets the silent answer and not a fabricated denial.
+    public DirectoryRead ListFiles(string directory) =>
+        byDirectory.TryGetValue(directory, out var read) ? read : DirectoryRead.Absent;
 }
 
 public class AutorunsTests

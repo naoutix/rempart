@@ -67,8 +67,13 @@ public sealed class ProviderStatusChannelTests
         // dire.
         "IDynamicPortRangeProvider.Read → statut + diagnostic",
 
-        // Un dossier vide est un dossier vide ; l'appelant sait ce qu'il a demandé.
-        "IFileSystemProvider.ListFiles → aucun",
+        // DET-FICHIERS-MUET, fermée — la cinquième et dernière occurrence de la forme, et
+        // celle qui était inscrite ici en « aucun » avec la raison « un dossier vide est un
+        // dossier vide ; l'appelant sait ce qu'il a demandé ». C'était vrai pour le dossier
+        // vide et faux pour le dossier REFUSÉ, qui rendait la même liste nue : « aucun
+        // autorun » sur la première surface qu'une persistance utilise. Le canal sépare les
+        // deux, et un dossier vide reste muet — c'est l'asymétrie, pas son abandon.
+        "IFileSystemProvider.ListFiles → statut + diagnostic",
 
         // FirewallState.Readable, canal maison : « non lu » ne devient jamais « ouvert ».
         "IFirewallProvider.Read → booléen dédié",

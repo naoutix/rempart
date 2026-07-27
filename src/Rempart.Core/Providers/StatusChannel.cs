@@ -5,13 +5,22 @@ namespace Rempart.Core.Providers;
 /// when it could not.
 ///
 /// <para>
-/// Four reads have exactly this shape — drivers, processes, listening ports, browser
-/// extensions — and they got it one at a time, over DET-WMI-MUET, DET-EXT-MUET and
-/// DET-PORTS-MUET. What they share is not just the record: it is the <em>three-way reading
-/// of a capture</em> that <see cref="StatusChannel"/> holds, and that reading was copied
-/// four times. A fifth copy is where the next mistake would sit, because the subtle branch —
-/// a capture taken before the status field existed, which recorded a list and nothing else —
-/// is the one no test on a current fixture exercises.
+/// Five reads have exactly this shape — drivers, processes, listening ports, browser
+/// extensions, directory listings — and they got it one at a time, over DET-WMI-MUET,
+/// DET-EXT-MUET, DET-PORTS-MUET and DET-FICHIERS-MUET. What they share is not just the
+/// record: it is the <em>three-way reading of a capture</em> that <see cref="StatusChannel"/>
+/// holds, and that reading was copied four times before this class existed. A fifth copy was
+/// where the next mistake would have sat, because the subtle branch — a capture taken before
+/// the status field existed, which recorded a list and nothing else — is the one no test on a
+/// current fixture exercises. <see cref="DirectoryRead"/> is that fifth read and it reuses
+/// this instead, which is the whole point of the class being here.
+/// </para>
+///
+/// <para>
+/// The directory read is also the one that shows the abstraction was not over-fitted: its
+/// three snapshot fields are three <em>maps</em> rather than three properties, because
+/// <c>ListFiles</c> takes the directory as an argument. Nothing here had to change for that —
+/// the helpers take the three values, not the place they are stored.
 /// </para>
 ///
 /// <para>
@@ -44,7 +53,7 @@ public interface IStatusCarryingRead<TSelf, TItem>
 }
 
 /// <summary>
-/// The two halves of the status channel's capture path, written once for the four reads
+/// The two halves of the status channel's capture path, written once for the five reads
 /// that have it.
 ///
 /// <para>
@@ -72,7 +81,9 @@ public static class StatusChannel
     ///   answers is a judgement and not a shape — zero driver cannot be true of a running
     ///   machine, so it fails; zero browser extension is ordinary, so it succeeds. That
     ///   asymmetry is deliberate and is why this parameter exists rather than a constant.
-    ///   </item>
+    ///   The directory read shows it is not a two-way split either: an empty <em>listing</em>
+    ///   is an answer there, while a directory the capture holds <em>nothing</em> about is
+    ///   not, and only the caller knows which of its states it is naming.</item>
     /// </list>
     /// </summary>
     public static TRead Replay<TRead, TItem>(
