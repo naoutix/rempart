@@ -76,30 +76,20 @@ public sealed class ListeningPortsCollector : IFindingCollector
             .ThenBy(g => g.Key.Port)
             .ThenBy(g => g.Key.LocalAddress, StringComparer.Ordinal);
 
+        // Read once, before the loop: the range is a fact about the machine, not about a
+        // port, and asking the provider per endpoint would run netsh dozens of times.
+        var dynamicRange = providers.DynamicPortRange.Read();
+
         foreach (var group in groups)
         {
             var finding = Judge(
                 group.First(), ownerByPid, group.Count(), firewall, judgements, providers.Signatures);
 
-            findings.Add(MarkIfEphemeral(finding, group.Key.Port));
+            findings.Add(MarkIfEphemeral(finding, group.Key.Port, dynamicRange));
         }
 
         return findings;
     }
-
-    /// <summary>
-    /// First port of the range Windows hands out to sockets that did not ask for a
-    /// specific number.
-    ///
-    /// <para>
-    /// The default since Vista, and the value observed on the test machine
-    /// (<c>netsh int ipv4 show dynamicport</c>: 49152, 16384 ports, TCP and UDP alike).
-    /// It is configurable, and this constant does not read that configuration — a
-    /// machine with a custom range simply gets a slightly noisier comparison, never a
-    /// wrong statement.
-    /// </para>
-    /// </summary>
-    private const int FirstEphemeralPort = 49152;
 
     /// <summary>
     /// Flags a benign socket in the dynamic range so <c>rempart diff</c> does not report
@@ -118,10 +108,22 @@ public sealed class ListeningPortsCollector : IFindingCollector
     /// public network is news every single time, and the point of this marker is to
     /// silence noise, never a judgement.
     /// </para>
+    ///
+    /// <para>
+    /// <b>The band is read from the machine, and the note says so.</b> It used to be the
+    /// constant 49152 asserted about every machine (DET-PLAGE-DYNAMIQUE). That constant is
+    /// still the fallback — a range the tool could not read must not stop the marker
+    /// working — but the two cases no longer print the same sentence, because « the machine
+    /// hands out 49152–65535 » and « nobody could ask, so we assumed it » are the same
+    /// numbers and not the same claim.
+    /// </para>
     /// </summary>
-    private static Finding MarkIfEphemeral(Finding finding, int port)
+    private static Finding MarkIfEphemeral(
+        Finding finding, int port, DynamicPortRangeRead read)
     {
-        if (finding.Severity != FindingSeverity.Benign || port < FirstEphemeralPort)
+        var (range, measured) = read.Effective();
+
+        if (finding.Severity != FindingSeverity.Benign || !range.Contains(port))
         {
             return finding;
         }
@@ -130,9 +132,13 @@ public sealed class ListeningPortsCollector : IFindingCollector
         {
             Details = new Dictionary<string, string>(finding.Details, StringComparer.Ordinal)
             {
-                [FindingDetails.Ephemeral] =
-                    "Port de la plage dynamique : le système en attribue un autre à chaque "
-                    + "ouverture. Son numéro n'identifie rien de stable.",
+                [FindingDetails.Ephemeral] = measured
+                    ? $"Port de la plage dynamique relevée sur la machine ({range.Describe()}) : "
+                        + "le système en attribue un autre à chaque ouverture. Son numéro "
+                        + "n'identifie rien de stable."
+                    : $"Port de la plage dynamique par défaut de Windows ({range.Describe()}), "
+                        + "faute d'avoir pu lire celle de la machine : le système en attribue "
+                        + "un autre à chaque ouverture. Son numéro n'identifie rien de stable.",
             },
         };
     }

@@ -60,6 +60,13 @@ public sealed class ProviderStatusChannelTests
         // DET-WMI-MUET même : zéro pilote sur une machine allumée est une panne.
         "IDriverProvider.Enumerate → statut + diagnostic",
 
+        // DET-PLAGE-DYNAMIQUE, fermée. Le canal ne sert pas ici à distinguer « vide » de
+        // « refusé » — une plage n'a pas de forme vide — mais « lue sur la machine » de
+        // « pas lue, donc c'est la valeur par défaut de Windows ». Mêmes nombres, pas la
+        // même affirmation, et c'est exactement ce que la constante en dur ne pouvait pas
+        // dire.
+        "IDynamicPortRangeProvider.Read → statut + diagnostic",
+
         // Un dossier vide est un dossier vide ; l'appelant sait ce qu'il a demandé.
         "IFileSystemProvider.ListFiles → aucun",
 

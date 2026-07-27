@@ -4,8 +4,17 @@
 
 | | |
 |---|---|
-| .NET SDK 10 | `winget install Microsoft.DotNet.SDK.10` |
+| .NET SDK 10.0.302 or later | `winget install Microsoft.DotNet.SDK.10` |
 | C++ Build Tools | Required **only** for the Native AOT publish (see below) |
+
+`global.json` pins the SDK to **10.0.302** with `rollForward: latestFeature`: anything from
+that version up to the end of 10.0 is accepted, a .NET 11 SDK is not. An older 10.0 SDK
+stops every command with `A compatible .NET SDK was not found`, naming the version it wanted
+— the file says why that range and not a tighter or looser one.
+
+Package versions live in `Directory.Packages.props`, not in the `.csproj` files: a
+`PackageReference` here carries no `Version` attribute, and adding one is an error
+(`NU1008`).
 
 Two test suites, two regimes:
 

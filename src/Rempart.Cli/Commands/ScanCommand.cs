@@ -32,53 +32,18 @@ internal static class ScanCommand
 
         if (snapshotPath is not null)
         {
-            // Offline replay: the same collection code, without Windows.
+            // Offline replay: the same collection code, without Windows. The wiring is
+            // SnapshotProviders.Replaying rather than twenty lines written here, so that
+            // the guard which checks every provider is wired reads the list this command
+            // actually runs on — it used to read a copy that lived in the test suite.
             var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(snapshotPath));
-            providers = new ProviderSet(
-                new SnapshotRegistryProvider(snapshot),
-                new SnapshotSystemInfoProvider(snapshot),
-                services: new SnapshotServiceStateProvider(snapshot),
-                policy: new SnapshotSecurityPolicyProvider(snapshot),
-                wmi: new SnapshotWmiProvider(snapshot),
-                signatures: new SnapshotSignatureProvider(snapshot),
-                files: new SnapshotFileSystemProvider(snapshot),
-                scheduledTasks: new SnapshotScheduledTaskProvider(snapshot),
-                drivers: new SnapshotDriverProvider(snapshot),
-                processes: new SnapshotProcessProvider(snapshot),
-                listeningPorts: new SnapshotListeningPortProvider(snapshot),
-                firewall: new SnapshotFirewallProvider(snapshot),
-                dns: new SnapshotDnsProvider(snapshot),
-                hostsFile: new SnapshotHostsFileProvider(snapshot),
-                proxy: new SnapshotProxyProvider(snapshot),
-                wifi: new SnapshotWifiProfileProvider(snapshot),
-                softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot),
-                browserExtensions: new SnapshotBrowserExtensionProvider(snapshot),
-                componentStore: new SnapshotComponentStoreProvider(snapshot));
+            providers = SnapshotProviders.Replaying(snapshot);
             origin = snapshot.CapturedAtUtc;
         }
         else
         {
             RequireWindows();
-            providers = new ProviderSet(
-                new LiveRegistryProvider(),
-                new LiveSystemInfoProvider(),
-                services: new LiveServiceStateProvider(),
-                policy: new LiveSecurityPolicyProvider(),
-                wmi: new Rempart.Windows.Wmi.LiveWmiProvider(),
-                signatures: new LiveSignatureProvider(),
-                files: new LiveFileSystemProvider(),
-                scheduledTasks: new Rempart.Windows.Tasks.LiveScheduledTaskProvider(),
-                drivers: new LiveDriverProvider(),
-                processes: new LiveProcessProvider(),
-                listeningPorts: new LiveListeningPortProvider(),
-                firewall: new LiveFirewallProvider(),
-                dns: new LiveDnsProvider(),
-                hostsFile: new LiveHostsFileProvider(),
-                proxy: new LiveProxyProvider(),
-                wifi: new LiveWifiProfileProvider(),
-                softwareInventory: new LiveSoftwareInventoryProvider(),
-                browserExtensions: new LiveBrowserExtensionProvider(),
-                componentStore: new LiveComponentStoreProvider());
+            providers = LiveProviders.All();
             origin = UtcNow();
         }
 

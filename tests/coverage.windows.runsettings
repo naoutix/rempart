@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The other half of the perimeter DET-COUVERTURE named. tests/coverage.runsettings is
+     read by the Linux job and measures Rempart.Core; this file is read by the Windows job
+     and measures Rempart.Windows, which the Linux job cannot even compile
+     (net10.0-windows). Until it existed, the 2 712 lines of P/Invoke — the layer whose
+     failure mode is "a plausible, wrong value" — were outside every denominator.
+
+     Two files rather than one with a wider Include, deliberately: a single report merging
+     Core and Windows would produce one percentage over two layers tested by two suites on
+     two operating systems, and nobody could say which half moved. The published summaries
+     stay separate for the same reason.
+
+     Coverage is measured here and never gated, exactly as on the other side. The six
+     reasons are in docs/DEBT.md and none of them is weakened by this file: adding Windows
+     to the measurement widens what is *seen*, it does not turn an indicator into a door.
+
+     The friendlyName below must match the collector name .github/workflows/ci.yml asks
+     for. A mismatch is not an error — the collector falls back to its defaults, the
+     Include filter disappears, and the figure moves for a reason nobody can name.
+     CoverageSettingsTests holds the spellings of both files against the workflow. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+
+          <!-- Rempart.Windows only, and the omission of Rempart.Cli is a fact rather than
+               an oversight: Rempart.Tests.Windows does not reference Rempart.Cli, so the
+               CLI assembly is never loaded by this run and asking for it would only add a
+               name to a filter that matches nothing. What it would take to measure it is
+               written in the DET-COUVERTURE entry.
+
+               Rempart.Core is left out too, though this suite does execute it: it is
+               already measured by the Linux job against the whole fixture replay. Counting
+               it a second time here would publish a much lower Core figure next to the
+               real one and invite a comparison between two numbers that answer different
+               questions. -->
+          <Include>[Rempart.Windows]*</Include>
+
+          <!-- Same reason as on the Core side: without this, generated property accessors
+               join the denominator and the figure reports how many DTO fields were touched
+               rather than how much of the interop layer was exercised. -->
+          <SkipAutoProps>true</SkipAutoProps>
+
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+
+          <!-- The attribute filter above is not enough here, and the difference was
+               measured rather than assumed. ComInterfaceGenerator emits the COM vtable
+               stubs for the Task Scheduler and WMI interfaces into obj/, and coverlet
+               counted every one of them: 751 of 1 677 lines, covered at 4.7 %, dragging the
+               figure for this layer from 60.6 % down to 35.5 %. Nine of the twelve
+               least-covered "files" were generator output.
+
+               That is precisely the number DET-COUVERTURE must not publish: it moves when
+               the generator changes its emission strategy, and it would reward deleting an
+               interface rather than testing one. What is measured now is the code someone
+               wrote and can be held to. -->
+          <ExcludeByFile>**/obj/**/*.cs</ExcludeByFile>
+
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>false</UseSourceLink>
+          <DeterministicReport>false</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

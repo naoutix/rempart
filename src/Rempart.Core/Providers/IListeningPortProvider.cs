@@ -50,6 +50,7 @@ public sealed record ListeningPortRead(
     ReadStatus Status,
     IReadOnlyList<ListeningPort> Ports,
     string? Diagnostic = null)
+    : IStatusCarryingRead<ListeningPortRead, ListeningPort>
 {
     public static ListeningPortRead Found(IReadOnlyList<ListeningPort> ports) =>
         new(ReadStatus.Found, ports);
@@ -67,6 +68,13 @@ public sealed record ListeningPortRead(
     public static ListeningPortRead Partial(
         IReadOnlyList<ListeningPort> ports, string reason) =>
         new(ReadStatus.AccessDenied, ports, reason);
+
+    IReadOnlyList<ListeningPort> IStatusCarryingRead<ListeningPortRead, ListeningPort>.Items =>
+        Ports;
+
+    static ListeningPortRead IStatusCarryingRead<ListeningPortRead, ListeningPort>.Compose(
+        ReadStatus status, IReadOnlyList<ListeningPort> items, string? diagnostic) =>
+        new(status, items, diagnostic);
 }
 
 /// <summary>

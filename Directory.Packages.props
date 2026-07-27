@@ -1,0 +1,37 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Central Package Management: a package version is written once, here, and the
+         .csproj files only say which packages they need.
+
+         What it buys is not tidiness. Microsoft.NET.Test.Sdk, xunit and
+         xunit.runner.visualstudio were declared twice, in Rempart.Tests.Unit and in
+         Rempart.Tests.Windows, and nothing related the two copies: bumping one suite would
+         have left the other on the old runner, green, testing with a version nobody chose.
+         That is the shape DET-SCRIPTS describes — two hand-written copies of one fact — and
+         here the restore can be made to hold them together instead of a test. -->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The single production dependency, and this file is what makes that claim countable:
+         a second entry in this group is a change to an argument the README makes out loud,
+         not an implementation detail. -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test tooling: never reaches a shipped binary. Dependabot groups these four into a
+         single pull request (.github/dependabot.yml, group "test-tooling").
+
+         coverlet.collector carries PrivateAssets/IncludeAssets metadata, which stays on the
+         PackageReference in each test project. Central management moves the version and
+         nothing else: written here, that metadata would simply be ignored, and the
+         collector would become a public transitive dependency of the test assemblies. -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+  </ItemGroup>
+
+</Project>

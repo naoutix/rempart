@@ -48,7 +48,8 @@ public sealed class ProviderSet(
     IWifiProfileProvider? wifi = null,
     ISoftwareInventoryProvider? softwareInventory = null,
     IBrowserExtensionProvider? browserExtensions = null,
-    IComponentStoreProvider? componentStore = null)
+    IComponentStoreProvider? componentStore = null,
+    IDynamicPortRangeProvider? dynamicPortRange = null)
 {
     public IRegistryProvider Registry { get; } = registry;
 
@@ -128,6 +129,22 @@ public sealed class ProviderSet(
     /// </summary>
     public IComponentStoreProvider ComponentStore { get; } =
         componentStore ?? UnanalysedComponentStore.Instance;
+
+    /// <summary>
+    /// Absent, the range is reported as unread — never as the Windows default, which the
+    /// judgement then falls back to <em>while saying that is what it did</em>. The two are
+    /// the same numbers and not the same claim.
+    /// </summary>
+    public IDynamicPortRangeProvider DynamicPortRange { get; } =
+        dynamicPortRange ?? UnreadDynamicPortRange.Instance;
+}
+
+internal sealed class UnreadDynamicPortRange : IDynamicPortRangeProvider
+{
+    public static readonly UnreadDynamicPortRange Instance = new();
+
+    public DynamicPortRangeRead Read() => DynamicPortRangeRead.Failed(
+        "Aucun fournisseur de plage de ports dynamique n'a été fourni à ce scan.");
 }
 
 internal sealed class UnanalysedComponentStore : IComponentStoreProvider

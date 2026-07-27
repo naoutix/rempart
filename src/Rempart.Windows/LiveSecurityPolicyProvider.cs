@@ -79,6 +79,31 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         public uint LockoutThreshold;
     }
 
+    /// <summary>
+    /// The layout the compiler produced for <c>USER_INFO_1</c>, so that a test can hold it
+    /// against the one <c>netapi32</c> documents: 56 bytes, <c>Flags</c> at offset 40.
+    ///
+    /// <para>
+    /// Those two numbers are the bug this file was born with — 64 and 28, which crashed the
+    /// reader. Declaring the struct fixed it without making anything check it. Reordering a
+    /// field compiles, runs, and reads a slice of a pointer as an account flag: measured on
+    /// this machine, that turns « compte invité désactivé » into « compte invité actif » and
+    /// moves two counts, all of them plausible numbers no band would reject.
+    /// </para>
+    ///
+    /// <para>
+    /// <c>sizeof</c> and pointer arithmetic, never <c>Marshal.SizeOf</c> or
+    /// <c>Marshal.OffsetOf</c>: those read field metadata at run time, which is exactly the
+    /// reflection Native AOT does not have (ADR-001). Both expressions here are resolved at
+    /// compile time.
+    /// </para>
+    /// </summary>
+    public static unsafe (int Size, int FlagsOffset) UserInfo1Layout()
+    {
+        UserInfo1 probe = default;
+        return (sizeof(UserInfo1), (int)((byte*)&probe.Flags - (byte*)&probe));
+    }
+
     public PolicyFacts Read()
     {
         var facts = new Dictionary<string, string>(StringComparer.Ordinal);

@@ -10,7 +10,7 @@
          reflection over our types, so it is Native AOT-compatible without a source
          generator. The mapping is hand-written in RuleLoader, which allows actionable
          error messages on a file meant to be edited often. -->
-    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
   <ItemGroup>

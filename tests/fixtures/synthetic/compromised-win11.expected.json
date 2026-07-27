@@ -3776,7 +3776,7 @@
         "port": "49669",
         "exposition": "locale",
         "pid": "8321",
-        "\u00E9ph\u00E9m\u00E8re": "Port de la plage dynamique : le syst\u00E8me en attribue un autre \u00E0 chaque ouverture. Son num\u00E9ro n\u0027identifie rien de stable."
+        "\u00E9ph\u00E9m\u00E8re": "Port de la plage dynamique par d\u00E9faut de Windows (49152\u201365535), faute d\u0027avoir pu lire celle de la machine : le syst\u00E8me en attribue un autre \u00E0 chaque ouverture. Son num\u00E9ro n\u0027identifie rien de stable."
       }
     },
     {

@@ -39,6 +39,7 @@ public sealed record DriverRead(
     ReadStatus Status,
     IReadOnlyList<LoadedDriver> Drivers,
     string? Diagnostic = null)
+    : IStatusCarryingRead<DriverRead, LoadedDriver>
 {
     public static readonly DriverRead AccessDenied = new(ReadStatus.AccessDenied, []);
 
@@ -47,6 +48,14 @@ public sealed record DriverRead(
 
     public static DriverRead Failed(string reason) =>
         new(ReadStatus.AccessDenied, [], reason);
+
+    // Explicit, so "Drivers" stays the only name a caller sees and nothing new appears in
+    // any serialised shape. See IStatusCarryingRead.
+    IReadOnlyList<LoadedDriver> IStatusCarryingRead<DriverRead, LoadedDriver>.Items => Drivers;
+
+    static DriverRead IStatusCarryingRead<DriverRead, LoadedDriver>.Compose(
+        ReadStatus status, IReadOnlyList<LoadedDriver> items, string? diagnostic) =>
+        new(status, items, diagnostic);
 }
 
 public interface IDriverProvider

@@ -99,6 +99,21 @@ public sealed class MachineSnapshot
     /// <summary>Which listening table could not be read, when one could not.</summary>
     public string? ListeningPortsDiagnostic { get; set; }
 
+    /// <summary>
+    /// The dynamic port range the machine declared, or null on a capture that never asked —
+    /// which is every capture taken before DET-PLAGE-DYNAMIQUE was closed.
+    ///
+    /// <para>
+    /// The null is the useful part, and it is why the range is stored as its own field
+    /// rather than folded into <see cref="ListeningPorts"/>: replaying it has to be able to
+    /// say « cette capture n'a pas relevé la plage », so that the finding falls back to the
+    /// Windows default <em>and admits it</em>. A capture that recorded nothing would
+    /// otherwise be replayed as one that measured the default, which is the assertion the
+    /// debt was about.
+    /// </para>
+    /// </summary>
+    public DynamicPortRangeRead? DynamicPortRange { get; set; }
+
     /// <summary>Firewall state, or null if the snapshot predates its collection.</summary>
     public FirewallState? Firewall { get; set; }
 
