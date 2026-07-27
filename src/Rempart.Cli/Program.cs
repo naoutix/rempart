@@ -1,3 +1,4 @@
+using Rempart.Core.Cli;
 using Rempart.Core.Collectors;
 using Rempart.Core.Reports;
 using Rempart.Core.Diff;
@@ -14,6 +15,7 @@ using Rempart.Core.Snapshots;
 using Rempart.Core.Updates;
 using System.Reflection;
 using Rempart.Windows;
+using static Rempart.Core.Cli.CommandLine;
 
 // Hand-written argument parsing. ADR-001 plans for System.CommandLine; adding it for
 // two commands would be premature. To be switched in M1, once the number of commands
@@ -25,7 +27,7 @@ using Rempart.Windows;
 // come out garbled, and they are exactly what needs to be read first.
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-var command = args.Length > 0 && !args[0].StartsWith('-') ? args[0] : "help";
+var command = WordAt(args, 0) ?? "help";
 
 try
 {
@@ -50,15 +52,11 @@ try
         _ => Help(),
     };
 }
-catch (SnapshotIncompleteException ex)
-{
-    Console.Error.WriteLine($"Instantané incomplet : {ex.Message}");
-    return 2;
-}
 catch (Exception ex)
 {
-    Console.Error.WriteLine($"Erreur : {ex.Message}");
-    return 1;
+    var failure = ExitCodes.ForException(ex);
+    Console.Error.WriteLine(failure.Message);
+    return (int)failure.Code;
 }
 
 static int Scan(string[] args)
@@ -222,9 +220,7 @@ static int Scan(string[] args)
 
     // Missing privileges are not an execution error, but the caller must be able
     // to detect them without re-reading the output.
-    return result.Collectors.Any(c => c.Status == CollectorStatus.Failed) ? 1
-        : result.Collectors.Any(c => c.Status == CollectorStatus.InsufficientPrivileges) ? 3
-        : 0;
+    return (int)ExitCodes.ForScan(result.Collectors);
 }
 
 /// <summary>
@@ -457,7 +453,7 @@ static int Diff(string[] args)
 
     // A regression is what the caller most likely wants to act on, so it is detectable
     // without re-reading the output.
-    return diff.Of(VerdictShift.Regression).Any() ? 4 : 0;
+    return (int)ExitCodes.ForDiff(diff);
 }
 
 /// <summary>
@@ -512,46 +508,9 @@ static int Index(string[] args)
     var outPath = OptionValue(args, "--out") ?? Path.Combine(root, FleetIndex.FileName);
     File.WriteAllText(outPath, FleetIndex.Render(entries));
 
-    Console.WriteLine($"Parc écrit dans {outPath} — {entries.Count} rapport(s)"
-                      + (unreadable > 0 ? $", {unreadable} illisible(s)" : string.Empty));
-
-    foreach (var entry in FleetIndex.Ordered(entries))
-    {
-        Console.WriteLine($"  {entry.Machine,-24} {entry.Date}  " +
-                          $"{(entry.Score is { } s ? $"{s,3} %" : "  n/d")}  " +
-                          $"échecs {entry.Failures}, à examiner {entry.FlaggedFindings}");
-    }
+    Console.Write(ConsoleReport.Fleet(entries, outPath, unreadable));
 
     return entries.Count > 0 ? 0 : 1;
-}
-
-/// <summary>
-/// Arguments that are not options, and not the value of one.
-///
-/// The hand-written parser has no notion of arity, so a bare scan of non-dash tokens
-/// would take the folder in <c>--report ./out</c> for a file to compare.
-/// </summary>
-static IReadOnlyList<string> Positional(string[] args, IReadOnlyList<string> valueTaking)
-{
-    var positional = new List<string>();
-
-    for (var i = 1; i < args.Length; i++)
-    {
-        if (args[i].StartsWith('-'))
-        {
-            if (valueTaking.Contains(args[i]) && i + 1 < args.Length
-                && !args[i + 1].StartsWith('-'))
-            {
-                i++;
-            }
-
-            continue;
-        }
-
-        positional.Add(args[i]);
-    }
-
-    return positional;
 }
 
 static int Capture(string[] args)
@@ -1584,7 +1543,7 @@ static int Synthesise(string[] args)
 /// </summary>
 static int Explain(string[] args)
 {
-    var id = args.Length > 1 && !args[1].StartsWith('-') ? args[1] : null;
+    var id = WordAt(args, 1);
     var rules = RuleCatalog.Load(RulesDirectory(args));
 
     if (id is null)
@@ -1709,44 +1668,6 @@ static string ToolVersion() =>
 
 static string UtcNow() => DateTime.UtcNow.ToString("o");
 
-static string? OptionValue(string[] args, string name)
-{
-    var index = Array.IndexOf(args, name);
-    return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
-}
-
-static bool HasFlag(string[] args, string name) => Array.IndexOf(args, name) >= 0;
-
-/// <summary>
-/// Value of an option that may be given without one — <c>--report</c> alone, or
-/// <c>--report D:\audits</c>.
-///
-/// <see cref="OptionValue"/> would swallow the next option as a value and quietly
-/// write the reports into a folder named <c>--json</c>.
-/// </summary>
-static string? OptionalValue(string[] args, string name)
-{
-    var index = Array.IndexOf(args, name);
-    return index >= 0 && index + 1 < args.Length && !args[index + 1].StartsWith('-')
-        ? args[index + 1]
-        : null;
-}
-
-/// <summary>All occurrences of a repeatable option.</summary>
-static IReadOnlyList<string> OptionValues(string[] args, string name)
-{
-    var values = new List<string>();
-    for (var i = 0; i < args.Length - 1; i++)
-    {
-        if (args[i] == name)
-        {
-            values.Add(args[i + 1]);
-        }
-    }
-
-    return values;
-}
-
 static int Print(string text)
 {
     Console.WriteLine(text);
@@ -1754,7 +1675,7 @@ static int Print(string text)
 }
 
 static int Help() => Print(
-    """
+    $"""
     Rempart — audit de postes Windows
 
       rempart scan [--json] [--report [dossier]] [--from <instantané>]
@@ -1868,5 +1789,6 @@ static int Help() => Print(
 
       rempart version
 
-    Codes de sortie : 0 succès · 1 échec · 2 instantané incomplet · 3 droits insuffisants
+    Codes de sortie
+    {ExitCodes.HelpBlock}
     """);

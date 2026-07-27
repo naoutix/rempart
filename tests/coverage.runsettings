@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Coverage is measured here, never gated. See docs/DEBT.md (DET-COUVERTURE) for why a
+     global threshold on this figure would mislead rather than protect.
+
+     The friendlyName below must match the collector name that .github/workflows/ci.yml
+     asks for, case-insensitively. A mismatch is not an error: the collector silently falls
+     back to its defaults, every module gets instrumented, and the percentage moves for a
+     reason nobody can name. CoverageSettingsTests holds the two spellings together. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+
+          <!-- Rempart.Core only. The Linux job builds nothing else, YamlDotNet is not ours
+               to measure, and an explicit include keeps a future project reference from
+               entering the denominator without anyone deciding it should. -->
+          <Include>[Rempart.Core]*</Include>
+
+          <!-- Core is written in records. Without this, several hundred generated property
+               accessors join the denominator and the figure reports how many DTO fields
+               the replay touched rather than how much judgment is exercised. -->
+          <SkipAutoProps>true</SkipAutoProps>
+
+          <!-- Coverlet's own default, restated because it carries weight here: the
+               source-generated JSON context behind src/Rempart.Core/Json/RempartJson.cs
+               carries GeneratedCodeAttribute and must not count as untested code. -->
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>false</UseSourceLink>
+          <DeterministicReport>false</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

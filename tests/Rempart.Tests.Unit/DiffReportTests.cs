@@ -33,6 +33,54 @@ public sealed class DiffReportTests
     }
 
     /// <summary>
+    /// The console is the fourth format and must not disagree either — it is the one most
+    /// people read, and the only one nothing checked.
+    /// </summary>
+    [Fact]
+    public void The_console_states_the_same_headline_as_the_other_formats() =>
+        Assert.Contains(DiffReport.Headline(Regressed()), ConsoleReport.Diff(Regressed()),
+            StringComparison.Ordinal);
+
+    /// <summary>
+    /// Expected movements are listed, counted, and kept out of the posture gap. No pair of
+    /// versioned fixtures can freeze this line — none of them carries a transient or an
+    /// ephemeral finding — so it is pinned here rather than nowhere.
+    /// </summary>
+    [Fact]
+    public void The_console_counts_expected_movements_outside_the_posture_gap()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with { Findings = [RunOnce(@"HKLM\…\RunOnce\Nettoyage")] },
+            Scan());
+
+        var text = ConsoleReport.Diff(diff);
+
+        Assert.Contains("[synthèse] Aucun écart de posture. 1 mouvement(s) attendu(s).", text,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[mouvements attendus] 1 — Windows les retire ou les renumérote de lui-même, "
+            + "hors de l'écart de posture", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Two catalogs still get compared — refusing would make the command useless the day
+    /// after any update — and the console says so before anything else. The three
+    /// versioned fixtures share one fingerprint, so no golden reaches this banner.
+    /// </summary>
+    [Fact]
+    public void The_console_warns_before_comparing_two_catalogs()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with { RulesFingerprint = "82:aaaa" },
+            Scan() with { RulesFingerprint = "91:bbbb" });
+
+        var lines = ConsoleReport.Diff(diff).ReplaceLineEndings("\n").Split('\n');
+
+        Assert.StartsWith("! ", lines[4], StringComparison.Ordinal);
+        Assert.Contains("82:aaaa", lines[4], StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// The comparison is built from the same machine-chosen strings the report is, and
     /// gets read in the same browser.
     /// </summary>
@@ -163,10 +211,90 @@ public sealed class DiffReportTests
         Assert.Contains("&lt;script&gt;", html, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Freezes what « rempart index » prints. The command wrote straight to the console,
+    /// so a change in its wording was invisible: CI checks an exit code, not a text. Scan
+    /// (#78) and diff (#79) got this treatment; this closes the third path.
+    /// </summary>
+    [Fact]
+    public void The_fleet_console_rendering_matches_its_reference()
+    {
+        var expected = """
+            Parc écrit dans reports/index.html — 4 rapport(s), 2 illisible(s)
+              POSTE-MUET               2026-07-24    n/d  échecs 12, à examiner 3
+              POSTE-COMPTABILITE-BUREAU-02 2026-07-25   31 %  échecs 9, à examiner 1
+              POSTE-BUREAU             2026-07-24   58 %  échecs 6, à examiner 2
+              POSTE-SAIN               2026-07-24   96 %  échecs 0, à examiner 0
+            """;
+
+        Assert.Equal(Normalise(expected),
+            Normalise(ConsoleReport.Fleet(Fleet(), "reports/index.html", 2)));
+    }
+
+    [Fact]
+    public void A_fleet_without_unreadable_reports_says_nothing_about_them()
+    {
+        var text = ConsoleReport.Fleet(Fleet(), "reports/index.html", 0);
+
+        Assert.Contains("4 rapport(s)", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("illisible", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The console and the page must not disagree on which machine comes first: the order
+    /// IS the answer to « which machine next », and two orders mean no answer at all.
+    /// </summary>
+    [Fact]
+    public void The_console_lists_the_fleet_in_the_same_order_as_the_page()
+    {
+        var text = ConsoleReport.Fleet(Fleet(), "reports/index.html", 0);
+
+        var positions = FleetIndex.Ordered(Fleet())
+            .Select(e => text.IndexOf(e.Machine, StringComparison.Ordinal))
+            .ToList();
+
+        Assert.DoesNotContain(-1, positions);
+        Assert.Equal(positions.OrderBy(p => p), positions);
+    }
+
+    [Fact]
+    public void Rendering_the_fleet_console_twice_gives_the_same_bytes() =>
+        Assert.Equal(
+            ConsoleReport.Fleet(Fleet(), "reports/index.html", 2),
+            ConsoleReport.Fleet(Fleet(), "reports/index.html", 2));
+
     // ---- builders ----------------------------------------------------------
 
     private static FleetEntry Entry(string machine, int? score) =>
         new(machine, "2026-07-24", $"{machine}/rapport.json", score, 4, 1, 2, "82:c3e6", true);
+
+    /// <summary>
+    /// Four machines chosen for what they exercise, not for realism: one that could not be
+    /// scored at all, one whose name overruns the 24-character column, one middling, one
+    /// healthy. The dates differ so the tie-breaks stay observable.
+    /// </summary>
+    private static IReadOnlyList<FleetEntry> Fleet() =>
+    [
+        Entry("POSTE-SAIN", 96) with { Failures = 0, Unverifiable = 0, FlaggedFindings = 0 },
+        Entry("POSTE-BUREAU", 58) with { Failures = 6, FlaggedFindings = 2 },
+        Entry("POSTE-MUET", null) with { Elevated = false, Failures = 12, FlaggedFindings = 3 },
+        Entry("POSTE-COMPTABILITE-BUREAU-02", 31)
+            with { Date = "2026-07-25", Failures = 9, FlaggedFindings = 1 },
+    ];
+
+    /// <summary>
+    /// A finding Windows removes on its own: its disappearance is expected, its appearance
+    /// would be news. The marker is set by the collector, which knows the mechanism.
+    /// </summary>
+    private static Finding RunOnce(string source) =>
+        new("autorun", source, @"C:\Windows\System32\cleanup.exe", FindingSeverity.Benign, [],
+            new Dictionary<string, string>
+            {
+                [FindingDetails.Transient] =
+                    "Entrée RunOnce : Windows l'exécute au prochain démarrage puis la supprime.",
+            });
+
+    private static string Normalise(string text) => text.ReplaceLineEndings("\n").Trim();
 
     private static DiffResult Regressed() => ScanDiff.Compare(
         Scan() with

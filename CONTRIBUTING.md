@@ -3,9 +3,14 @@
 ## Getting started
 
 ```bash
-dotnet test                                   # 594 tests (56 require Windows), ~10 s
+dotnet test                                   # 650 tests (56 require Windows), ~10 s
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
+
+That count is what a fresh clone runs, and what CI reports. A machine holding real
+captures in `tests/fixtures/local/` runs more — three tests per capture, since the replay
+theories are parameterised by fixture — and the folder is gitignored, so the difference
+never shows up in a diff. Quote the CI figure when writing one down (DET-FIXTURE-LOCALE).
 
 Prerequisites: [.NET SDK 10](docs/BUILD.md). The C++ Build Tools are only needed
 for the Native AOT publish step.

@@ -13,13 +13,21 @@
     Skips the AOT publish, which requires the C++ Build Tools and takes several minutes.
     Useful for a fast loop during development.
 
+.PARAMETER Coverage
+    Collects line coverage for Rempart.Core and prints the same summary CI prints. Off by
+    default: instrumentation lengthens the very loop this script exists to shorten, and the
+    local figure is not comparable to the one CI reports — this workstation replays the
+    captures in tests/fixtures/local/, which is gitignored.
+
 .EXAMPLE
     ./scripts/verify.ps1
     ./scripts/verify.ps1 -SkipPublish
+    ./scripts/verify.ps1 -Coverage
 #>
 [CmdletBinding()]
 param(
-    [switch]$SkipPublish
+    [switch]$SkipPublish,
+    [switch]$Coverage
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,7 +84,17 @@ Step 'Tests' {
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        dotnet test --configuration Release --nologo --verbosity quiet
+        $arguments = @('test', '--configuration', 'Release', '--nologo', '--verbosity', 'quiet')
+        if ($Coverage) {
+            # No inner quotes: PowerShell 5.1 quotes an argument containing spaces on its
+            # own, and adding them here reaches dotnet with the quotes still attached.
+            $arguments += @(
+                '--collect:XPlat Code Coverage',
+                '--settings', 'tests/coverage.runsettings',
+                '--results-directory', 'artifacts/coverage')
+        }
+
+        dotnet @arguments
     }
     finally {
         $ErrorActionPreference = $previous
@@ -100,6 +118,15 @@ Step 'Tests' {
     }
 
     throw "des tests ont echoue"
+}
+
+if ($Coverage) {
+    Step 'Couverture' {
+        # The same script CI calls, deliberately: DET-SCRIPTS is about this file drifting
+        # from the workflow, and a second implementation of the parsing would be that drift.
+        & (Join-Path $PSScriptRoot 'coverage-summary.ps1') `
+            -ResultsDirectory (Join-Path $root 'artifacts/coverage')
+    }
 }
 
 if (-not $SkipPublish) {

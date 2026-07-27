@@ -28,3 +28,4 @@ updates:
         patterns:
           - "xunit*"
           - "Microsoft.NET.Test.Sdk"
+          - "coverlet.*"

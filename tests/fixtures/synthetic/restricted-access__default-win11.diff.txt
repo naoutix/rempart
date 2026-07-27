@@ -1,0 +1,136 @@
+anon:000000000003 contre anon:000000000002
+  avant : 2026-01-01T00:00:00.0000000Z
+  après : 2026-01-01T00:00:00.0000000Z
+
+[synthèse] 45 régression(s), 1 contrôle(s) devenu(s) illisible(s), 2 constat(s) modifié(s).
+  conformité 100 % → 52 %  (-48 pts)
+
+[régressions — était conforme, ne l'est plus]
+  WIN-ACC-002    Comptes actifs dispensés de mot de passe
+                 conforme → échec
+  WIN-ACC-001    Aucune longueur minimale de mot de passe
+                 conforme → échec
+  WIN-ASR-001    ASR — abus de pilotes signés vulnérables non bloqué
+                 conforme → échec
+  WIN-ASR-002    ASR — vol d'identifiants depuis LSASS non bloqué
+                 conforme → échec
+  WIN-ASR-003    ASR — persistance par abonnement WMI non bloquée
+                 conforme → échec
+  WIN-ASR-010    ASR — création de processus enfants par Office non bloquée
+                 conforme → échec
+  WIN-ASR-011    ASR — création de contenu exécutable par Office non bloquée
+                 conforme → échec
+  WIN-ASR-012    ASR — injection de code par Office non bloquée
+                 conforme → échec
+  WIN-ASR-013    ASR — appels d'API Win32 depuis les macros Office non bloqués
+                 conforme → échec
+  WIN-ASR-020    ASR — contenu exécutable issu de la messagerie non bloqué
+                 conforme → échec
+  WIN-ASR-021    ASR — scripts potentiellement obfusqués non bloqués
+                 conforme → échec
+  WIN-ASR-022    ASR — exécutables lancés par JavaScript ou VBScript non bloqués
+                 conforme → échec
+  WIN-ASR-032    ASR — protection avancée contre les rançongiciels inactive
+                 conforme → échec
+  WIN-BOOT-001   Secure Boot désactivé ou indisponible
+                 conforme → échec
+  WIN-DEF-008    Protection réseau inactive
+                 conforme → échec
+  WIN-LEG-002    Signature SMB non exigée côté serveur
+                 conforme → échec
+  WIN-LEG-003    LLMNR activé
+                 conforme → échec
+  WIN-LOG-001    Journalisation des blocs de script PowerShell inactive
+                 conforme → échec
+  WIN-LOG-003    Ligne de commande absente des événements de création de processus
+                 conforme → échec
+  WIN-NET-003    Signature SMB non exigée côté client
+                 conforme → échec
+  WIN-VBS-001    Securite fondee sur la virtualisation inactive
+                 conforme → échec
+  WIN-VBS-003    Integrite du code protegee par hyperviseur inactive
+                 conforme → échec
+  WIN-ACC-005    Historique des mots de passe non conservé
+                 conforme → échec
+  WIN-ASR-014    ASR — processus enfants d'Outlook non bloqués
+                 conforme → échec
+  WIN-ASR-015    ASR — processus enfants d'Adobe Reader non bloqués
+                 conforme → échec
+  WIN-ASR-023    ASR — exécutables sans réputation non bloqués
+                 conforme → échec
+  WIN-ASR-024    ASR — processus issus de PsExec et WMI non bloqués
+                 conforme → échec
+  WIN-ASR-025    ASR — exécution depuis un support USB non signé non bloquée
+                 conforme → échec
+  WIN-ASR-030    ASR — redémarrage en mode sans échec non bloqué
+                 conforme → échec
+  WIN-ASR-031    ASR — usage d'outils système copiés ou usurpés non bloqué
+                 conforme → échec
+  WIN-BOOT-002   Service TPM absent
+                 conforme → échec
+  WIN-CRED-003   Nombre de connexions mises en cache trop élevé
+                 conforme → échec
+  WIN-DEF-011    Smart App Control inactif
+                 conforme → échec
+  WIN-LOG-002    Journalisation des modules PowerShell inactive
+                 conforme → échec
+  WIN-LOG-004    Journal de sécurité trop petit
+                 conforme → échec
+  WIN-NET-001    NetBIOS sur TCP/IP non restreint
+                 conforme → échec
+  WIN-PRIV-001   Télémétrie de diagnostic au niveau maximal
+                 conforme → échec
+  WIN-PRIV-003   Recall (analyse des captures d'écran) non désactivé
+                 conforme → échec
+  WIN-SVC-011    Service de partage de connexion Internet actif
+                 conforme → échec
+  WIN-LOG-005    Journal PowerShell opérationnel trop petit
+                 conforme → échec
+  WIN-LOG-006    Transcription PowerShell inactive
+                 conforme → échec
+  WIN-NET-002    mDNS actif
+                 conforme → échec
+  WIN-PRIV-002   Identifiant de publicité actif
+                 conforme → échec
+  WIN-PRIV-004   Copilot Windows non désactivé
+                 conforme → échec
+  WIN-PRIV-005   Contenu suggéré et publicités dans l'interface
+                 conforme → échec
+
+[devenus illisibles — l'audit y voit moins]
+  WIN-ENC-001    Volume non protege par BitLocker
+                 conforme → non vérifié
+
+[changements de périmètre]
+  WIN-FW-006     Règles de pare-feu locales fusionnées malgré une stratégie de domaine
+                 conforme → hors périmètre
+
+[redevenus lisibles]
+  WIN-CRED-001   LSA Protection (RunAsPPL) désactivée
+                 non vérifié → échec
+  WIN-NET-005    Niveau d'authentification LAN Manager trop permissif
+                 non vérifié → échec
+  WIN-NET-006    Énumération anonyme des comptes et partages autorisée
+                 non vérifié → échec
+  WIN-VBS-002    Credential Guard inactif
+                 non vérifié → échec
+
+[constats] 3 écart(s)
+
+  disparu   —
+            Lsa\Security Packages
+
+  modifié   C:\Windows\System32\msv1_0.dll
+            Lsa\Authentication Packages
+            → Cible : — → C:\Windows\System32\msv1_0.dll. Le même emplacement lance autre chose.
+            → Sévérité : Notable → Benign.
+
+  modifié   C:\Windows\System32\scecli.dll
+            Lsa\Notification Packages
+            → Cible : — → C:\Windows\System32\scecli.dll. Le même emplacement lance autre chose.
+            → Sévérité : Notable → Benign.
+
+[inventaire] 3 écart(s) — deux machines, c'est du contexte
+  scan.elevated                    False → True
+  security.secureBoot              enabled → unsupported
+  security.tpmService              present → absent
