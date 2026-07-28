@@ -1,0 +1,42 @@
+name: Bug
+description: Rempart crashed, refused to run, or produced something that cannot be right
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran and what it printed. Paste the error in full.
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`rempart version`."
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: elevation
+    attributes:
+      label: Console
+      options:
+        - Not elevated
+        - Elevated (Administrator)
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: >
+        Worth a line even when it seems obvious. Several defects in this tool were not crashes
+        but *silences* — a refused read that came back looking like a clean answer — and those
+        are only visible to someone who knows what the machine actually holds.
+    validations:
+      required: true

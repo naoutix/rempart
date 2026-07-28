@@ -1,0 +1,55 @@
+name: Missing or wrong bloatware entry
+description: Software the catalogue should know about, or an entry that is wrong
+labels: ["catalogue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The catalogue holds 123 entries and will never be complete: coverage is **data**, not
+        something a test closes ([ADR-006](../../docs/adr/ADR-006-catalogue-bloatware-importe.md)).
+        It grows on reports like this one.
+
+        Two things this project will not do, so you know what to expect: it will not catalogue
+        software that is merely unwanted by taste, and it will not accept an entry without an
+        impact note saying what removing it costs.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of report
+      options:
+        - Software the catalogue misses
+        - An entry that flags the wrong thing
+        - An impact note that is wrong or misleading
+    validations:
+      required: true
+
+  - type: input
+    id: identifier
+    attributes:
+      label: Identifier
+      description: >
+        The Appx package family name, or the Uninstall display name. `Get-AppxPackage | Select
+        Name, PackageFamilyName` gives the first.
+      placeholder: "AD2F1837.HPSupportAssistant_v10z8vjag6ke6"
+    validations:
+      required: true
+
+  - type: input
+    id: vendor
+    attributes:
+      label: Machine make and model
+      description: Vendor coverage is the catalogue's known weak spot — ASUS, Acer, MSI and Razer especially.
+      placeholder: "Dell XPS 13 9310"
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: What removing it costs
+      description: >
+        The one field that is mandatory, and the one that distinguishes this catalogue from a
+        debloat list. **Say what you know and not what you assume** — "removable, no known
+        dependency" is a better answer than a plausible guess. If you have actually removed it
+        and something broke, that is worth more than anything else here.
+    validations:
+      required: true

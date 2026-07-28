@@ -257,6 +257,7 @@ rule, the test layout, and the known build pitfalls.
 |---|---|
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Invariants, adding a rule or a command, tests, workflow |
 | [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and what counts as one here |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | How disagreement is expected to go |
 | [CHANGELOG.md](CHANGELOG.md) | What changed between releases |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Diagrams, rule format, exit codes, test strategy |
 | [BUILD.md](docs/BUILD.md) | Prerequisites, AOT publish, build pitfalls |
