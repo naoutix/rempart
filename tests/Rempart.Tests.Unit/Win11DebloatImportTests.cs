@@ -215,6 +215,68 @@ public sealed class Win11DebloatImportTests
     }
 
     [Fact]
+    public void A_local_addition_reaches_the_catalogue_without_existing_upstream()
+    {
+        // Not everything worth cataloguing is in the upstream list. ASUS, Acer, MSI and Razer
+        // are absent from it, and no maintained list carries their identifiers -- the
+        // community matches them by name. Additions live in the judgement file so a re-run of
+        // the join does not wipe them, which is the trap DET-RECPROV named.
+        const string judgement = """
+            { "entries": [], "additions": [
+              { "id": "BLOAT-ARMOURY-CRATE", "match": "Name", "value": "Armoury Crate",
+                "category": "oem", "risk": "Unwanted",
+                "impact": "Utilitaire ASUS de pilotage du matériel.", "impactSource": "Upstream" } ] }
+            """;
+
+        var file = Win11DebloatImport.Transform(
+            """{ "Version": "1.1", "Apps": [] }""", judgement, "2026-07-28T00:00:00Z");
+
+        var entry = Assert.Single(file.Entries);
+        Assert.Equal("BLOAT-ARMOURY-CRATE", entry.Id);
+        Assert.Equal(BloatwareMatch.Name, entry.Match);
+        Assert.Equal("Armoury Crate", entry.Value);
+    }
+
+    [Fact]
+    public void A_local_addition_is_held_to_the_same_rules_as_an_imported_entry()
+    {
+        // An impact note is mandatory wherever an entry comes from: the rule is about what
+        // the catalogue asserts, not about who wrote it.
+        const string judgement = """
+            { "entries": [], "additions": [
+              { "id": "BLOAT-X", "match": "Name", "value": "Armoury Crate",
+                "category": "oem", "risk": "Unwanted", "impact": "" } ] }
+            """;
+
+        Assert.ThrowsAny<Exception>(() => Win11DebloatImport.Transform(
+            """{ "Version": "1.1", "Apps": [] }""", judgement, "2026-07-28T00:00:00Z"));
+    }
+
+    [Fact]
+    public void Additions_and_imported_entries_come_out_in_one_stable_order()
+    {
+        // The file is signed: a re-run that reordered entries would make every diff
+        // unreadable and every signature look like a change.
+        const string judgement = """
+            { "entries": [
+              { "appId": "AD2F1837.HPSupportAssistant", "category": "oem", "risk": "Unwanted",
+                "impact": "Assistance HP.", "impactSource": "Upstream" } ],
+              "additions": [
+              { "id": "BLOAT-ARMOURY-CRATE", "match": "Name", "value": "Armoury Crate",
+                "category": "oem", "risk": "Unwanted", "impact": "Utilitaire ASUS.",
+                "impactSource": "Upstream" } ] }
+            """;
+
+        var upstream = Upstream("\"AD2F1837.HPSupportAssistant\"");
+
+        var first = Win11DebloatImport.Transform(upstream, judgement, "2026-07-28T00:00:00Z");
+        var second = Win11DebloatImport.Transform(upstream, judgement, "2026-07-28T00:00:00Z");
+
+        Assert.Equal(2, first.Entries.Count);
+        Assert.Equal(first.Entries.Select(e => e.Id), second.Entries.Select(e => e.Id));
+    }
+
+    [Fact]
     public void A_byte_order_mark_on_either_input_does_not_stop_the_import()
     {
         // Found by running the command against the real upstream, not by reading the data:

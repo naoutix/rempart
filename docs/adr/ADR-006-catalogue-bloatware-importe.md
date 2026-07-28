@@ -73,9 +73,21 @@ Deux autres listes ont été examinées et écartées comme source **principale*
 de sécurité, une liste qu'aucune communauté n'a éprouvée ne vaut pas mieux que la nôtre.
 
 La première couvre en revanche **ASUS, Acer, MSI et Razer**, absents de Win11Debloat. Elle est
-retenue comme source **secondaire, pour les identifiants uniquement**. Le trou de couverture
-n'est pas théorique : la machine de développement est une MSI, et les tâches planifiées
-`StartCN` et `StartDVR` de ses captures sont du MSI Center.
+retenue comme source **secondaire, pour les identifiants uniquement**.
+
+> **Rectification du 2026-07-28, en suivant le chemin.** Cette phrase était fausse à l'endroit
+> exact qu'elle désigne, et c'est la troisième fois que ce registre l'apprend de la même
+> manière : `Modules/OEM.ps1` de la source secondaire **ne porte aucun identifiant de paquet**.
+> Il travaille par suppression de dossiers et de clés — 9 `Remove-Item`, 11
+> `Remove-ItemProperty`, 3 `Stop-Service` — et sa couverture constructeur est une **regex sur
+> les noms d'affichage**, doublée d'une contre-regex `Intel.*Driver|Realtek.*Driver` pour
+> défaire son propre sur-appariement. Un outil qui supprime sur ordre explicite peut se le
+> permettre ; un outil qui **accuse** ne le peut pas, et `BloatwareMatch.Name` est un
+> `Contains` sans forme négative. Voir D23.
+>
+> La phrase sur la machine de développement était fausse aussi : `StartCN` et `StartDVR`
+> avaient été attribuées à MSI Center par déduction, jamais vérifiées. La capture de ce poste
+> ne porte aucun logiciel de ces marques.
 
 ### D19 — L'amont fournit des faits, le dépôt fournit le jugement, et la jointure échoue sur une entrée non jugée
 
@@ -149,6 +161,28 @@ silencieux serait la manière dont un identifiant disparaît sans que personne p
 pourquoi un an plus tard. Un identifiant écarté compte comme **jugé** : sans quoi la commande
 continuerait de le nommer comme manquant, et la seule façon de la faire taire serait de le
 cataloguer à tort.
+
+### D23 — Le dépôt catalogue aussi sans amont, et seulement par nom de produit — ajouté le 2026-07-28
+
+Conséquence de la rectification ci-dessus. Aucune liste maintenue ne porte d'identifiants
+exacts pour ASUS, Acer, MSI et Razer : ces applications varient selon le modèle et la région,
+et l'usage communautaire pour ces marques est l'appariement par nom.
+
+Le fichier de jugement porte donc un tableau **`additions`** : des entrées que le dépôt
+catalogue sans identifiant amont derrière. Elles vivent là, et non ajoutées à la main au
+catalogue produit, pour que relancer la jointure ne les efface pas — un fichier généré que
+quelqu'un édite à la main est exactement la forme que DET-RECPROV désignait. Elles sont tenues
+aux **mêmes règles** qu'une entrée importée : sans note d'impact, la commande refuse.
+
+**On n'y met que des noms de produits, jamais des noms de marques nues.** `Armoury Crate`,
+`MyASUS`, `Dragon Center`, `Mystic Light`, `Acer Care`, `Razer Synapse`, `Razer Cortex` — sept
+entrées, toutes citées par la source secondaire. Un motif `ASUS` ou `MSI` attraperait les
+pilotes du constructeur et signalerait comme indésirable ce qui fait fonctionner la machine.
+
+L'asymétrie qui autorise ce compromis mérite d'être écrite : un motif trop précis **rate** une
+installation, un motif trop large **accuse** à tort. Rater est acceptable, accuser ne l'est
+pas. C'est pourquoi les sept portent le nom complet du produit, au risque de manquer une
+variante de libellé.
 
 ## Options considérées
 
