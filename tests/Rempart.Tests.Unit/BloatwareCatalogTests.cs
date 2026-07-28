@@ -146,4 +146,66 @@ public class BloatwareCatalogTests
         Assert.NotNull(hit);
         Assert.False(string.IsNullOrWhiteSpace(hit!.Impact));
     }
+
+    [Fact]
+    public void A_package_name_entry_matches_the_family_name_that_carries_the_publisher_hash()
+    {
+        // Upstream ships bare package names; an installed Appx carries the full family name.
+        // Comparing the two by equality is what would have loaded 141 entries and matched
+        // nothing at all, with no test going red (ADR-006, piège 3).
+        var hit = Catalog(Entry("B9", BloatwareMatch.PackageName, "AD2F1837.HPSupportAssistant"))
+            .Match(Appx("AD2F1837.HPSupportAssistant_v10z8vjag6ke6"));
+
+        Assert.Equal("B9", hit?.Id);
+    }
+
+    [Fact]
+    public void A_package_name_entry_does_not_match_a_longer_name_sharing_its_prefix()
+    {
+        // Equality on the name segment, never a prefix test: "Microsoft.Xbox" must not claim
+        // "Microsoft.XboxGamingOverlay", which is a different package.
+        Assert.Null(Catalog(Entry("B10", BloatwareMatch.PackageName, "Microsoft.Xbox"))
+            .Match(Appx("Microsoft.XboxGamingOverlay_8wekyb3d8bbwe")));
+    }
+
+    [Fact]
+    public void A_package_name_entry_ignores_software_that_is_not_an_appx()
+    {
+        // Source-gated like Pfn: a package name only means something for an Appx.
+        Assert.Null(Catalog(Entry("B11", BloatwareMatch.PackageName, "Some.Package"))
+            .Match(Uninstall("Some.Package")));
+    }
+
+    [Fact]
+    public void A_package_name_entry_matches_a_capture_that_stored_no_publisher_hash()
+    {
+        // Not every recorded identifier carries the hash. Falling back to the whole string
+        // keeps such a capture comparable instead of silently matching nothing.
+        Assert.Equal("B12", Catalog(Entry("B12", BloatwareMatch.PackageName, "Vendor.App"))
+            .Match(Appx("Vendor.App"))?.Id);
+    }
+
+    [Fact]
+    public void Every_embedded_entry_states_its_identifier_in_the_form_its_match_mode_expects()
+    {
+        // The shape guard for the confusion above. Nothing else relates a match mode to the
+        // form of its value, and getting it wrong is silent: the catalogue loads, announces
+        // its count, and recognises nothing.
+        foreach (var entry in BloatwareCatalog.Embedded.Entries)
+        {
+            if (entry.Match == BloatwareMatch.Pfn)
+            {
+                Assert.True(entry.Value.Contains('_', StringComparison.Ordinal),
+                    $"{entry.Id} apparie en Pfn mais « {entry.Value} » ne porte pas de "
+                    + "condensat d'éditeur : aucun paquet installé n'aura cette valeur.");
+            }
+
+            if (entry.Match == BloatwareMatch.PackageName)
+            {
+                Assert.False(entry.Value.Contains('_', StringComparison.Ordinal),
+                    $"{entry.Id} apparie en PackageName mais « {entry.Value} » porte un "
+                    + "condensat d'éditeur : le segment comparé n'en a jamais.");
+            }
+        }
+    }
 }

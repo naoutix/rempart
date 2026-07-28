@@ -9,7 +9,7 @@ namespace Rempart.Core.Updates;
 public enum BloatwareRisk { Unwanted, SecurityRelevant }
 
 /// <summary>How an entry recognizes an installed piece of software.</summary>
-public enum BloatwareMatch { Pfn, Uninstall, Name, Publisher }
+public enum BloatwareMatch { Pfn, Uninstall, Name, Publisher, PackageName }
 
 /// <summary>
 /// A catalog entry: how to recognize a piece of software, and what it costs.
@@ -49,6 +49,13 @@ public sealed class BloatwareCatalog
     public string AsOfUtc { get; }
 
     public int Count => entries.Count;
+
+    /// <summary>
+    /// The entries, for guards that check their <em>shape</em> rather than their effect —
+    /// nothing else relates a match mode to the form its value must take, and getting that
+    /// pairing wrong recognizes nothing without failing.
+    /// </summary>
+    public IReadOnlyList<BloatwareEntry> Entries => entries;
 
     private BloatwareCatalog(string asOfUtc, IReadOnlyList<BloatwareEntry> entries)
     {
@@ -113,8 +120,31 @@ public sealed class BloatwareCatalog
             sw.Name.Contains(entry.Value, StringComparison.OrdinalIgnoreCase),
         BloatwareMatch.Publisher =>
             sw.Publisher is { } p && p.Contains(entry.Value, StringComparison.OrdinalIgnoreCase),
+
+        // The name part of a Package Family Name, which is "<Name>_<PublisherId>". Third-party
+        // lists catalogue the name alone, because that is what identifies an application; the
+        // publisher hash is derived from an identity they do not carry. Equality on the
+        // segment, never a prefix test -- "Microsoft.Xbox" must not claim
+        // "Microsoft.XboxGamingOverlay".
+        BloatwareMatch.PackageName =>
+            sw.Source == SoftwareSource.Appx
+            && sw.Identifier is { } pfn
+            && string.Equals(NameSegmentOf(pfn), entry.Value, StringComparison.OrdinalIgnoreCase),
+
         _ => false,
     };
+
+    /// <summary>
+    /// The name part of a Package Family Name. Split on the <b>last</b> underscore: a package
+    /// name cannot contain one today, so first and last agree, and the last one stays right if
+    /// that ever stops being true. A value carrying no hash is returned whole, so a capture
+    /// that recorded a bare name still compares instead of quietly matching nothing.
+    /// </summary>
+    private static string NameSegmentOf(string packageFamilyName)
+    {
+        var separator = packageFamilyName.LastIndexOf('_');
+        return separator < 0 ? packageFamilyName : packageFamilyName[..separator];
+    }
 
     /// <summary>
     /// Merges an incoming catalog into a baseline: an entry with the same
