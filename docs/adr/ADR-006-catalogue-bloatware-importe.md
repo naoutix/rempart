@@ -1,6 +1,6 @@
 # ADR-006 : Le catalogue bloatware s'importe d'une liste tierce, le jugement reste au dépôt
 
-**Statut :** Proposé — 2026-07-28
+**Statut :** Accepté — 2026-07-28, exécuté le même jour (#94 : pipeline d'import ; #95 : quatre constructeurs catalogués par nom de produit, et l'ADR corrigée en conséquence)
 **Date :** 2026-07-28
 **Décide :** l'éditeur du projet
 **Complète :** [ADR-002](ADR-002-mise-a-jour-des-donnees.md), décisions D12 (socle embarqué complet),
