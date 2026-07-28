@@ -18,7 +18,7 @@ from a USB stick.
   reported as exposed), DNS resolvers, the hosts file, proxy and PAC configuration,
   and saved Wi-Fi profiles.
 - **Software inventory** — installed software from four sources (Uninstall registry,
-  Appx/MSIX, App Paths, Chocolatey), cross-checked against a signed bloatware
+  Appx/MSIX, App Paths, Chocolatey), cross-checked against a signed 123-entry bloatware
   catalog; browser extensions (Chrome, Edge, Brave, Firefox) with the permissions
   they were actually granted, sideloads flagged.
 
@@ -97,11 +97,9 @@ Correction — réversibilité : Trivial
 
 Runs on 64-bit Windows; the rule set is written against Windows 11 defaults.
 
-**The current build is [v1.0.0](https://github.com/naoutix/rempart/releases)**, and it is a
-stable release rather than a candidate because the exit criterion this project set for itself
-is met: the sealed archive was run on a machine other than the one that built it — a different
-Windows feature update, no toolchain, nothing installed — and the snapshot it produced replays
-in full, with no collector refused and no rule left unevaluable.
+**The current build is [v1.0.0](https://github.com/naoutix/rempart/releases)** — stable, not a
+candidate: the sealed archive has been run on a machine other than the one that built it, on a
+different Windows feature update, with nothing installed.
 
 Each release archive is the stick layout — `rempart.exe` and a `rempart-integrity.json`
 signed by the publisher key. The 82 rules are compiled into the binary, so there is no
@@ -225,12 +223,16 @@ using it.
 
 ## Status
 
-In development. The read-only audit described above is implemented and tested
-(800 tests), and so are the three report formats, the stick's signed integrity seal,
-and fleet comparison (`diff`, `index`). Remediation is planned.
-[ROADMAP.md](docs/ROADMAP.md) (French) tracks milestones and records what was
-deliberately deferred or discarded, with reasons — including, right now, that the
-component-store reader has not yet been confronted with a real elevated run.
+**v1.0.0 — the read-only audit is complete**, with 830 tests, three report formats, the
+stick's signed integrity seal and fleet comparison. It is a stable release rather than a
+candidate because the sealed archive has been run on a machine other than the one that built
+it, which was this project's own condition.
+
+Remediation — writing to the machine — is a later milestone and has not started.
+[ROADMAP.md](docs/ROADMAP.md) (French) records what was deferred and why. The one deferral
+worth knowing here: **TLS and IPv6 hardening rules are not shipped**, because their effective
+defaults vary by Windows build and a guessed default would raise findings on machines that
+are already configured correctly.
 
 ## Output language
 
@@ -242,7 +244,7 @@ dated internal records (ADRs, design specs, roadmap) remain in French.
 ## Developing
 
 ```bash
-dotnet test                                   # 800 tests (78 require Windows), ~12 s
+dotnet test                                   # 830 tests (78 require Windows), ~12 s
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 
