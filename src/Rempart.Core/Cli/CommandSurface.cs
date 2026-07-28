@@ -168,6 +168,12 @@ public static class CommandSurface
             new("--out", OptionArity.Value),
         ], Positionals: 0),
 
+        new("fetch-bloatware",
+        [
+            new("--out", OptionArity.Value),
+            new("--judgement", OptionArity.Value),
+        ], Positionals: 0),
+
         new("sign",
         [
             new("--key", OptionArity.Value),

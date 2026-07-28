@@ -9,7 +9,27 @@ namespace Rempart.Core.Updates;
 public enum BloatwareRisk { Unwanted, SecurityRelevant }
 
 /// <summary>How an entry recognizes an installed piece of software.</summary>
-public enum BloatwareMatch { Pfn, Uninstall, Name, Publisher }
+public enum BloatwareMatch { Pfn, Uninstall, Name, Publisher, PackageName }
+
+/// <summary>
+/// Where an impact note comes from.
+///
+/// <para>
+/// The default is deliberate and conservative: a note nobody has checked against a running
+/// machine says so, rather than borrowing the authority of one that has. Most of the
+/// catalogue is imported, and describing what removing a piece of software breaks is exactly
+/// the kind of claim this project has three times been wrong about by deducing it instead of
+/// observing it (ADR-006, D20).
+/// </para>
+/// </summary>
+public enum ImpactProvenance
+{
+    /// <summary>Derived from the third-party list the entry was imported from.</summary>
+    Upstream,
+
+    /// <summary>Confronted with the software actually installed on a machine.</summary>
+    Verified,
+}
 
 /// <summary>
 /// A catalog entry: how to recognize a piece of software, and what it costs.
@@ -21,7 +41,12 @@ public sealed record BloatwareEntry(
     string Value,
     string Category,
     BloatwareRisk Risk,
-    string Impact);
+    string Impact,
+    /// <summary>
+    /// Optional with a default, so a catalogue signed before this field existed reads back
+    /// as the unverified thing it was rather than failing to load.
+    /// </summary>
+    ImpactProvenance ImpactSource = ImpactProvenance.Upstream);
 
 /// <summary>The catalog file as it is serialized and signed.</summary>
 public sealed record BloatwareCatalogFile(string AsOfUtc, string? Source, List<BloatwareEntry> Entries);
@@ -49,6 +74,13 @@ public sealed class BloatwareCatalog
     public string AsOfUtc { get; }
 
     public int Count => entries.Count;
+
+    /// <summary>
+    /// The entries, for guards that check their <em>shape</em> rather than their effect —
+    /// nothing else relates a match mode to the form its value must take, and getting that
+    /// pairing wrong recognizes nothing without failing.
+    /// </summary>
+    public IReadOnlyList<BloatwareEntry> Entries => entries;
 
     private BloatwareCatalog(string asOfUtc, IReadOnlyList<BloatwareEntry> entries)
     {
@@ -113,8 +145,31 @@ public sealed class BloatwareCatalog
             sw.Name.Contains(entry.Value, StringComparison.OrdinalIgnoreCase),
         BloatwareMatch.Publisher =>
             sw.Publisher is { } p && p.Contains(entry.Value, StringComparison.OrdinalIgnoreCase),
+
+        // The name part of a Package Family Name, which is "<Name>_<PublisherId>". Third-party
+        // lists catalogue the name alone, because that is what identifies an application; the
+        // publisher hash is derived from an identity they do not carry. Equality on the
+        // segment, never a prefix test -- "Microsoft.Xbox" must not claim
+        // "Microsoft.XboxGamingOverlay".
+        BloatwareMatch.PackageName =>
+            sw.Source == SoftwareSource.Appx
+            && sw.Identifier is { } pfn
+            && string.Equals(NameSegmentOf(pfn), entry.Value, StringComparison.OrdinalIgnoreCase),
+
         _ => false,
     };
+
+    /// <summary>
+    /// The name part of a Package Family Name. Split on the <b>last</b> underscore: a package
+    /// name cannot contain one today, so first and last agree, and the last one stays right if
+    /// that ever stops being true. A value carrying no hash is returned whole, so a capture
+    /// that recorded a bare name still compares instead of quietly matching nothing.
+    /// </summary>
+    private static string NameSegmentOf(string packageFamilyName)
+    {
+        var separator = packageFamilyName.LastIndexOf('_');
+        return separator < 0 ? packageFamilyName : packageFamilyName[..separator];
+    }
 
     /// <summary>
     /// Merges an incoming catalog into a baseline: an entry with the same
