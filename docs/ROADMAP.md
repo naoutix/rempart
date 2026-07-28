@@ -567,64 +567,127 @@ décision — `DET-TACHE-EXPIREE`, `DET-WINDEFAULT`, `DET-TLS`, et la moitié de
 
 ---
 
-## Post-v1
+## Après la v1 — refondu le 2026-07-28
 
-### M8 · Mode appairé
-`rempart listen` / `rempart probe <ip>` — la seule façon honnête de vérifier que le pare-feu
-filtre réellement, plutôt que de constater qu'il *devrait* filtrer. Pertinent puisque
-plusieurs machines sont préparées.
+Le plan qui occupait cette place — M8 à M12 — a été écrit **avant** que v1 existe. Il proposait
+cinq jalons pour le chemin d'écriture complet, un second exécutable à interop matérielle, un
+couple client/serveur et une couche d'image. v1 a demandé **huit jalons pour un outil qui ne
+fait que lire**. Le registre de dette avait déjà écrit pourquoi ce genre d'estimation se
+trompe : *une cotation faite en lisant n'est pas une cotation faite en suivant le chemin*.
 
-### M9 · Remédiation
+[ADR-007](adr/ADR-007-perimetre-v2-et-ecriture.md) le refond, et restaure au passage une
+décision que ce plan avait diluée — [ADR-001](adr/ADR-001-stack-et-perimetre.md) **D2** disait
+déjà « la remédiation arrive en v2 ».
 
-Le lot le plus sensible. Ne démarre qu'une fois l'audit éprouvé.
+| | Contenu | Ce que ça change |
+|---|---|---|
+| **1.x** | Dérive, parc, mode appairé, règles TLS/IPv6 une fois observées, notes d'impact vérifiées | **Rien** — additif, en lecture seule |
+| **2.0** | **Remédiation** | L'outil écrit. La promesse centrale de v1 change |
+| `rempart-hw` | Santé matérielle | Produit séparé ([ADR-001](adr/ADR-001-stack-et-perimetre.md) **D4**) |
 
-**Préconditions techniques : levées le 2026-07-27.** Le découpage de la couche CLI était
-une précondition explicite de ce lot — [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md)
-l'a ouvert pour cette raison : greffer des fournisseurs en écriture, des confirmations
-individuelles et un journal de rollback sur un `Program.cs` de 1 881 lignes sans test,
-c'était ajouter l'écriture au seul endroit non couvert du projet. `Program.cs` en porte
-aujourd'hui 29, chaque commande est une classe testable, le contrat de sortie est une
-fonction pure, et la couche `Rempart.Windows` est mesurée.
+---
 
-**Précondition restante : la seule qui ne s'écrive pas.** L'audit doit avoir tourné sur
-plusieurs machines réelles — c'est le critère de sortie de M6, toujours ouvert. Celui de M5 ne
-compte plus ici : découpé le 2026-07-28, sa partie mécanisme est atteinte et sa partie
-couverture est une donnée qu'aucune machine ne ferme
-([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md), D21).
+## 1.x — ce qui s'ajoute sans rien casser
 
-- [ ] Providers en écriture (les premiers du projet)
-- [ ] `--dry-run` par défaut, écriture derrière un flag explicite
-- [ ] Journal de rollback JSON sur la clé + `rempart rollback <session-id>`
-- [ ] Point de restauration créé avant toute session d'écriture
-- [ ] Profils `standard` / `durci` / `paranoiaque` en YAML
-- [ ] Confirmation individuelle pour tout `irreversible`
-- [ ] **Test VM : appliquer → rollback → assert état identique à l'initial**
+Pas des jalons : un flux. Chaque élément sort quand il est prêt, en version mineure, et un
+utilisateur de 1.0 met à jour sans rien réapprendre.
 
-Ce dernier test est le plus important du projet : c'est lui qui autorise à lancer
-l'outil sur une machine réelle.
+**Ce n'est pas une salle d'attente avant la vraie version.** Ce sont ces versions qui
+accumulent les **captures réelles**, et ce sont les captures réelles qui ferment
+`DET-WINDEFAULT` et font passer les 120 notes d'impact de « décrite en amont » à « vérifiée ».
+D2 posait comme condition « une fois l'audit éprouvé sur des machines réelles » : les 1.x
+**sont** cette épreuve.
 
-### M10 · Couche image
-`autounattend.xml` **à versionner** dans `image/`. Pour toute machine réinstallable, ce
-sera le chemin que l'outil recommande — une machine née propre plutôt que nettoyée après
-coup.
+- [ ] **Suivi de dérive** — tâche planifiée comparant à la baseline, alerte sur écart. S'appuie
+      sur `diff` et `capture`, qui existent.
+- [ ] **Mode appairé** — `rempart listen` / `rempart probe <ip>`, la seule façon honnête de
+      vérifier que le pare-feu filtre réellement plutôt que de constater qu'il *devrait*
+      filtrer. Lit, n'écrit rien : d'où son passage de M8 à 1.x.
+- [ ] **Règles TLS/SCHANNEL et durcissement IPv6** — le jour où assez de builds auront été
+      observées. Aujourd'hui bloquées par `DET-TLS` et non par le code.
+- [ ] **Notes d'impact vérifiées** — `DET-NOTES-AMONT`, 120 des 123 à confronter au logiciel
+      réellement installé. Baisse d'une unité à chaque machine vue.
+- [ ] **Couche image** — `autounattend.xml` versionné, marqueur registre posé à l'installation
+      et détecté par `rempart`, recommandations adaptées. Ex-M10.
 
-- [ ] Marqueur registre posé à l'installation, détecté par `rempart`
-- [ ] Recommandations adaptées selon que la machine vient ou non de cette image
+---
 
-### M11 · Santé matérielle
-Add-on `rempart-hw.exe` : SMART/NVMe, températures, throttling, batterie, WHEA, temps de boot.
+## 2.0 — Remédiation
 
-Diagnostic thermique formulé comme une heuristique, jamais comme un verdict :
-`âge > 3 ans` **ET** `ΔT idle→charge anormal` **ET** `throttling observé` **ET**
-`RPM élevé au repos` → signaler les mesures et recommander une vérification physique.
+**Le lot qui change ce que l'outil est.** Sept jalons, et le chiffre n'est pas une précaution
+oratoire : le seul chemin d'écriture pèse plus que M1 et M2 réunis. L'ancien plan lui accordait
+un jalon sur cinq.
 
-### M12 · Suivi de dérive
-Tâche planifiée mensuelle comparant à la baseline, alerte sur écart.
+Le découpage suit la frontière posée par [ADR-007](adr/ADR-007-perimetre-v2-et-ecriture.md)
+**D25** — *décider* est une valeur pure, *exécuter* est une couche mince — parce que c'est cette
+frontière qui rend la remédiation testable sur les fixtures existantes au lieu d'exiger une
+machine à chaque pas.
+
+**Préconditions techniques : levées le 2026-07-27** par
+[ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md). `Program.cs` porte 29 lignes, chaque
+commande est une classe testable, le contrat de sortie est une fonction pure.
+
+**Périmètre borné (D28)** : v2.0 ne corrige que les contrôles adossés au registre, dont la
+réversibilité est totale et démontrable. Désinstallation de logiciels et reconfiguration de
+services sont **hors périmètre** et demanderont leur propre ADR.
+
+### R1 · Le plan — n'écrit rien
+Modèle de plan et planificateur pur dans `Rempart.Core` : à partir d'un `ScanResult`, la liste
+des actions avec valeur observée, valeur visée, réversibilité et ce que la correction casse.
+Éprouvé sur les quatre fixtures versionnées, sans qu'aucune machine soit touchée.
+
+### R2 · Le plan rendu — n'écrit toujours rien
+`rempart fix` affiche le plan. **`--dry-run` n'est pas un mode**, c'est ce rendu (D25) : un mode
+séparé serait une seconde implémentation qui peut diverger de la vraie, ce que DET-SCRIPTS a
+déjà coûté une fois. Référence golden, comme les rendus console de M6.
+
+### R3 · Écrire, et le prouver par une relecture
+Les premiers fournisseurs en écriture du projet, dans `Rempart.Windows`. **Chaque action est
+relue par le fournisseur de lecture existant et comparée à l'intention** (D26) : une action dont
+la relecture ne confirme pas est rapportée **échouée**, jamais appliquée. Un « succès » d'API ne
+prouve rien — une stratégie de groupe réimpose, une redirection WOW64 écrit ailleurs.
+
+### R4 · Le journal et le retour en arrière
+Le journal est le plan augmenté de la valeur observée avant et du résultat de la relecture
+(D27) — pas un format de plus. `rempart rollback <session>` applique le plan inverse par le même
+exécutant, donc lui aussi testable sur fixture.
+
+### R5 · Ce qui ne se répare pas d'un `undo`
+Point de restauration créé avant toute session d'écriture, confirmation individuelle pour toute
+action classée `irreversible`.
+
+### R6 · Profils
+`standard` / `durci` / `paranoiaque` en YAML — des données, comme les règles
+([ADR-001](adr/ADR-001-stack-et-perimetre.md) D3).
+
+### R7 · L'épreuve
+**Critère de sortie de la 2.0**, au même titre que « la clé tourne sur une machine tierce »
+l'était pour v1, et pour la même raison : c'est lui qui autorise à lancer l'outil sur la machine
+de quelqu'un d'autre.
+
+Capture avant, `fix --apply`, `rollback`, capture après — et **`rempart diff` ne doit rien
+trouver**. L'outil est son propre juge, ce qui n'est possible que parce que la comparaison
+existe depuis M7.
+
+---
+
+## `rempart-hw` — produit séparé
+
+SMART/NVMe, températures, throttling, batterie, WHEA, temps de boot. **Pas un jalon de
+rempart** : [ADR-001](adr/ADR-001-stack-et-perimetre.md) D4 refuse le pilote noyau dans le
+binaire principal — un pilote de lecture MSR est lui-même une surface d'attaque, complique la
+signature et déclenche des antivirus. En faire « M11 » était une dérive par rapport à l'ADR.
+
+Diagnostic thermique formulé comme une heuristique, jamais comme un verdict : `âge > 3 ans`
+**ET** `ΔT idle→charge anormal` **ET** `throttling observé` **ET** `RPM élevé au repos` →
+signaler les mesures et recommander une vérification physique.
 
 ---
 
 ## Ordre recommandé
 
-M0 → M1 → M2 livre déjà un outil réellement utile.
-M7 est ce qui fait gagner du temps à partir de la troisième machine.
-M9 attend que l'audit ait tourné sur plusieurs machines réelles.
+M0 → M1 → M2 livrait déjà un outil réellement utile ; M7 fait gagner du temps à partir de la
+troisième machine.
+
+Pour la suite : **les 1.x d'abord**, non par prudence mais parce qu'elles produisent la matière
+dont 2.0 a besoin. On ne répare bien que ce qu'on a mesuré plusieurs fois.

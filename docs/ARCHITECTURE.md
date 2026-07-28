@@ -10,7 +10,9 @@ snapshot field),
 [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) (splitting the CLI layer and
 generalising the providers),
 [ADR-006](adr/ADR-006-catalogue-bloatware-importe.md) (importing the bloatware catalogue's
-identifiers while the judgement stays in the repository — *proposed*, not yet implemented).
+identifiers while the judgement stays in the repository),
+[ADR-007](adr/ADR-007-perimetre-v2-et-ecriture.md) (what v2 is, and how a write is proven —
+*proposed*).
 
 ## Overview
 
