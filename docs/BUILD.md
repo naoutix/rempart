@@ -179,7 +179,8 @@ rules still came back unverifiable — `WIN-ENC-001` (BitLocker) does that even 
 elevated console when the WMI class is absent, so `5` is the ordinary case rather than the
 edge one. CI and `scripts/verify.ps1` accept exactly that set. Anything else is a failure.
 
-Expected size: about 11.1 MB (it grows with the audited surfaces; 10.9 MB at M7, 9.4 MB
+Expected size: about 11.4 MB (it grows with the audited surfaces and with the embedded data;
+11.1 MB before the bloatware catalogue went from 5 entries to 123, 10.9 MB at M7, 9.4 MB
 before the reports of M6, 2.6 MB at milestone M0). The `.pdb` files in the `publish`
 directory are debug symbols and are not needed at run time.
 

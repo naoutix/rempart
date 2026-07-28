@@ -5,6 +5,52 @@ release. The milestone-by-milestone account of how the tool got here, including 
 tried and rejected, lives in [docs/ROADMAP.md](docs/ROADMAP.md) — this file records what
 changed between releases.
 
+## 1.0.0 — 2026-07-28
+
+**The exit criterion this project set for itself is met, and that is the only reason this is
+not another candidate.** The sealed archive of `1.0.0-rc.2` was run on a machine other than
+the one that built it — a different Windows feature update, no toolchain, nothing installed —
+and the snapshot it produced replays here in full: 82 rules evaluated, none unreadable, no
+collector refused, exit code `0`.
+
+Two candidates preceded this. rc.1 was built and never published. rc.2 was published, and
+running it elsewhere is what closed the last criterion.
+
+### The bloatware catalogue went from 5 entries to 123
+
+The catalogue was the other thing standing between this and a stable release, and it was
+stuck for a reason that turned out to be a category error: M5 asked a **data** question in the
+shape of a test. One OEM machine validates one vendor; a VM from a Microsoft ISO carries no
+vendor software at all. [ADR-006](docs/adr/ADR-006-catalogue-bloatware-importe.md) splits it —
+the mechanism was already demonstrated, the coverage is data, and data is maintained.
+
+- **116 entries imported** from [Raphire/Win11Debloat](https://github.com/Raphire/Win11Debloat)
+  (MIT, pinned by commit), **7 written here** for ASUS, Acer, MSI and Razer, which no
+  maintained list carries identifiers for.
+- **Upstream supplies identifiers, this repository supplies judgement.** Category, risk and the
+  impact note are joined at fetch time, and an identifier nobody has judged **fails the
+  command by name** rather than shipping without a note or vanishing.
+- **26 identifiers are judged and deliberately not catalogued.** The upstream list is what a
+  debloat tool offers to remove, which is not what an audit should call bloatware: Windows
+  Terminal, the Store, Notepad, the Xbox identity provider. Cataloguing those would have put a
+  finding on nearly every machine audited.
+- **Every impact note declares its provenance.** 3 of 123 are `Verified` — confronted with
+  software actually installed — and 120 are `Upstream`. That ratio is registered as debt
+  (`DET-NOTES-AMONT`) rather than hidden: the field exists so the number is readable.
+- Measured on the third-party capture: **10 catalogue entries matched real installed
+  software**, which corroborates the identifiers. It does not promote their notes to
+  `Verified` — matching proves the identifier, not what removing the software costs.
+
+### Known limitations at this release
+
+- **TLS/SCHANNEL and IPv6 hardening rules are not shipped.** Their effective defaults vary by
+  Windows build, and a guessed default would raise findings on machines that are already
+  correctly configured.
+- **120 of the 123 impact notes were written from a third-party description**, not from
+  observing the software run. The report says which is which.
+- The full register of known debt, with impact and effort, is in
+  [docs/DEBT.md](docs/DEBT.md).
+
 ## 1.0.0-rc.2 — 2026-07-28
 
 ### The stick shipped the rules the binary already contains, and could not run at all

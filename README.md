@@ -34,7 +34,7 @@ Abridged output on a stock Windows 11 machine (report language is currently Fren
 see [Output language](#output-language)):
 
 ```text
-Rempart 1.0.0-rc.2 — scan du 2026-07-28T09:56:00Z
+Rempart 1.0.0 — scan du 2026-07-28T18:28:45Z
 règles : 82:c3e6e3029b12
 données : catalogue au 2026-07-21, 7 jours
 
@@ -54,8 +54,8 @@ données : catalogue au 2026-07-21, 7 jours
   …
   GLOBAL              58 %
 
-[constats] 8 autorun, 189 driver, 54 listening-port, 196 scheduled-task,
-           186 software, … — 26 à examiner
+[constats] 8 autorun, 189 driver, 52 listening-port, 196 scheduled-task,
+           186 software, … — 27 à examiner
 
   NOTABLE     UDP 0.0.0.0:5353
               C:\Program Files\Google\Chrome\Application\chrome.exe
@@ -97,11 +97,11 @@ Correction — réversibilité : Trivial
 
 Runs on 64-bit Windows; the rule set is written against Windows 11 defaults.
 
-**The current build is [v1.0.0-rc.2](https://github.com/naoutix/rempart/releases)** —
-a release candidate, and labelled one deliberately: the code for the read-only audit is
-complete and tested, but the stick has not yet been run on a machine other than the one
-it was built on, which is the exit criterion this project set for itself. Treat it as
-ready to try, not yet as ready to rely on.
+**The current build is [v1.0.0](https://github.com/naoutix/rempart/releases)**, and it is a
+stable release rather than a candidate because the exit criterion this project set for itself
+is met: the sealed archive was run on a machine other than the one that built it — a different
+Windows feature update, no toolchain, nothing installed — and the snapshot it produced replays
+in full, with no collector refused and no rule left unevaluable.
 
 Each release archive is the stick layout — `rempart.exe` and a `rempart-integrity.json`
 signed by the publisher key. The 82 rules are compiled into the binary, so there is no
