@@ -59,7 +59,16 @@ public static class Win11DebloatImport
     /// The local judgement of one upstream identifier. Keyed by <c>appId</c> so it survives
     /// upstream renaming a friendly name, which happens and means nothing.
     /// </summary>
-    private sealed record Judgement(
+    /// <summary>
+    /// <c>null</c> <see cref="Catalogued"/> means the identifier was judged and deliberately
+    /// left out. The upstream list is "what a debloat tool offers to remove", which is not
+    /// "what this tool should call bloatware": Windows Terminal, the Microsoft Store and the
+    /// Xbox identity provider are all on it, and cataloguing them would put a finding on
+    /// nearly every machine.
+    /// </summary>
+    private sealed record Judgement(CataloguedJudgement? Catalogued);
+
+    private sealed record CataloguedJudgement(
         string Category,
         BloatwareRisk Risk,
         string Impact,
@@ -131,13 +140,18 @@ public static class Win11DebloatImport
             // output is signed, and a re-run that reordered entries would make every diff
             // unreadable and every signature look like a change.
             .OrderBy(id => id, StringComparer.Ordinal)
-            .Select(id => Entry(id, judgements[id]))
+            // An identifier judged as not belonging here is judged all the same: it satisfies
+            // the join above and produces nothing. Dropping it here rather than earlier keeps
+            // "unjudged" meaning "nobody looked", which is the only thing that must stop the
+            // command.
+            .Where(id => judgements[id].Catalogued is not null)
+            .Select(id => Entry(id, judgements[id].Catalogued!))
             .ToList();
 
         return new BloatwareCatalogFile(asOfUtc, Attribution, entries);
     }
 
-    private static BloatwareEntry Entry(string appId, Judgement judgement) =>
+    private static BloatwareEntry Entry(string appId, CataloguedJudgement judgement) =>
         new(
             IdOf(appId),
             // The match mode follows the FORM of the value, never what upstream says about
@@ -189,19 +203,40 @@ public static class Win11DebloatImport
         foreach (var entry in entries.EnumerateArray())
         {
             var appId = Text(entry, "appId");
+
+            if (string.IsNullOrWhiteSpace(appId))
+            {
+                throw new JsonException("Jugement sans identifiant.");
+            }
+
+            // "catalogue": false is a decision, not an omission, so it costs a reason -- the
+            // same rule as the impact note on the other branch. A silent exclusion is how an
+            // identifier disappears and nobody can say why a year later.
+            if (entry.TryGetProperty("catalogue", out var catalogued)
+                && catalogued.ValueKind == JsonValueKind.False)
+            {
+                if (string.IsNullOrWhiteSpace(Text(entry, "reason")))
+                {
+                    throw new JsonException(
+                        $"« {appId} » est écarté du catalogue sans motif : « reason » est "
+                        + "obligatoire, comme la note d'impact l'est pour une entrée retenue.");
+                }
+
+                result[appId] = new Judgement(null);
+                continue;
+            }
+
             var category = Text(entry, "category");
             var impact = Text(entry, "impact");
 
-            if (string.IsNullOrWhiteSpace(appId)
-                || string.IsNullOrWhiteSpace(category)
-                || string.IsNullOrWhiteSpace(impact))
+            if (string.IsNullOrWhiteSpace(category) || string.IsNullOrWhiteSpace(impact))
             {
                 throw new JsonException(
-                    $"Jugement incomplet pour « {appId ?? "(sans identifiant)"} » : "
-                    + "identifiant, catégorie et note d'impact sont obligatoires.");
+                    $"Jugement incomplet pour « {appId} » : "
+                    + "catégorie et note d'impact sont obligatoires.");
             }
 
-            result[appId] = new Judgement(
+            result[appId] = new Judgement(new CataloguedJudgement(
                 category,
                 Enum.TryParse<BloatwareRisk>(Text(entry, "risk"), ignoreCase: true, out var risk)
                     ? risk
@@ -212,7 +247,7 @@ public static class Win11DebloatImport
                 Enum.TryParse<ImpactProvenance>(Text(entry, "impactSource"), ignoreCase: true, out var source)
                     ? source
                     // Same reasoning, and D20's default: unstated provenance is not verified.
-                    : ImpactProvenance.Upstream);
+                    : ImpactProvenance.Upstream));
         }
 
         return result;

@@ -131,6 +131,25 @@ sortie qu'on modifie parce qu'il gêne est un critère qu'on n'avait pas ; celui
 parce qu'il posait une question de données sous la forme d'un test, et la raison doit survivre
 à la décision.
 
+### D22 — Un identifiant peut être jugé **et** écarté du catalogue — ajouté le 2026-07-28
+
+Trouvé en écrivant les notes, pas en concevant le format, et c'est une lacune de D19 telle
+qu'elle était écrite. La jointure n'offrait que deux issues : cataloguer, ou faire échouer la
+commande. Or **la liste amont est « ce qu'un outil de debloat propose de retirer », ce qui
+n'est pas « ce que Rempart doit appeler bloatware »**. Huit de ses entrées sont le Microsoft
+Store, le terminal Windows, le navigateur par défaut, le fournisseur d'identité Xbox et deux
+cadriciels dont d'autres logiciels dépendent.
+
+Les cataloguer poserait un constat sur presque chaque machine auditée — précisément le fait de
+crier au loup que ce projet refuse depuis M1, et qui a déjà fait retirer deux règles.
+
+Un jugement peut donc porter `"catalogue": false`, avec un `"reason"` **obligatoire**. La
+symétrie est le point : cataloguer coûte une note d'impact, écarter coûte un motif. Un écart
+silencieux serait la manière dont un identifiant disparaît sans que personne puisse dire
+pourquoi un an plus tard. Un identifiant écarté compte comme **jugé** : sans quoi la commande
+continuerait de le nommer comme manquant, et la seule façon de la faire taire serait de le
+cataloguer à tort.
+
 ## Options considérées
 
 ### Option A — Continuer à la main, machine par machine

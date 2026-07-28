@@ -165,6 +165,56 @@ public sealed class Win11DebloatImportTests
     }
 
     [Fact]
+    public void An_identifier_judged_as_not_belonging_in_the_catalogue_produces_no_entry()
+    {
+        // The upstream list is "what a debloat tool offers to remove", which is not "what
+        // Rempart should call bloatware". Windows Terminal, the Store and the Xbox identity
+        // provider are on it; cataloguing them would put a finding on nearly every machine,
+        // which is the wolf this project refuses to cry.
+        const string judgement = """
+            { "entries": [
+              { "appId": "Microsoft.WindowsTerminal", "catalogue": false,
+                "reason": "Terminal par défaut de Windows 11, pas un logiciel indésirable." } ] }
+            """;
+
+        var file = Win11DebloatImport.Transform(
+            Upstream("\"Microsoft.WindowsTerminal\""), judgement, "2026-07-28T00:00:00Z");
+
+        Assert.Empty(file.Entries);
+    }
+
+    [Fact]
+    public void An_exclusion_without_a_reason_is_refused_like_an_entry_without_an_impact_note()
+    {
+        // Same rule on both sides of the decision: cataloguing demands an impact note,
+        // excluding demands a reason. A silent exclusion is how an identifier disappears
+        // and nobody can say why a year later.
+        const string judgement = """
+            { "entries": [ { "appId": "Microsoft.WindowsTerminal", "catalogue": false } ] }
+            """;
+
+        Assert.ThrowsAny<Exception>(() => Win11DebloatImport.Transform(
+            Upstream("\"Microsoft.WindowsTerminal\""), judgement, "2026-07-28T00:00:00Z"));
+    }
+
+    [Fact]
+    public void An_excluded_identifier_still_counts_as_judged()
+    {
+        // Otherwise the command would keep naming it as missing, and the only way to silence
+        // it would be to catalogue it wrongly.
+        const string judgement = """
+            { "entries": [
+              { "appId": "Microsoft.WindowsTerminal", "catalogue": false,
+                "reason": "Terminal par défaut." } ] }
+            """;
+
+        var file = Win11DebloatImport.Transform(
+            Upstream("\"Microsoft.WindowsTerminal\""), judgement, "2026-07-28T00:00:00Z");
+
+        Assert.Empty(file.Entries);
+    }
+
+    [Fact]
     public void A_byte_order_mark_on_either_input_does_not_stop_the_import()
     {
         // Found by running the command against the real upstream, not by reading the data:
