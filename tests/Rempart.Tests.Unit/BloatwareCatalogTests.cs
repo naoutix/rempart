@@ -186,6 +186,34 @@ public class BloatwareCatalogTests
     }
 
     [Fact]
+    public void An_entry_that_states_no_provenance_reads_back_as_described_upstream()
+    {
+        // The conservative default, and the reason the field has one: a catalogue written
+        // before this existed verified nothing on a machine, and must not come back claiming
+        // it did (ADR-006, D20).
+        var catalog = Catalog(Entry("B13", BloatwareMatch.PackageName, "Vendor.App"));
+
+        Assert.Equal(ImpactProvenance.Upstream, catalog.Entries[0].ImpactSource);
+    }
+
+    [Fact]
+    public void A_verified_provenance_survives_a_serialisation_round_trip()
+    {
+        // It travels through the signed channel, so it has to survive the same round trip
+        // the catalogue does -- and under AOT that is a source-generated context, not
+        // reflection.
+        var file = new BloatwareCatalogFile("2026-07-28T00:00:00Z", "test",
+        [
+            new BloatwareEntry("B14", BloatwareMatch.PackageName, "Vendor.App", "oem",
+                BloatwareRisk.Unwanted, "Note vérifiée.", ImpactProvenance.Verified),
+        ]);
+
+        var again = BloatwareCatalog.Parse(RempartJson.SerialiseCompact(file));
+
+        Assert.Equal(ImpactProvenance.Verified, again.Entries[0].ImpactSource);
+    }
+
+    [Fact]
     public void Every_embedded_entry_states_its_identifier_in_the_form_its_match_mode_expects()
     {
         // The shape guard for the confusion above. Nothing else relates a match mode to the

@@ -12,6 +12,26 @@ public enum BloatwareRisk { Unwanted, SecurityRelevant }
 public enum BloatwareMatch { Pfn, Uninstall, Name, Publisher, PackageName }
 
 /// <summary>
+/// Where an impact note comes from.
+///
+/// <para>
+/// The default is deliberate and conservative: a note nobody has checked against a running
+/// machine says so, rather than borrowing the authority of one that has. Most of the
+/// catalogue is imported, and describing what removing a piece of software breaks is exactly
+/// the kind of claim this project has three times been wrong about by deducing it instead of
+/// observing it (ADR-006, D20).
+/// </para>
+/// </summary>
+public enum ImpactProvenance
+{
+    /// <summary>Derived from the third-party list the entry was imported from.</summary>
+    Upstream,
+
+    /// <summary>Confronted with the software actually installed on a machine.</summary>
+    Verified,
+}
+
+/// <summary>
 /// A catalog entry: how to recognize a piece of software, and what it costs.
 /// <see cref="Impact"/> is mandatory — an entry without an impact note does not get in.
 /// </summary>
@@ -21,7 +41,12 @@ public sealed record BloatwareEntry(
     string Value,
     string Category,
     BloatwareRisk Risk,
-    string Impact);
+    string Impact,
+    /// <summary>
+    /// Optional with a default, so a catalogue signed before this field existed reads back
+    /// as the unverified thing it was rather than failing to load.
+    /// </summary>
+    ImpactProvenance ImpactSource = ImpactProvenance.Upstream);
 
 /// <summary>The catalog file as it is serialized and signed.</summary>
 public sealed record BloatwareCatalogFile(string AsOfUtc, string? Source, List<BloatwareEntry> Entries);
