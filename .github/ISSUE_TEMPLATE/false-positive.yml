@@ -1,0 +1,51 @@
+name: False positive
+description: Rempart flagged something that is fine
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the most useful report this project can receive.** Rempart's whole claim is
+        that it does not cry wolf: two rules were withdrawn rather than shipped on a
+        supposition, and every rule declares the Windows default it compares against. A false
+        positive is a defect in that claim, not a matter of taste.
+
+  - type: textarea
+    id: finding
+    attributes:
+      label: What was flagged
+      description: The rule identifier (`WIN-…`) or the finding line, copied from the report.
+      placeholder: |
+        HIGH     WIN-LEG-003  LLMNR activé
+                 observé : absent (défaut Windows : 1)   attendu : 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: reality
+    attributes:
+      label: Why it is fine on this machine
+      description: >
+        What is actually configured, and how you know. If a Windows default is wrong for your
+        build, say which build — that is exactly the case the project cannot observe alone.
+    validations:
+      required: true
+
+  - type: input
+    id: build
+    attributes:
+      label: Windows build
+      description: "`winver`, or the `os.name` line of the report."
+      placeholder: "Windows 11 Pro 25H2 (26200)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: capture
+    attributes:
+      label: Capture (optional, and the fastest route to a fix)
+      description: >
+        `rempart capture --out x.json` produces an **anonymised** snapshot: machine name,
+        hardware identity and third-party task names are hashed. Attaching it lets the finding
+        be replayed and fixed without access to your machine. Read it first if you want to —
+        it is plain JSON.

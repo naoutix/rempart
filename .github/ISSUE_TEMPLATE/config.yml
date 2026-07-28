@@ -1,0 +1,13 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/naoutix/rempart/security/advisories/new
+    about: >
+      Do not open a public issue. Private reporting is enabled — a report reaches the
+      maintainer without being visible to anyone else. See SECURITY.md for what counts as a
+      vulnerability here.
+  - name: Why a rule exists, and what fixing it breaks
+    url: https://github.com/naoutix/rempart#what-it-looks-like
+    about: >
+      `rempart explain <ID>` answers this offline, for every rule — rationale, references,
+      what stops working, and what to check before applying.
