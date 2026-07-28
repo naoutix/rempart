@@ -26,17 +26,20 @@ courante est **v1.0.0-rc.2**, du 2026-07-28 (voir [CHANGELOG.md](../CHANGELOG.md
 v1.0.0-rc.1 avait été construite et scellée le 2026-07-26 mais **n'a jamais été publiée** :
 son brouillon est resté sur GitHub, et rc.2 est donc la première archive à quitter le dépôt.
 
-Deux critères de sortie ne sont **pas** atteints, ceux de M5 et de M6 ; ils demandent une
-machine, pas du code — et ce sont **les seuls** qui séparent encore d'un 1.0.0 tout court,
-le code de l'audit en lecture seule étant complet et testé. C'est d'ailleurs le cas de tout
-ce qui reste ouvert dans v1 :
+**Un seul critère de sortie reste ouvert depuis le 2026-07-28** : celui de M6, la clé branchée
+sur une machine tierce. Celui de M5 a été **découpé** plutôt qu'attendu — il posait une
+question de données sous la forme d'un test, et sa partie mécanisme était déjà démontrée
+([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md), D21). Ce qui reste ouvert dans v1
+demande une machine, pas du code :
 
 - **TLS/SCHANNEL** (M2b) et **IPv6** (M4) — reportés faute de pouvoir observer les défauts
   effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
   loup, ce que le projet refuse par principe. **La collecte IPv6, elle, est faite** depuis
   le 2026-07-26 (DET-IPV6) : seules les règles de durcissement restent reportées.
-- **Validations terrain** : catalogue bloatware sur une machine OEM (M5), clé branchée sur
-  une machine tierce sans rien installer (M6).
+- **Validation terrain** : clé branchée sur une machine tierce sans rien installer (M6).
+- **Couverture du catalogue bloatware** — plus un critère de sortie, mais un chantier : import
+  d'une liste tierce épinglée, 141 entrées dont 25 constructeur
+  ([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md)).
 
 Le lecteur DISM, longtemps le point aveugle de M6, est **éprouvé depuis le 2026-07-26** :
 les libellés tirés de la documentation se sont révélés justes face à une exécution élevée
@@ -360,7 +363,17 @@ relevés viennent de l'inspection des fichiers réels, pas de la documentation �
 spec du 2026-07-24. Firefox : parseur testé sur fixtures fabriquées, à confirmer sur
 une machine qui l'a.
 
-**Fait quand** le catalogue est validé sur une machine OEM réelle, pas sur une VM.
+**Critère de sortie découpé le 2026-07-28** — voir
+[ADR-006](adr/ADR-006-catalogue-bloatware-importe.md), décision D21. Il posait une question de
+**données** sous la forme d'un test, et c'est ce qui le rendait infermable : une machine OEM
+validerait un constructeur et laisserait aveugle sur tous les autres.
+
+- ✅ **Le mécanisme est éprouvé** : 6 paquets provisionnés relevés, 3 entrées confirmées via
+  `Get-AppxPackage` avec les PFN exacts, zéro faux positif sur les 219 logiciels restants.
+  Windows provisionne lui-même des paquets — aucune machine OEM n'a jamais été nécessaire pour
+  éprouver ça.
+- ↪ **La couverture du catalogue sort des critères de sortie de v1** et devient une entrée de
+  données vivante : import d'une liste tierce épinglée (D18), puis signalements.
 
 ### M6 · Rapport & packaging clé — ✅ terminé
 HTML autonome (fichier unique, thème clair/sombre), JSON, Markdown.
@@ -561,8 +574,10 @@ aujourd'hui 29, chaque commande est une classe testable, le contrat de sortie es
 fonction pure, et la couche `Rempart.Windows` est mesurée.
 
 **Précondition restante : la seule qui ne s'écrive pas.** L'audit doit avoir tourné sur
-plusieurs machines réelles — ce sont les deux critères de sortie de M5 et de M6, toujours
-ouverts.
+plusieurs machines réelles — c'est le critère de sortie de M6, toujours ouvert. Celui de M5 ne
+compte plus ici : découpé le 2026-07-28, sa partie mécanisme est atteinte et sa partie
+couverture est une donnée qu'aucune machine ne ferme
+([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md), D21).
 
 - [ ] Providers en écriture (les premiers du projet)
 - [ ] `--dry-run` par défaut, écriture derrière un flag explicite

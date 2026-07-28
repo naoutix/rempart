@@ -8,7 +8,9 @@ rather than through COM),
 [ADR-004](adr/ADR-004-etat-systeme-en-champ-dedie.md) (bulky system state in a dedicated
 snapshot field),
 [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) (splitting the CLI layer and
-generalising the providers).
+generalising the providers),
+[ADR-006](adr/ADR-006-catalogue-bloatware-importe.md) (importing the bloatware catalogue's
+identifiers while the judgement stays in the repository — *proposed*, not yet implemented).
 
 ## Overview
 
@@ -73,8 +75,14 @@ flowchart LR
 ```
 
 `rempart capture` is what makes the project testable: every audited machine becomes a
-permanent fixture. A pristine VM has no OEM bloatware — real machines are the only
-meaningful test bench for the software catalog.
+permanent fixture. A pristine VM has no OEM bloatware, so it cannot serve as a test bench for
+the software catalogue — but neither can one real machine, which would validate one vendor and
+leave the rest unseen. The catalogue's **coverage** is therefore to be treated as data rather
+than as something a test bench closes: the decision, not yet implemented, is to import
+identifiers from a pinned third-party list and keep the judgement here
+([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md), French, status *proposed*). What a real
+capture would still buy is turning an impact note from *described upstream* into *verified
+here*.
 
 **The repository is public**, which forces a strict separation:
 
