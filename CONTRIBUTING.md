@@ -3,22 +3,22 @@
 ## Getting started
 
 ```bash
-dotnet test                                   # 830 tests (78 require Windows), ~12 s
+dotnet test                                   # 827 tests (78 require Windows), ~12 s
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 
 That count is what a fresh clone runs, and what CI reports. A machine holding real
-captures in `tests/fixtures/local/` runs more — three tests per capture, since the replay
-theories are parameterised by fixture — and the folder is gitignored, so the difference
-never shows up in a diff. Quote the CI figure when writing one down (DET-FIXTURE-LOCALE).
+captures in `tests/fixtures/local/` runs more — three tests per capture, because the
+replay theories are parameterised by fixture — and that folder is gitignored, so the
+difference never shows in a diff. When writing a count down, quote the CI figure.
 
-Prerequisites: **.NET SDK 10.0.302 or later** — `winget install Microsoft.DotNet.SDK.10`.
-`global.json` pins that floor with `rollForward: latestFeature`, so anything from 10.0.302
-up to the end of 10.0 works and a .NET 11 SDK does not. An older 10.0 SDK — including
-10.0.100, the GA build — stops every `dotnet` command with `A compatible .NET SDK was not
-found`, naming the version it wanted; [BUILD.md](docs/BUILD.md) explains why that range and
-not a tighter or looser one. The C++ Build Tools are only needed for the Native AOT publish
-step.
+Prerequisites: **.NET SDK 10.0.302 or later** — `winget install
+Microsoft.DotNet.SDK.10`. `global.json` pins that floor with
+`rollForward: latestFeature`, so anything from 10.0.302 up to the end of 10.0 works
+and a .NET 11 SDK does not. An older 10.0 SDK — including 10.0.100, the GA build —
+stops every `dotnet` command with `A compatible .NET SDK was not found`, naming the
+version it wanted; [BUILD.md](docs/BUILD.md) explains the range. The C++ Build Tools
+are only needed for the Native AOT publish step.
 
 ## Language policy
 
@@ -31,16 +31,17 @@ step.
 
 ## Project invariants
 
-These rules are enforced by tests where possible. Each one exists because its
-violation caused a real bug.
+Each of these exists because breaking it caused a real bug. They are enforced by
+tests where possible.
 
 - **No collector calls Windows directly.** Everything goes through the providers
   (`IRegistryProvider`, `IServiceStateProvider`, `IWmiProvider`, …). This is what
   makes a scan replayable offline, and therefore testable without a Windows VM.
 - **`Unknown` is never `Fail`.** A check that could not be read is excluded from
-  the score, and a fully unreadable domain scores `n/d` — *non déterminé*, the report
-  language is French — never zero. "Could not verify" and "verified bad" call for
-  different actions, and the exit code says so too: `5` for the first, not `1`.
+  the score, and a fully unreadable domain scores `n/d` — *non déterminé*, the
+  report language is French — never zero. "Could not verify" and "verified bad"
+  call for different actions, and the exit code says so too: `5` for the first,
+  not `1`.
 - **Never translate a failure into "access denied".** A catch-all handler once
   converted a WMI interop bug into what looked like missing privileges; WMI was
   silently broken in the published binary for two milestones. Failures must
@@ -73,16 +74,16 @@ rempart scan --rules ./my-rules
 The full format is described in [ARCHITECTURE.md](docs/ARCHITECTURE.md). Three
 fields need particular care:
 
-- **`windowsDefault` — mandatory wherever an absent key would decide the verdict.** The
-  loader demands it for every comparison operator (`equals`, `notEquals`, `atLeast`,
-  `atMost`) on a registry check, and refuses the file without it. It does **not** demand it
-  of a `service`, `policy` or `wmi` check, because their state is directly observable —
-  there is no "value Windows applies when the key is absent". Nineteen of the 82 shipped
-  rules legitimately carry none. Where it does apply, this field is what decides
-  correctness: on the Windows registry an absent key is the common case, behavior then
-  follows a documented default which is often the desired state, and an early version that
-  treated every absence as a failure reported three false `CRITICAL` findings on a healthy
-  machine.
+- **`windowsDefault` — mandatory wherever an absent key would decide the verdict.**
+  The loader demands it for every comparison operator (`equals`, `notEquals`,
+  `atLeast`, `atMost`) on a registry check, and refuses the file without it. It does
+  **not** demand it of a `service`, `policy` or `wmi` check, whose state is directly
+  observable — there is no "value Windows applies when the key is absent". Nineteen
+  of the 82 shipped rules legitimately carry none. Where it does apply, this field
+  decides correctness: on the Windows registry an absent key is the common case, and
+  behavior then follows a documented default which is often the desired state. An
+  early version treated every absence as a failure and reported three false
+  `CRITICAL` findings on a healthy machine.
 - **`appliesWhen`.** Several checks only make sense in context — domain-joined
   machine, RDP enabled. Everywhere else they are noise, and noise gets an audit
   tool ignored.
@@ -98,10 +99,10 @@ fields need particular care:
 | `Rempart.Tests.Windows` | Real registry, services, WMI, full scan | Windows only |
 
 Fixtures in `tests/fixtures/synthetic/` are versioned and fabricated. Captures of
-real machines go to `tests/fixtures/local/`, which is excluded from the
-repository: the repo is public, and a real capture maps the weaknesses of an
-identifiable machine. Local captures are replayed when present — real machines
-carry the cases nobody would think to fabricate.
+real machines go to `tests/fixtures/local/`, which is excluded from the repository:
+the repo is public, and a real capture maps the weaknesses of an identifiable
+machine. Local captures are replayed when present — real machines carry the cases
+nobody would think to fabricate.
 
 Some tests worth knowing about before touching the engine:
 
@@ -124,17 +125,15 @@ All of these were hit during development; details are in
 | `verify.ps1` stops without a diagnostic | PowerShell 5.1: native stderr becomes terminating under `$ErrorActionPreference = 'Stop'` |
 | Code compiles but fails at AOT publish | The `IsAotCompatible` guard catches most cases at build time — what remains is COM interop |
 
-On a machine where Smart App Control is active, CI is the reference: its runners
-do not apply that policy, and they run `rempart diagnose-wmi` and
-`rempart diagnose-tasks` against the published binary — COM interop behaves
-differently under AOT than under the JIT, and that step is where such bugs are
-observable.
+On a machine where Smart App Control is active, CI is the reference: its runners do
+not apply that policy, and they run `rempart diagnose-wmi` and `rempart
+diagnose-tasks` against the published binary — COM interop behaves differently
+under AOT than under the JIT, and that step is where such bugs show up.
 
 ## Workflow
 
-`main` is protected: pull request required, all five checks green, linear
-history, and the rule applies to administrators — otherwise it would enforce
-nothing.
+`main` is protected: pull request required, all five checks green, linear history,
+and the rule applies to administrators — otherwise it would enforce nothing.
 
 ```bash
 git checkout -b feat/…
@@ -143,11 +142,11 @@ gh pr create
 gh pr merge --squash --delete-branch
 ```
 
-`verify.ps1` replays locally what CI runs; `-SkipPublish` skips the AOT step for
-a faster loop. `-Coverage` collects line coverage for `Rempart.Core` and prints the
+`verify.ps1` replays locally what CI runs; `-SkipPublish` skips the AOT step for a
+faster loop. `-Coverage` collects line coverage for `Rempart.Core` and prints the
 same summary CI prints — off by default, because a workstation replays captures CI
 does not have, so the two figures are not comparable.
 
 The roadmap also records what was tried and discarded, with reasons — check
-[ROADMAP.md](docs/ROADMAP.md) (French) before reimplementing something that
-looks missing.
+[ROADMAP.md](docs/ROADMAP.md) (French) before reimplementing something that looks
+missing.

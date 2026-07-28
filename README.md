@@ -1,7 +1,7 @@
 # Rempart
 
-Security audit for Windows workstations. A single executable, no installation, runs
-from a USB stick.
+Security audit for Windows workstations. One executable, no installation, runs from
+a USB stick.
 
 `rempart scan` reads the machine and prints a scored report covering four areas:
 
@@ -12,21 +12,21 @@ from a USB stick.
   (matched against the LOLDrivers list), WMI event subscriptions, running processes,
   Winlogon/AppInit extension points, LSA packages, unquoted service paths, and
   user-level COM hijacking. Every reported binary is hashed and its Authenticode
-  signature verified, including catalog signatures.
-- **Network exposure** — listening ports resolved to their owning binary and
+  signature verified, catalog signatures included.
+- **Network exposure** — listening ports resolved to the binary that owns them and
   cross-checked against firewall rules (a port that is open but blocked is not
   reported as exposed), DNS resolvers, the hosts file, proxy and PAC configuration,
   and saved Wi-Fi profiles.
 - **Software inventory** — installed software from four sources (Uninstall registry,
-  Appx/MSIX, App Paths, Chocolatey), cross-checked against a signed 123-entry bloatware
+  Appx/MSIX, App Paths, Chocolatey), checked against a signed 123-entry bloatware
   catalog; browser extensions (Chrome, Edge, Brave, Firefox) with the permissions
-  they were actually granted, sideloads flagged.
+  they were actually granted; sideloads flagged.
 
 The scan is read-only and works offline. Three scan features can reach the network —
-VirusTotal hash lookups, active DoH/DoT probing, and fetching a proxy's PAC script — and
-all three are opt-in flags, never defaults. Outside the scan, only `fetch-loldrivers` and
-`update --url` go online, and neither trusts the transport: a dataset is accepted on its
-signature alone.
+VirusTotal hash lookups, DoH/DoT probing, and fetching a proxy's PAC script — and all
+three are opt-in flags, never defaults. Outside the scan, only `update --url` and the
+publisher-side commands `fetch-loldrivers` and `fetch-bloatware` go online, and none
+of them trusts the transport: a dataset is accepted on its signature alone.
 
 ## What it looks like
 
@@ -95,25 +95,25 @@ Correction — réversibilité : Trivial
 
 ## Quick start
 
-Runs on 64-bit Windows; the rule set is written against Windows 11 defaults.
+Runs on 64-bit Windows; the rule set targets Windows 11 defaults.
 
-**The current build is [v1.0.0](https://github.com/naoutix/rempart/releases)** — stable, not a
-candidate: the sealed archive has been run on a machine other than the one that built it, on a
-different Windows feature update, with nothing installed.
+**The current release is [v1.0.0](https://github.com/naoutix/rempart/releases)** —
+stable, not a candidate: the sealed archive has been run on a machine other than the
+one that built it, on a different Windows feature update, with nothing pre-installed.
 
-Each release archive is the stick layout — `rempart.exe` and a `rempart-integrity.json`
-signed by the publisher key. The 82 rules are compiled into the binary, so there is no
-companion folder to copy: a `rules/` directory beside the executable is read as an
-*addition* to the shipped catalogue, for fleet-specific checks of your own. Verify the
-archive before trusting the binary, from a copy you already trust:
+A release archive is the stick layout: `rempart.exe` plus a `rempart-integrity.json`
+signed by the publisher key. The 82 rules are compiled into the binary, so there is
+no companion folder to copy. (A `rules/` directory next to the executable adds
+fleet-specific checks of your own; it never replaces the shipped ones.) Before
+trusting the binary, verify the archive — from a copy you already trust:
 
 ```text
 rempart seal --dir <dir> --check
 ```
 
-Or build from source — this needs the **.NET SDK 10.0.302 or later**, which `global.json`
-pins ([BUILD.md](docs/BUILD.md); an older 10.0 SDK stops with `A compatible .NET SDK was
-not found`):
+Or build from source. This needs the **.NET SDK 10.0.302 or later**, pinned by
+`global.json` — an older 10.0 SDK stops with `A compatible .NET SDK was not found`
+([BUILD.md](docs/BUILD.md)):
 
 ```bash
 git clone https://github.com/naoutix/rempart
@@ -121,7 +121,7 @@ dotnet run --project src/Rempart.Cli -- scan   # fastest way to try it
 ```
 
 Producing the single self-contained `rempart.exe` is a Native AOT publish, which
-additionally needs the C++ Build Tools ([BUILD.md](docs/BUILD.md)):
+also needs the C++ Build Tools ([BUILD.md](docs/BUILD.md)):
 
 ```bash
 dotnet publish src/Rempart.Cli -c Release
@@ -135,8 +135,8 @@ rempart scan             # audit the machine; run elevated for the full view
 rempart explain <ID>     # why a rule exists and what fixing it costs
 ```
 
-A non-elevated scan works but leaves some checks unverified (BitLocker, account
-policy, LSA); unverified checks are excluded from the score, never counted as
+A non-elevated scan works, but some checks come back unverified (BitLocker, account
+policy, LSA). Unverified checks are excluded from the score — never counted as
 compliant.
 
 ## Commands
@@ -156,60 +156,61 @@ compliant.
 | `rempart version` | Print the version the binary was built as. |
 | `rempart update …` | Verify and apply a signed data update (see below). |
 
-Five `diagnose-*` commands exist for CI rather than for users: `diagnose-wmi`,
-`diagnose-tasks`, `diagnose-drivers`, `diagnose-processes` and `diagnose-store` each check
-that one system interface still answers **from the published binary**, where COM interop
-behaves differently than it does under the JIT. Four of them run on every build;
-`diagnose-store` needs elevation and is run by hand.
+Five `diagnose-*` commands (`diagnose-wmi`, `-tasks`, `-drivers`, `-processes`,
+`-store`) exist for CI, not for users. Each checks that one system interface still
+answers **from the published binary**, where COM interop behaves differently than
+under the JIT. Four run on every build; `diagnose-store` needs elevation and is run
+by hand.
 
 The HTML report is a single self-contained file — inline styles and script, no
-external reference of any kind, light and dark theme. The JSON is the complete
-artifact: the other two summarize it.
+external references, light and dark theme. The JSON is the complete artifact; the
+other two formats summarize it.
 
-Opt-in flags for `scan`: `--virustotal-key` (hash lookups), `--probe-dns` (DoH/DoT
-latency test), `--fetch-pac` (retrieve the PAC script, analyzed statically, never
-executed) — the three network ones — and `--analyze-store`, which measures
-reclaimable space in the component store. That last one is local but slow and needs
-elevation; it reports, and deletes nothing.
+`scan` has four opt-in flags: `--virustotal-key` (hash lookups), `--probe-dns`
+(DoH/DoT latency test), `--fetch-pac` (retrieves the PAC script — analyzed
+statically, never executed), and `--analyze-store` (measures reclaimable space in
+the component store). The first three reach the network; the last is local but slow,
+needs elevation, and deletes nothing.
 
 ## Exit codes
 
-A scan piped into a scheduler or another tool is judged on this number alone. The contract
-is a pure function of the result (`src/Rempart.Core/Cli/ExitCodes.cs`), and `rempart help`
-prints the same six lines because it derives them from that one source.
+When a scan runs from a scheduler or a script, the exit code is all the caller sees.
+The mapping is a pure function of the result (`src/Rempart.Core/Cli/ExitCodes.cs`),
+and `rempart help` prints the same six lines because it derives them from that source.
 
 | Code | Meaning |
 |---|---|
-| `0` | Everything the tool was asked to look at, it looked at |
-| `1` | The run failed — a collector broke, a file could not be written |
-| `2` | A replayed snapshot lacks what the rules need |
-| `3` | A **collector** was refused — re-run elevated |
+| `0` | Complete audit — everything requested was checked |
+| `1` | The run failed: a collector broke, or a file could not be written |
+| `2` | A replayed snapshot lacks data the rules need |
+| `3` | A **collector** was denied access — re-run elevated |
 | `4` | `diff` found a control that used to pass and no longer does |
-| `5` | The scan finished and some **rules** still have no answer — the score covers less of the machine than it looks |
+| `5` | The scan finished, but some **rules** have no answer — the score covers less of the machine than it appears to |
 
-**`5` is the ordinary outcome, not the edge case.** Three of the four versioned fixtures
-exit `5`, including `default-win11`, which is a plain unhardened Windows 11: `WIN-ENC-001`
-(BitLocker) comes back unverifiable even from an elevated console when the machine has no
-volume-encryption WMI class to ask. Treating anything but `0` as a failure will alert on
-healthy machines; treating `5` as success will hide that part of the audit never ran. CI
-accepts `0`, `3` and `5` from a scan, and nothing else.
+**`5` is the normal outcome, not the edge case.** Three of the four versioned
+fixtures exit `5`, including `default-win11`, a plain unhardened Windows 11:
+`WIN-ENC-001` (BitLocker) is unverifiable even from an elevated console when the
+machine has no volume-encryption WMI class. Treat anything but `0` as failure and
+you will alert on healthy machines; treat `5` as success and you will hide that part
+of the audit never ran. CI accepts `0`, `3` and `5` from a scan, and nothing else.
 
 ## What it is not
 
-Rempart audits; it does not fix, clean, or protect. It is not an antivirus, not a
+Rempart audits. It does not fix, clean, or protect. It is not an antivirus, not a
 network scanner (it audits the machine it runs on), and not a "PC optimizer".
 Remediation is planned as a later milestone, strictly after the audit has proven
-itself; today the only thing the tool ever writes is its own data store, on
+itself. Today the only thing the tool ever writes is its own data store, on
 `update --apply`.
 
 ## Updating the data
 
-Rules and the vulnerable-driver list age — the latter changes weekly. The binary
-embeds a complete baseline; a signed update corrects or extends it, never removes
-from it ([ADR-002](docs/adr/ADR-002-mise-a-jour-des-donnees.md), French).
+Rules and the vulnerable-driver list age — the driver list changes weekly. The
+binary embeds a complete baseline; a signed update corrects or extends it, and never
+removes anything from it
+([ADR-002](docs/adr/ADR-002-mise-a-jour-des-donnees.md), French).
 
 Trust comes from the signature, never from the transport. A dataset — downloaded,
-carried on a USB stick, served by a public repository — is accepted if and only if
+carried on a USB stick, served from a public repository — is accepted if and only if
 it is signed by a key pinned in the binary. `update --url` and `update --from` run
 the exact same verification, and every later `scan` re-verifies the store before
 using it.
@@ -218,33 +219,34 @@ using it.
 |---|---|---|
 | `rempart keygen` | offline, once | Generate the publisher key pair (private key encrypted). |
 | `rempart fetch-loldrivers` | online | Download the official LOLDrivers list, ready to sign. |
-| `rempart sign --key … --data …` | offline | Sign a dataset (rules or drivers). |
+| `rempart fetch-bloatware` | online | Download the upstream bloatware list and join it with the local judgement file, ready to sign. |
+| `rempart sign --key … --data …` | offline | Sign a dataset (rules, drivers or bloatware). |
 | `rempart update --from <manifest> \| --url <base>` | on the audited machine | Verify, preview, and `--apply`. |
 
 ## Status
 
-**v1.0.0 — the read-only audit is complete**, with 830 tests, three report formats, the
-stick's signed integrity seal and fleet comparison. It is a stable release rather than a
-candidate because the sealed archive has been run on a machine other than the one that built
-it, which was this project's own condition.
+**v1.0.0 — the read-only audit is complete**: 827 tests, three report formats, a
+signed integrity seal for the stick, and fleet comparison. It is a stable release
+rather than a candidate because the sealed archive has been run on a machine other
+than the one that built it — this project's own release condition.
 
 Remediation — writing to the machine — is a later milestone and has not started.
-[ROADMAP.md](docs/ROADMAP.md) (French) records what was deferred and why. The one deferral
-worth knowing here: **TLS and IPv6 hardening rules are not shipped**, because their effective
-defaults vary by Windows build and a guessed default would raise findings on machines that
-are already configured correctly.
+[ROADMAP.md](docs/ROADMAP.md) (French) records what was deferred and why. One
+deferral worth knowing about: **TLS and IPv6 hardening rules are not shipped**,
+because their effective defaults vary by Windows build, and a guessed default would
+raise findings on machines that are configured correctly.
 
 ## Output language
 
-Rule texts — titles, rationales, remediation notes, i.e. what `scan` and `explain`
-print — are currently written in French. Translating the rule set is on the
-roadmap. Code, code comments, and the technical documentation are in English;
-dated internal records (ADRs, design specs, roadmap) remain in French.
+Rule texts — titles, rationales, remediation notes; everything `scan` and `explain`
+print — are currently written in French. Translating them is on the roadmap. Code,
+code comments and the technical documentation are in English; dated internal records
+(ADRs, design specs, roadmap) stay in French.
 
 ## Developing
 
 ```bash
-dotnet test                                   # 830 tests (78 require Windows), ~12 s
+dotnet test                                   # 827 tests (78 require Windows), ~12 s
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 
