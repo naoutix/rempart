@@ -21,11 +21,15 @@ tant que l'outil vise un public francophone.
 
 ## v1 — Audit en lecture seule
 
-**État au 2026-07-27 : les huit lots M0 → M7 sont livrés**, et la première version
-empaquetée — **v1.0.0-rc.1**, du 2026-07-26 — est sortie (voir
-[CHANGELOG.md](../CHANGELOG.md)). Deux critères de sortie ne sont **pas** atteints, ceux de
-M5 et de M6 ; ils demandent une machine, pas du code. C'est d'ailleurs le cas de tout ce
-qui reste ouvert dans v1 :
+**État au 2026-07-28 : les huit lots M0 → M7 sont livrés**, et la version empaquetée
+courante est **v1.0.0-rc.2**, du 2026-07-28 (voir [CHANGELOG.md](../CHANGELOG.md)).
+v1.0.0-rc.1 avait été construite et scellée le 2026-07-26 mais **n'a jamais été publiée** :
+son brouillon est resté sur GitHub, et rc.2 est donc la première archive à quitter le dépôt.
+
+Deux critères de sortie ne sont **pas** atteints, ceux de M5 et de M6 ; ils demandent une
+machine, pas du code — et ce sont **les seuls** qui séparent encore d'un 1.0.0 tout court,
+le code de l'audit en lecture seule étant complet et testé. C'est d'ailleurs le cas de tout
+ce qui reste ouvert dans v1 :
 
 - **TLS/SCHANNEL** (M2b) et **IPv6** (M4) — reportés faute de pouvoir observer les défauts
   effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
@@ -479,15 +483,21 @@ de trois lignes de ports Chrome.
 
 ---
 
-### Consolidation post-v1 — ✅ 2026-07-26 → 2026-07-27
+### Consolidation post-v1 — ✅ 2026-07-26 → 2026-07-28
 
 Un lot sans nouveau jalon : la première version empaquetée, puis les trois phases du plan
 de remédiation de [DEBT.md](DEBT.md). Consigné ici parce que
 [CHANGELOG.md](../CHANGELOG.md) renvoie à cette feuille de route pour l'histoire jalon par
 jalon, et qu'elle n'en portait aucune trace.
 
-- [x] **v1.0.0-rc.1 publiée** le 2026-07-26 — binaire AOT et manifeste d'intégrité signé,
-      construits et mis en brouillon par la CI.
+- [x] **v1.0.0-rc.1 construite** le 2026-07-26 — binaire AOT et manifeste d'intégrité signé,
+      mis en brouillon par la CI. Le brouillon **n'a jamais été publié**, et rc.2 le remplace
+      au lieu de le compléter : les cinq silences fermés depuis changent ce que le rapport
+      dit sur les machines précisément les plus difficiles à auditer, et deux lignes de
+      commande ne faisaient pas ce qu'elles annonçaient.
+- [x] **v1.0.0-rc.2** le 2026-07-28 — le contenu de ce lot empaqueté, soit vingt et un
+      commits depuis rc.1. Reste un candidat, et pour l'unique raison qui valait déjà pour
+      rc.1 : la clé n'a pas tourné sur une autre machine que celle qui l'a construite.
 - [x] **Découpage de la couche CLI**, conçu dans
       [ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) et livré en trois étapes.
       `Program.cs` passe de 1 881 lignes non vides à **29** : l'encodage console, un appel à

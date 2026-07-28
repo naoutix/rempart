@@ -5,7 +5,25 @@ release. The milestone-by-milestone account of how the tool got here, including 
 tried and rejected, lives in [docs/ROADMAP.md](docs/ROADMAP.md) — this file records what
 changed between releases.
 
-## Unreleased
+## 1.0.0-rc.2 — 2026-07-28
+
+Still a **candidate**, and for the one reason the first one was: the stick has not been run
+on a machine other than the one it was built on. That criterion needs a machine rather than
+code, so no amount of work in this section could have closed it — and calling this 1.0.0
+would claim something still not observed.
+
+What did move, in twenty-one commits: **five silences closed**, all the same shape — a
+refused read coming back indistinguishable from a clean answer, on drivers, processes,
+browser profiles, listening ports and startup folders. Two command lines now do what they
+read like. A scan that could not evaluate everything says so in its exit code. The
+anonymiser earns its flag instead of asserting it, which is what took a mainboard model and
+eleven third-party task paths out of a public repository. The audit is tested against a
+deliberately compromised fixture for the first time. And `Program.cs` went from 1 881 lines
+to 29.
+
+**rc.1 was drafted and never published**, so this is the first archive to leave the
+repository. Nothing in it was withdrawn: it is superseded by the fixes listed below, several
+of which change what the report says on exactly the machines that are hardest to audit.
 
 ### A startup folder the scan could not open no longer reports as an empty one
 
@@ -248,7 +266,7 @@ the same defect on opposite sides: one hid a breakdown, the other invented an ac
   catalog" and "could not ask", so an unreadable file was **accused** (`DET-CATALOGUE-MUET`);
   and listening ports had no status channel (`DET-PORTS-MUET`) — the fourth occurrence of
   DET-WMI-MUET, found by the new reflection guard *before* it did harm. Both are closed in
-  this same Unreleased section, above.
+  this same release, above.
 
 ### Fixed
 
@@ -301,7 +319,7 @@ Two real defects were **frozen by tests rather than fixed** in this batch, each 
 `--baseline` (DET-ARITE-REPORT), and `rempart explain --rules <dir> <ID>` listed everything
 instead of explaining the rule (DET-EXPLAIN-POSITIONNEL). Each changes what an existing
 command line does, so each got its own change — as the exit code above did. Both are closed
-in this same Unreleased section, under "Two command lines now do what they read like": the
+in this same release, under "Two command lines now do what they read like": the
 frozen assertions were inverted rather than deleted, so the fix is visible in a diff, which
 was the whole point of freezing them.
 
