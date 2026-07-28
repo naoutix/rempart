@@ -58,7 +58,7 @@ and **what it exposes**, not about remote compromise:
 
 ## Supported versions
 
-Only the latest release is supported. The project is at `1.0.0-rc.1`; there is no
+Only the latest release is supported. The project is at `1.0.0-rc.2`; there is no
 maintenance branch and no backporting.
 
 ## Signature and provenance

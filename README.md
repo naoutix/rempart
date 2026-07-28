@@ -34,9 +34,9 @@ Abridged output on a stock Windows 11 machine (report language is currently Fren
 see [Output language](#output-language)):
 
 ```text
-Rempart 1.0.0-rc.1 — scan du 2026-07-23T14:03:14Z
+Rempart 1.0.0-rc.2 — scan du 2026-07-28T09:56:00Z
 règles : 82:c3e6e3029b12
-données : catalogue au 2026-07-21, 2 jours
+données : catalogue au 2026-07-21, 7 jours
 
 [posture] à corriger
   HIGH     WIN-ASR-001  ASR — abus de pilotes signés vulnérables non bloqué
@@ -54,8 +54,8 @@ données : catalogue au 2026-07-21, 2 jours
   …
   GLOBAL              58 %
 
-[constats] 8 autorun, 188 driver, 32 listening-port, 196 scheduled-task,
-           220 software, … — 17 à examiner
+[constats] 8 autorun, 189 driver, 54 listening-port, 196 scheduled-task,
+           186 software, … — 26 à examiner
 
   NOTABLE     UDP 0.0.0.0:5353
               C:\Program Files\Google\Chrome\Application\chrome.exe
@@ -97,7 +97,7 @@ Correction — réversibilité : Trivial
 
 Runs on 64-bit Windows; the rule set is written against Windows 11 defaults.
 
-**Packaged builds start at [v1.0.0-rc.1](https://github.com/naoutix/rempart/releases)** —
+**The current build is [v1.0.0-rc.2](https://github.com/naoutix/rempart/releases)** —
 a release candidate, and labelled one deliberately: the code for the read-only audit is
 complete and tested, but the stick has not yet been run on a machine other than the one
 it was built on, which is the exit criterion this project set for itself. Treat it as
