@@ -103,9 +103,11 @@ complete and tested, but the stick has not yet been run on a machine other than 
 it was built on, which is the exit criterion this project set for itself. Treat it as
 ready to try, not yet as ready to rely on.
 
-Each release archive is the stick layout — `rempart.exe`, `rules/`, and a
-`rempart-integrity.json` signed by the publisher key. Verify it before trusting the binary,
-from a copy you already trust:
+Each release archive is the stick layout — `rempart.exe` and a `rempart-integrity.json`
+signed by the publisher key. The 82 rules are compiled into the binary, so there is no
+companion folder to copy: a `rules/` directory beside the executable is read as an
+*addition* to the shipped catalogue, for fleet-specific checks of your own. Verify the
+archive before trusting the binary, from a copy you already trust:
 
 ```text
 rempart seal --dir <dir> --check

@@ -7,6 +7,53 @@ changed between releases.
 
 ## 1.0.0-rc.2 — 2026-07-28
 
+### The stick shipped the rules the binary already contains, and could not run at all
+
+A first build of this tag was published and **withdrawn within the hour**, downloaded by
+nobody. It could not run a single command that resolves the rule catalogue — `scan`,
+`explain` and `capture` all stopped on the same error, naming all 82 shipped identifiers as
+duplicates. `version`, `help` and `seal --check` worked, which is why the archive looked
+fine to everything that checked it.
+
+- **Three deliberate decisions, never executed together.** The 82 rules are compiled into the
+  binary, so the stick needs no companion folder. A `rules/` directory found beside the
+  executable is read as an **external** catalogue, for fleet-specific checks. And an
+  identifier present in both is refused rather than silently redefined. Each is right on its
+  own; `release.yml` copied the repository's `rules/` into the archive, which handed the
+  binary its own catalogue as a third-party supplement, and the third decision fired on all
+  82. **The guard was not wrong — it was the only thing in the chain doing its job.**
+- **The release workflow no longer copies `rules/`.** The comment that told it to has been
+  replaced by the reason not to: the folder is a supplement, and shipping a copy of what is
+  already embedded is the one thing it must never contain.
+- **Nothing caught it because nothing ran the artifact in the shape it ships.** The workflow
+  scanned from the *publish* directory, before assembly; `verify.ps1` copied `rempart.exe`
+  alone into a sandbox. Both proved that a binary with no neighbours can scan — true, and not
+  the claim anyone needed. The scan step now runs from the assembled staging folder and is
+  followed by an `explain`, which resolves the catalogue without needing a machine.
+- **`verify.ps1` builds the shipped layout** instead of the executable alone, from a
+  `$stickContents` list declared by name — the same shape as `$aotDiagnostics`, and for the
+  same reason: a guard reads it.
+- **A new parity guard, verified by mutation in both directions.** `BuildChainParityTests`
+  now holds what `release.yml` puts in the stick against what `verify.ps1` runs, and requires
+  equality rather than inclusion. Re-adding the `Copy-Item "rules"` line reddens it; removing
+  it greens it again. Written before the fix and confirmed failing on the defect first.
+- **Measured on the published archive, not reasoned about**: it was downloaded, unzipped and
+  run, and it reproduced the user's error character for character. The same layout without
+  `rules/` runs `scan` (exit `5`, the ordinary partial audit), `explain` and `capture` from a
+  folder holding three files.
+- **What this does not close, stated rather than implied.** The per-commit jobs still do not
+  assemble a stick: `ci.yml` runs the binary from its publish directory, as it always has.
+  A change that added the same wrong item to *both* `release.yml` and `$stickContents` would
+  satisfy the parity guard and reach a tag. It could not reach a **release** — the job now
+  runs the stick before drafting and fails there — so what is lost in that case is the speed
+  of the feedback, not the protection. Assembling a third stick in `ci.yml` would put the
+  layout in a third file and give the guard a third list to reconcile, which is the trade
+  this repository has already declined once, for `verify.ps1` itself (DET-SCRIPTS).
+
+The rest of this section describes the twenty-one commits this release packages, unchanged.
+
+---
+
 Still a **candidate**, and for the one reason the first one was: the stick has not been run
 on a machine other than the one it was built on. That criterion needs a machine rather than
 code, so no amount of work in this section could have closed it — and calling this 1.0.0

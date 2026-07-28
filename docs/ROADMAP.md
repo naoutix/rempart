@@ -377,11 +377,14 @@ Espace récupérable par couche via `AnalyzeComponentStore`, sans rien supprimer
 - [x] `rempart report --from <rapport.json>` re-fabrique HTML et Markdown sans
       rescanner, et **ne demande pas Windows**. C'est aussi la brique dont `diff` (M7)
       aura besoin : le JSON est l'artefact complet, les deux autres le résument.
-- [x] Layout de la clé : `/rempart.exe`, `/rules/`, `/reports/<machine>-<date>/`.
-      Un dossier `rules/` posé à côté du binaire est chargé sans option — même
-      raisonnement que le magasin de mise à jour, déjà résolu à côté de l'exécutable :
+- [x] Layout de la clé : `/rempart.exe`, `/reports/<machine>-<date>/`, et un `/rules/`
+      **facultatif**. Un dossier `rules/` posé à côté du binaire est chargé sans option —
+      même raisonnement que le magasin de mise à jour, déjà résolu à côté de l'exécutable :
       la clé se branche et tourne. Jamais en silence : l'en-tête nomme le dossier et
-      l'empreinte du catalogue change.
+      l'empreinte du catalogue change. **Ce dossier est un supplément, jamais une copie des
+      règles livrées** : les 82 sont compilées dans le binaire, et un identifiant présent des
+      deux côtés est refusé comme une redéfinition. L'archive de release n'en contient donc
+      pas — elle en a contenu un, et v1.0.0-rc.2 en est morte (voir CHANGELOG).
 - [x] Manifeste d'intégrité — `rempart seal`, **signé par la clé d'éditeur d'[ADR-002](adr/ADR-002-mise-a-jour-des-donnees.md)**.
       Une liste d'empreintes posée à côté des fichiers qu'elle décrit ne protège de
       rien : qui modifie un fichier recalcule la ligne. Rapports et magasin exclus du

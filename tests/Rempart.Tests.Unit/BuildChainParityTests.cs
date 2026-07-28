@@ -299,6 +299,93 @@ public sealed class BuildChainParityTests
     }
 
     /// <summary>
+    /// The stick <c>release.yml</c> assembles and the folder <c>verify.ps1</c> runs the binary
+    /// from must hold the same things.
+    ///
+    /// <para>
+    /// This is the guard that was missing, and its absence shipped a release that could not
+    /// run a single scan. <c>release.yml</c> copied the repository's <c>rules/</c> beside the
+    /// executable, where the binary picks it up as an <em>external</em> catalogue — and the
+    /// 82 shipped rules are compiled into the binary, so all 82 identifiers collided and
+    /// <see cref="Rempart.Core.Rules.RuleCatalog"/> refused to load, exactly as it was written
+    /// to. Nothing caught it because nothing ever ran the artifact in the shape it ships: the
+    /// workflow scanned from the publish folder, before assembly, and this script copied the
+    /// executable alone into a sandbox.
+    /// </para>
+    ///
+    /// <para>
+    /// Equality, not inclusion, and in both directions. A file the release adds and the script
+    /// does not is a shape nobody runs before a tag — the defect above. A file the script adds
+    /// and the release does not is the quieter mirror: the local run then proves a layout no
+    /// user receives, which is how a check stops meaning what its name says.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_release_stick_and_the_folder_the_local_script_runs_hold_the_same_files()
+    {
+        var shipped = StagedItems(RepositoryFiles.Read(Release), @"\$stage");
+        var local = LocalStickContents();
+
+        Assert.True(shipped.Count > 0,
+            $"Aucune copie vers le dossier de la clé trouvée dans {Release} : soit l'assemblage "
+            + "a changé de forme, soit ce test ne le lit plus.");
+
+        Assert.True(local.Count > 0,
+            $"$stickContents est introuvable ou vide dans {Verify} : le script ne construit "
+            + "plus la disposition qu'il prétend éprouver.");
+
+        var onlyShipped = shipped.Except(local, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.Ordinal).ToList();
+        var onlyLocal = local.Except(shipped, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.Ordinal).ToList();
+
+        Assert.True(onlyShipped.Count == 0 && onlyLocal.Count == 0,
+            "La clé livrée et le dossier éprouvé en local ne portent pas les mêmes fichiers — "
+            + $"{Release} seul : [{string.Join(", ", onlyShipped)}] ; {Verify} seul : "
+            + $"[{string.Join(", ", onlyLocal)}]. Ce qui n'est posé que dans la clé n'est "
+            + "exécuté nulle part avant un tag : c'est ainsi qu'un dossier rules/ livré à côté "
+            + "d'un binaire qui embarque déjà ces règles a produit une release dont chaque scan "
+            + "s'arrêtait sur 82 identifiants en double.");
+    }
+
+    /// <summary>
+    /// The items every <c>Copy-Item</c> places in the given destination variable, reduced to
+    /// bare names — <c>src/…/rempart.exe</c> and <c>rempart.exe</c> are the same item of the
+    /// stick, and the workflow names it by the path it is built at.
+    /// </summary>
+    private static HashSet<string> StagedItems(string script, string destination) =>
+        Regex.Matches(script, @"Copy-Item\s+(?<sources>.+?)\s+" + destination + @"\b")
+            .SelectMany(match => Regex.Matches(match.Groups["sources"].Value, @"""([^""]+)""")
+                .Select(quoted => quoted.Groups[1].Value))
+            .Select(path => path.Trim('/').Split('/').Last())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The <c>$stickContents</c> array of verify.ps1, read by name for the same reason
+    /// <see cref="LocalDiagnostics"/> reads <c>$aotDiagnostics</c> that way: scanning the file
+    /// for names would let a mention in a comment satisfy the guard while the script copies
+    /// nothing.
+    ///
+    /// <para>
+    /// The script declares the list instead of having it inferred from its <c>Copy-Item</c>
+    /// calls, because one of those copies its source from a variable holding a build path —
+    /// unreadable from here without reimplementing PowerShell variable resolution, which is
+    /// the kind of parser this file already refused to write once.
+    /// </para>
+    /// </summary>
+    private static HashSet<string> LocalStickContents()
+    {
+        var declaration = Regex.Match(RepositoryFiles.Read(Verify),
+            @"\$stickContents\s*=\s*@\(([^)]*)\)");
+
+        return declaration.Success
+            ? Regex.Matches(declaration.Groups[1].Value, "'([^']+)'")
+                .Select(match => match.Groups[1].Value)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : [];
+    }
+
+    /// <summary>
     /// Every file that decides whether a scan counts as having succeeded — the workflows
     /// <em>enumerated from disk</em>, plus the local script.
     ///

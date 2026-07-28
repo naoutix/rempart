@@ -386,8 +386,8 @@ update was refused", exactly the silence [ADR-002](adr/ADR-002-mise-a-jour-des-d
 
 ```
 E:\
-├── rempart.exe                       # sealed
-├── rules/                            # sealed — loaded without an option
+├── rempart.exe                       # sealed — the 82 shipped rules are compiled into it
+├── rules/                            # optional, sealed — *extra* rules, never the shipped ones
 ├── baseline.json                     # sealed — the reference posture "rempart diff" defaults to
 ├── rempart-data/                     # excluded: re-verified at every scan (D13)
 ├── reports/<machine>-<date>/         # excluded: written by every scan
@@ -397,6 +397,13 @@ E:\
 `rules/` and `rempart-data/` are found beside the binary with nothing to configure: the
 stick is plugged in and run. Extra rules are never picked up silently — the scan header
 names the folder, and the catalog fingerprint changes.
+
+**`rules/` is a supplement and never a copy of what ships.** The release archive therefore
+does not contain one: an identifier present both in the binary and in the folder is refused
+as a redefinition, which is the intended behaviour and not a defect to work around. That
+distinction was written down here and in `RuleCatalog` from the start, and the release
+workflow copied the repository's `rules/` into the stick anyway — v1.0.0-rc.2 shipped a
+binary that stopped on 82 colliding identifiers before it could scan anything.
 
 `rempart diff <rapport.json>` given a single report compares it against `baseline.json`
 beside the binary. The reference posture therefore travels with the stick, like the rules and
