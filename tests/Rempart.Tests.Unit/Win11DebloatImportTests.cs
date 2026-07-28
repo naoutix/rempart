@@ -165,6 +165,22 @@ public sealed class Win11DebloatImportTests
     }
 
     [Fact]
+    public void A_byte_order_mark_on_either_input_does_not_stop_the_import()
+    {
+        // Found by running the command against the real upstream, not by reading the data:
+        // the file carries a mark, and it is invisible in every viewer. The judgement file
+        // gets one too as soon as a PowerShell redirection writes it on Windows.
+        const string mark = "﻿";
+
+        var file = Win11DebloatImport.Transform(
+            mark + Upstream("\"AD2F1837.HPSupportAssistant\""),
+            mark + Judgement,
+            "2026-07-28T00:00:00Z");
+
+        Assert.Single(file.Entries);
+    }
+
+    [Fact]
     public void The_upstream_source_is_pinned_to_a_revision_rather_than_to_a_branch()
     {
         // Written because the first draft of this file pinned nothing: its comment claimed

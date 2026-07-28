@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "Le jugement du dépôt sur les identifiants importés (ADR-006, D19). L'amont fournit les",
+    "identifiants ; category, risk, impact et impactSource sont écrits ici, et rien ne les",
+    "importe. Indexé par appId amont, pas par nom convivial : un renommage amont est fréquent",
+    "et ne veut rien dire.",
+    "",
+    "impactSource vaut Verified UNIQUEMENT si la note a été confrontée au logiciel réellement",
+    "installé sur une machine. Par défaut Upstream. Le mettre à Verified sans l'avoir fait",
+    "vide le champ de son sens : c'est la seule chose qui distingue ce catalogue d'une liste",
+    "de debloat.",
+    "",
+    "fetch-bloatware échoue en nommant tout identifiant amont absent de ce fichier."
+  ],
+  "entries": [
+    {
+      "appId": "Microsoft.XboxGamingOverlay",
+      "category": "game",
+      "risk": "Unwanted",
+      "impact": "Superposition de jeu Xbox. Désinstallable ; revient à la mise à jour de fonctionnalité si provisionné.",
+      "impactSource": "Verified"
+    },
+    {
+      "appId": "Microsoft.GamingApp",
+      "category": "game",
+      "risk": "Unwanted",
+      "impact": "Application Xbox. Inutile hors usage jeu ; désinstallable sans impact système.",
+      "impactSource": "Verified"
+    },
+    {
+      "appId": "Microsoft.ZuneMusic",
+      "category": "oem-preinstall",
+      "risk": "Unwanted",
+      "impact": "Groove Musique. Redondant avec un lecteur tiers ; désinstallable.",
+      "impactSource": "Verified"
+    },
+    {
+      "appId": "Microsoft.BingWeather",
+      "category": "oem-preinstall",
+      "risk": "Unwanted",
+      "impact": "Widget météo préinstallé. Désinstallable sans dépendance.",
+      "impactSource": "Upstream"
+    },
+    {
+      "appId": "Clipchamp.Clipchamp",
+      "category": "oem-preinstall",
+      "risk": "Unwanted",
+      "impact": "Éditeur vidéo préinstallé. Désinstallable sans impact.",
+      "impactSource": "Upstream"
+    }
+  ]
+}

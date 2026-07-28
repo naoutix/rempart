@@ -67,9 +67,9 @@ public static class Win11DebloatImport
 
     public static BloatwareCatalogFile Transform(string upstreamJson, string judgementJson, string asOfUtc)
     {
-        var judgements = ReadJudgements(judgementJson);
+        var judgements = ReadJudgements(WithoutByteOrderMark(judgementJson));
 
-        using var upstream = JsonDocument.Parse(upstreamJson);
+        using var upstream = JsonDocument.Parse(WithoutByteOrderMark(upstreamJson));
 
         if (!upstream.RootElement.TryGetProperty("Apps", out var apps)
             || apps.ValueKind != JsonValueKind.Array)
@@ -217,6 +217,21 @@ public static class Win11DebloatImport
 
         return result;
     }
+
+    /// <summary>
+    /// Drops a leading byte-order mark, which <see cref="JsonDocument"/> rejects as an
+    /// invalid start of value.
+    ///
+    /// <para>
+    /// Applied to <b>both</b> inputs, and neither is theoretical. The upstream file carries
+    /// one — found by running the command rather than by reading the data, since the mark is
+    /// invisible in every viewer. And the judgement file is edited on Windows, where a
+    /// PowerShell redirection writes UTF-8 <em>with</em> a mark by default; this repository
+    /// has already paid once for assuming otherwise about its own scripts.
+    /// </para>
+    /// </summary>
+    private static string WithoutByteOrderMark(string json) =>
+        json.Length > 0 && json[0] == '﻿' ? json[1..] : json;
 
     private static string? Text(JsonElement element, string property) =>
         element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String

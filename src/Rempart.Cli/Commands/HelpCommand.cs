@@ -142,6 +142,12 @@ internal static class HelpCommand
               Télécharge la liste officielle LOLDrivers et la prépare à signer.
               L'outil va chercher la donnée ; toi seul la signes ensuite.
 
+          rempart fetch-bloatware [--out <fichier>] [--judgement <fichier>]
+              Joint les identifiants de la liste amont au jugement du dépôt, et
+              prépare le catalogue à signer. Un identifiant sans note d'impact
+              arrête la commande en le nommant : l'amont fournit les faits, les
+              catégories et les notes s'écrivent ici.
+
           rempart sign --key <clé privée> --data <dossier> [--out <manifeste>]
                        [--kind rules|drivers] [--published <date ISO>]
               Signe un manifeste sur les jeux de données d'un dossier. À lancer

@@ -44,6 +44,7 @@ internal static class CommandTable
         "keygen" => KeygenCommand.Run,
         "seal" => SealCommand.Run,
         "fetch-loldrivers" => FetchLoldriversCommand.Run,
+        "fetch-bloatware" => FetchBloatwareCommand.Run,
         "sign" => SignCommand.Run,
         "update" => UpdateCommand.Run,
         "version" => VersionCommand.Run,
