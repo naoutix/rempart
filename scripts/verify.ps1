@@ -72,6 +72,16 @@ $suites = @(
 # nobody noticing that a list existed in only one of the two files.
 $aotDiagnostics = @('diagnose-wmi', 'diagnose-tasks', 'diagnose-drivers', 'diagnose-processes')
 
+# What release.yml assembles into the stick, and therefore what the isolated run below must
+# be given. Declared as a list, by name, for the same reason $aotDiagnostics is:
+# BuildChainParityTests reads it and holds it against the workflow's Copy-Item calls.
+#
+# The absence of 'rules' here is a fact this list exists to keep: the 82 shipped rules are
+# compiled into the binary, and a rules/ folder beside the executable is read as an external
+# catalogue. v1.0.0-rc.2 shipped one, every identifier collided, and nothing caught it
+# because this step used to copy the executable alone -- proving a shape no user receives.
+$stickContents = @('rempart.exe', 'README.md', 'LICENSE')
+
 $steps = [ordered]@{}
 
 function Step {
@@ -182,15 +192,30 @@ if (-not $SkipPublish) {
         Write-Host "rempart.exe = $size Mo"
     }
 
-    Step 'Binaire isole' {
+    Step 'Cle assemblee' {
 
-        # The core of the promise: a standalone exe, no runtime, no neighboring files.
-        $exe = Join-Path $root 'src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe'
+        # The core of the promise: a standalone exe with no runtime -- checked in the exact
+        # layout release.yml ships, not on the executable alone. Those were the same thing
+        # until they were not, and the day they diverged the released stick could not run a
+        # single scan while this step stayed green.
+        $publish = Join-Path $root 'src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish'
         $sandbox = Join-Path $env:TEMP "rempart-verify-$PID"
 
         New-Item -ItemType Directory $sandbox -Force | Out-Null
         try {
-            Copy-Item $exe $sandbox
+            foreach ($item in $stickContents) {
+                # The binary comes from the publish output, the rest from the repository --
+                # the same two origins release.yml copies from.
+                $source = if ($item -eq 'rempart.exe') {
+                    Join-Path $publish $item
+                } else {
+                    Join-Path $root $item
+                }
+
+                if (-not (Test-Path $source)) { throw "absent de la disposition : $source" }
+                Copy-Item $source $sandbox
+            }
+
             Push-Location $sandbox
             try {
                 & .\rempart.exe version | Out-Null
@@ -225,7 +250,11 @@ if (-not $SkipPublish) {
                     }
                 }
 
-                Write-Host ("scan, capture, rejeu et {0} diagnostics fonctionnent sans dependance" -f $aotDiagnostics.Count)
+                # Parentheses around the concatenation: -f binds tighter than +, so without
+                # them the operator applies to the second string alone and the {0} of the
+                # first one prints literally. Measured, not guessed -- it did.
+                Write-Host (("scan, capture, rejeu et {0} diagnostics fonctionnent sans dependance, " +
+                             "depuis la disposition livree ({1} fichiers)") -f $aotDiagnostics.Count, $stickContents.Count)
             }
             finally { Pop-Location }
         }

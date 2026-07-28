@@ -63,35 +63,26 @@ jobs:
             throw "Version mismatch: tag says '$expected', binary says '$reported'. Bump <Version> in Directory.Build.props to match the tag."
           }
 
-      - name: The binary must run and scan on a bare machine
-        shell: pwsh
-        run: |
-          # Same guarantee CI checks on every commit, re-checked on the artifact that
-          # actually ships: no runtime to install, and a real scan completes.
-          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
-          & $exe scan
-          # 0 = saw everything, 3 = a collector was refused, 5 = a control could not be
-          # evaluated. All three are acceptable *here*: what this step proves is that the
-          # shipped artifact runs a scan end to end, not that the runner is well configured.
-          # 5 is the ordinary case, not the edge one -- WIN-ENC-001 (BitLocker) comes back
-          # unverifiable even from an elevated console when the WMI class is absent, so
-          # elevating the runner would not turn this into a 0. Narrowing the set back to
-          # {0, 3} after elevating would redden a correct release.
-          if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "rempart scan failed ($LASTEXITCODE)" }
-
       - name: Assemble the stick
         shell: pwsh
         run: |
-          # The layout M6 defined: the binary at the root, rules/ beside it. A rules
-          # directory next to the executable is loaded without any option, so the stick
-          # plugs in and runs.
+          # The layout M6 defined: the binary at the root, and nothing beside it that it
+          # needs in order to run.
+          #
+          # The rules are deliberately NOT copied here, and this comment is the reason why.
+          # The 82 shipped rules are compiled into the binary, so that the stick stays
+          # self-contained; a rules/ directory found next to the executable is picked up as
+          # an *external* catalogue, meant for fleet-specific checks. Copying the
+          # repository's rules/ therefore handed the binary its own catalogue as a
+          # third-party supplement: all 82 identifiers collided and RuleCatalog refused to
+          # load, exactly as it is written to. That shipped as v1.0.0-rc.2, where scan,
+          # explain and capture all stopped on the same error.
           $tag = "${{ inputs.tag || github.ref_name }}"
           $version = $tag -replace '^v', ''
           $stage = "stick/rempart-$version-win-x64"
 
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe" $stage
-          Copy-Item "rules" $stage -Recurse
           Copy-Item "README.md", "LICENSE" $stage -ErrorAction SilentlyContinue
 
           # "unsealed" is in the *file* name so this archive cannot be published by mistake
@@ -103,6 +94,31 @@ jobs:
           Write-Host "archive: $zip ($([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB)"
           "ZIP=$zip" >> $env:GITHUB_ENV
           "VERSION=$version" >> $env:GITHUB_ENV
+          "STAGE=$stage" >> $env:GITHUB_ENV
+
+      - name: The assembled stick must run and scan
+        shell: pwsh
+        run: |
+          # Run from the staging folder, not from the publish directory. That distinction is
+          # the whole lesson of v1.0.0-rc.2: this step used to prove that a binary sitting
+          # alone in its build output could scan, which is a shape nobody is ever shipped.
+          # The one that ships is this folder, and it is the only one worth proving.
+          $exe = Join-Path $env:STAGE "rempart.exe"
+          & $exe scan
+          # 0 = saw everything, 3 = a collector was refused, 5 = a control could not be
+          # evaluated. All three are acceptable *here*: what this step proves is that the
+          # shipped artifact runs a scan end to end, not that the runner is well configured.
+          # 5 is the ordinary case, not the edge one -- WIN-ENC-001 (BitLocker) comes back
+          # unverifiable even from an elevated console when the WMI class is absent, so
+          # elevating the runner would not turn this into a 0. Narrowing the set back to
+          # {0, 3} after elevating would redden a correct release.
+          if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "rempart scan failed ($LASTEXITCODE)" }
+
+          # A catalogue collision does not need a machine to show itself, and explain is the
+          # cheapest command that resolves one. Kept separate from the scan above so the
+          # failure names which of the two broke.
+          & $exe explain WIN-LEG-003 | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "rempart explain failed ($LASTEXITCODE)" }
 
       - name: Draft the release
         shell: pwsh
