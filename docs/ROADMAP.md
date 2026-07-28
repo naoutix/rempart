@@ -21,25 +21,33 @@ tant que l'outil vise un public francophone.
 
 ## v1 — Audit en lecture seule
 
-**État au 2026-07-28 : les huit lots M0 → M7 sont livrés**, et la version empaquetée
-courante est **v1.0.0-rc.2**, du 2026-07-28 (voir [CHANGELOG.md](../CHANGELOG.md)).
-v1.0.0-rc.1 avait été construite et scellée le 2026-07-26 mais **n'a jamais été publiée** :
-son brouillon est resté sur GitHub, et rc.2 est donc la première archive à quitter le dépôt.
+**État au 2026-07-28 : v1 est close.** Les huit lots M0 → M7 sont livrés, **les deux critères
+de sortie sont réglés**, et la version empaquetée est **v1.0.0** (voir
+[CHANGELOG.md](../CHANGELOG.md)). Deux candidates l'ont précédée : rc.1, construite et jamais
+publiée, et rc.2, publiée — et c'est en la faisant tourner ailleurs que le dernier critère est
+tombé.
 
-**Un seul critère de sortie reste ouvert depuis le 2026-07-28** : celui de M6, la clé branchée
-sur une machine tierce. Celui de M5 a été **découpé** plutôt qu'attendu — il posait une
-question de données sous la forme d'un test, et sa partie mécanisme était déjà démontrée
-([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md), D21). Ce qui reste ouvert dans v1
-demande une machine, pas du code :
+**M6 — atteint le 2026-07-28, et à la lettre.** L'archive **scellée** de rc.2, celle qui ne
+contient plus de `rules/`, a tourné sur une machine tierce sans rien installer. Ce qui est
+observé, et non déduit : une autre build de Windows (25H2 contre 26200 sur le poste de
+développement), un instantané anonymisé qui se rejoue ici **intégralement** — 82 règles
+évaluées, aucune illisible, aucun collecteur refusé, code de sortie **0**, le premier sur une
+machine réelle. 346 logiciels, 279 tâches, 137 constats à examiner.
+
+**M5 — découpé le 2026-07-28** plutôt qu'attendu ([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md),
+D21) : il posait une question de données sous la forme d'un test, et sa partie mécanisme était
+déjà démontrée. La couverture du catalogue est passée de 5 à **123 entrées** dans la foulée.
+
+Ce qui reste ouvert n'est plus un critère de sortie, et demande des machines, pas du code :
 
 - **TLS/SCHANNEL** (M2b) et **IPv6** (M4) — reportés faute de pouvoir observer les défauts
   effectifs sur plusieurs builds de Windows. Un `windowsDefault` deviné ferait crier au
   loup, ce que le projet refuse par principe. **La collecte IPv6, elle, est faite** depuis
-  le 2026-07-26 (DET-IPV6) : seules les règles de durcissement restent reportées.
-- **Validation terrain** : clé branchée sur une machine tierce sans rien installer (M6).
-- **Couverture du catalogue bloatware** — plus un critère de sortie, mais un chantier : import
-  d'une liste tierce épinglée, 141 entrées dont 25 constructeur
-  ([ADR-006](adr/ADR-006-catalogue-bloatware-importe.md)).
+  le 2026-07-26 (DET-IPV6) : seules les règles de durcissement restent reportées. La capture
+  de la seconde machine est le premier point de comparaison utilisable : 45 règles en échec
+  là-bas contre 44 ici, aucune inévaluable — cohérent, sans que cela **prouve** un défaut.
+- **Notes d'impact du catalogue** : 120 des 123 sont décrites en amont et non vérifiées sur
+  machine (DET-NOTES-AMONT). Chaque logiciel réellement observé en fait tomber une.
 
 Le lecteur DISM, longtemps le point aveugle de M6, est **éprouvé depuis le 2026-07-26** :
 les libellés tirés de la documentation se sont révélés justes face à une exécution élevée
@@ -448,7 +456,12 @@ vulnérabilité, et un test plante du balisage dans chaque champ. Le script en l
 reçoit **aucune donnée** du scan : il filtre des nœuds déjà présents, ce qui supprime la
 seconde voie d'injection au lieu de la sécuriser.
 
-**Fait quand** la clé tourne sur une machine tierce sans rien installer.
+**Fait quand** la clé tourne sur une machine tierce sans rien installer. ✅ **Atteint le
+2026-07-28** — l'archive scellée de v1.0.0-rc.2, sur une machine que la chaîne d'outils n'a
+jamais touchée et sur une autre build de Windows. La capture produite là-bas se rejoue ici
+sans un seul collecteur refusé ni une seule règle inévaluable, code de sortie 0. C'est ce
+critère qui gardait la 1.0.0, et il ne pouvait pas être éprouvé avant le 2026-07-28 : jusqu'au
+correctif du même jour, la clé livrée ne démarrait pas.
 
 ### M7 · Flotte — ✅ terminé
 `rempart diff a.json b.json`, baseline de référence, page d'agrégation des rapports.

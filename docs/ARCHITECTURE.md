@@ -609,14 +609,10 @@ a scan is `1 > 3 > 5 > 0`, ordered by what the caller can act on — a breakdown
 not repair itself by re-running elevated, a refused collector does, and an unevaluable
 rule is the weakest of the three signals without being nothing.
 
-**`5` does not always mean "re-run elevated", and assuming it does is the mistake to
-avoid.** Elevation is the usual remedy, not the only one: `WIN-ENC-001` (BitLocker) comes
-back `Unknown` from an elevated console too, when the machine has no volume-encryption WMI
-class to ask. Two of the four versioned fixtures were captured elevated and still exit
-`5`. The three CI guards — both workflows and `scripts/verify.ps1` — therefore accept
-`0`, `3` or `5`, and narrowing that set after elevating a runner would redden a correct
-build. For an auditor, `5` is a result to act on: the score covers less of the machine
-than its percentage suggests.
+**`5` does not always mean "re-run elevated"** — `WIN-ENC-001` returns `Unknown` from an
+elevated console too, when the machine has no volume-encryption WMI class to ask. The three CI
+guards accept `0`, `3` or `5` for that reason. The consequences for a caller are spelled out
+once, in the [README](../README.md#exit-codes).
 
 ### Cleanup actions (planned, M9)
 

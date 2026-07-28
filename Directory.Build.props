@@ -10,7 +10,7 @@
 
     <!-- Single source of the version: the CLI reads it from the assembly rather than
          redeclaring it, after already diverging twice from what was actually shipped. -->
-    <Version>1.0.0-rc.2</Version>
+    <Version>1.0.0</Version>
 
     <!-- Fails compilation on any Native AOT-incompatible usage, rather than
          discovering it at binary publish time. -->
