@@ -148,7 +148,82 @@ public static class Win11DebloatImport
             .Select(id => Entry(id, judgements[id].Catalogued!))
             .ToList();
 
+        // Additions come after the join and are ordered with it, so the whole file has one
+        // stable order regardless of where an entry came from.
+        entries.AddRange(ReadAdditions(WithoutByteOrderMark(judgementJson)));
+        entries.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+
         return new BloatwareCatalogFile(asOfUtc, Attribution, entries);
+    }
+
+    /// <summary>
+    /// Entries the repository catalogues on its own, with no upstream identifier behind them.
+    ///
+    /// <para>
+    /// They exist because the upstream list covers HP, Dell and Lenovo and stops there. No
+    /// maintained list carries exact identifiers for ASUS, Acer, MSI or Razer — the practice
+    /// for those is to match on the display name, which is what these do. They live in the
+    /// judgement file rather than being hand-added to the produced catalogue, so that
+    /// re-running the join does not erase them: a generated file that someone edits by hand
+    /// is the shape DET-RECPROV was about.
+    /// </para>
+    ///
+    /// <para>
+    /// Held to exactly the same rules as an imported entry — an impact note is mandatory
+    /// wherever an entry comes from, because the rule is about what the catalogue asserts and
+    /// not about who wrote it.
+    /// </para>
+    /// </summary>
+    private static List<BloatwareEntry> ReadAdditions(string judgementJson)
+    {
+        using var document = JsonDocument.Parse(judgementJson);
+
+        if (!document.RootElement.TryGetProperty("additions", out var additions)
+            || additions.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var result = new List<BloatwareEntry>();
+
+        foreach (var addition in additions.EnumerateArray())
+        {
+            var id = Text(addition, "id");
+            var value = Text(addition, "value");
+            var category = Text(addition, "category");
+            var impact = Text(addition, "impact");
+
+            if (string.IsNullOrWhiteSpace(id)
+                || string.IsNullOrWhiteSpace(value)
+                || string.IsNullOrWhiteSpace(category)
+                || string.IsNullOrWhiteSpace(impact))
+            {
+                throw new JsonException(
+                    $"Ajout local incomplet ({id ?? "sans identifiant"}) : identifiant, valeur, "
+                    + "catégorie et note d'impact sont obligatoires, comme pour une entrée importée.");
+            }
+
+            if (!Enum.TryParse<BloatwareMatch>(Text(addition, "match"), ignoreCase: true, out var match))
+            {
+                throw new JsonException(
+                    $"Ajout local « {id} » : mode d'appariement « {Text(addition, "match")} » inconnu.");
+            }
+
+            result.Add(new BloatwareEntry(
+                id,
+                match,
+                value,
+                category,
+                Enum.TryParse<BloatwareRisk>(Text(addition, "risk"), ignoreCase: true, out var risk)
+                    ? risk
+                    : BloatwareRisk.Unwanted,
+                impact,
+                Enum.TryParse<ImpactProvenance>(Text(addition, "impactSource"), ignoreCase: true, out var source)
+                    ? source
+                    : ImpactProvenance.Upstream));
+        }
+
+        return result;
     }
 
     private static BloatwareEntry Entry(string appId, CataloguedJudgement judgement) =>

@@ -214,6 +214,39 @@ public class BloatwareCatalogTests
     }
 
     [Fact]
+    public void No_embedded_name_pattern_is_a_bare_vendor_name()
+    {
+        // A Name match is a Contains with no negative form. The upstream project this
+        // catalogue borrows vendor coverage from matches on bare vendor names AND carries a
+        // counter-pattern to undo its own over-matching -- an admission that the positive half
+        // catches too much. Porting the positive half alone would report Intel and Realtek
+        // driver packages as unwanted on essentially every Windows machine.
+        //
+        // A pattern that is too precise MISSES an installation; one that is too broad ACCUSES.
+        // Missing is acceptable here, accusing is not, so vendor entries name the product.
+        string[] bareVendors =
+        [
+            "ASUS", "MSI", "Acer", "Razer", "Intel", "Realtek", "Lenovo", "Dell", "HP",
+            "Waves", "Nvidia", "AMD",
+        ];
+
+        foreach (var entry in BloatwareCatalog.Embedded.Entries)
+        {
+            if (entry.Match is not (BloatwareMatch.Name or BloatwareMatch.Publisher))
+            {
+                continue;
+            }
+
+            Assert.False(
+                bareVendors.Contains(entry.Value.Trim(), StringComparer.OrdinalIgnoreCase),
+                $"{entry.Id} apparie sur « {entry.Value} », un nom de marque nu. Un motif de "
+                + "marque attrape les pilotes et les panneaux de configuration du constructeur, "
+                + "et les signale comme indésirables sur presque chaque machine de cette marque. "
+                + "Nommer le produit.");
+        }
+    }
+
+    [Fact]
     public void Every_embedded_entry_states_its_identifier_in_the_form_its_match_mode_expects()
     {
         // The shape guard for the confusion above. Nothing else relates a match mode to the

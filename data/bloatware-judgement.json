@@ -1,1076 +1,177 @@
 {
-    "_comment":  [
-                     "Le jugement du dépôt sur les identifiants importés (ADR-006, D19). L\u0027amont fournit les",
-                     "identifiants ; category, risk, impact et impactSource sont écrits ici, et rien ne les",
-                     "importe. Indexé par appId amont, pas par nom convivial : un renommage amont est fréquent",
-                     "et ne veut rien dire.",
-                     "",
-                     "impactSource vaut Verified UNIQUEMENT si la note a été confrontée au logiciel réellement",
-                     "installé sur une machine. Par défaut Upstream. Le mettre à Verified sans l\u0027avoir fait",
-                     "vide le champ de son sens : c\u0027est la seule chose qui distingue ce catalogue d\u0027une liste",
-                     "de debloat.",
-                     "",
-                     "Deux verdicts (D22). Une entrée retenue porte category, risk, impact et impactSource.",
-                     "Une entrée écartée porte \"catalogue\": false et un \"reason\" obligatoire : la liste amont",
-                     "est « ce qu\u0027un outil de debloat propose de retirer », pas « ce que Rempart doit appeler",
-                     "bloatware ». Cataloguer le terminal Windows poserait un constat sur presque chaque",
-                     "machine. Retenir coûte une note d\u0027impact, écarter coûte un motif.",
-                     "",
-                     "fetch-bloatware échoue en nommant tout identifiant amont absent de ce fichier."
-                 ],
-    "entries":  [
-                    {
-                        "appId":  "4DF9E0F8.Netflix",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application cliente du service de streaming Netflix, fréquemment préinstallée sur les machines grand public. Sa suppression retire l\u0027accès au service depuis cette application ; le service reste utilisable depuis un navigateur. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "ACGMediaPlayer",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Lecteur multimédia tiers, distinct des lecteurs livrés avec Windows. Sa suppression retire un lecteur redondant avec ceux du système ; l\u0027amont ne précise ni son éditeur ni les formats qu\u0027il prend en charge. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "ActiproSoftwareLLC",
-                        "catalogue":  false,
-                        "reason":  "L\u0027amont hésite lui-même sur sa nature et évoque des composants d\u0027interface ou des briques logicielles fournies avec la machine : ce n\u0027est pas une application que l\u0027on utilise mais un cadriciel dont un autre logiciel installé peut dépendre, et poser un constat dessus reviendrait à signaler cette dépendance."
-                    },
-                    {
-                        "appId":  "AD2F1837.HPAIExperienceCenter",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de marque HP présentant les fonctions dites « IA » de la machine et l\u0027assistance qui les accompagne. Sa suppression retire cette vitrine ; l\u0027effet sur les autres outils HP installés à côté n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPConnectedMusic",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application musicale de marque HP livrée avec la machine, que l\u0027amont signale comme possiblement abandonnée. Sa suppression retire cette application ; si le service qu\u0027elle accompagnait est bien arrêté, elle n\u0027a plus d\u0027usage. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPConnectedPhotopoweredbySnapfish",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application photo de marque HP adossée au service de tirage en ligne Snapfish, que l\u0027amont signale comme possiblement abandonnée. Sa suppression retire cette application ; son effet sur les autres outils photo ou d\u0027impression HP installés à côté n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPDesktopSupportUtilities",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Ensemble d\u0027utilitaires d\u0027assistance de marque HP, livré avec la machine. Sa suppression retire ces outils ; ce qu\u0027ils apportent réellement, et ce que leur absence coûte à une prise en charge par le constructeur, n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPEasyClean",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Utilitaire de marque HP livré avec la machine. L\u0027amont le décrit comme un outil de nettoyage ou d\u0027optimisation du système, sans documenter ce qu\u0027il fait réellement ; sa fonction n\u0027a pas été observée et aucune dépendance connue ne s\u0027y rattache.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPFileViewer",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Visionneuse de fichiers de marque HP, livrée avec la machine. Sa suppression retire cette visionneuse ; les types de fichiers qu\u0027elle prenait en charge, et l\u0027application vers laquelle ils basculeraient, n\u0027ont pas été observés.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPJumpStarts",
-                        "catalogue":  true,
-                        "category":  "promo",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de marque HP que l\u0027amont décrit comme un point d\u0027entrée vers des tutoriels, la découverte d\u0027applications ou les fonctions maison. Sa suppression retire ces propositions et rien d\u0027autre de connu. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPPCHardwareDiagnosticsWindows",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Outil de diagnostic matériel fourni par HP. Sa suppression retire le moyen de lancer ces diagnostics depuis Windows ; l\u0027existence d\u0027un autre moyen de les exécuter sur la machine, comme ce qu\u0027une prise en charge par le constructeur exigerait, n\u0027a pas été vérifiée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPPowerManager",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application HP de gestion de l\u0027alimentation et de la batterie, venant s\u0027ajouter aux réglages d\u0027alimentation de Windows. Sa suppression retire cette interface ; on n\u0027a pas observé si elle donnait accès à des réglages propres au matériel HP, ni si ceux-ci restent atteignables autrement.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPPrinterControl",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application HP de gestion des imprimantes de la marque. Sur une machine reliée à une imprimante HP, sa suppression retire cette interface de gestion ; ce qui reste accessible sans elle, par le pilote d\u0027impression ou par Windows, n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPPrivacySettings",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application HP de réglage d\u0027options de confidentialité de la machine. Sa suppression retire cette interface ; l\u0027amont ne dit pas quels réglages elle commande, ni s\u0027ils restent modifiables autrement, et cela n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPQuickDrop",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Utilitaire HP de transfert rapide de fichiers entre la machine et un autre appareil. Sa suppression retire ce mode de transfert ; les autres moyens d\u0027échanger des fichiers ne dépendent pas de lui. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPQuickTouch",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Utilitaire de marque HP que l\u0027amont décrit, sans certitude, comme un jeu de raccourcis ou de commandes tactiles. Sa suppression retire ces raccourcis sur les machines qui en disposent ; sa fonction exacte n\u0027a pas été observée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPRegistration",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application servant à enregistrer le produit auprès de HP. Une fois l\u0027enregistrement fait, ou s\u0027il n\u0027est pas souhaité, elle n\u0027a plus d\u0027usage. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPSupportAssistant",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application d\u0027assistance de marque HP, que l\u0027amont présente comme le point d\u0027entrée du support, des mises à jour et du dépannage HP. Sa suppression retire ce canal ; ce qu\u0027il apporte réellement, et ce qui reste disponible sans lui, n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPSureShieldAI",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "SecurityRelevant",
-                        "impact":  "Logiciel de marque HP que l\u0027amont présente comme un produit de sécurité, probablement une détection de menaces, sans le confirmer. Un produit de sécurité tiers peut se déclarer auprès de Windows comme protection active à la place de Microsoft Defender : sa présence comme son retrait pèsent alors sur l\u0027état de protection de la machine. Le comportement de celui-ci vis-à-vis de Defender n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPSystemInformation",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application HP affichant les caractéristiques de la machine. Windows expose déjà ce type d\u0027informations par ses propres outils ; si celle-ci en présente d\u0027autres, propres au matériel HP, cela n\u0027a pas été observé. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPWelcome",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application d\u0027accueil HP : présentation de la machine et aide à la première prise en main. Ce qu\u0027elle apporte au-delà de cette étape n\u0027a pas été observé ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.HPWorkWell",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application HP de bien-être au poste de travail, décrite en amont comme offrant des rappels de pause et des conseils d\u0027ergonomie. Sa suppression ne retire que cette application ; son interaction avec les autres outils HP installés à côté n\u0027a pas été observée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AD2F1837.myHP",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Portail HP regroupant les informations sur la machine, le support et les services de la marque. Son retrait fait perdre ce point d\u0027entrée vers l\u0027assistance HP ; ce qu\u0027il partage avec les autres composants HP installés à côté n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AdobeSystemsIncorporated.AdobePhotoshopExpress",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Éditeur photo grand public d\u0027Adobe, distribué par le Microsoft Store et couramment préinstallé sur les machines grand public. Sa suppression ne retire que cet outil de retouche ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Amazon.com.Amazon",
-                        "catalogue":  true,
-                        "category":  "promo",
-                        "risk":  "Unwanted",
-                        "impact":  "Application vitrine de la boutique en ligne Amazon. Elle n\u0027offre rien qu\u0027un navigateur ne fasse déjà ; sa suppression ne coûte que ce raccourci vers le site marchand.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AmazonVideo.PrimeVideo",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de streaming Amazon Prime Video, couramment préinstallée sur les machines grand public. Le service reste accessible depuis un navigateur ; sa suppression ne prive que de l\u0027application dédiée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Asphalt8Airborne",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de course automobile, du type poussé sur les installations Windows grand public plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n\u0027en dépend.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "AutodeskSketchBook",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de dessin et de croquis numérique d\u0027Autodesk, distribuée par le Microsoft Store. Elle peut avoir été installée délibérément par qui dessine, auquel cas ce n\u0027est pas un résidu d\u0027usine. Sa suppression ne retire que cet outil ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "BytedancePte.Ltd.TikTok",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de vidéos courtes de ByteDance, couramment poussée sur les installations Windows grand public. Le service reste accessible depuis un navigateur ; sa suppression ne prive que de l\u0027application dédiée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "CaesarsSlotsFreeCasino",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de machines à sous, du type installé automatiquement sur une session Windows neuve plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n\u0027en dépend.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Clipchamp.Clipchamp",
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Éditeur vidéo préinstallé. Désinstallable sans impact.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "COOKINGFEVER",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de gestion de restaurant, du type poussé sur les installations Windows grand public plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n\u0027en dépend.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "CyberLinkMediaSuiteEssentials",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Suite multimédia CyberLink livrée avec certaines machines, dont la composition varie selon l\u0027édition OEM : typiquement lecture et gravure de disques, retouche vidéo légère. Sur un poste équipé d\u0027un lecteur optique, elle peut être le seul logiciel installé capable de lire un DVD, Windows n\u0027assurant plus cette lecture nativement ; ce point mérite vérification avant retrait.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "DellInc.DellDigitalDelivery",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Service Dell qui installe sur la machine les logiciels achetés en même temps qu\u0027elle. Une fois ces logiciels livrés son rôle est terminé, mais le retirer avant peut empêcher de récupérer une licence commandée avec le PC et pas encore installée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "DellInc.DellMobileConnect",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Dell d\u0027appairage d\u0027un téléphone au PC ; l\u0027amont la décrit comme remplacée par Mobile connecté (Phone Link) de Windows. Sa suppression retire ce lien téléphone-PC ; l\u0027équivalence exacte avec l\u0027application Microsoft n\u0027a pas été observée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "DellInc.DellSupportAssistforPCs",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Agent Dell de diagnostic, de support et de mise à jour fourni par le constructeur. Sa suppression retire ce canal d\u0027assistance et de mise à jour ; ce qu\u0027il couvre au-delà de Windows Update ou d\u0027un téléchargement manuel depuis le site Dell dépend du modèle et n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Disney.37853FC22B2CE",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de streaming Disney+, couramment préinstallée sur les machines grand public. Le service reste accessible depuis un navigateur ; sa suppression ne prive que de l\u0027application dédiée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "DisneyMagicKingdoms",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de construction de parc d\u0027attractions sous licence Disney, du type poussé sur les installations Windows grand public plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n\u0027en dépend.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "DrawboardPDF",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Lecteur et annotateur PDF orienté saisie au stylet, distribué par le Microsoft Store. S\u0027il sert d\u0027application par défaut pour les PDF, son retrait renvoie l\u0027ouverture de ces fichiers vers un autre lecteur — Edge lit les PDF nativement, sans que l\u0027équivalence des outils d\u0027annotation ait été observée.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Duolingo-LearnLanguagesforFree",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Application d\u0027apprentissage des langues, distribuée par le Microsoft Store. Le service reste accessible depuis un navigateur ou un téléphone ; sa suppression ne coûte que l\u0027application locale.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "E046963F.LenovoCompanion",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Portail Lenovo pour les réglages de la machine, les mises à jour de pilotes et le support. Il expose selon les modèles des réglages matériels que Windows ne propose pas, et il porte le canal de mise à jour du constructeur ; ce qui devient inaccessible après son retrait dépend du modèle et n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "EclipseManager",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Utilitaire que l\u0027amont rattache à un constructeur, associé sans certitude à des réglages d\u0027écran. L\u0027amont lui-même ne l\u0027identifie pas précisément : ce que ce logiciel pilote réellement n\u0027a pas été observé, et l\u0027impact d\u0027une suppression sur les autres outils du constructeur installés à côté n\u0027est pas connu.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "FACEBOOK.FACEBOOK",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Client du réseau social Facebook, livré ou poussé par le Store sur des installations grand public. Le service reste accessible depuis un navigateur : la désinstallation ne fait perdre que l\u0027application.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Facebook.Instagram",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Client du réseau social Instagram, poussé par le Store sur des installations grand public. Le service reste accessible depuis un navigateur ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "FarmVille2CountryEscape",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de simulation agricole, du type que le Store installe sans intervention de l\u0027utilisateur sur une installation grand public. Sa suppression ne coûte que le jeu lui-même ; rien d\u0027autre n\u0027est connu pour en dépendre.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "flaregamesGmbH.RoyalRevolt",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de stratégie et de défense de tours installé depuis le Store. Rien d\u0027autre n\u0027est connu pour en dépendre ; sa suppression ne coûte que le jeu.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Flipboard",
-                        "catalogue":  true,
-                        "category":  "news",
-                        "risk":  "Unwanted",
-                        "impact":  "Agrégateur d\u0027actualités et de réseaux sociaux présenté sous forme de magazine. Sa suppression ne fait perdre que l\u0027application : les sources qu\u0027elle agrège restent accessibles par leurs propres moyens.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "HiddenCity",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu d\u0027aventure et de recherche d\u0027objets cachés, du type que le Store pousse sur une installation grand public. Sa suppression ne coûte que le jeu ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "HULULLC.HULUPLUS",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application cliente du service de vidéo en flux Hulu, poussée par le Store sur des installations grand public. Le service reste accessible depuis un navigateur pour qui y est abonné ; sa suppression ne fait perdre que l\u0027application.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "iHeartRadio",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de radio et de musique en flux, poussée par le Store sur des installations grand public. Le service reste accessible autrement ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "king.com.BubbleWitch3Saga",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de puzzle de l\u0027éditeur King, du type que le Store installe automatiquement sur une installation grand public. Sa suppression ne coûte que le jeu ; rien d\u0027autre n\u0027est connu pour en dépendre.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "king.com.CandyCrushSaga",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de puzzle de l\u0027éditeur King, poussé par le Store sur les installations grand public. Sa suppression ne coûte que le jeu ; rien d\u0027autre n\u0027est connu pour en dépendre.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "king.com.CandyCrushSodaSaga",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Déclinaison du jeu de puzzle Candy Crush, installée par le Store sans intervention de l\u0027utilisateur. Rien n\u0027en dépend ; sa suppression ne coûte que le jeu.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "LenovoCompanyLimited.LenovoVantageService",
-                        "catalogue":  false,
-                        "reason":  "L\u0027amont le décrit comme le composant de service en arrière-plan de l\u0027application Lenovo Vantage, et non comme un logiciel autonome : le signaler poserait un second constat sur la même installation que celui porté sur Vantage, qui est une entrée distincte, et le retirer seul dégraderait l\u0027application sans la désinstaller."
-                    },
-                    {
-                        "appId":  "LGElectronics.LGMonitorApp",
-                        "catalogue":  true,
-                        "category":  "oem",
-                        "risk":  "Unwanted",
-                        "impact":  "Utilitaire du constructeur LG servant à piloter un moniteur de la marque depuis Windows. Les réglages exactes qu\u0027il expose, et ce que sa suppression retire réellement à l\u0027utilisateur, n\u0027ont pas été observés ; l\u0027amont signale que Windows Update peut le réinstaller silencieusement quand un moniteur LG est branché.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "LinkedInforWindows",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Client du réseau professionnel LinkedIn. Le service reste accessible depuis un navigateur ; sa suppression ne fait perdre que l\u0027application.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "MarchofEmpires",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de stratégie installé depuis le Store, en général sans intervention de l\u0027utilisateur. Sa suppression ne coûte que le jeu ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.3DBuilder",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Microsoft de modélisation 3D élémentaire, livrée préinstallée avec d\u0027anciennes versions de Windows. Hors besoin de modélisation elle reste inutilisée ; sa suppression ne fait perdre que cet éditeur et rien d\u0027autre n\u0027est connu pour en dépendre.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.549981C3F5F10",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Assistant vocal Cortana, livré préinstallé avec Windows puis abandonné par Microsoft. Sa suppression ne fait perdre que l\u0027application ; le couplage historique avec la recherche du menu Démarrer sur d\u0027anciennes versions de Windows 10 n\u0027a pas été vérifié ici.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingFinance",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Microsoft d\u0027actualités et de cotations financières, préinstallée avec d\u0027anciennes versions de Windows et signalée abandonnée par l\u0027amont. Sa suppression ne coûte que l\u0027application elle-même ; rien d\u0027autre n\u0027est connu pour en dépendre.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingFoodAndDrink",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Microsoft de recettes et d\u0027actualités culinaires, préinstallée avec d\u0027anciennes versions de Windows et signalée abandonnée par l\u0027amont. Sa suppression ne fait perdre que l\u0027application ; rien d\u0027autre n\u0027est connu pour en dépendre.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingHealthAndFitness",
-                        "catalogue":  true,
-                        "category":  "news",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de contenu santé et forme physique de la famille d\u0027applications Bing, que l\u0027amont donne pour abandonnée. Sa suppression ne retire qu\u0027une source d\u0027articles et un suivi d\u0027activité sans usage professionnel ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingNews",
-                        "catalogue":  true,
-                        "category":  "news",
-                        "risk":  "Unwanted",
-                        "impact":  "Agrégateur d\u0027actualités préinstallé, que l\u0027amont donne pour remplacé par Microsoft News/Start. Le retirer supprime cette application de lecture d\u0027actualités et rien d\u0027autre de connu ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingSearch",
-                        "catalogue":  false,
-                        "reason":  "Composant de recherche web que l\u0027amont décrit comme intégré à la recherche Windows et présent par défaut sur les installations récentes : le signaler poserait un constat sur presque chaque machine auditée, sans qu\u0027il s\u0027agisse d\u0027un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.BingSports",
-                        "catalogue":  true,
-                        "category":  "news",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de résultats et d\u0027actualités sportives de la famille d\u0027applications Bing, que l\u0027amont donne pour abandonnée. Sa suppression ne retire que cette source de contenu ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingTranslator",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de traduction autonome adossée au service Bing. Sa suppression ne retire que cet outil de traduction, que remplace n\u0027importe quel service de traduction en ligne ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingTravel",
-                        "catalogue":  true,
-                        "category":  "news",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de contenu et de préparation de voyage de la famille d\u0027applications Bing, que l\u0027amont donne pour abandonnée. Sa suppression ne retire qu\u0027une source d\u0027articles et de suggestions ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.BingWeather",
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Widget météo préinstallé. Désinstallable sans dépendance.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Edge",
-                        "catalogue":  false,
-                        "reason":  "Navigateur livré par défaut avec Windows, dont l\u0027amont déconseille lui-même le retrait : il prive notamment le bac à sable Windows de son seul navigateur. C\u0027est une brique du système, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.GamingApp",
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Xbox. Inutile hors usage jeu ; désinstallable sans impact système.",
-                        "impactSource":  "Verified"
-                    },
-                    {
-                        "appId":  "Microsoft.GetHelp",
-                        "catalogue":  false,
-                        "reason":  "Application de support intégrée dont l\u0027amont indique que certains utilitaires de résolution de problèmes de Windows 11 dépendent : composant du système, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.Getstarted",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de conseils et de découverte de Windows, livrée préinstallée avec le système. Sa suppression ne retire qu\u0027un contenu d\u0027introduction, sans fonction dont autre chose dépende ; l\u0027amont la donne toutefois non désinstallable sur Windows 11, ce qui n\u0027a pas été vérifié ici et pourrait rendre le constat non actionnable.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.M365Companions",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Mini-applications Microsoft 365 pour les environnements d\u0027entreprise (Calendrier, Fichiers, Personnes), distinctes des applications Office installées sur le poste. Les retirer supprime ces points d\u0027entrée ; l\u0027amont signale qu\u0027elles peuvent être réinstallées si l\u0027administrateur Microsoft 365 les active, donc le constat peut réapparaître après remédiation.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Messaging",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de messagerie héritée de Windows 10, que l\u0027amont donne pour largement abandonnée et rattachée à Skype. Sa suppression retire une application qui n\u0027est plus maintenue et dont la fonction est aujourd\u0027hui couverte ailleurs ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Microsoft3DViewer",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Visionneuse de modèles 3D préinstallée avec Windows. Sur un poste qui manipule des modèles 3D, sa suppression retire cette visionneuse ; ailleurs, elle est sans usage et désinstallable sans dépendance système connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.MicrosoftJournal",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de prise de notes manuscrites pensée pour la saisie au stylet. Sans stylet, elle est sans usage ; sur un poste qui s\u0027en sert, sa suppression retire l\u0027outil et le sort des notes déjà saisies n\u0027a pas été vérifié. Aucune dépendance système connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.MicrosoftOfficeHub",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Portail d\u0027accès aux applications et documents Office, que l\u0027amont présente comme le précurseur de l\u0027application Microsoft 365. Sa suppression ne retire que ce point d\u0027entrée, pas les applications Office installées par ailleurs.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.MicrosoftPowerBIForWindows",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Client Windows du service d\u0027analyse décisionnelle Power BI. Sur un poste qui ne consulte pas de rapports Power BI, sa suppression est sans conséquence ; sur un poste qui en consomme, elle retire l\u0027outil de consultation installé. Aucune dépendance système connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.MicrosoftSolitaireCollection",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Collection de jeux de cartes préinstallée avec Windows. Sans usage professionnel sur un poste audité, sa suppression ne coûte que ces jeux ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.MicrosoftStickyNotes",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de pense-bêtes préinstallée avec Windows, que l\u0027amont donne pour remplacée par OneNote. Sa suppression retire l\u0027application ; le sort des notes déjà saisies n\u0027a pas été vérifié et dépend probablement de leur synchronisation avec le compte de l\u0027utilisateur. Aucune dépendance système connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.MixedReality.Portal",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Portail de configuration des casques Windows Mixed Reality, plateforme abandonnée par Microsoft. Sa suppression n\u0027a de conséquence que sur un poste réellement équipé d\u0027un casque compatible ; ailleurs, désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.MSPaint",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Malgré son identifiant, ce paquet est Paint 3D, l\u0027éditeur d\u0027images et de modèles 3D livré à part, et non l\u0027accessoire Paint classique, qui est un composant distinct et n\u0027est pas visé ici. Sa suppression retire cet éditeur ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.NetworkSpeedTest",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Utilitaire autonome de mesure du débit de la connexion Internet. Sa suppression ne retire qu\u0027un outil de diagnostic ponctuel, que remplace n\u0027importe quel test de débit en ligne ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.News",
-                        "catalogue":  true,
-                        "category":  "news",
-                        "risk":  "Unwanted",
-                        "impact":  "Agrégateur d\u0027actualités de Microsoft (ex-Bing News, rattaché à Microsoft Start), préinstallé avec Windows. Sa suppression retire un lecteur d\u0027actualités et rien d\u0027autre de connu.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Office.OneNote",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Version UWP de OneNote, distincte du OneNote installé par Microsoft 365. Sa suppression retire ce client de prise de notes ; les carnets synchronisés sur le compte Microsoft restent atteignables depuis un autre client OneNote, et l\u0027effet sur un carnet stocké autrement n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Office.Sway",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Client de l\u0027outil de présentation Sway, dont les documents vivent côté service Microsoft 365. Sa suppression retire le client local et laisse le service atteignable par le web ; aucune dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.OneConnect",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de gestion d\u0027abonnement d\u0027opérateur mobile (One Connect, que l\u0027amont donne pour remplacée par Mobile Plans). Sur une machine sans modem cellulaire ni eSIM elle est sans objet ; là où il y en a un, l\u0027effet de sa suppression sur la souscription d\u0027un forfait n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.OneDrive",
-                        "catalogue":  false,
-                        "reason":  "Client de stockage en nuage de première partie, intégré à l\u0027explorateur et porteur des données de l\u0027utilisateur : présent sur presque toute installation Windows, il relève du choix d\u0027usage et non de l\u0027indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.OutlookForWindows",
-                        "catalogue":  false,
-                        "reason":  "Client de messagerie livré par défaut avec Windows en remplacement de Courrier et Calendrier ; le signaler poserait un constat sur presque chaque machine récente, au même titre que le navigateur par défaut."
-                    },
-                    {
-                        "appId":  "Microsoft.Paint",
-                        "catalogue":  false,
-                        "reason":  "Accessoire d\u0027édition d\u0027image livré avec Windows depuis ses origines et proposé par défaut pour retoucher une image : c\u0027est un composant standard du système, pas un indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.PCManager",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Outil de nettoyage et d\u0027« optimisation » publié par Microsoft mais ne faisant pas partie de Windows, que l\u0027amont donne pour souvent préinstallé. Il double des fonctions que le système offre déjà ; sa suppression ne retire aucune fonction de Windows lui-même et aucune dépendance n\u0027est connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.People",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Contacts, que l\u0027amont donne pour livrée avec Courrier et Calendrier et requise par eux. Sur une machine où ces applications, désormais abandonnées, sont encore présentes, l\u0027effet de sa suppression sur leur carnet d\u0027adresses n\u0027a pas été observé ; ailleurs elle se désinstalle sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.PowerAutomateDesktop",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Outil d\u0027automatisation de tâches de bureau (RPA) préinstallé sur certaines images Windows 11. Là où des flux de bureau ont été créés, sa suppression les empêche de s\u0027exécuter ; sur une machine où personne n\u0027en a créé, elle est sans effet connu.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Print3D",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de préparation de modèles pour l\u0027impression 3D, livrée avec d\u0027anciennes versions de Windows puis abandonnée. Elle est distincte du sous-système d\u0027impression ordinaire : sans imprimante 3D elle est sans usage, et se désinstalle sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.RemoteDesktop",
-                        "catalogue":  false,
-                        "reason":  "Client d\u0027accès distant de première partie, absent des images Windows standard et donc installé délibérément : c\u0027est un outil d\u0027administration, et le signaler reviendrait à accuser l\u0027outillage de celui qui administre la machine."
-                    },
-                    {
-                        "appId":  "Microsoft.ScreenSketch",
-                        "catalogue":  false,
-                        "reason":  "Outil de capture d\u0027écran du système, câblé sur la touche Impr. écran et sur Win+Maj+S : accessoire standard de Windows présent sur chaque machine."
-                    },
-                    {
-                        "appId":  "Microsoft.SkypeApp",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Client Skype en version UWP, préinstallé sur d\u0027anciennes images Windows et que l\u0027amont donne pour abandonné. Sa suppression retire ce client de messagerie et d\u0027appel ; aucune dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.StartExperiencesApp",
-                        "catalogue":  false,
-                        "reason":  "Pièce interne de la fonctionnalité Widgets de Windows — elle alimente le fil « My Feed » du volet livré avec le système — et non une application autonome installée par l\u0027utilisateur : la signaler poserait un constat sur presque chaque machine Windows 11, au même titre que le composant d\u0027exécution des Widgets déjà écarté."
-                    },
-                    {
-                        "appId":  "Microsoft.Todos",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de listes de tâches Microsoft To Do, préinstallée avec Windows. Ses listes sont tenues côté compte Microsoft plutôt que par l\u0027application seule ; sa suppression retire le client local et rien d\u0027autre de connu.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Whiteboard",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Tableau blanc collaboratif de Microsoft, préinstallé sur certaines images. Sa suppression retire le client local ; là où il sert de support à des réunions Teams, l\u0027effet sur cet usage n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.WidgetsPlatformRuntime",
-                        "catalogue":  false,
-                        "reason":  "Composant d\u0027exécution dont dépend la fonctionnalité Widgets de Windows : c\u0027est un cadriciel du système, pas une application indésirable en soi."
-                    },
-                    {
-                        "appId":  "Microsoft.Windows.AIHub",
-                        "catalogue":  true,
-                        "category":  "promo",
-                        "risk":  "Unwanted",
-                        "impact":  "Application « AI Hub » livrée sur les machines Copilot+ (Windows 11 24H2 et suivantes), qui sert de point d\u0027entrée vers les fonctions et applications d\u0027IA de la plateforme. Ce qu\u0027elle apporte au-delà de cette mise en avant n\u0027a pas été observé ; l\u0027amont la classe comme supprimable et aucune dépendance n\u0027est connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Windows.DevHome",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Tableau de bord destiné aux développeurs (Dev Home), préinstallé sur Windows 11 et que l\u0027amont donne pour abandonné. C\u0027est une interface d\u0027agrégation et non une chaîne de compilation : sa suppression retire ce tableau de bord, et les outils de développement installés à côté ne passent pas par lui.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.Windows.Photos",
-                        "catalogue":  false,
-                        "reason":  "Visionneuse d\u0027images fournie avec Windows et application par défaut des principaux formats image : composant par défaut du système, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsAlarms",
-                        "catalogue":  false,
-                        "reason":  "Accessoire local fourni avec Windows (horloge, alarmes, minuteur), sans compte ni service en ligne : accessoire de base du système au même titre que la calculatrice, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsCalculator",
-                        "catalogue":  false,
-                        "reason":  "Calculatrice fournie avec Windows, accessoire de base attendu sur tout poste et dépourvu de tout comportement indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsCamera",
-                        "catalogue":  false,
-                        "reason":  "Application de capture par défaut de Windows pour la webcam intégrée ou connectée : c\u0027est l\u0027application système associée à un périphérique, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.windowscommunicationsapps",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Suite Courrier et Calendrier préinstallée avec Windows, que l\u0027amont donne pour arrêtée depuis que Microsoft lui a substitué le nouvel Outlook. Là où elle ne sert pas, sa suppression ne coûte rien ; là où des comptes y sont configurés, la messagerie et l\u0027agenda ne sont plus accessibles par cette application, et le devenir des données qu\u0027elle conserve localement n\u0027a pas été observé ici.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsFeedbackHub",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application préinstallée servant à remonter des retours à Microsoft sur Windows. Elle n\u0027a d\u0027usage que pour signaler un problème à Microsoft, en particulier sur un poste inscrit au programme Windows Insider ; ailleurs, désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsMaps",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application de cartographie et de navigation préinstallée, adossée au service de cartes de Microsoft. Sans usage établi sur un poste de travail, où un navigateur rend le même service ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsNotepad",
-                        "catalogue":  false,
-                        "reason":  "Éditeur de texte fourni avec Windows et application par défaut des fichiers texte : accessoire de base du système, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsSoundRecorder",
-                        "catalogue":  false,
-                        "reason":  "Enregistreur audio local fourni avec Windows, sans compte ni service associé : accessoire de base du système, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsStore",
-                        "catalogue":  false,
-                        "reason":  "Microsoft Store : canal d\u0027installation et de mise à jour des applications du système, que l\u0027amont donne lui-même pour difficilement réinstallable une fois retiré."
-                    },
-                    {
-                        "appId":  "Microsoft.WindowsTerminal",
-                        "catalogue":  false,
-                        "reason":  "Terminal par défaut de Windows 11, hôte de l\u0027invite de commandes, de PowerShell et de WSL ; le cataloguer poserait un constat sur presque chaque machine."
-                    },
-                    {
-                        "appId":  "Microsoft.Xbox.TCUI",
-                        "catalogue":  false,
-                        "reason":  "Cadriciel d\u0027interface que l\u0027amont donne pour requis — sans certitude de sa part — par le Microsoft Store, Photos et certains jeux : un composant dont d\u0027autres logiciels dépendent, pas un indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.XboxApp",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Ancienne application Xbox Console Companion, arrêtée et remplacée par l\u0027application Xbox sur un poste à jour. Elle ne rend plus le service pour lequel elle avait été installée ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.XboxGameOverlay",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Composant de superposition rattaché à la barre de jeu Xbox. Sans usage hors contexte de jeu ; l\u0027amont le dit utile ou requis pour certains jeux, mais l\u0027effet de son retrait sur un jeu donné n\u0027a pas été observé ici.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.XboxGamingOverlay",
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Superposition de jeu Xbox. Désinstallable ; revient à la mise à jour de fonctionnalité si provisionné.",
-                        "impactSource":  "Verified"
-                    },
-                    {
-                        "appId":  "Microsoft.XboxIdentityProvider",
-                        "catalogue":  false,
-                        "reason":  "Fournisseur d\u0027identité : composant de connexion aux services Xbox dont l\u0027amont indique que certains jeux et services dépendent, pas un logiciel indésirable."
-                    },
-                    {
-                        "appId":  "Microsoft.XboxSpeechToTextOverlay",
-                        "catalogue":  false,
-                        "reason":  "Composant d\u0027accessibilité (transcription de la parole en jeu) que l\u0027amont donne pour requis par certains jeux et difficilement réinstallable une fois retiré ; le signaler comme indésirable reviendrait à viser une fonction d\u0027accessibilité."
-                    },
-                    {
-                        "appId":  "Microsoft.YourPhone",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Mobile connecté (Phone Link), préinstallée, qui apparie un téléphone Android ou iOS au poste pour y relayer notifications, messages et appels — l\u0027étendue exacte des fonctions dépend du téléphone. Sur un poste sans téléphone apparié, sa suppression ne coûte rien ; là où l\u0027appariement sert, le lien avec le téléphone disparaît.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Microsoft.ZuneMusic",
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Groove Musique. Redondant avec un lecteur tiers ; désinstallable.",
-                        "impactSource":  "Verified"
-                    },
-                    {
-                        "appId":  "Microsoft.ZuneVideo",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Films et TV préinstallée, à la fois lecteur vidéo et vitrine de location et d\u0027achat de contenus Microsoft. Redondante dès qu\u0027un lecteur vidéo tiers est installé ; désinstallable sans dépendance connue, ce que devient l\u0027accès aux contenus déjà achetés par cette application n\u0027ayant pas été observé ici.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "MicrosoftCorporationII.MicrosoftFamily",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Application Sécurité familiale préinstallée, interface de gestion des comptes et des restrictions Microsoft Family. Sans objet sur un poste professionnel ; là où des contrôles familiaux sont en place, l\u0027effet de son retrait sur ces contrôles n\u0027a pas été observé ici.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "MicrosoftCorporationII.QuickAssist",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "SecurityRelevant",
-                        "impact":  "Outil d\u0027assistance à distance de Microsoft : il permet à un tiers de voir puis de piloter le poste, après saisie d\u0027un code de session et acceptation par la personne assistée. Sa présence est un canal de prise en main à distance de plus sur la machine, canal notoirement utilisé par les fraudes au faux support ; sa suppression ne coûte que cette voie d\u0027assistance.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "MicrosoftTeams",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Ancienne application Teams personnelle empaquetée pour le Microsoft Store, distincte de la nouvelle application Teams (MSTeams). Sa suppression retire ce client de messagerie et de visioconférence ; l\u0027accès aux conversations reste possible par le navigateur, et par la nouvelle application lorsqu\u0027elle est installée. Aucune dépendance d\u0027un autre logiciel envers elle n\u0027est connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "MicrosoftWindows.Client.WebExperience",
-                        "catalogue":  false,
-                        "reason":  "Composant Windows publié par Microsoft, qui porte la fonctionnalité Widgets et se met à jour par le Microsoft Store : c\u0027est une fonctionnalité du système, présente sur les installations Windows 11 courantes, et non un logiciel tiers indésirable ; la cataloguer poserait un constat sur presque chaque machine auditée."
-                    },
-                    {
-                        "appId":  "MicrosoftWindows.CrossDevice",
-                        "catalogue":  false,
-                        "reason":  "Composant Microsoft d\u0027intégration du téléphone, décrit en amont comme branché dans l\u0027Explorateur de fichiers et l\u0027appareil photo et rattaché à Mobile connecté : le retirer enlève une fonctionnalité du système, ce qui n\u0027en fait pas un logiciel indésirable installé sur la machine."
-                    },
-                    {
-                        "appId":  "MSTeams",
-                        "catalogue":  true,
-                        "category":  "communication",
-                        "risk":  "Unwanted",
-                        "impact":  "Client Microsoft Teams actuel, présent par défaut sur les éditions grand public de Windows 11. Sa suppression retire l\u0027application de bureau ; les conversations et les réunions restent accessibles par le navigateur. Sur un poste géré par une organisation, l\u0027application est vraisemblablement voulue et le constat doit être lu comme tel.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "NYTCrossword",
-                        "catalogue":  true,
-                        "category":  "game",
-                        "risk":  "Unwanted",
-                        "impact":  "Jeu de mots croisés du New York Times, distribué comme application du Microsoft Store. Sa suppression retire le jeu ; désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "OneCalendar",
-                        "catalogue":  true,
-                        "category":  "productivity",
-                        "risk":  "Unwanted",
-                        "impact":  "Application tierce qui regroupe plusieurs comptes de calendrier dans une vue unique. Sa suppression retire cette vue agrégée ; les comptes et leurs événements restent chez leurs fournisseurs respectifs. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "PandoraMediaInc",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Client du service de streaming musical Pandora. Sa suppression retire le lecteur ; le compte et les listes d\u0027écoute restent chez le fournisseur du service. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "PhototasticCollage",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application tierce de création de collages à partir de photos. Sa suppression retire l\u0027application ; les images déjà enregistrées ailleurs sur le disque ne sont pas concernées, et le sort de ce que l\u0027application conservait en propre n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "PicsArt-PhotoStudio",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Éditeur photo et outil de création graphique tiers, distribué par le Microsoft Store. Sa suppression retire l\u0027application ; les fichiers image enregistrés ailleurs sur le disque ne sont pas concernés, et le sort d\u0027éventuels projets propres à l\u0027application n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "PolarrPhotoEditorAcademicEdition",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Éditeur photo tiers, ici dans sa déclinaison « Academic Edition » distribuée par le Microsoft Store ; ce qui la distingue de l\u0027édition ordinaire n\u0027a pas été observé. Sa suppression retire l\u0027application, sans dépendance connue. Sur un poste d\u0027établissement scolaire, sa présence peut être voulue et le constat doit être lu comme tel.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "Sidia.LiveWallpaper",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application tierce qui anime le fond d\u0027écran du bureau. Sa suppression ramène le bureau à un fond d\u0027écran statique ; désinstallable sans dépendance connue. Ce qu\u0027elle exécute en arrière-plan pendant la session n\u0027a pas été observé.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "SlingTV",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Client du service de télévision en direct par abonnement Sling TV. Sa suppression retire l\u0027application ; l\u0027abonnement et son accès depuis d\u0027autres appareils ne sont pas touchés. Désinstallable sans dépendance connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "SpotifyAB.SpotifyMusic",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Client du service de streaming musical Spotify. Sa suppression retire le lecteur ; le compte et les listes de lecture restent chez le fournisseur du service. Sur un poste où l\u0027utilisateur l\u0027a installé lui-même, il ne s\u0027agit pas d\u0027un résidu de préinstallation et le constat doit être lu comme tel.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "TuneInRadio",
-                        "catalogue":  true,
-                        "category":  "media",
-                        "risk":  "Unwanted",
-                        "impact":  "Application d\u0027écoute de radios diffusées sur Internet. Sa suppression retire le lecteur ; le sort des stations mises en favori dans l\u0027application n\u0027a pas été observé. Aucune dépendance d\u0027un autre logiciel envers elle n\u0027est connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "WinZipUniversal",
-                        "catalogue":  true,
-                        "category":  "utility",
-                        "risk":  "Unwanted",
-                        "impact":  "Utilitaire tiers de compression et d\u0027extraction d\u0027archives, dans sa version empaquetée pour le Microsoft Store. Windows ouvre nativement les fichiers .zip sans lui ; pour les autres formats d\u0027archive, ce qui reste ouvrable après sa suppression dépend des outils installés à côté, ce qui n\u0027a pas été observé ici.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "XP9CXNGPPJ97XX",
-                        "catalogue":  true,
-                        "category":  "oem-preinstall",
-                        "risk":  "Unwanted",
-                        "impact":  "Assistant conversationnel de Microsoft, distribué comme application du Microsoft Store et installé par défaut sur les versions récentes de Windows 11. Sa suppression retire l\u0027application ; le devenir des points d\u0027entrée intégrés à Windows qui la lancent n\u0027a pas été observé. Aucune dépendance d\u0027un autre logiciel envers elle n\u0027est connue.",
-                        "impactSource":  "Upstream"
-                    },
-                    {
-                        "appId":  "XPFFTQ037JWMHS",
-                        "catalogue":  false,
-                        "reason":  "Navigateur web par défaut de Windows, livré et mis à jour avec le système : le cataloguer poserait un constat sur presque chaque machine auditée, et l\u0027amont signale lui-même que son retrait prive Windows Sandbox de son unique navigateur et peut affecter d\u0027autres applications."
-                    }
-                ]
+  "_comment": [
+    "Le jugement du dépôt sur les identifiants importés (ADR-006, D19). L\u0027amont fournit les",
+    "identifiants ; category, risk, impact et impactSource sont écrits ici, et rien ne les importe.",
+    "Indexé par appId amont, pas par nom convivial : un renommage amont est fréquent et ne veut rien dire.",
+    "",
+    "impactSource vaut Verified UNIQUEMENT si la note a été confrontée au logiciel réellement installé",
+    "sur une machine. Par défaut Upstream. Le mettre à Verified sans l\u0027avoir fait vide le champ de son",
+    "sens : c\u0027est la seule chose qui distingue ce catalogue d\u0027une liste de debloat.",
+    "",
+    "Deux verdicts (D22). Une entrée retenue porte category, risk, impact et impactSource. Une entrée",
+    "écartée porte catalogue:false et un reason obligatoire : la liste amont est ce qu\u0027un outil de",
+    "debloat propose de retirer, pas ce que Rempart doit appeler bloatware. Retenir coûte une note",
+    "d\u0027impact, écarter coûte un motif.",
+    "",
+    "additions : ce que le dépôt catalogue sans identifiant amont derrière. Aucune liste maintenue ne",
+    "porte d\u0027identifiants exacts pour ASUS, Acer, MSI et Razer ; l\u0027usage pour ces marques est",
+    "l\u0027appariement par nom. On n\u0027y met QUE des noms de produits, jamais des noms de marques nues :",
+    "un motif Name est un Contains sans forme negative, et un motif de marque signalerait les pilotes",
+    "du constructeur comme indesirables.",
+    "",
+    "fetch-bloatware échoue en nommant tout identifiant amont absent de ce fichier."
+  ],
+  "additions": [
+    {"id":"BLOAT-ACER-CARE","match":"Name","value":"Acer Care","category":"oem","risk":"Unwanted","impact":"Suite Acer de diagnostic, de nettoyage et de mise à jour livrée avec la machine. Sa suppression retire ce canal d'assistance du constructeur ; ce qu'il apporte au-delà des outils de Windows n'a pas été observé.","impactSource":"Upstream"},
+    {"id":"BLOAT-ASUS-ARMOURY-CRATE","match":"Name","value":"Armoury Crate","category":"oem","risk":"Unwanted","impact":"Utilitaire ASUS de pilotage du matériel : profils de ventilation, éclairage, réglages de jeu. Sa suppression retire le moyen prévu par le constructeur de régler ces éléments, et sur certains modèles il n'existe pas d'autre interface pour le faire. Ce qui reste réglable sans lui dépend du modèle et n'a pas été observé.","impactSource":"Upstream"},
+    {"id":"BLOAT-ASUS-MYASUS","match":"Name","value":"MyASUS","category":"oem","risk":"Unwanted","impact":"Portail ASUS de support, de diagnostic et de mise à jour de la machine. Sa suppression retire ce canal ; ce qu'il couvre au-delà de Windows Update dépend du modèle et n'a pas été observé.","impactSource":"Upstream"},
+    {"id":"BLOAT-MSI-DRAGON-CENTER","match":"Name","value":"Dragon Center","category":"oem","risk":"Unwanted","impact":"Utilitaire MSI de supervision et de réglage du matériel, remplacé par MSI Center sur les modèles récents. Sa suppression retire cette interface ; sur une machine où il coexiste avec son successeur, il est redondant. L'accès aux réglages matériels après retrait n'a pas été observé.","impactSource":"Upstream"},
+    {"id":"BLOAT-MSI-MYSTIC-LIGHT","match":"Name","value":"Mystic Light","category":"oem","risk":"Unwanted","impact":"Composant MSI de pilotage de l'éclairage RGB. Sa suppression retire le contrôle de l'éclairage par cet outil ; l'éclairage lui-même conserve son dernier état ou revient à son défaut, ce qui n'a pas été observé.","impactSource":"Upstream"},
+    {"id":"BLOAT-RAZER-CORTEX","match":"Name","value":"Razer Cortex","category":"oem","risk":"Unwanted","impact":"Utilitaire Razer d'optimisation de jeu et de vitrine promotionnelle. Sa suppression ne retire aucune fonction du système ; l'effet réel de ses optimisations n'a pas été observé.","impactSource":"Upstream"},
+    {"id":"BLOAT-RAZER-SYNAPSE","match":"Name","value":"Razer Synapse","category":"oem","risk":"Unwanted","impact":"Logiciel Razer de configuration des périphériques de la marque : profils de touches, sensibilité, éclairage. Sur un poste équipé de ces périphériques, sa suppression retire le moyen de modifier ces réglages ; les profils déjà enregistrés dans le matériel lui-même n'en dépendent pas.","impactSource":"Upstream"}
+  ],
+  "entries": [
+    {"appId":"4DF9E0F8.Netflix","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application cliente du service de streaming Netflix, fréquemment préinstallée sur les machines grand public. Sa suppression retire l'accès au service depuis cette application ; le service reste utilisable depuis un navigateur. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"ACGMediaPlayer","catalogue":true,"category":"media","risk":"Unwanted","impact":"Lecteur multimédia tiers, distinct des lecteurs livrés avec Windows. Sa suppression retire un lecteur redondant avec ceux du système ; l'amont ne précise ni son éditeur ni les formats qu'il prend en charge. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"ActiproSoftwareLLC","catalogue":false,"reason":"L'amont hésite lui-même sur sa nature et évoque des composants d'interface ou des briques logicielles fournies avec la machine : ce n'est pas une application que l'on utilise mais un cadriciel dont un autre logiciel installé peut dépendre, et poser un constat dessus reviendrait à signaler cette dépendance."},
+    {"appId":"AD2F1837.HPAIExperienceCenter","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application de marque HP présentant les fonctions dites « IA » de la machine et l'assistance qui les accompagne. Sa suppression retire cette vitrine ; l'effet sur les autres outils HP installés à côté n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPConnectedMusic","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application musicale de marque HP livrée avec la machine, que l'amont signale comme possiblement abandonnée. Sa suppression retire cette application ; si le service qu'elle accompagnait est bien arrêté, elle n'a plus d'usage. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPConnectedPhotopoweredbySnapfish","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application photo de marque HP adossée au service de tirage en ligne Snapfish, que l'amont signale comme possiblement abandonnée. Sa suppression retire cette application ; son effet sur les autres outils photo ou d'impression HP installés à côté n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPDesktopSupportUtilities","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Ensemble d'utilitaires d'assistance de marque HP, livré avec la machine. Sa suppression retire ces outils ; ce qu'ils apportent réellement, et ce que leur absence coûte à une prise en charge par le constructeur, n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPEasyClean","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Utilitaire de marque HP livré avec la machine. L'amont le décrit comme un outil de nettoyage ou d'optimisation du système, sans documenter ce qu'il fait réellement ; sa fonction n'a pas été observée et aucune dépendance connue ne s'y rattache.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPFileViewer","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Visionneuse de fichiers de marque HP, livrée avec la machine. Sa suppression retire cette visionneuse ; les types de fichiers qu'elle prenait en charge, et l'application vers laquelle ils basculeraient, n'ont pas été observés.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPJumpStarts","catalogue":true,"category":"promo","risk":"Unwanted","impact":"Application de marque HP que l'amont décrit comme un point d'entrée vers des tutoriels, la découverte d'applications ou les fonctions maison. Sa suppression retire ces propositions et rien d'autre de connu. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPPCHardwareDiagnosticsWindows","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Outil de diagnostic matériel fourni par HP. Sa suppression retire le moyen de lancer ces diagnostics depuis Windows ; l'existence d'un autre moyen de les exécuter sur la machine, comme ce qu'une prise en charge par le constructeur exigerait, n'a pas été vérifiée.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPPowerManager","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application HP de gestion de l'alimentation et de la batterie, venant s'ajouter aux réglages d'alimentation de Windows. Sa suppression retire cette interface ; on n'a pas observé si elle donnait accès à des réglages propres au matériel HP, ni si ceux-ci restent atteignables autrement.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPPrinterControl","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application HP de gestion des imprimantes de la marque. Sur une machine reliée à une imprimante HP, sa suppression retire cette interface de gestion ; ce qui reste accessible sans elle, par le pilote d'impression ou par Windows, n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPPrivacySettings","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application HP de réglage d'options de confidentialité de la machine. Sa suppression retire cette interface ; l'amont ne dit pas quels réglages elle commande, ni s'ils restent modifiables autrement, et cela n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPQuickDrop","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Utilitaire HP de transfert rapide de fichiers entre la machine et un autre appareil. Sa suppression retire ce mode de transfert ; les autres moyens d'échanger des fichiers ne dépendent pas de lui. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPQuickTouch","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Utilitaire de marque HP que l'amont décrit, sans certitude, comme un jeu de raccourcis ou de commandes tactiles. Sa suppression retire ces raccourcis sur les machines qui en disposent ; sa fonction exacte n'a pas été observée.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPRegistration","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application servant à enregistrer le produit auprès de HP. Une fois l'enregistrement fait, ou s'il n'est pas souhaité, elle n'a plus d'usage. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPSupportAssistant","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application d'assistance de marque HP, que l'amont présente comme le point d'entrée du support, des mises à jour et du dépannage HP. Sa suppression retire ce canal ; ce qu'il apporte réellement, et ce qui reste disponible sans lui, n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPSureShieldAI","catalogue":true,"category":"oem","risk":"SecurityRelevant","impact":"Logiciel de marque HP que l'amont présente comme un produit de sécurité, probablement une détection de menaces, sans le confirmer. Un produit de sécurité tiers peut se déclarer auprès de Windows comme protection active à la place de Microsoft Defender : sa présence comme son retrait pèsent alors sur l'état de protection de la machine. Le comportement de celui-ci vis-à-vis de Defender n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPSystemInformation","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application HP affichant les caractéristiques de la machine. Windows expose déjà ce type d'informations par ses propres outils ; si celle-ci en présente d'autres, propres au matériel HP, cela n'a pas été observé. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPWelcome","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application d'accueil HP : présentation de la machine et aide à la première prise en main. Ce qu'elle apporte au-delà de cette étape n'a pas été observé ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.HPWorkWell","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application HP de bien-être au poste de travail, décrite en amont comme offrant des rappels de pause et des conseils d'ergonomie. Sa suppression ne retire que cette application ; son interaction avec les autres outils HP installés à côté n'a pas été observée.","impactSource":"Upstream"},
+    {"appId":"AD2F1837.myHP","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Portail HP regroupant les informations sur la machine, le support et les services de la marque. Son retrait fait perdre ce point d'entrée vers l'assistance HP ; ce qu'il partage avec les autres composants HP installés à côté n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"AdobeSystemsIncorporated.AdobePhotoshopExpress","catalogue":true,"category":"media","risk":"Unwanted","impact":"Éditeur photo grand public d'Adobe, distribué par le Microsoft Store et couramment préinstallé sur les machines grand public. Sa suppression ne retire que cet outil de retouche ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Amazon.com.Amazon","catalogue":true,"category":"promo","risk":"Unwanted","impact":"Application vitrine de la boutique en ligne Amazon. Elle n'offre rien qu'un navigateur ne fasse déjà ; sa suppression ne coûte que ce raccourci vers le site marchand.","impactSource":"Upstream"},
+    {"appId":"AmazonVideo.PrimeVideo","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application de streaming Amazon Prime Video, couramment préinstallée sur les machines grand public. Le service reste accessible depuis un navigateur ; sa suppression ne prive que de l'application dédiée.","impactSource":"Upstream"},
+    {"appId":"Asphalt8Airborne","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de course automobile, du type poussé sur les installations Windows grand public plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n'en dépend.","impactSource":"Upstream"},
+    {"appId":"AutodeskSketchBook","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application de dessin et de croquis numérique d'Autodesk, distribuée par le Microsoft Store. Elle peut avoir été installée délibérément par qui dessine, auquel cas ce n'est pas un résidu d'usine. Sa suppression ne retire que cet outil ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"BytedancePte.Ltd.TikTok","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application de vidéos courtes de ByteDance, couramment poussée sur les installations Windows grand public. Le service reste accessible depuis un navigateur ; sa suppression ne prive que de l'application dédiée.","impactSource":"Upstream"},
+    {"appId":"CaesarsSlotsFreeCasino","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de machines à sous, du type installé automatiquement sur une session Windows neuve plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n'en dépend.","impactSource":"Upstream"},
+    {"appId":"Clipchamp.Clipchamp","category":"oem-preinstall","risk":"Unwanted","impact":"Éditeur vidéo préinstallé. Désinstallable sans impact.","impactSource":"Upstream"},
+    {"appId":"COOKINGFEVER","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de gestion de restaurant, du type poussé sur les installations Windows grand public plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n'en dépend.","impactSource":"Upstream"},
+    {"appId":"CyberLinkMediaSuiteEssentials","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Suite multimédia CyberLink livrée avec certaines machines, dont la composition varie selon l'édition OEM : typiquement lecture et gravure de disques, retouche vidéo légère. Sur un poste équipé d'un lecteur optique, elle peut être le seul logiciel installé capable de lire un DVD, Windows n'assurant plus cette lecture nativement ; ce point mérite vérification avant retrait.","impactSource":"Upstream"},
+    {"appId":"DellInc.DellDigitalDelivery","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Service Dell qui installe sur la machine les logiciels achetés en même temps qu'elle. Une fois ces logiciels livrés son rôle est terminé, mais le retirer avant peut empêcher de récupérer une licence commandée avec le PC et pas encore installée.","impactSource":"Upstream"},
+    {"appId":"DellInc.DellMobileConnect","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Application Dell d'appairage d'un téléphone au PC ; l'amont la décrit comme remplacée par Mobile connecté (Phone Link) de Windows. Sa suppression retire ce lien téléphone-PC ; l'équivalence exacte avec l'application Microsoft n'a pas été observée.","impactSource":"Upstream"},
+    {"appId":"DellInc.DellSupportAssistforPCs","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Agent Dell de diagnostic, de support et de mise à jour fourni par le constructeur. Sa suppression retire ce canal d'assistance et de mise à jour ; ce qu'il couvre au-delà de Windows Update ou d'un téléchargement manuel depuis le site Dell dépend du modèle et n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"Disney.37853FC22B2CE","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application de streaming Disney+, couramment préinstallée sur les machines grand public. Le service reste accessible depuis un navigateur ; sa suppression ne prive que de l'application dédiée.","impactSource":"Upstream"},
+    {"appId":"DisneyMagicKingdoms","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de construction de parc d'attractions sous licence Disney, du type poussé sur les installations Windows grand public plutôt que choisi. Sa suppression ne coûte que le jeu ; aucun autre logiciel n'en dépend.","impactSource":"Upstream"},
+    {"appId":"DrawboardPDF","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Lecteur et annotateur PDF orienté saisie au stylet, distribué par le Microsoft Store. S'il sert d'application par défaut pour les PDF, son retrait renvoie l'ouverture de ces fichiers vers un autre lecteur — Edge lit les PDF nativement, sans que l'équivalence des outils d'annotation ait été observée.","impactSource":"Upstream"},
+    {"appId":"Duolingo-LearnLanguagesforFree","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Application d'apprentissage des langues, distribuée par le Microsoft Store. Le service reste accessible depuis un navigateur ou un téléphone ; sa suppression ne coûte que l'application locale.","impactSource":"Upstream"},
+    {"appId":"E046963F.LenovoCompanion","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Portail Lenovo pour les réglages de la machine, les mises à jour de pilotes et le support. Il expose selon les modèles des réglages matériels que Windows ne propose pas, et il porte le canal de mise à jour du constructeur ; ce qui devient inaccessible après son retrait dépend du modèle et n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"EclipseManager","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Utilitaire que l'amont rattache à un constructeur, associé sans certitude à des réglages d'écran. L'amont lui-même ne l'identifie pas précisément : ce que ce logiciel pilote réellement n'a pas été observé, et l'impact d'une suppression sur les autres outils du constructeur installés à côté n'est pas connu.","impactSource":"Upstream"},
+    {"appId":"FACEBOOK.FACEBOOK","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Client du réseau social Facebook, livré ou poussé par le Store sur des installations grand public. Le service reste accessible depuis un navigateur : la désinstallation ne fait perdre que l'application.","impactSource":"Upstream"},
+    {"appId":"Facebook.Instagram","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Client du réseau social Instagram, poussé par le Store sur des installations grand public. Le service reste accessible depuis un navigateur ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"FarmVille2CountryEscape","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de simulation agricole, du type que le Store installe sans intervention de l'utilisateur sur une installation grand public. Sa suppression ne coûte que le jeu lui-même ; rien d'autre n'est connu pour en dépendre.","impactSource":"Upstream"},
+    {"appId":"flaregamesGmbH.RoyalRevolt","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de stratégie et de défense de tours installé depuis le Store. Rien d'autre n'est connu pour en dépendre ; sa suppression ne coûte que le jeu.","impactSource":"Upstream"},
+    {"appId":"Flipboard","catalogue":true,"category":"news","risk":"Unwanted","impact":"Agrégateur d'actualités et de réseaux sociaux présenté sous forme de magazine. Sa suppression ne fait perdre que l'application : les sources qu'elle agrège restent accessibles par leurs propres moyens.","impactSource":"Upstream"},
+    {"appId":"HiddenCity","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu d'aventure et de recherche d'objets cachés, du type que le Store pousse sur une installation grand public. Sa suppression ne coûte que le jeu ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"HULULLC.HULUPLUS","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application cliente du service de vidéo en flux Hulu, poussée par le Store sur des installations grand public. Le service reste accessible depuis un navigateur pour qui y est abonné ; sa suppression ne fait perdre que l'application.","impactSource":"Upstream"},
+    {"appId":"iHeartRadio","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application de radio et de musique en flux, poussée par le Store sur des installations grand public. Le service reste accessible autrement ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"king.com.BubbleWitch3Saga","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de puzzle de l'éditeur King, du type que le Store installe automatiquement sur une installation grand public. Sa suppression ne coûte que le jeu ; rien d'autre n'est connu pour en dépendre.","impactSource":"Upstream"},
+    {"appId":"king.com.CandyCrushSaga","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de puzzle de l'éditeur King, poussé par le Store sur les installations grand public. Sa suppression ne coûte que le jeu ; rien d'autre n'est connu pour en dépendre.","impactSource":"Upstream"},
+    {"appId":"king.com.CandyCrushSodaSaga","catalogue":true,"category":"game","risk":"Unwanted","impact":"Déclinaison du jeu de puzzle Candy Crush, installée par le Store sans intervention de l'utilisateur. Rien n'en dépend ; sa suppression ne coûte que le jeu.","impactSource":"Upstream"},
+    {"appId":"LenovoCompanyLimited.LenovoVantageService","catalogue":false,"reason":"L'amont le décrit comme le composant de service en arrière-plan de l'application Lenovo Vantage, et non comme un logiciel autonome : le signaler poserait un second constat sur la même installation que celui porté sur Vantage, qui est une entrée distincte, et le retirer seul dégraderait l'application sans la désinstaller."},
+    {"appId":"LGElectronics.LGMonitorApp","catalogue":true,"category":"oem","risk":"Unwanted","impact":"Utilitaire du constructeur LG servant à piloter un moniteur de la marque depuis Windows. Les réglages exactes qu'il expose, et ce que sa suppression retire réellement à l'utilisateur, n'ont pas été observés ; l'amont signale que Windows Update peut le réinstaller silencieusement quand un moniteur LG est branché.","impactSource":"Upstream"},
+    {"appId":"LinkedInforWindows","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Client du réseau professionnel LinkedIn. Le service reste accessible depuis un navigateur ; sa suppression ne fait perdre que l'application.","impactSource":"Upstream"},
+    {"appId":"MarchofEmpires","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de stratégie installé depuis le Store, en général sans intervention de l'utilisateur. Sa suppression ne coûte que le jeu ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.3DBuilder","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application Microsoft de modélisation 3D élémentaire, livrée préinstallée avec d'anciennes versions de Windows. Hors besoin de modélisation elle reste inutilisée ; sa suppression ne fait perdre que cet éditeur et rien d'autre n'est connu pour en dépendre.","impactSource":"Upstream"},
+    {"appId":"Microsoft.549981C3F5F10","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Assistant vocal Cortana, livré préinstallé avec Windows puis abandonné par Microsoft. Sa suppression ne fait perdre que l'application ; le couplage historique avec la recherche du menu Démarrer sur d'anciennes versions de Windows 10 n'a pas été vérifié ici.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingFinance","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application Microsoft d'actualités et de cotations financières, préinstallée avec d'anciennes versions de Windows et signalée abandonnée par l'amont. Sa suppression ne coûte que l'application elle-même ; rien d'autre n'est connu pour en dépendre.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingFoodAndDrink","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application Microsoft de recettes et d'actualités culinaires, préinstallée avec d'anciennes versions de Windows et signalée abandonnée par l'amont. Sa suppression ne fait perdre que l'application ; rien d'autre n'est connu pour en dépendre.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingHealthAndFitness","catalogue":true,"category":"news","risk":"Unwanted","impact":"Application de contenu santé et forme physique de la famille d'applications Bing, que l'amont donne pour abandonnée. Sa suppression ne retire qu'une source d'articles et un suivi d'activité sans usage professionnel ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingNews","catalogue":true,"category":"news","risk":"Unwanted","impact":"Agrégateur d'actualités préinstallé, que l'amont donne pour remplacé par Microsoft News/Start. Le retirer supprime cette application de lecture d'actualités et rien d'autre de connu ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingSearch","catalogue":false,"reason":"Composant de recherche web que l'amont décrit comme intégré à la recherche Windows et présent par défaut sur les installations récentes : le signaler poserait un constat sur presque chaque machine auditée, sans qu'il s'agisse d'un logiciel indésirable."},
+    {"appId":"Microsoft.BingSports","catalogue":true,"category":"news","risk":"Unwanted","impact":"Application de résultats et d'actualités sportives de la famille d'applications Bing, que l'amont donne pour abandonnée. Sa suppression ne retire que cette source de contenu ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingTranslator","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Application de traduction autonome adossée au service Bing. Sa suppression ne retire que cet outil de traduction, que remplace n'importe quel service de traduction en ligne ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingTravel","catalogue":true,"category":"news","risk":"Unwanted","impact":"Application de contenu et de préparation de voyage de la famille d'applications Bing, que l'amont donne pour abandonnée. Sa suppression ne retire qu'une source d'articles et de suggestions ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.BingWeather","category":"oem-preinstall","risk":"Unwanted","impact":"Widget météo préinstallé. Désinstallable sans dépendance.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Edge","catalogue":false,"reason":"Navigateur livré par défaut avec Windows, dont l'amont déconseille lui-même le retrait : il prive notamment le bac à sable Windows de son seul navigateur. C'est une brique du système, pas un logiciel indésirable."},
+    {"appId":"Microsoft.GamingApp","category":"game","risk":"Unwanted","impact":"Application Xbox. Inutile hors usage jeu ; désinstallable sans impact système.","impactSource":"Verified"},
+    {"appId":"Microsoft.GetHelp","catalogue":false,"reason":"Application de support intégrée dont l'amont indique que certains utilitaires de résolution de problèmes de Windows 11 dépendent : composant du système, pas un logiciel indésirable."},
+    {"appId":"Microsoft.Getstarted","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application de conseils et de découverte de Windows, livrée préinstallée avec le système. Sa suppression ne retire qu'un contenu d'introduction, sans fonction dont autre chose dépende ; l'amont la donne toutefois non désinstallable sur Windows 11, ce qui n'a pas été vérifié ici et pourrait rendre le constat non actionnable.","impactSource":"Upstream"},
+    {"appId":"Microsoft.M365Companions","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Mini-applications Microsoft 365 pour les environnements d'entreprise (Calendrier, Fichiers, Personnes), distinctes des applications Office installées sur le poste. Les retirer supprime ces points d'entrée ; l'amont signale qu'elles peuvent être réinstallées si l'administrateur Microsoft 365 les active, donc le constat peut réapparaître après remédiation.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Messaging","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Application de messagerie héritée de Windows 10, que l'amont donne pour largement abandonnée et rattachée à Skype. Sa suppression retire une application qui n'est plus maintenue et dont la fonction est aujourd'hui couverte ailleurs ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Microsoft3DViewer","catalogue":true,"category":"media","risk":"Unwanted","impact":"Visionneuse de modèles 3D préinstallée avec Windows. Sur un poste qui manipule des modèles 3D, sa suppression retire cette visionneuse ; ailleurs, elle est sans usage et désinstallable sans dépendance système connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.MicrosoftJournal","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Application de prise de notes manuscrites pensée pour la saisie au stylet. Sans stylet, elle est sans usage ; sur un poste qui s'en sert, sa suppression retire l'outil et le sort des notes déjà saisies n'a pas été vérifié. Aucune dépendance système connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.MicrosoftOfficeHub","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Portail d'accès aux applications et documents Office, que l'amont présente comme le précurseur de l'application Microsoft 365. Sa suppression ne retire que ce point d'entrée, pas les applications Office installées par ailleurs.","impactSource":"Upstream"},
+    {"appId":"Microsoft.MicrosoftPowerBIForWindows","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Client Windows du service d'analyse décisionnelle Power BI. Sur un poste qui ne consulte pas de rapports Power BI, sa suppression est sans conséquence ; sur un poste qui en consomme, elle retire l'outil de consultation installé. Aucune dépendance système connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.MicrosoftSolitaireCollection","catalogue":true,"category":"game","risk":"Unwanted","impact":"Collection de jeux de cartes préinstallée avec Windows. Sans usage professionnel sur un poste audité, sa suppression ne coûte que ces jeux ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.MicrosoftStickyNotes","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Application de pense-bêtes préinstallée avec Windows, que l'amont donne pour remplacée par OneNote. Sa suppression retire l'application ; le sort des notes déjà saisies n'a pas été vérifié et dépend probablement de leur synchronisation avec le compte de l'utilisateur. Aucune dépendance système connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.MixedReality.Portal","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Portail de configuration des casques Windows Mixed Reality, plateforme abandonnée par Microsoft. Sa suppression n'a de conséquence que sur un poste réellement équipé d'un casque compatible ; ailleurs, désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.MSPaint","catalogue":true,"category":"media","risk":"Unwanted","impact":"Malgré son identifiant, ce paquet est Paint 3D, l'éditeur d'images et de modèles 3D livré à part, et non l'accessoire Paint classique, qui est un composant distinct et n'est pas visé ici. Sa suppression retire cet éditeur ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.NetworkSpeedTest","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Utilitaire autonome de mesure du débit de la connexion Internet. Sa suppression ne retire qu'un outil de diagnostic ponctuel, que remplace n'importe quel test de débit en ligne ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.News","catalogue":true,"category":"news","risk":"Unwanted","impact":"Agrégateur d'actualités de Microsoft (ex-Bing News, rattaché à Microsoft Start), préinstallé avec Windows. Sa suppression retire un lecteur d'actualités et rien d'autre de connu.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Office.OneNote","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Version UWP de OneNote, distincte du OneNote installé par Microsoft 365. Sa suppression retire ce client de prise de notes ; les carnets synchronisés sur le compte Microsoft restent atteignables depuis un autre client OneNote, et l'effet sur un carnet stocké autrement n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Office.Sway","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Client de l'outil de présentation Sway, dont les documents vivent côté service Microsoft 365. Sa suppression retire le client local et laisse le service atteignable par le web ; aucune dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.OneConnect","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Application de gestion d'abonnement d'opérateur mobile (One Connect, que l'amont donne pour remplacée par Mobile Plans). Sur une machine sans modem cellulaire ni eSIM elle est sans objet ; là où il y en a un, l'effet de sa suppression sur la souscription d'un forfait n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"Microsoft.OneDrive","catalogue":false,"reason":"Client de stockage en nuage de première partie, intégré à l'explorateur et porteur des données de l'utilisateur : présent sur presque toute installation Windows, il relève du choix d'usage et non de l'indésirable."},
+    {"appId":"Microsoft.OutlookForWindows","catalogue":false,"reason":"Client de messagerie livré par défaut avec Windows en remplacement de Courrier et Calendrier ; le signaler poserait un constat sur presque chaque machine récente, au même titre que le navigateur par défaut."},
+    {"appId":"Microsoft.Paint","catalogue":false,"reason":"Accessoire d'édition d'image livré avec Windows depuis ses origines et proposé par défaut pour retoucher une image : c'est un composant standard du système, pas un indésirable."},
+    {"appId":"Microsoft.PCManager","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Outil de nettoyage et d'« optimisation » publié par Microsoft mais ne faisant pas partie de Windows, que l'amont donne pour souvent préinstallé. Il double des fonctions que le système offre déjà ; sa suppression ne retire aucune fonction de Windows lui-même et aucune dépendance n'est connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.People","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Application Contacts, que l'amont donne pour livrée avec Courrier et Calendrier et requise par eux. Sur une machine où ces applications, désormais abandonnées, sont encore présentes, l'effet de sa suppression sur leur carnet d'adresses n'a pas été observé ; ailleurs elle se désinstalle sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.PowerAutomateDesktop","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Outil d'automatisation de tâches de bureau (RPA) préinstallé sur certaines images Windows 11. Là où des flux de bureau ont été créés, sa suppression les empêche de s'exécuter ; sur une machine où personne n'en a créé, elle est sans effet connu.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Print3D","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Application de préparation de modèles pour l'impression 3D, livrée avec d'anciennes versions de Windows puis abandonnée. Elle est distincte du sous-système d'impression ordinaire : sans imprimante 3D elle est sans usage, et se désinstalle sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.RemoteDesktop","catalogue":false,"reason":"Client d'accès distant de première partie, absent des images Windows standard et donc installé délibérément : c'est un outil d'administration, et le signaler reviendrait à accuser l'outillage de celui qui administre la machine."},
+    {"appId":"Microsoft.ScreenSketch","catalogue":false,"reason":"Outil de capture d'écran du système, câblé sur la touche Impr. écran et sur Win+Maj+S : accessoire standard de Windows présent sur chaque machine."},
+    {"appId":"Microsoft.SkypeApp","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Client Skype en version UWP, préinstallé sur d'anciennes images Windows et que l'amont donne pour abandonné. Sa suppression retire ce client de messagerie et d'appel ; aucune dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.StartExperiencesApp","catalogue":false,"reason":"Pièce interne de la fonctionnalité Widgets de Windows — elle alimente le fil « My Feed » du volet livré avec le système — et non une application autonome installée par l'utilisateur : la signaler poserait un constat sur presque chaque machine Windows 11, au même titre que le composant d'exécution des Widgets déjà écarté."},
+    {"appId":"Microsoft.Todos","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Application de listes de tâches Microsoft To Do, préinstallée avec Windows. Ses listes sont tenues côté compte Microsoft plutôt que par l'application seule ; sa suppression retire le client local et rien d'autre de connu.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Whiteboard","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Tableau blanc collaboratif de Microsoft, préinstallé sur certaines images. Sa suppression retire le client local ; là où il sert de support à des réunions Teams, l'effet sur cet usage n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"Microsoft.WidgetsPlatformRuntime","catalogue":false,"reason":"Composant d'exécution dont dépend la fonctionnalité Widgets de Windows : c'est un cadriciel du système, pas une application indésirable en soi."},
+    {"appId":"Microsoft.Windows.AIHub","catalogue":true,"category":"promo","risk":"Unwanted","impact":"Application « AI Hub » livrée sur les machines Copilot+ (Windows 11 24H2 et suivantes), qui sert de point d'entrée vers les fonctions et applications d'IA de la plateforme. Ce qu'elle apporte au-delà de cette mise en avant n'a pas été observé ; l'amont la classe comme supprimable et aucune dépendance n'est connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Windows.DevHome","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Tableau de bord destiné aux développeurs (Dev Home), préinstallé sur Windows 11 et que l'amont donne pour abandonné. C'est une interface d'agrégation et non une chaîne de compilation : sa suppression retire ce tableau de bord, et les outils de développement installés à côté ne passent pas par lui.","impactSource":"Upstream"},
+    {"appId":"Microsoft.Windows.Photos","catalogue":false,"reason":"Visionneuse d'images fournie avec Windows et application par défaut des principaux formats image : composant par défaut du système, pas un logiciel indésirable."},
+    {"appId":"Microsoft.WindowsAlarms","catalogue":false,"reason":"Accessoire local fourni avec Windows (horloge, alarmes, minuteur), sans compte ni service en ligne : accessoire de base du système au même titre que la calculatrice, pas un logiciel indésirable."},
+    {"appId":"Microsoft.WindowsCalculator","catalogue":false,"reason":"Calculatrice fournie avec Windows, accessoire de base attendu sur tout poste et dépourvu de tout comportement indésirable."},
+    {"appId":"Microsoft.WindowsCamera","catalogue":false,"reason":"Application de capture par défaut de Windows pour la webcam intégrée ou connectée : c'est l'application système associée à un périphérique, pas un logiciel indésirable."},
+    {"appId":"Microsoft.windowscommunicationsapps","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Suite Courrier et Calendrier préinstallée avec Windows, que l'amont donne pour arrêtée depuis que Microsoft lui a substitué le nouvel Outlook. Là où elle ne sert pas, sa suppression ne coûte rien ; là où des comptes y sont configurés, la messagerie et l'agenda ne sont plus accessibles par cette application, et le devenir des données qu'elle conserve localement n'a pas été observé ici.","impactSource":"Upstream"},
+    {"appId":"Microsoft.WindowsFeedbackHub","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application préinstallée servant à remonter des retours à Microsoft sur Windows. Elle n'a d'usage que pour signaler un problème à Microsoft, en particulier sur un poste inscrit au programme Windows Insider ; ailleurs, désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.WindowsMaps","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application de cartographie et de navigation préinstallée, adossée au service de cartes de Microsoft. Sans usage établi sur un poste de travail, où un navigateur rend le même service ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.WindowsNotepad","catalogue":false,"reason":"Éditeur de texte fourni avec Windows et application par défaut des fichiers texte : accessoire de base du système, pas un logiciel indésirable."},
+    {"appId":"Microsoft.WindowsSoundRecorder","catalogue":false,"reason":"Enregistreur audio local fourni avec Windows, sans compte ni service associé : accessoire de base du système, pas un logiciel indésirable."},
+    {"appId":"Microsoft.WindowsStore","catalogue":false,"reason":"Microsoft Store : canal d'installation et de mise à jour des applications du système, que l'amont donne lui-même pour difficilement réinstallable une fois retiré."},
+    {"appId":"Microsoft.WindowsTerminal","catalogue":false,"reason":"Terminal par défaut de Windows 11, hôte de l'invite de commandes, de PowerShell et de WSL ; le cataloguer poserait un constat sur presque chaque machine."},
+    {"appId":"Microsoft.Xbox.TCUI","catalogue":false,"reason":"Cadriciel d'interface que l'amont donne pour requis — sans certitude de sa part — par le Microsoft Store, Photos et certains jeux : un composant dont d'autres logiciels dépendent, pas un indésirable."},
+    {"appId":"Microsoft.XboxApp","catalogue":true,"category":"game","risk":"Unwanted","impact":"Ancienne application Xbox Console Companion, arrêtée et remplacée par l'application Xbox sur un poste à jour. Elle ne rend plus le service pour lequel elle avait été installée ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"Microsoft.XboxGameOverlay","catalogue":true,"category":"game","risk":"Unwanted","impact":"Composant de superposition rattaché à la barre de jeu Xbox. Sans usage hors contexte de jeu ; l'amont le dit utile ou requis pour certains jeux, mais l'effet de son retrait sur un jeu donné n'a pas été observé ici.","impactSource":"Upstream"},
+    {"appId":"Microsoft.XboxGamingOverlay","category":"game","risk":"Unwanted","impact":"Superposition de jeu Xbox. Désinstallable ; revient à la mise à jour de fonctionnalité si provisionné.","impactSource":"Verified"},
+    {"appId":"Microsoft.XboxIdentityProvider","catalogue":false,"reason":"Fournisseur d'identité : composant de connexion aux services Xbox dont l'amont indique que certains jeux et services dépendent, pas un logiciel indésirable."},
+    {"appId":"Microsoft.XboxSpeechToTextOverlay","catalogue":false,"reason":"Composant d'accessibilité (transcription de la parole en jeu) que l'amont donne pour requis par certains jeux et difficilement réinstallable une fois retiré ; le signaler comme indésirable reviendrait à viser une fonction d'accessibilité."},
+    {"appId":"Microsoft.YourPhone","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Application Mobile connecté (Phone Link), préinstallée, qui apparie un téléphone Android ou iOS au poste pour y relayer notifications, messages et appels — l'étendue exacte des fonctions dépend du téléphone. Sur un poste sans téléphone apparié, sa suppression ne coûte rien ; là où l'appariement sert, le lien avec le téléphone disparaît.","impactSource":"Upstream"},
+    {"appId":"Microsoft.ZuneMusic","category":"oem-preinstall","risk":"Unwanted","impact":"Groove Musique. Redondant avec un lecteur tiers ; désinstallable.","impactSource":"Verified"},
+    {"appId":"Microsoft.ZuneVideo","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application Films et TV préinstallée, à la fois lecteur vidéo et vitrine de location et d'achat de contenus Microsoft. Redondante dès qu'un lecteur vidéo tiers est installé ; désinstallable sans dépendance connue, ce que devient l'accès aux contenus déjà achetés par cette application n'ayant pas été observé ici.","impactSource":"Upstream"},
+    {"appId":"MicrosoftCorporationII.MicrosoftFamily","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Application Sécurité familiale préinstallée, interface de gestion des comptes et des restrictions Microsoft Family. Sans objet sur un poste professionnel ; là où des contrôles familiaux sont en place, l'effet de son retrait sur ces contrôles n'a pas été observé ici.","impactSource":"Upstream"},
+    {"appId":"MicrosoftCorporationII.QuickAssist","catalogue":true,"category":"utility","risk":"SecurityRelevant","impact":"Outil d'assistance à distance de Microsoft : il permet à un tiers de voir puis de piloter le poste, après saisie d'un code de session et acceptation par la personne assistée. Sa présence est un canal de prise en main à distance de plus sur la machine, canal notoirement utilisé par les fraudes au faux support ; sa suppression ne coûte que cette voie d'assistance.","impactSource":"Upstream"},
+    {"appId":"MicrosoftTeams","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Ancienne application Teams personnelle empaquetée pour le Microsoft Store, distincte de la nouvelle application Teams (MSTeams). Sa suppression retire ce client de messagerie et de visioconférence ; l'accès aux conversations reste possible par le navigateur, et par la nouvelle application lorsqu'elle est installée. Aucune dépendance d'un autre logiciel envers elle n'est connue.","impactSource":"Upstream"},
+    {"appId":"MicrosoftWindows.Client.WebExperience","catalogue":false,"reason":"Composant Windows publié par Microsoft, qui porte la fonctionnalité Widgets et se met à jour par le Microsoft Store : c'est une fonctionnalité du système, présente sur les installations Windows 11 courantes, et non un logiciel tiers indésirable ; la cataloguer poserait un constat sur presque chaque machine auditée."},
+    {"appId":"MicrosoftWindows.CrossDevice","catalogue":false,"reason":"Composant Microsoft d'intégration du téléphone, décrit en amont comme branché dans l'Explorateur de fichiers et l'appareil photo et rattaché à Mobile connecté : le retirer enlève une fonctionnalité du système, ce qui n'en fait pas un logiciel indésirable installé sur la machine."},
+    {"appId":"MSTeams","catalogue":true,"category":"communication","risk":"Unwanted","impact":"Client Microsoft Teams actuel, présent par défaut sur les éditions grand public de Windows 11. Sa suppression retire l'application de bureau ; les conversations et les réunions restent accessibles par le navigateur. Sur un poste géré par une organisation, l'application est vraisemblablement voulue et le constat doit être lu comme tel.","impactSource":"Upstream"},
+    {"appId":"NYTCrossword","catalogue":true,"category":"game","risk":"Unwanted","impact":"Jeu de mots croisés du New York Times, distribué comme application du Microsoft Store. Sa suppression retire le jeu ; désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"OneCalendar","catalogue":true,"category":"productivity","risk":"Unwanted","impact":"Application tierce qui regroupe plusieurs comptes de calendrier dans une vue unique. Sa suppression retire cette vue agrégée ; les comptes et leurs événements restent chez leurs fournisseurs respectifs. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"PandoraMediaInc","catalogue":true,"category":"media","risk":"Unwanted","impact":"Client du service de streaming musical Pandora. Sa suppression retire le lecteur ; le compte et les listes d'écoute restent chez le fournisseur du service. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"PhototasticCollage","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application tierce de création de collages à partir de photos. Sa suppression retire l'application ; les images déjà enregistrées ailleurs sur le disque ne sont pas concernées, et le sort de ce que l'application conservait en propre n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"PicsArt-PhotoStudio","catalogue":true,"category":"media","risk":"Unwanted","impact":"Éditeur photo et outil de création graphique tiers, distribué par le Microsoft Store. Sa suppression retire l'application ; les fichiers image enregistrés ailleurs sur le disque ne sont pas concernés, et le sort d'éventuels projets propres à l'application n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"PolarrPhotoEditorAcademicEdition","catalogue":true,"category":"media","risk":"Unwanted","impact":"Éditeur photo tiers, ici dans sa déclinaison « Academic Edition » distribuée par le Microsoft Store ; ce qui la distingue de l'édition ordinaire n'a pas été observé. Sa suppression retire l'application, sans dépendance connue. Sur un poste d'établissement scolaire, sa présence peut être voulue et le constat doit être lu comme tel.","impactSource":"Upstream"},
+    {"appId":"Sidia.LiveWallpaper","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application tierce qui anime le fond d'écran du bureau. Sa suppression ramène le bureau à un fond d'écran statique ; désinstallable sans dépendance connue. Ce qu'elle exécute en arrière-plan pendant la session n'a pas été observé.","impactSource":"Upstream"},
+    {"appId":"SlingTV","catalogue":true,"category":"media","risk":"Unwanted","impact":"Client du service de télévision en direct par abonnement Sling TV. Sa suppression retire l'application ; l'abonnement et son accès depuis d'autres appareils ne sont pas touchés. Désinstallable sans dépendance connue.","impactSource":"Upstream"},
+    {"appId":"SpotifyAB.SpotifyMusic","catalogue":true,"category":"media","risk":"Unwanted","impact":"Client du service de streaming musical Spotify. Sa suppression retire le lecteur ; le compte et les listes de lecture restent chez le fournisseur du service. Sur un poste où l'utilisateur l'a installé lui-même, il ne s'agit pas d'un résidu de préinstallation et le constat doit être lu comme tel.","impactSource":"Upstream"},
+    {"appId":"TuneInRadio","catalogue":true,"category":"media","risk":"Unwanted","impact":"Application d'écoute de radios diffusées sur Internet. Sa suppression retire le lecteur ; le sort des stations mises en favori dans l'application n'a pas été observé. Aucune dépendance d'un autre logiciel envers elle n'est connue.","impactSource":"Upstream"},
+    {"appId":"WinZipUniversal","catalogue":true,"category":"utility","risk":"Unwanted","impact":"Utilitaire tiers de compression et d'extraction d'archives, dans sa version empaquetée pour le Microsoft Store. Windows ouvre nativement les fichiers .zip sans lui ; pour les autres formats d'archive, ce qui reste ouvrable après sa suppression dépend des outils installés à côté, ce qui n'a pas été observé ici.","impactSource":"Upstream"},
+    {"appId":"XP9CXNGPPJ97XX","catalogue":true,"category":"oem-preinstall","risk":"Unwanted","impact":"Assistant conversationnel de Microsoft, distribué comme application du Microsoft Store et installé par défaut sur les versions récentes de Windows 11. Sa suppression retire l'application ; le devenir des points d'entrée intégrés à Windows qui la lancent n'a pas été observé. Aucune dépendance d'un autre logiciel envers elle n'est connue.","impactSource":"Upstream"},
+    {"appId":"XPFFTQ037JWMHS","catalogue":false,"reason":"Navigateur web par défaut de Windows, livré et mis à jour avec le système : le cataloguer poserait un constat sur presque chaque machine auditée, et l'amont signale lui-même que son retrait prive Windows Sandbox de son unique navigateur et peut affecter d'autres applications."}
+  ]
 }
