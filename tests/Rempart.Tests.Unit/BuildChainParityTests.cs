@@ -299,6 +299,57 @@ public sealed class BuildChainParityTests
     }
 
     /// <summary>
+    /// A <c>${{ }}</c> expression inside a <c>run:</c> body is not a value the shell receives:
+    /// the runner substitutes its text into the script before any interpreter parses it, so
+    /// whatever the expression holds becomes source code. <c>release.yml</c> read the tag that
+    /// way three times, from an input <c>workflow_dispatch</c> accepts as free text, on the one
+    /// job in this repository that carries <c>contents: write</c> and a <c>GH_TOKEN</c>: a tag
+    /// of the form <c>v1.0.0";&lt;command&gt;;"</c> closed the literal and ran the rest.
+    ///
+    /// <para>
+    /// The rule GitHub documents is to bind the expression to the step's <c>env:</c> and read
+    /// it back with <c>$env:NAME</c>, where it is data the whole way. That is a rule about a
+    /// shape, not about a list of known-bad lines — which is why it is checked here over every
+    /// workflow found on disk rather than over the two that exist today. <c>with:</c> blocks
+    /// are deliberately out of scope: a value passed as an action input is never handed to a
+    /// shell.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_workflow_expands_an_expression_inside_a_script_body()
+    {
+        var examined = 0;
+        var offences = new List<string>();
+
+        foreach (var file in Workflows)
+        {
+            foreach (var (line, body) in ScriptBodies(RepositoryFiles.Read(file)))
+            {
+                examined++;
+                // Singleline: the runner expands an expression whose braces sit on two lines
+                // exactly as it expands one on a single line, and without this the guard read
+                // the dangerous form as absent.
+                offences.AddRange(Regex.Matches(body, @"\$\{\{.*?\}\}", RegexOptions.Singleline)
+                    .Select(match => $"{file}:{line + body.Take(match.Index).Count(c => c == '\n')}"
+                        + $" → {Regex.Replace(match.Value, @"\s+", " ").Trim()}"));
+            }
+        }
+
+        Assert.True(examined > 0,
+            "Aucun bloc run: n'a été extrait des workflows : soit ils n'exécutent plus rien, "
+            + "soit ce test ne sait plus les lire, et il passerait au vert quoi qu'il arrive.");
+
+        Assert.True(offences.Count == 0,
+            "Une expression ${{ }} est développée à l'intérieur d'un corps de script — "
+            + string.Join(" ; ", offences)
+            + ". Le runner y colle le texte brut avant que l'interpréteur ne l'analyse : une "
+            + "valeur portant un guillemet referme le littéral, et ce qui suit s'exécute avec "
+            + "les droits du job — c'est ainsi que l'étiquette de release, texte libre venu "
+            + "de workflow_dispatch, atteignait un runner portant contents: write et un "
+            + "GH_TOKEN. Lier la valeur au bloc env: du step, puis la lire par $env:NOM.");
+    }
+
+    /// <summary>
     /// The stick <c>release.yml</c> assembles and the folder <c>verify.ps1</c> runs the binary
     /// from must hold the same things.
     ///
@@ -386,26 +437,120 @@ public sealed class BuildChainParityTests
     }
 
     /// <summary>
-    /// Every file that decides whether a scan counts as having succeeded — the workflows
-    /// <em>enumerated from disk</em>, plus the local script.
+    /// Every workflow, <em>enumerated from disk</em> rather than named.
     ///
     /// <para>
-    /// Listing the workflows by name was this guard's own version of the defect it exists
-    /// to catch. A fourth workflow carrying the historical <c>{0, 3}</c> passed green:
-    /// proven by dropping a <c>nightly.yml</c> in, whole suite still passing. The debt
-    /// being closed here is "the same fact written by hand in several files that nothing
-    /// relates" — writing the file list by hand reproduced it one level up.
+    /// Listing them by name was this guard's own version of the defect it exists to catch. A
+    /// fourth workflow carrying the historical <c>{0, 3}</c> passed green: proven by dropping
+    /// a <c>nightly.yml</c> in, whole suite still passing. The debt being closed here is "the
+    /// same fact written by hand in several files that nothing relates" — writing the file
+    /// list by hand reproduced it one level up.
     /// </para>
     /// </summary>
-    private static string[] Files { get; } =
+    private static string[] Workflows { get; } =
     [
         .. Directory
-            .EnumerateFiles(Path.Combine(RepositoryFiles.Root, ".github", "workflows"), "*.yml")
+            .EnumerateFiles(Path.Combine(RepositoryFiles.Root, ".github", "workflows"))
+            // Both spellings. Actions runs a .yaml exactly as it runs a .yml, so a guard
+            // that reads one of them is the hand-written list one directory up: today the
+            // folder happens to hold only .yml files, and "happens to" is the whole defect.
+            .Where(path => path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
             .Select(path => Path.GetRelativePath(RepositoryFiles.Root, path)
                 .Replace(Path.DirectorySeparatorChar, '/'))
             .OrderBy(path => path, StringComparer.Ordinal),
-        Verify,
     ];
+
+    /// <summary>
+    /// Every file that decides whether a scan counts as having succeeded — the workflows,
+    /// plus the local script.
+    /// </summary>
+    private static string[] Files { get; } = [.. Workflows, Verify];
+
+    /// <summary>
+    /// The body of every <c>run:</c> of a workflow, paired with the line its key sits on.
+    ///
+    /// <para>
+    /// Read by indentation rather than by a YAML parser, and the shape is what makes that
+    /// enough: whichever scalar style the key uses — <c>|</c>, <c>&gt;</c> or a plain value
+    /// spilling onto the next lines — the body is exactly the run of lines indented past the
+    /// <c>run:</c> key. Stopping at the first line that is not tells the guard where the
+    /// sibling keys resume, which is what keeps an <c>env:</c> block out of the text it
+    /// examines: binding an expression there is the fix, not the defect.
+    /// </para>
+    /// </summary>
+    private static List<(int Line, string Body)> ScriptBodies(string workflow)
+    {
+        var lines = workflow.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var bodies = new List<(int, string)>();
+
+        for (var index = 0; index < lines.Length; index++)
+        {
+            var opening = Regex.Match(lines[index], @"^(?<lead>[ ]*(?:-[ ]+)?)run:(?<rest>.*)$");
+            if (!opening.Success)
+            {
+                continue;
+            }
+
+            var column = opening.Groups["lead"].Length;
+
+            // `defaults: run:` spells the same key and is a mapping, not a script:
+            // `working-directory: ${{ github.workspace }}` under it is legitimate and reaches
+            // no shell. Told apart by the key it hangs from rather than by its own shape,
+            // because a step may legally write `run:` with the script on the lines below.
+            if (EnclosingKey(lines, index, column) == "defaults")
+            {
+                continue;
+            }
+
+            var body = new List<string> { opening.Groups["rest"].Value };
+
+            var next = index + 1;
+            for (; next < lines.Length; next++)
+            {
+                var line = lines[next];
+                if (line.Trim().Length > 0 && line.Length - line.TrimStart().Length <= column)
+                {
+                    break;
+                }
+
+                body.Add(line);
+            }
+
+            bodies.Add((index + 1, string.Join('\n', body)));
+            index = next - 1;
+        }
+
+        return bodies;
+    }
+
+    /// <summary>
+    /// The mapping key a line hangs from: the nearest line above it that is less indented and
+    /// ends on a key. Enough to tell <c>defaults: run:</c> from a step's, which is the only
+    /// question asked of it, and it stops at the first candidate rather than modelling the
+    /// document — a YAML parser is what this file has already refused to write once.
+    /// </summary>
+    private static string? EnclosingKey(string[] lines, int index, int column)
+    {
+        for (var above = index - 1; above >= 0; above--)
+        {
+            var line = lines[above];
+            if (line.Trim().Length == 0)
+            {
+                continue;
+            }
+
+            if (line.Length - line.TrimStart().Length >= column)
+            {
+                continue;
+            }
+
+            var key = Regex.Match(line, @"^[ ]*(?:-[ ]+)?(?<key>[A-Za-z0-9_-]+):\s*$");
+            return key.Success ? key.Groups["key"].Value : null;
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// The accepted-code sets of a file, one entry per gate found. The shape is identical in
