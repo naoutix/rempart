@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace Rempart.Tests.Unit;
@@ -219,34 +220,78 @@ public sealed class CoverageSettingsTests
     /// Same shape as the drift this repository keeps paying for: two hand-written names,
     /// in two files, that no compiler relates to one another.
     /// </para>
+    ///
+    /// <para>
+    /// Each filter is read together with the <c>dotnet test</c> it belongs to, because a
+    /// filter is only ever applied to one project: a version of this guard that enumerated
+    /// <c>tests/</c> recursively stayed green while <c>Versioned_fixtures_are_anonymised</c>
+    /// moved to the Windows suite, which is the same nothing-matched, exit-0 job under a
+    /// different cause. And the candidates are the assembly's own <c>[Fact]</c> and
+    /// <c>[Theory]</c> methods read by reflection, not <c>public void</c> read by regex:
+    /// the old pattern accepted <c>Dispose</c>, a name that matches no test at all.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Every_test_name_a_CI_job_filters_on_exists()
+    public void Every_test_name_a_CI_job_filters_on_matches_a_test_of_the_project_that_job_runs()
     {
-        var filtered = Regex.Matches(RepositoryFiles.Read(Ci),
-                """FullyQualifiedName~([A-Za-z_][A-Za-z0-9_]*)""")
-            .Select(m => m.Groups[1].Value)
-            .ToList();
+        var workflow = RepositoryFiles.Read(Ci);
 
-        Assert.NotEmpty(filtered);
+        var invocations = Regex.Matches(workflow, @"dotnet test\s+(\S+)");
+        // The lookahead carries the closing quote so the pattern itself does not end on one,
+        // which a raw string literal cannot express without a wider delimiter.
+        var filters = Regex.Matches(workflow, """--filter\s+"FullyQualifiedName~([^"]+)(?=")""");
 
-        var declared = Directory
-            .EnumerateFiles(RepositoryFiles.Resolve("tests"), "*.cs",
-                SearchOption.AllDirectories)
-            .Where(path => !path.Split(Path.DirectorySeparatorChar)
-                .Any(segment => segment is "bin" or "obj"))
-            .SelectMany(path => Regex.Matches(File.ReadAllText(path),
-                    """public\s+void\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(""")
-                .Select(m => m.Groups[1].Value))
-            .ToHashSet(StringComparer.Ordinal);
+        Assert.True(filters.Count > 0,
+            $"Aucun --filter FullyQualifiedName dans {Ci} : ce garde n'a plus rien à "
+            + "confronter et passerait à vide.");
 
-        var missing = filtered.Where(name => !declared.Contains(name)).ToList();
+        // Typed, because MatchCollection still exposes the non-generic enumerator first.
+        foreach (Match filter in filters)
+        {
+            var name = filter.Groups[1].Value;
 
-        Assert.True(missing.Count == 0,
-            "Un job de la CI filtre sur un test qui n'existe pas : "
-            + $"{string.Join(", ", missing)}. Le job n'exécute alors aucun test et sort 0, "
-            + "donc il est vert en permanence sans rien vérifier.");
+            // The invocation a filter belongs to is the last one before it: a run block
+            // names its project first, then narrows it.
+            var invocation = invocations.LastOrDefault(run => run.Index < filter.Index);
+
+            Assert.True(invocation is not null,
+                $"Le filtre « {name} » de {Ci} ne suit aucun dotnet test : rien ne dit sur "
+                + "quel projet il porte, donc rien ne peut vérifier qu'il désigne un test.");
+
+            var project = invocation!.Groups[1].Value;
+            var assembly = project[(project.LastIndexOf('/') + 1)..];
+
+            Assert.True(assembly == ThisAssembly,
+                $"Le job filtrant sur « {name} » lance {project}, que cette assembly ne peut "
+                + $"pas inspecter — elle est {ThisAssembly}. Le filtre reste alors invérifié : "
+                + "il faut un garde jumeau dans le projet de tests concerné.");
+
+            Assert.True(TestNames.Any(test => test.Contains(name, StringComparison.Ordinal)),
+                $"Un job de la CI filtre sur « {name} », qui ne désigne aucun test de "
+                + $"{project}. Le job n'exécute alors aucun test et sort 0, donc il est vert "
+                + "en permanence sans rien vérifier.");
+        }
     }
+
+    private static string ThisAssembly { get; } =
+        typeof(CoverageSettingsTests).Assembly.GetName().Name!;
+
+    /// <summary>
+    /// Every test this assembly ships, by the name VSTest matches <c>~</c> against.
+    ///
+    /// <para>
+    /// Reflection over the attribute xunit itself dispatches on — <c>[Theory]</c> derives
+    /// from <c>[Fact]</c>, so both are caught — rather than a pattern over the sources.
+    /// A name a regex reads out of a file is a name that may belong to a helper; a name
+    /// read here belongs to something the runner will actually execute.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<string> TestNames { get; } = typeof(CoverageSettingsTests)
+        .Assembly.GetTypes()
+        .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+        .Where(method => method.IsDefined(typeof(FactAttribute), inherit: true))
+        .Select(method => $"{method.DeclaringType!.FullName}.{method.Name}")
+        .ToList();
 
     private static string[] Settings { get; } = [CoreSettings, WindowsSettings];
 
