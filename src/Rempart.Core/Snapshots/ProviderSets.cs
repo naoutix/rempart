@@ -25,6 +25,14 @@ namespace Rempart.Core.Snapshots;
 /// </para>
 ///
 /// <para>
+/// The paragraph above was written before it was true, and the delay cost precisely what
+/// this class exists to prevent: a third copy survived in <c>CompromiseMarkersTests</c>,
+/// which no guard ever looked at, and it lost <c>dynamicPortRange</c> the day that provider
+/// was added here. A claim of « written once » is worth no more than the guard that holds
+/// it, which is why that file now carries one of its own.
+/// </para>
+///
+/// <para>
 /// It sits in Core rather than beside the commands for the reason ADR-005 records twice:
 /// <c>Rempart.Cli</c> targets <c>net10.0-windows</c> and the Linux job does not compile it,
 /// so a wiring living there could carry no guard that CI runs.

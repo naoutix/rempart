@@ -34,13 +34,20 @@ public sealed class LiveSystemInfoProviderTests
         Assert.Contains(info.FirmwareType, new[] { "uefi", "bios", "unknown" });
     }
 
-    [Fact]
-    public void Domain_membership_is_answered_without_throwing()
-    {
-        // The value depends on the machine; what is tested is that the native call
-        // completes and does not leak unreleased memory.
-        _ = info.IsDomainJoined;
-    }
+    // A test named Domain_membership_is_answered_without_throwing stood here, whose whole
+    // body was `_ = info.IsDomainJoined;`, and it was deleted rather than repaired. Two
+    // mutations say why. Inverting the verdict NetGetJoinInformation returns left all four
+    // tests of this class green — the wrong-but-plausible answer the summary above warns
+    // about, and nothing here sees it. Making the call throw failed all four at once, from
+    // the field initialiser: the "without throwing" it claimed was the constructor's doing,
+    // not its own. It asserted nothing that its neighbours were not already asserting.
+    //
+    // Nothing replaces it, because on a machine that is not domain-joined there is nothing
+    // to confront the answer with: `false` is correct here whether the P/Invoke works or
+    // fails, so no assertion available to CI can tell those two apart. The call itself stays
+    // exercised — every test of this class materialises `info`, and the one below reads the
+    // property back — and the gap is now visible instead of being papered over by a green
+    // test. Same reasoning as the deletion recorded at the end of LiveProvidersTests.
 
     [Fact]
     public void Reading_twice_gives_a_stable_answer()

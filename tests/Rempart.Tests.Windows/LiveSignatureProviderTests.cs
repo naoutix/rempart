@@ -1,5 +1,6 @@
 using Rempart.Core.Providers;
 using Rempart.Windows;
+using Xunit.Abstractions;
 
 namespace Rempart.Tests.Windows;
 
@@ -8,7 +9,7 @@ namespace Rempart.Tests.Windows;
 /// program launched at startup from an executable dropped there by a third party: a
 /// path and a name are trivial to imitate, a signature is not.
 /// </summary>
-public sealed class LiveSignatureProviderTests
+public sealed class LiveSignatureProviderTests(ITestOutputHelper output)
 {
     private readonly LiveSignatureProvider signatures = new();
 
@@ -22,22 +23,34 @@ public sealed class LiveSignatureProviderTests
         Assert.NotNull(result.Sha256);
     }
 
+    /// <summary>
+    /// The important test. These binaries carry no embedded signature: theirs lives in a
+    /// separate .cat catalog. A verification that only examines the file reports them as
+    /// unsigned — and then classifies nearly every automatic startup entry of a healthy
+    /// Windows as suspect. The first version did exactly that, which blocked its release.
+    ///
+    /// <para>
+    /// <c>SecurityHealthSystray.exe</c> is missing from some Windows editions, so a case
+    /// here can legitimately not run — and it used to stand down in silence, alone among
+    /// the conditional skips of this project. A green case that verified nothing looks
+    /// exactly like a green case that did, which is the shape the whole suite refuses:
+    /// the reason is now on the test output.
+    /// </para>
+    /// </summary>
     [Theory]
     [InlineData("cmd.exe")]
     [InlineData("notepad.exe")]
     [InlineData("SecurityHealthSystray.exe")]
     public void A_catalog_signed_binary_verifies_as_valid(string name)
     {
-        // The important test. These binaries carry no embedded signature: theirs lives
-        // in a separate .cat catalog. A verification that only examines the file
-        // reports them as unsigned -- and then classifies nearly every automatic
-        // startup entry of a healthy Windows as suspect.
-        //
-        // The first version did exactly that, which blocked its release.
         var path = Path.Combine(Environment.SystemDirectory, name);
 
         if (!File.Exists(path))
         {
+            output.WriteLine(
+                $"{name} est absent de {Environment.SystemDirectory} — cette édition de "
+                + "Windows ne le livre pas. Contrôle non exécuté : validation d'un binaire "
+                + "signé par catalogue.");
             return;
         }
 

@@ -433,7 +433,13 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
             + "rejeu ultérieur ne peut retrouver ce qui n'a jamais été écrit");
     }
 
-    private static void AssertEveryProviderIsWired(ProviderSet wiring, string prefix, string harm)
+    /// <summary>
+    /// Internal rather than private because the harm it describes is not specific to the
+    /// replay: any test handing a whole snapshot-backed set to the collectors needs the
+    /// same check, and a second copy of this reflection would be the very drift it exists
+    /// to catch. <c>CompromiseMarkersTests</c> is the other caller.
+    /// </summary>
+    internal static void AssertEveryProviderIsWired(ProviderSet wiring, string prefix, string harm)
     {
         var wired = typeof(ProviderSet).GetProperties()
             .Where(property => property.PropertyType.IsInterface)

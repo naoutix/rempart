@@ -123,6 +123,28 @@ public sealed class CompromiseMarkersTests
     }
 
     /// <summary>
+    /// The set the markers are judged through is the whole one, checked by the same
+    /// reflection the replay guard uses rather than by reading the wiring below.
+    ///
+    /// <para>
+    /// A slot left on its no-op fallback is invisible to everything else here.
+    /// <see cref="Each_marker_is_judged_as_expected"/> only names markers that exist, so a
+    /// silent provider is one the table never asks about; and
+    /// <see cref="Nothing_is_planted_unless_asked"/> asserts <em>absences</em>, which an
+    /// inert provider satisfies vacuously. That is how the hand-written wiring this file
+    /// used to carry lost <c>dynamicPortRange</c> with the whole suite green.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_markers_are_judged_through_a_fully_wired_set()
+    {
+        FixtureReplayTests.AssertEveryProviderIsWired(
+            Providers(Build(compromised: true)), "Snapshot",
+            "sous les marqueurs de compromission, donc un collecteur qui tourne à vide "
+            + "pendant que les assertions d'absence de ce fichier restent satisfaites");
+    }
+
+    /// <summary>
     /// The collectors whose surface the markers touch, named rather than taken wholesale
     /// from <see cref="ScanEngine.DefaultFindingCollectors"/>.
     ///
@@ -163,27 +185,20 @@ public sealed class CompromiseMarkersTests
         return findings;
     }
 
+    /// <summary>
+    /// The replay wiring — <see cref="SnapshotProviders.Replaying"/>, the same call
+    /// <c>rempart scan --from</c> makes, as <c>FixtureReplayTests</c> already does.
+    ///
+    /// <para>
+    /// This used to be a second copy of that list, written by hand, and it had already
+    /// drifted: <c>dynamicPortRange</c> was added to the shipped wiring and never here, so
+    /// the markers were judged with the port-range provider silently on its no-op fallback.
+    /// <c>ProviderSets.cs</c> claimed the copy eliminated while it was still standing —
+    /// which is exactly why the claim is worth nothing unless the copy is gone.
+    /// </para>
+    /// </summary>
     private static ProviderSet Providers(MachineSnapshot snapshot) =>
-        new(
-            new SnapshotRegistryProvider(snapshot),
-            new SnapshotSystemInfoProvider(snapshot),
-            services: new SnapshotServiceStateProvider(snapshot),
-            policy: new SnapshotSecurityPolicyProvider(snapshot),
-            wmi: new SnapshotWmiProvider(snapshot),
-            signatures: new SnapshotSignatureProvider(snapshot),
-            files: new SnapshotFileSystemProvider(snapshot),
-            scheduledTasks: new SnapshotScheduledTaskProvider(snapshot),
-            drivers: new SnapshotDriverProvider(snapshot),
-            processes: new SnapshotProcessProvider(snapshot),
-            listeningPorts: new SnapshotListeningPortProvider(snapshot),
-            firewall: new SnapshotFirewallProvider(snapshot),
-            dns: new SnapshotDnsProvider(snapshot),
-            hostsFile: new SnapshotHostsFileProvider(snapshot),
-            proxy: new SnapshotProxyProvider(snapshot),
-            wifi: new SnapshotWifiProfileProvider(snapshot),
-            softwareInventory: new SnapshotSoftwareInventoryProvider(snapshot),
-            browserExtensions: new SnapshotBrowserExtensionProvider(snapshot),
-            componentStore: new SnapshotComponentStoreProvider(snapshot));
+        SnapshotProviders.Replaying(snapshot);
 
     /// <summary>
     /// A bare source capture: no scheduled tasks, no registry, nothing the markers could
