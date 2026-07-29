@@ -143,6 +143,20 @@ public static class Anonymiser
         snapshot.DirectoriesDiagnostic = snapshot.DirectoriesDiagnostic.ToDictionary(
             entry => ScrubProfile(entry.Key), entry => ScrubProfile(entry.Value));
 
+        // The four siblings of the map above, for the same reason and a milestone later.
+        // A read that failed explains itself in free text, and free text quotes what it
+        // failed on — which is how the Firefox profile salt reached a capture that hashed
+        // it in the neighbouring field.
+        //
+        // What this promises is the account name in a path, which is what ScrubProfile can
+        // find. An identifier embedded in some other shape cannot be scrubbed reliably
+        // after the fact: that belongs where the sentence is written, and is why
+        // LiveBrowserExtensionProvider no longer names the profile directory.
+        snapshot.DriversDiagnostic = ScrubDiagnostic(snapshot.DriversDiagnostic);
+        snapshot.ProcessesDiagnostic = ScrubDiagnostic(snapshot.ProcessesDiagnostic);
+        snapshot.ListeningPortsDiagnostic = ScrubDiagnostic(snapshot.ListeningPortsDiagnostic);
+        snapshot.BrowserExtensionsDiagnostic = ScrubDiagnostic(snapshot.BrowserExtensionsDiagnostic);
+
         if (snapshot.SystemInfo is { } info)
         {
             snapshot.SystemInfo = info with { MachineName = Hash(info.MachineName) };
@@ -236,6 +250,13 @@ public static class Anonymiser
     {
         Server = ScrubHostPort(scope.Server),
         AutoConfigUrl = ScrubUrlHost(scope.AutoConfigUrl),
+
+        // The exclusion list names the internal domains the machine reaches directly, and
+        // very often the proxy itself — the same host Server was just hashed to hide. It
+        // travelled in the clear three fields away from that hash, and ProxyCollector
+        // copies it verbatim into a finding's details, so an "anonymised" capture named
+        // the employer in its own report.
+        Bypass = [.. scope.Bypass.Select(ScrubHostPort).OfType<string>()],
     };
 
     private static string? ScrubHostPort(string? server)
@@ -274,8 +295,20 @@ public static class Anonymiser
         return $"{uri.Scheme}://{Hash(uri.Host)}{uri.PathAndQuery}";
     }
 
+    /// <summary>
+    /// A surface that was never collected has no diagnostic, and a null one stays null:
+    /// « I did not look » and « I looked and could not » are different answers, and the
+    /// replay reads them differently.
+    /// </summary>
+    private static string? ScrubDiagnostic(string? text) =>
+        text is null ? null : ScrubProfile(text);
+
     private static bool IsLocalToken(string value) =>
-        value.Contains("127.0.0.1", StringComparison.Ordinal)
+        // WinINET's own word for "any name without a dot". It designates nobody, exists
+        // identically everywhere, and hashing it would lose the routing decision a replay
+        // has to reach again.
+        value is "<local>"
+        || value.Contains("127.0.0.1", StringComparison.Ordinal)
         || value.Contains("localhost", StringComparison.OrdinalIgnoreCase)
         || value.Contains("[::1]", StringComparison.Ordinal)
         || value is "::1";

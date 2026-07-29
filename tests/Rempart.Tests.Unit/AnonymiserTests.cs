@@ -274,6 +274,114 @@ public sealed class AnonymiserTests
         Assert.Equal(once, twice);
     }
 
+    /// <summary>
+    /// The exclusion list names the internal domains a machine talks to directly, and
+    /// very often the proxy itself — the same host the server field is hashed to hide.
+    /// It sat three JSON fields from that hash, in the clear, in a capture whose
+    /// <c>anonymised</c> flag read true.
+    /// </summary>
+    [Fact]
+    public void The_proxy_exclusion_list_is_scrubbed_like_the_server_it_names()
+    {
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default,
+            Proxy = new ProxyConfiguration(
+                new ProxyScope(true, "proxy92.corp.example", null,
+                    ["*.corp.example", "10.*", "proxy92.corp.example", "<local>"]),
+                ProxyScope.Disabled,
+                false),
+        };
+
+        var bypass = Anonymiser.Apply(snapshot).Proxy!.WinInet.Bypass;
+
+        Assert.DoesNotContain(bypass, entry => entry.Contains("corp.example"));
+
+        // A local token designates no one and is kept, exactly as ScrubHostPort keeps it
+        // for the server: replaying must still see the same routing decision.
+        Assert.Contains("<local>", bypass);
+    }
+
+    /// <summary>
+    /// The same defect the project already fixed for <c>DirectoriesDiagnostic</c>, left on
+    /// its four siblings: a read that failed explains itself in free text, and free text
+    /// quotes what it failed on.
+    ///
+    /// <para>
+    /// What is promised here is the account name in a path, which is what <c>ScrubProfile</c>
+    /// can find. An identifier a diagnostic embeds in some other shape cannot be scrubbed
+    /// reliably after the fact — that has to be fixed where the sentence is written, and the
+    /// Firefox profile salt was.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("drivers")]
+    [InlineData("processes")]
+    [InlineData("ports")]
+    [InlineData("extensions")]
+    public void A_diagnostic_that_quotes_a_user_path_is_scrubbed_like_the_listing(string surface)
+    {
+        const string quoted = @"lecture refusée : C:\Users\claire\AppData\Local\x";
+
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default,
+            DriversDiagnostic = surface == "drivers" ? quoted : null,
+            ProcessesDiagnostic = surface == "processes" ? quoted : null,
+            ListeningPortsDiagnostic = surface == "ports" ? quoted : null,
+            BrowserExtensionsDiagnostic = surface == "extensions" ? quoted : null,
+        };
+
+        var after = Anonymiser.Apply(snapshot);
+        var diagnostic = surface switch
+        {
+            "drivers" => after.DriversDiagnostic,
+            "processes" => after.ProcessesDiagnostic,
+            "ports" => after.ListeningPortsDiagnostic,
+            _ => after.BrowserExtensionsDiagnostic,
+        };
+
+        Assert.DoesNotContain("claire", diagnostic);
+        // The sentence still says what happened: scrubbing must not cost the diagnosis.
+        Assert.Contains("refusée", diagnostic);
+    }
+
+    /// <summary>
+    /// The guard that would have caught both, and will catch the next one.
+    ///
+    /// <para>
+    /// Anonymisation covers a hand-maintained list of fields, so any field added to
+    /// <see cref="MachineSnapshot"/> is unprotected by default and no property-by-property
+    /// assertion can notice. This sweeps the <em>serialised</em> snapshot instead: plant one
+    /// distinctive identifier everywhere a machine-chosen string can sit, and require that
+    /// it survives nowhere.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_field_carries_a_planted_identifier_through_anonymisation()
+    {
+        const string marker = "identifiant-a-masquer";
+
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default with { MachineName = marker },
+            Proxy = new ProxyConfiguration(
+                new ProxyScope(true, $"{marker}.example:8080", $"http://{marker}.example/p.pac",
+                    [$"*.{marker}.example"]),
+                ProxyScope.Disabled,
+                false),
+            DriversDiagnostic = $@"WMI muet : C:\Users\{marker}\pilote.sys",
+            ProcessesDiagnostic = $@"énumération refusée : C:\Users\{marker}\p.exe",
+            ListeningPortsDiagnostic = $@"table sans réponse : C:\Users\{marker}\s.exe",
+            BrowserExtensionsDiagnostic = $@"profil illisible : C:\Users\{marker}\prefs.js",
+            DirectoriesDiagnostic = { [$@"C:\Users\{marker}"] = $@"refusé : C:\Users\{marker}" },
+        };
+
+        var serialised = RempartJson.Serialise(Anonymiser.Apply(snapshot));
+
+        Assert.DoesNotContain(marker, serialised);
+    }
+
     private static string? Text(MachineSnapshot snapshot, string valueName) =>
         Text(snapshot, @"HKLM\SOFTWARE\Test", valueName);
 

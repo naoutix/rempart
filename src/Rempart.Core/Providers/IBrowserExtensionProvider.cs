@@ -64,13 +64,22 @@ public sealed record BrowserExtensionRead(
 
     /// <summary>
     /// What was read, and what could not be. Partial by design: the extensions that were
-    /// decoded stay in the inventory, and the unreadable profile is named beside them.
+    /// decoded stay in the inventory, and what could not be read is named beside them.
+    ///
+    /// <para>
+    /// The browser and the file are named; the profile directory is not. A Firefox profile
+    /// directory carries that installation's salt, and this sentence used to quote it
+    /// verbatim — in a field no anonymiser could scrub reliably, three fields from the
+    /// listing where the same string is hashed. What a reader acts on is "a Firefox profile
+    /// could not be read", and that survives.
+    /// </para>
     /// </summary>
     public static BrowserExtensionRead Partial(
         IReadOnlyList<BrowserExtension> extensions, IReadOnlyList<string> unreadable) =>
         new(ReadStatus.AccessDenied, extensions,
-            "Profil(s) de navigateur illisible(s) : " + string.Join(", ", unreadable)
-            + ". Une extension installée dans ce profil n'apparaît pas dans l'inventaire.");
+            $"{unreadable.Count} profil(s) de navigateur illisible(s) : "
+            + string.Join(", ", unreadable.Distinct(StringComparer.Ordinal))
+            + ". Une extension installée dans un de ces profils n'apparaît pas dans l'inventaire.");
 
     IReadOnlyList<BrowserExtension>
         IStatusCarryingRead<BrowserExtensionRead, BrowserExtension>.Items => Extensions;
