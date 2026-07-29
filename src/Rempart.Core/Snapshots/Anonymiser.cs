@@ -117,6 +117,11 @@ public static class Anonymiser
             entry => entry.Key,
             entry => entry.Value with
             {
+                // The failure reason, by the same rule as the four sibling diagnostics. It
+                // was dead weight until a COM failure stopped borrowing the meaning of a
+                // denial and started writing what happened instead: a field nothing wrote
+                // to needed no cleaning, and the moment it fills is the moment it does.
+                Diagnostic = ScrubDiagnostic(entry.Value.Diagnostic),
                 Instances =
                 [
                     .. entry.Value.Instances.Select(instance => new WmiInstance(

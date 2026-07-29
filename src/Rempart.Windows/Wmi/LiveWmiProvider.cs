@@ -16,6 +16,8 @@ namespace Rempart.Windows.Wmi;
 /// Most of the namespaces we target require elevation. A refusal maps to
 /// <see cref="ReadStatus.AccessDenied"/>, which the engine renders as
 /// « non vérifiable »: the scan could not look, the machine is not at fault.
+/// A failure is not a refusal and does not get to look like one — see
+/// <see cref="Classify"/>.
 /// </summary>
 public sealed unsafe partial class LiveWmiProvider : IWmiProvider
 {
@@ -29,6 +31,16 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
     private const int RpcCAuthnLevelDefault = 0;
     private const int RpcCImpLevelImpersonate = 3;
     private const int EoacNone = 0;
+
+    // Named rather than inlined: a bare hexadecimal literal cannot be reviewed, and these
+    // codes sit one digit apart from unrelated ones — 0x80041062 is the privilege refusal,
+    // 0x80041045 is WBEM_E_SERVER_TOO_BUSY, which must never advise elevation. Values read
+    // from wbemcli.h and winerror.h, not from memory.
+    private const uint WbemENotFound = 0x80041002;
+    private const uint WbemEAccessDenied = 0x80041003;
+    private const uint WbemEInvalidNamespace = 0x8004100E;
+    private const uint WbemEPrivilegeNotHeld = 0x80041062;
+    private const uint EAccessDenied = 0x80070005;
 
     [LibraryImport("ole32.dll")]
     private static partial int CoInitializeSecurity(
@@ -71,15 +83,7 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
         }
         catch (COMException ex)
         {
-            // 0x80041003 WBEM_E_ACCESS_DENIED, 0x80070005 E_ACCESSDENIED:
-            // the scan is not elevated. 0x8004100E: the namespace does not exist,
-            // which happens on a Windows edition lacking the feature.
-            return (uint)ex.HResult switch
-            {
-                0x80041003 or 0x80070005 => WmiRead.AccessDenied,
-                0x8004100E or 0x80041002 => WmiRead.NotFound,
-                _ => WmiRead.AccessDenied,
-            };
+            return Classify(ex);
         }
         catch (Exception ex)
         {
@@ -89,6 +93,41 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
             return WmiRead.Failed($"{ex.GetType().Name} : {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Turns a COM failure into a read status.
+    ///
+    /// <para>
+    /// The list used to end on <c>_ => WmiRead.AccessDenied</c>, so every HRESULT nobody had
+    /// thought of borrowed the meaning « relancer en administrateur ». A damaged repository
+    /// (<c>WBEM_E_INVALID_CLASS</c>) and a Winmgmt service refusing to start
+    /// (<c>RPC_S_SERVER_UNAVAILABLE</c>) therefore asked for an elevation the user already
+    /// had, on every WMI-backed surface at once — drivers, processes, unquoted service
+    /// paths, <c>root\subscription</c> — and <see cref="WmiRead.AccessDenied"/> carries no
+    /// diagnostic, so the report had nothing to contradict it with. That is the invariant
+    /// this very file documents, broken inside it: the <c>catch (Exception)</c> below
+    /// refused the disguise the arm above it applied.
+    /// </para>
+    ///
+    /// <para>
+    /// Hence the shape rather than the entries: what is enumerated is only what a code
+    /// genuinely means, and the default arm is the honest one. A HRESULT left off the list
+    /// now surfaces as a failure carrying its own code — the user has something to search
+    /// for, and this mapping cannot silently rot as WMI grows new ways to fail.
+    /// </para>
+    /// </summary>
+    internal static WmiRead Classify(COMException ex) => (uint)ex.HResult switch
+    {
+        // The scan is not elevated, or lacks a privilege the namespace demands: elevation
+        // is the answer, and these are the only codes that say so.
+        WbemEAccessDenied or EAccessDenied or WbemEPrivilegeNotHeld => WmiRead.AccessDenied,
+
+        // The namespace or the class is not there, which is what a Windows edition lacking
+        // the feature answers. Absence, not refusal.
+        WbemEInvalidNamespace or WbemENotFound => WmiRead.NotFound,
+
+        _ => WmiRead.Failed($"COM 0x{(uint)ex.HResult:X8} : {ex.Message}"),
+    };
 
     private static WmiRead Execute(
         string namespacePath, string className, IReadOnlyList<string> properties)
