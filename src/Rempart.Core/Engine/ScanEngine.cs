@@ -60,13 +60,22 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     public static IReadOnlyList<ICollector> DefaultCollectors => [new InventoryCollector()];
 
     /// <summary>
-    /// Finding collectors. Separate from field collectors: they enumerate what is
-    /// present instead of describing values known in advance.
-    /// </summary>
-    /// <summary>
-    /// Finding collectors, supplied with the driver blocklist in effect. The list comes
-    /// from the update store (D12); when unavailable it is empty and the collector
-    /// judges drivers on their signature alone.
+    /// Finding collectors, supplied with the driver blocklist and the bloatware catalog in
+    /// effect. Separate from field collectors: they enumerate what is present instead of
+    /// describing values known in advance. Both lists come from the update store (D12); when
+    /// unavailable they are empty and the collectors judge on signature alone.
+    ///
+    /// <para>
+    /// Every implementation of <see cref="IFindingCollector"/> belongs here, and this table is
+    /// the only place a scan learns of one. Nothing in the compiler relates it to the classes
+    /// in <c>Findings/</c>, and a collector missing from it is invisible rather than broken:
+    /// it produces no finding, so every golden reference stays identical to the byte and the
+    /// report says « rien trouvé » about the surface it was written to watch. Four such
+    /// omissions were reproduced on this file with the whole suite green. Reflection would
+    /// remove the table but is excluded by ADR-001 (Native AOT), so
+    /// <c>FindingCollectorRegistrationTests</c> confronts it with the assembly and with
+    /// <c>Findings/</c> instead.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<IFindingCollector> DefaultFindingCollectors(
         Updates.DriverBlocklist blocklist, Updates.BloatwareCatalog catalog) =>
