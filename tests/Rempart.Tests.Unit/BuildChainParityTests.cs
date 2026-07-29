@@ -41,6 +41,7 @@ public sealed class BuildChainParityTests
     private const string Release = ".github/workflows/release.yml";
     private const string Verify = "scripts/verify.ps1";
     private const string GlobalJson = "global.json";
+    private const string NuGetConfig = "nuget.config";
 
     /// <summary>
     /// The exact drift the repository already produced once, in the direction that hurts: a
@@ -350,6 +351,401 @@ public sealed class BuildChainParityTests
     }
 
     /// <summary>
+    /// A workflow with no <c>permissions:</c> block runs with whatever the repository default
+    /// grants — a decision taken in a settings page, invisible from the file, and applied to
+    /// every job at once. <c>ci.yml</c> had none: five jobs that do nothing but read the code
+    /// and upload artifacts, which travel on the Actions runtime token and not on this one.
+    ///
+    /// <para>
+    /// Checked over every workflow found on disk, and in both halves. That the block exists,
+    /// because its absence is not a value anyone chose. And that the file-wide grant stays
+    /// read-only: a job that genuinely writes — drafting a release is the only one here — asks
+    /// for it on itself, which is also what keeps a workflow called from that file from
+    /// inheriting more than reading.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_workflow_names_what_the_token_it_runs_with_may_do()
+    {
+        foreach (var file in Workflows)
+        {
+            var block = Regex.Match(RepositoryFiles.Read(file),
+                @"(?m)^permissions:(?<inline>[^\n]*)\n(?<body>(?:[ ]+[^\n]*\n|\n)*)");
+
+            Assert.True(block.Success,
+                $"{file} ne déclare aucun bloc permissions: au niveau du fichier. Ses jobs "
+                + "tournent alors avec le jeton par défaut du dépôt, dont l'étendue se décide "
+                + "dans une page de réglages et ne se lit nulle part ici — y compris depuis un "
+                + "fork, où ce n'est pas le même réglage. Lire le dépôt suffit à tout ce que "
+                + "font ces jobs.");
+
+            var granted = block.Groups["inline"].Value + block.Groups["body"].Value;
+
+            Assert.False(granted.Contains("write", StringComparison.Ordinal),
+                $"{file} accorde une écriture à tous ses jobs : « {granted.Trim()} ». Le "
+                + "fichier entier n'en a pas besoin : le job qui publie la demande sur "
+                + "lui-même, et un workflow appelé depuis celui-là n'hérite alors que de la "
+                + "lecture.");
+        }
+    }
+
+    /// <summary>
+    /// Nothing required a tag to name a commit the checks had run on. <c>ci.yml</c> triggers on
+    /// a push to main, on <c>pull_request</c> and on <c>workflow_dispatch</c> — not on tags —
+    /// and the release job carried neither a <c>needs:</c> nor a test of its own. <c>git push
+    /// origin v1.0.1</c> on any commit therefore assembled and drafted a release having run zero
+    /// unit tests, zero Windows tests and not the fixture-anonymisation guard. In practice a tag
+    /// is cut on main, which passed CI when it was pushed; in practice is not a gate.
+    ///
+    /// <para>
+    /// Two halves, because either alone leaves the hole open. The publishing job must depend on
+    /// a job that <em>calls</em> a workflow of this repository — calling rather than restating
+    /// the checks keeps one definition of what CI is, where a second copy would be the drift
+    /// DET-SCRIPTS describes. And no job may select the ref it builds: with no <c>ref:</c>
+    /// anywhere, what is checked out is the commit that triggered the run, which is exactly the
+    /// commit the called workflow ran on. Otherwise a <c>workflow_dispatch</c> naming one tag
+    /// while started from another ref would ship a commit that was never tested.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_workflow_that_publishes_builds_the_commit_the_checks_ran_on()
+    {
+        var release = RepositoryFiles.Read(Release);
+        var jobs = Jobs(release);
+
+        Assert.True(jobs.Count > 1,
+            $"Moins de deux jobs lus dans {Release} : soit le fichier a changé de forme, soit "
+            + "ce test ne sait plus le découper, et il passerait au vert quoi qu'il contienne.");
+
+        var gates = jobs
+            .Select(job => (job.Id, Called: Regex.Match(job.Body, @"(?m)^    uses:\s*(\S+)")))
+            .Where(job => job.Called.Success)
+            .Select(job => (job.Id, Path: job.Called.Groups[1].Value))
+            .ToList();
+
+        Assert.True(gates.Count > 0,
+            $"{Release} n'appelle aucun workflow de ce dépôt : rien n'exige donc qu'une "
+            + "étiquette pointe un commit ayant passé les contrôles. ci.yml ne se déclenche pas "
+            + "sur les tags, et une étiquette posée sur n'importe quel commit assemble une "
+            + "release ayant exécuté zéro test.");
+
+        foreach (var (id, path) in gates)
+        {
+            var called = path.StartsWith("./", StringComparison.Ordinal) ? path[2..] : path;
+
+            Assert.True(Workflows.Contains(called, StringComparer.Ordinal),
+                $"Le job « {id} » de {Release} appelle « {path} », qui n'est pas un workflow de "
+                + $"ce dépôt — trouvés sur disque : [{string.Join(", ", Workflows)}]. Les "
+                + "contrôles qui gardent une étiquette seraient alors définis ailleurs que "
+                + "sous .github/workflows, hors de ce que la revue et Dependabot regardent.");
+
+            Assert.True(Regex.IsMatch(RepositoryFiles.Read(called), @"(?m)^\s{2}workflow_call:"),
+                $"{Release} appelle {called}, qui ne se déclare pas appelable "
+                + "(« workflow_call »). L'exécution s'arrêterait au démarrage, sans job et sans "
+                + "journal à consulter — la panne exactement que le job lint-workflows existe "
+                + "pour éviter.");
+        }
+
+        var gateIds = gates.Select(gate => gate.Id).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var job in jobs.Where(job => !gateIds.Contains(job.Id)))
+        {
+            var needs = Regex.Match(job.Body, @"(?m)^    needs:\s*(.+)$");
+
+            Assert.True(
+                needs.Success && gateIds.Any(gate =>
+                    Regex.IsMatch(needs.Groups[1].Value, $@"\b{Regex.Escape(gate)}\b")),
+                $"Le job « {job.Id} » de {Release} ne dépend pas des contrôles : il tourne en "
+                + $"parallèle de [{string.Join(", ", gateIds)}] et publie quel que soit leur "
+                + "résultat. C'est le défaut entier — une étiquette suffit, les tests sont une "
+                + "coïncidence.");
+        }
+
+        Assert.False(Regex.IsMatch(release, @"(?m)^\s+ref:\s"),
+            $"{Release} choisit la référence qu'il extrait. Les contrôles appelés plus haut "
+            + "tournent sur le commit qui a déclenché l'exécution : en extraire un autre, ce "
+            + "serait livrer un commit et en avoir testé un second. Ne rien passer à checkout "
+            + "est ce qui lie les deux.");
+    }
+
+    /// <summary>
+    /// <c>Copy-Item "README.md", "LICENSE" $stage -ErrorAction SilentlyContinue</c>: the
+    /// per-cmdlet <c>-ErrorAction</c> outranks the <c>$ErrorActionPreference = 'Stop'</c> GitHub
+    /// sets for <c>shell: pwsh</c>, so a file renamed or missing left the archive without it and
+    /// the job green. The stick could be published without its licence.
+    ///
+    /// <para>
+    /// The list guard below compares what the two sides copy, not whether a copy is allowed to
+    /// fail: <see cref="StagedItems"/> reads the quoted names and never looks at the switches
+    /// after them, which is how both files agreed on a list while one of them treated it as a
+    /// wish. Suppressing the error on a copy that assembles a deliverable is the defect whatever
+    /// is being copied, so it is checked as a shape over the whole chain rather than on the one
+    /// line that carried it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_copy_that_assembles_the_stick_may_fail_without_saying_so()
+    {
+        var examined = 0;
+        var offences = new List<string>();
+
+        foreach (var file in Files)
+        {
+            var lines = RepositoryFiles.Read(file)
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Split('\n');
+
+            for (var index = 0; index < lines.Length; index++)
+            {
+                if (lines[index].TrimStart().StartsWith('#')
+                    || !Regex.IsMatch(lines[index], @"(?<![-\w])Copy-Item\b"))
+                {
+                    continue;
+                }
+
+                examined++;
+
+                var suppressed = Regex.Match(lines[index],
+                    @"-ErrorAction\s+(SilentlyContinue|Continue|Ignore)");
+
+                if (suppressed.Success)
+                {
+                    offences.Add($"{file}:{index + 1} → {suppressed.Value}");
+                }
+            }
+        }
+
+        Assert.True(examined > 0,
+            "Aucun Copy-Item trouvé dans la chaîne de build : soit la clé s'assemble "
+            + "autrement, soit ce test ne le lit plus et il passerait au vert quoi qu'il "
+            + "arrive.");
+
+        Assert.True(offences.Count == 0,
+            "Une copie qui assemble le livrable a le droit d'échouer en silence — "
+            + string.Join(" ; ", offences)
+            + ". Le -ErrorAction du cmdlet l'emporte sur le $ErrorActionPreference = 'Stop' "
+            + "que GitHub pose pour shell: pwsh : un fichier renommé ou absent laisse "
+            + "l'archive sans lui, et le job reste vert. La clé peut ainsi partir sans sa "
+            + "licence.");
+    }
+
+    /// <summary>
+    /// The two strongest claims of <c>SECURITY.md</c>: CI stops at a <em>draft</em>, and the
+    /// archive it attaches is named <c>-unsealed</c> because the publisher key is deliberately
+    /// not available to the build. Both were true, and both were held by nothing — dropping
+    /// <c>--draft</c> or renaming the archive would publish a release the security policy calls
+    /// impossible, with the whole suite green.
+    ///
+    /// <para>
+    /// The arguments are read from the array they are splatted from rather than from the
+    /// command line, for the reason <see cref="LocalStickContents"/> gives: resolving PowerShell
+    /// variables from here is the parser this file already refused to write once. Renaming that
+    /// array makes the guard find nothing, which is what the count assertion is for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_release_the_chain_creates_is_a_draft_carrying_an_unsealed_archive()
+    {
+        var examined = 0;
+
+        foreach (var file in Workflows)
+        {
+            var workflow = RepositoryFiles.Read(file);
+
+            foreach (var creation in Regex.Matches(workflow, @"gh release create\s+@(\w+)")
+                         .Select(match => match.Groups[1].Value))
+            {
+                examined++;
+
+                var declaration = Regex.Match(workflow, $@"\${creation}\s*=\s*@\(([^)]*)\)");
+
+                Assert.True(declaration.Success,
+                    $"{file} passe @{creation} à « gh release create » sans que ce tableau soit "
+                    + "déclaré d'un bloc : ce test ne lit plus les arguments de la publication.");
+
+                var literals = Regex.Matches(declaration.Groups[1].Value, "'([^']+)'")
+                    .Select(match => match.Groups[1].Value)
+                    .ToList();
+
+                Assert.True(literals.Contains("--draft"),
+                    $"{file} crée une release qui n'est pas un brouillon : "
+                    + $"[{string.Join(", ", literals)}]. SECURITY.md annonce l'inverse, et c'est "
+                    + "la moitié du contrat : la clé d'éditeur n'est pas donnée au build, donc "
+                    + "le sceau est posé à la main entre ce job et la publication. Publier ici, "
+                    + "c'est livrer une archive que « rempart seal --check » refuse.");
+
+                var archive = Regex.Match(workflow, @"\$zip\s*=\s*""([^""]+)""");
+
+                Assert.True(archive.Success,
+                    $"{file} publie une release sans que le nom de l'archive soit lisible ici : "
+                    + "la garde ne tient plus rien.");
+
+                Assert.True(archive.Groups[1].Value.EndsWith("-unsealed.zip", StringComparison.Ordinal),
+                    $"{file} attache une archive nommée « {archive.Groups[1].Value} ». "
+                    + "SECURITY.md dit d'une archive encore nommée « -unsealed » qu'elle n'est "
+                    + "pas une release : c'est ce mot qui distingue ce que la CI sait produire "
+                    + "de ce que l'éditeur scelle ensuite, et le retirer ici ferait passer le "
+                    + "brouillon pour le livrable auprès de quiconque le télécharge.");
+            }
+        }
+
+        Assert.True(examined > 0,
+            "Aucune création de release trouvée dans les workflows : soit rien ne publie plus, "
+            + "soit ce test ne le voit plus et les deux affirmations de SECURITY.md "
+            + "redeviennent des vœux.");
+    }
+
+    /// <summary>
+    /// The other half of the same claim, and the one that held only by absence: the publisher
+    /// key is not available to CI. No workflow read a secret, and nothing said one may not — a
+    /// single <c>secrets.PUBLISHER_KEY</c> added to the release job would falsify SECURITY.md
+    /// without a test flinching, on the file whose whole argument is that a signing key held by
+    /// the build system signs whatever the build system is told to.
+    ///
+    /// <para>
+    /// Over everything under <c>.github/</c> rather than over the two workflows: a composite
+    /// action or a second workflow reads secrets the same way. No legitimate use is being
+    /// denied — the ambient token is reached through <c>github.token</c> here — and the day one
+    /// is needed it should be a decision, not a diff nobody read.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Nothing_under_the_github_folder_reads_a_repository_secret()
+    {
+        var examined = 0;
+        var offences = new List<string>();
+
+        foreach (var path in Directory
+                     .EnumerateFiles(RepositoryFiles.Resolve(".github"), "*", SearchOption.AllDirectories)
+                     .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            examined++;
+
+            offences.AddRange(Regex.Matches(File.ReadAllText(path), @"secrets\.\w+")
+                .Select(match => $"{Path.GetFileName(path)} → {match.Value}"));
+        }
+
+        Assert.True(examined > 0, "Aucun fichier lu sous .github/ : ce test ne vérifie rien.");
+
+        Assert.True(offences.Count == 0,
+            "Un secret du dépôt est lu depuis .github/ — " + string.Join(" ; ", offences)
+            + ". SECURITY.md tient sur le contraire : la clé d'éditeur n'est pas donnée au "
+            + "build, et c'est pour cela que l'archive sort « -unsealed » et que le sceau est "
+            + "posé à la main. Une clé de signature détenue par le système de construction "
+            + "signe ce qu'on lui dit de signer.");
+    }
+
+    /// <summary>
+    /// <c>verify.ps1</c> wrote <c>ok</c> for a step that had not run. The workflow-lint step
+    /// returns early whenever <c>actionlint</c> is absent — deliberately, it is optional and
+    /// documented as such in BUILD.md — and the final table then showed a green line
+    /// indistinguishable from a real success. "Could not verify" rendered as "verified" is the
+    /// one thing this tool refuses to do about a machine; the script that verifies the tool was
+    /// doing it.
+    ///
+    /// <para>
+    /// The outcomes are declared as a named map the script uses at every site, and read here by
+    /// name for the reason <see cref="LocalDiagnostics"/> gives. What the guard holds is that
+    /// there are more than two of them, that each is one the summary knows how to print, and
+    /// that the one meaning "did not run" does not fail the run: an unverified check is not a
+    /// failure either, and turning a workstation red for a missing optional tool is how a
+    /// script gets run with a flag that silences it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_local_script_tells_a_check_it_could_not_run_from_one_that_passed()
+    {
+        var script = RepositoryFiles.Read(Verify);
+
+        var declaration = Regex.Match(script, @"\$stepStates\s*=\s*\[ordered\]@\{([^}]*)\}");
+
+        Assert.True(declaration.Success,
+            $"$stepStates est introuvable dans {Verify} : le script ne déclare plus les issues "
+            + "qu'un contrôle peut avoir, et ce test ne lit plus rien.");
+
+        var declared = Regex.Matches(declaration.Groups[1].Value, @"(\w+)\s*=\s*'([^']+)'")
+            .ToDictionary(match => match.Groups[1].Value, match => match.Groups[2].Value,
+                StringComparer.Ordinal);
+
+        Assert.True(declared.Values.Distinct(StringComparer.Ordinal).Count() == declared.Count,
+            "Deux issues de contrôle portent le même mot dans le tableau final : "
+            + $"[{string.Join(", ", declared.Select(state => $"{state.Key} = {state.Value}"))}]. "
+            + "Elles y sont alors indiscernables, ce que ce test existe précisément pour "
+            + "refuser.");
+
+        Assert.True(declared.ContainsKey("skipped"),
+            $"{Verify} ne sait dire d'un contrôle que « réussi » ou « échoué ». Celui qui n'a "
+            + "pas pu tourner — actionlint absent, par exemple — repart donc avec l'issue du "
+            + "succès, et la dernière ligne du tableau est indiscernable d'une vraie "
+            + "réussite. « Pas pu vérifier » rendu comme « vérifié » est le défaut que cet "
+            + "outil refuse sur une machine.");
+
+        var recorded = Regex.Matches(script, @"State\s*=\s*\$stepStates\.(\w+)")
+            .Select(match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.True(recorded.SetEquals(declared.Keys),
+            "Les issues que Step sait inscrire et celles que le script déclare ne sont pas les "
+            + $"mêmes — déclarées : [{string.Join(", ", declared.Keys)}] ; inscrites : "
+            + $"[{string.Join(", ", recorded)}]. Une issue déclarée que rien n'inscrit ne "
+            + "décrit rien, et une inscrite sans être déclarée ne sera pas rendue.");
+
+        var branch = Regex.Match(script,
+            @"elseif\s*\(\s*\$step\.State\s*-eq\s*\$stepStates\.skipped\s*\)\s*\{([^}]*)\}");
+
+        Assert.True(branch.Success,
+            $"Le tableau final de {Verify} ne distingue plus le contrôle qui n'a pas tourné : "
+            + "il le rend comme un succès ou comme un échec, et les deux sont faux.");
+
+        Assert.False(branch.Groups[1].Value.Contains("$failed", StringComparison.Ordinal),
+            $"{Verify} fait échouer la vérification sur un contrôle qui n'a pas tourné. Ce "
+            + "n'est pas un échec — actionlint est optionnel et documenté comme tel — et un "
+            + "script qui rougit sur une machine correcte finit lancé avec le drapeau qui le "
+            + "fait taire. Le dire, sans le compter.");
+    }
+
+    /// <summary>
+    /// The repository pins its actions by commit hash and writes each package version down
+    /// exactly once, and then left it to the machine to decide which feeds those packages come
+    /// from. Without a <c>nuget.config</c> the source list is assembled from whatever
+    /// configuration that machine carries: <c>%AppData%\NuGet</c>, a file dropped higher in the
+    /// tree, a feed a build agent was set up with years ago.
+    ///
+    /// <para>
+    /// The two <c>&lt;clear /&gt;</c> are the whole point, and neither is decoration. Without
+    /// the first, this file <em>adds</em> to the inherited feeds rather than replacing them.
+    /// Without the second, an inherited <c>disabledPackageSources</c> can switch nuget.org off
+    /// here, and restore then either fails or resolves elsewhere.
+    /// </para>
+    ///
+    /// <para>
+    /// What this does <em>not</em> hold is the resolved graph itself: there is no lock file,
+    /// and the file says at length why it was measured and left out.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_sources_the_restore_reads_are_named_by_this_repository()
+    {
+        Assert.True(File.Exists(RepositoryFiles.Resolve(NuGetConfig)),
+            $"{NuGetConfig} est absent : la liste des flux dont la restauration tire les "
+            + "paquets vient alors de la machine qui compile. Le dépôt épingle ses actions par "
+            + "SHA et écrit chaque version de paquet une fois, puis laisse un réglage hors du "
+            + "dépôt décider d'où ces paquets arrivent.");
+
+        var config = RepositoryFiles.Read(NuGetConfig);
+
+        Assert.True(Regex.IsMatch(config, @"<packageSources>\s*<clear\s*/>"),
+            $"{NuGetConfig} ne vide pas <packageSources> avant de déclarer les siens : il "
+            + "ajoute aux flux hérités au lieu de les remplacer, et le dépôt ne décide plus "
+            + "d'où viennent ses paquets — il décide seulement d'un flux de plus.");
+
+        Assert.True(Regex.IsMatch(config, @"<disabledPackageSources>\s*<clear\s*/>"),
+            $"{NuGetConfig} ne vide pas <disabledPackageSources> : un réglage de la machine "
+            + "peut éteindre le seul flux déclaré ici, et la restauration échoue — ou pire, "
+            + "résout ailleurs.");
+    }
+
+    /// <summary>
     /// The stick <c>release.yml</c> assembles and the folder <c>verify.ps1</c> runs the binary
     /// from must hold the same things.
     ///
@@ -550,6 +946,68 @@ public sealed class BuildChainParityTests
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The jobs of a workflow, each paired with the lines under its key.
+    ///
+    /// <para>
+    /// By indentation again, and for the same reason <see cref="ScriptBodies"/> gives: what is
+    /// being read here is a shape these files hold everywhere. A job identifier is a key at two
+    /// spaces under <c>jobs:</c>, and its body is everything indented past it — which is what
+    /// lets a caller tell a job-level <c>uses:</c> (four spaces) from a step's (deeper, behind
+    /// a dash), a distinction the whole gate guard rests on.
+    /// </para>
+    /// </summary>
+    private static List<(string Id, string Body)> Jobs(string workflow)
+    {
+        var lines = workflow.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var jobs = new List<(string, string)>();
+        var body = new List<string>();
+        string? current = null;
+        var inJobs = false;
+
+        foreach (var line in lines)
+        {
+            if (Regex.IsMatch(line, @"^jobs:\s*$"))
+            {
+                inJobs = true;
+                continue;
+            }
+
+            if (!inJobs)
+            {
+                continue;
+            }
+
+            // A key back at column zero ends the jobs mapping, whatever follows it.
+            if (line.Length > 0 && !char.IsWhiteSpace(line[0]))
+            {
+                break;
+            }
+
+            var header = Regex.Match(line, @"^  (?<id>[A-Za-z0-9_.-]+):\s*$");
+            if (!header.Success)
+            {
+                body.Add(line);
+                continue;
+            }
+
+            if (current is not null)
+            {
+                jobs.Add((current, string.Join('\n', body)));
+            }
+
+            current = header.Groups["id"].Value;
+            body = [];
+        }
+
+        if (current is not null)
+        {
+            jobs.Add((current, string.Join('\n', body)));
+        }
+
+        return jobs;
     }
 
     /// <summary>

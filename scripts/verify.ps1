@@ -84,6 +84,16 @@ $stickContents = @('rempart.exe', 'README.md', 'LICENSE')
 
 $steps = [ordered]@{}
 
+# The outcomes a step can have. Three, and the third is the point: this script knew only two
+# and wrote the passing one for a check that had not run. The workflow step returns early
+# whenever actionlint is absent -- deliberately, it is optional and BUILD.md says so -- and
+# the final table then showed a green line indistinguishable from a real success. « Pas pu
+# verifier » rendered as « verifie » is the one thing this tool refuses to do about a machine;
+# the script that verifies the tool was doing it. Declared here rather than spelled at each
+# site because BuildChainParityTests reads this map by name and holds the table below
+# against it.
+$stepStates = [ordered]@{ passed = 'ok'; skipped = 'saute'; failed = 'echec' }
+
 function Step {
     param([string]$Name, [scriptblock]$Body)
 
@@ -91,20 +101,35 @@ function Step {
     Write-Host "-- $Name " -NoNewline -ForegroundColor Cyan
     Write-Host ('-' * [Math]::Max(0, 60 - $Name.Length)) -ForegroundColor DarkGray
 
+    $script:skipped = $null
     try {
         & $Body
-        $script:steps[$Name] = 'ok'
+        $script:steps[$Name] = if ($null -ne $script:skipped) {
+            [pscustomobject]@{ State = $stepStates.skipped; Detail = $script:skipped }
+        } else {
+            [pscustomobject]@{ State = $stepStates.passed; Detail = '' }
+        }
     }
     catch {
-        $script:steps[$Name] = "ECHEC : $($_.Exception.Message)"
+        $script:steps[$Name] = [pscustomobject]@{ State = $stepStates.failed; Detail = $_.Exception.Message }
         Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
 
+# Declares the running step as not run, with the reason the table will carry. A step that
+# returns early without calling this is one whose check is written down as having passed.
+function Skip-Step {
+    param([string]$Reason)
+
+    # Said here as well as in the table: the section is where a reader is looking when it
+    # happens, the table is what they read at the end.
+    Write-Host $Reason -ForegroundColor Yellow
+    $script:skipped = $Reason
+}
+
 Step 'Workflows' {
     if (-not (Get-Command actionlint -ErrorAction SilentlyContinue)) {
-        Write-Host "actionlint absent — installer avec : winget install rhysd.actionlint" -ForegroundColor Yellow
-        Write-Host "(la validation de syntaxe des workflows est sautée)"
+        Skip-Step "actionlint absent — installer avec : winget install rhysd.actionlint"
         return
     }
 
@@ -266,12 +291,28 @@ Write-Host ""
 Write-Host ('-' * 62) -ForegroundColor DarkGray
 $failed = $false
 foreach ($name in $steps.Keys) {
-    $result = $steps[$name]
-    if ($result -eq 'ok') {
-        Write-Host ("  {0,-20} ok" -f $name) -ForegroundColor Green
+    $step = $steps[$name]
+
+    # The state is printed as it was recorded, never recomputed here: the table cannot say
+    # « ok » about a step that did not run, because it prints what Step wrote down.
+    $line = if ($step.Detail) {
+        "  {0,-20} {1} : {2}" -f $name, $step.State, $step.Detail
+    } else {
+        "  {0,-20} {1}" -f $name, $step.State
+    }
+
+    if ($step.State -eq $stepStates.passed) {
+        Write-Host $line -ForegroundColor Green
+    }
+    elseif ($step.State -eq $stepStates.skipped) {
+        # Not counted as a failure, and not counted as a success either. actionlint is
+        # optional by design; what was wrong was writing « ok » about it.
+        Write-Host $line -ForegroundColor Yellow
     }
     else {
-        Write-Host ("  {0,-20} {1}" -f $name, $result) -ForegroundColor Red
+        # Anything this loop does not recognise lands here, red: an unnamed state is a state
+        # nobody decided, and this is the safe side to be wrong on.
+        Write-Host $line -ForegroundColor Red
         $failed = $true
     }
 }

@@ -192,11 +192,16 @@ the `publish` directory are debug symbols and are not needed at run time.
 
 `release.yml` runs on a tag and stops at a **draft**: the publisher key is
 deliberately not available to the build, so the seal is added by hand before
-publishing. Two preconditions — forgetting either fails the job rather than
+publishing. Three preconditions — forgetting any of them fails the job rather than
 producing a wrong archive:
 
-1. `<Version>` in `Directory.Build.props` matches the tag.
-2. `CHANGELOG.md` carries a `## <version>` section — the workflow reads it for the
+1. The whole of `ci.yml` passes. `release.yml` calls it and waits on it, so a tag
+   pushed onto a commit that does not build, or whose tests fail, produces nothing.
+   Starting the run from the Actions page works the same way, and the tag typed
+   there must be the ref the run starts on: the checks run on the commit that
+   triggered the run, and that is the commit the job publishes.
+2. `<Version>` in `Directory.Build.props` matches the tag.
+3. `CHANGELOG.md` carries a `## <version>` section — the workflow reads it for the
    release notes.
 
 The artifact CI attaches is named `rempart-<version>-win-x64-unsealed.zip`. Sealing
