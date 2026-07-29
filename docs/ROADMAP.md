@@ -565,6 +565,21 @@ jalon, et qu'elle n'en portait aucune trace.
 décision — `DET-TACHE-EXPIREE`, `DET-WINDEFAULT`, `DET-TLS`, et la moitié de
 `DET-COUVERTURE` et de `DET-DIRTY`.
 
+### Passe de documentation — ✅ 2026-07-29
+
+Réécriture des cinq documents vitrine (README, ARCHITECTURE, BUILD, CONTRIBUTING,
+SECURITY) pour la lisibilité : tableaux, diagrammes et chiffres conservés, la prose
+autour dépliée — l'idée d'abord, les inversions défaites (PR #103). La relecture a
+surtout montré que la doc avait un commit de retard sur le pipeline d'import (#94) :
+
+- `fetch-bloatware` manquait partout où les commandes en ligne sont énumérées ;
+- `Commands/` compte 20 classes, pas 19 ;
+- l'import du catalogue bloatware était encore décrit comme « à venir » ;
+- le compte de tests d'un clone frais est 827 — 830 en local avec une capture,
+  trois théories de rejeu par fixture ;
+- [ADR-006](adr/ADR-006-catalogue-bloatware-importe.md) passée de « Proposé » à
+  « Accepté — exécuté le même jour (#94, #95) ».
+
 ---
 
 ## Après la v1 — refondu le 2026-07-28
