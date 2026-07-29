@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Rempart.Core.Json;
 using Rempart.Core.Updates;
 
@@ -173,6 +174,115 @@ public class ManifestTests
         Assert.Equal(ManifestStatus.Trusted, verdict.Status);
     }
 
+    /// <summary>
+    /// Fifty bytes written into the store — which the stick seal leaves out by design —
+    /// used to abort every later scan on every later machine: <c>ContainsKey(null)</c>
+    /// threw outside the <c>try</c>, and the process died on a generic message instead of
+    /// taking the documented "update refused, embedded baseline kept" path.
+    /// </summary>
+    [Fact]
+    public void A_signature_without_a_key_id_is_refused_not_thrown()
+    {
+        var verdict = new ManifestVerifier(new Dictionary<string, string>())
+            .Verify("""{"payload":"AAAA","signatures":[{"value":"AAAA"}]}""");
+
+        Assert.Equal(ManifestStatus.Malformed, verdict.Status);
+        Assert.False(verdict.IsTrusted);
+    }
+
+    /// <summary>
+    /// The signature list travels <em>outside</em> the signed bytes: anyone able to write
+    /// the file can append to it. Refusing the whole manifest over an entry with a hole in
+    /// it would therefore hand that same writer a way to turn a valid update into a
+    /// refused one — the incomplete entry is dropped, exactly like an unreadable one.
+    /// </summary>
+    [Fact]
+    public void An_incomplete_signature_does_not_hide_a_valid_one()
+    {
+        using var publisher = new TestPublisher();
+        var payload = Payload();
+
+        var manifest = $$"""
+            {
+              "payload": "{{Convert.ToBase64String(payload)}}",
+              "signatures": [
+                { "value": "AAAA" },
+                null,
+                { "keyId": "{{publisher.KeyId}}", "value": "{{publisher.Sign(payload)}}" }
+              ]
+            }
+            """;
+
+        var verdict = new ManifestVerifier(
+            new Dictionary<string, string> { [publisher.KeyId] = publisher.PublicKey })
+            .Verify(manifest);
+
+        Assert.Equal(ManifestStatus.Trusted, verdict.Status);
+    }
+
+    /// <summary>
+    /// The same hole one level further in, and the one that costs the most: a payload
+    /// carrying <c>"datasets":[{}]</c> is genuinely signed, so it used to come back
+    /// trusted, and the crash happened later — in the store resolving a null name into a
+    /// path, in the seal looking one up, in <c>FileMatches</c> lowercasing a null hash.
+    /// </summary>
+    [Fact]
+    public void A_signed_payload_whose_dataset_entry_is_empty_is_refused_not_thrown()
+    {
+        using var publisher = new TestPublisher();
+        var payload = """
+            {"schemaVersion":1,"publishedAtUtc":"2026-07-20T00:00:00Z","datasets":[{}]}
+            """u8.ToArray();
+
+        var verdict = new ManifestVerifier(
+                new Dictionary<string, string> { [publisher.KeyId] = publisher.PublicKey })
+            .Verify(Wrap(payload, new ManifestSignature(publisher.KeyId, publisher.Sign(payload))));
+
+        Assert.Equal(ManifestStatus.Malformed, verdict.Status);
+        Assert.Null(verdict.Payload);
+    }
+
+    /// <summary>
+    /// The guard that keeps the two tests above honest as the manifest grows.
+    ///
+    /// <para>
+    /// Every field of every record is punched out in turn — set to null, then removed —
+    /// and the variants are derived from the serialised shape rather than from a list
+    /// written here, so a field added to <see cref="ManifestEntry"/> tomorrow is covered
+    /// without anyone remembering to come back. Two things are asserted of each variant:
+    /// verification does not throw, and a <c>Trusted</c> verdict never carries a payload
+    /// with a hole in it — everything downstream reads a trusted payload without asking.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_hole_in_the_manifest_is_thrown_on_or_trusted()
+    {
+        using var publisher = new TestPublisher();
+        var verifier = new ManifestVerifier(
+            new Dictionary<string, string> { [publisher.KeyId] = publisher.PublicKey });
+
+        var variants = Punctured(publisher).ToList();
+
+        // A shape that stopped being walked would make this test vacuously green.
+        Assert.NotEmpty(variants);
+
+        foreach (var (label, manifest) in variants)
+        {
+            ManifestVerdict? verdict = null;
+            var thrown = Record.Exception(() => verdict = verifier.Verify(manifest));
+
+            Assert.True(thrown is null,
+                $"{label} : {thrown?.GetType().Name} a échappé à la vérification — {thrown?.Message}");
+
+            var hole = verdict!.IsTrusted
+                ? FirstNull(JsonSerializer.SerializeToNode(
+                    verdict.Payload!, RempartJsonContext.Default.ManifestPayload))
+                : null;
+
+            Assert.True(hole is null, $"{label} : manifeste accepté avec {hole} nul.");
+        }
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("{}")]
@@ -210,5 +320,137 @@ public class ManifestTests
         var entry = new ManifestEntry("regles", "1.0.0", Hash("contenu"), SizeBytes: 999);
 
         Assert.False(ManifestVerifier.FileMatches(entry, "contenu"u8.ToArray()));
+    }
+
+    /// <summary>
+    /// A valid manifest, then the same one with one field missing, once per field — of
+    /// the envelope and of the payload alike.
+    /// </summary>
+    private static IEnumerable<(string Label, string Manifest)> Punctured(TestPublisher publisher)
+    {
+        var payload = Payload();
+
+        // The envelope is signed correctly, so whatever the verifier answers comes from
+        // the hole and not from a signature that no longer matches.
+        var envelope = JsonNode.Parse(
+            Wrap(payload, new ManifestSignature(publisher.KeyId, publisher.Sign(payload))))!;
+
+        foreach (var (label, punctured) in Holes(envelope))
+        {
+            yield return ($"enveloppe, {label}", punctured.ToJsonString());
+        }
+
+        // The payload sits inside the signed bytes: each variant is re-signed, otherwise
+        // verification would stop at the signature and never reach the payload at all.
+        var inner = JsonNode.Parse(Encoding.UTF8.GetString(payload))!;
+
+        foreach (var (label, punctured) in Holes(inner))
+        {
+            var bytes = Encoding.UTF8.GetBytes(punctured.ToJsonString());
+
+            yield return ($"charge utile, {label}",
+                Wrap(bytes, new ManifestSignature(publisher.KeyId, publisher.Sign(bytes))));
+        }
+    }
+
+    /// <summary>
+    /// Every way one field can go missing from a JSON tree: each property and each array
+    /// element in turn, set to null then removed. Both forms matter — a record field left
+    /// out of the JSON and one written as <c>null</c> land on the same null reference.
+    /// </summary>
+    private static IEnumerable<(string Label, JsonNode Node)> Holes(JsonNode tree)
+    {
+        foreach (var path in Paths(tree))
+        {
+            var label = string.Join("/", path);
+
+            yield return ($"{label} nul", Punch(tree, path, remove: false));
+            yield return ($"{label} absent", Punch(tree, path, remove: true));
+        }
+    }
+
+    /// <summary>Every property and element position in a tree, as a path of names and indices.</summary>
+    private static List<List<object>> Paths(JsonNode? node, List<object>? prefix = null)
+    {
+        prefix ??= [];
+        var paths = new List<List<object>>();
+
+        switch (node)
+        {
+            case JsonObject properties:
+                foreach (var (name, value) in properties)
+                {
+                    var here = new List<object>(prefix) { name };
+                    paths.Add(here);
+                    paths.AddRange(Paths(value, here));
+                }
+
+                break;
+
+            case JsonArray elements:
+                for (var index = 0; index < elements.Count; index++)
+                {
+                    var here = new List<object>(prefix) { index };
+                    paths.Add(here);
+                    paths.AddRange(Paths(elements[index], here));
+                }
+
+                break;
+        }
+
+        return paths;
+    }
+
+    /// <summary>Copies a tree with the node at <paramref name="path"/> nulled or removed.</summary>
+    private static JsonNode Punch(JsonNode tree, IReadOnlyList<object> path, bool remove)
+    {
+        var copy = JsonNode.Parse(tree.ToJsonString())!;
+        var parent = copy;
+
+        for (var step = 0; step < path.Count - 1; step++)
+        {
+            parent = path[step] is string name ? parent[name]! : parent[(int)path[step]]!;
+        }
+
+        if (path[^1] is string property)
+        {
+            if (remove)
+            {
+                parent.AsObject().Remove(property);
+            }
+            else
+            {
+                parent.AsObject()[property] = null;
+            }
+        }
+        else if (remove)
+        {
+            parent.AsArray().RemoveAt((int)path[^1]);
+        }
+        else
+        {
+            parent.AsArray()[(int)path[^1]] = null;
+        }
+
+        return copy;
+    }
+
+    /// <summary>Path of the first JSON null in a tree, or <c>null</c> when it has no hole.</summary>
+    private static string? FirstNull(JsonNode? tree, string prefix = "")
+    {
+        return tree switch
+        {
+            null => prefix.Length == 0 ? "la charge utile" : prefix,
+
+            JsonObject properties => properties
+                .Select(property => FirstNull(property.Value, $"{prefix}/{property.Key}"))
+                .FirstOrDefault(found => found is not null),
+
+            JsonArray elements => elements
+                .Select((element, index) => FirstNull(element, $"{prefix}/{index}"))
+                .FirstOrDefault(found => found is not null),
+
+            _ => null,
+        };
     }
 }
