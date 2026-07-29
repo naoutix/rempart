@@ -170,7 +170,10 @@ internal sealed class EmptyHostsFile : IHostsFileProvider
 {
     public static readonly EmptyHostsFile Instance = new();
 
-    public IReadOnlyList<string> ReadLines() => [];
+    // Found and empty, not Failed: no provider wired means the surface was never looked at,
+    // and « personne n'a regardé » is not « j'ai regardé et on m'a refusé ». Only the second
+    // reaches the report, and only a read that was actually attempted may produce it.
+    public HostsFileRead ReadLines() => HostsFileRead.Found([]);
 }
 
 internal sealed class EmptyProxy : IProxyProvider

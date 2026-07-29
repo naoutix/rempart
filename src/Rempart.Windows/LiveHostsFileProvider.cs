@@ -6,26 +6,52 @@ namespace Rempart.Windows;
 /// Reads the <c>hosts</c> file from disk.
 ///
 /// <para>
-/// Its location is fixed — <c>%SystemRoot%\System32\drivers\etc\hosts</c>. A missing or
-/// unreadable file returns an empty list instead of an error: the scan of the other
-/// surfaces must continue, and "no hosts file" is treated as "no entries", not as a
-/// failure.
+/// Its location is fixed — <c>%SystemRoot%\System32\drivers\etc\hosts</c>. The scan of the
+/// other surfaces continues whatever this one answers, so nothing here throws; what it
+/// answers, however, now distinguishes the three states this class used to fold into one.
+/// « Pas de fichier hosts » really is « aucune entrée ». <b>« Fichier hosts illisible » never
+/// was</b>, and denying read access to it is exactly how a redirection already in place
+/// protects itself — the report then said nothing about the surface built to catch it.
 /// </para>
 /// </summary>
-public sealed class LiveHostsFileProvider : IHostsFileProvider
+/// <param name="systemRoot">
+/// Where Windows lives. A parameter so a test can stage an unreadable file without touching
+/// the machine's own; production reads it from the environment as before.
+/// </param>
+public sealed class LiveHostsFileProvider(string? systemRoot = null) : IHostsFileProvider
 {
-    public IReadOnlyList<string> ReadLines()
+    public HostsFileRead ReadLines()
     {
-        var root = Environment.GetEnvironmentVariable("SystemRoot") ?? @"C:\Windows";
+        var root = systemRoot
+            ?? Environment.GetEnvironmentVariable("SystemRoot")
+            ?? @"C:\Windows";
+
         var path = $@"{root}\System32\drivers\etc\hosts";
 
         try
         {
-            return File.ReadAllLines(path);
+            return HostsFileRead.Found(File.ReadAllLines(path));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            return [];
+            // An answer, not a failure: a machine with no hosts file resolves through DNS
+            // alone, which is what a file holding only comments means too.
+            return HostsFileRead.Absent;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return HostsFileRead.Failed(
+                "Fichier hosts illisible : accès refusé. Une redirection posée là "
+                + "court-circuiterait la résolution DNS sans apparaître ici.");
+        }
+        catch (IOException ex)
+        {
+            // Not a denial, and not printed as one — the invariant CONTRIBUTING records. A
+            // file held open with no sharing lands here, and it is as ordinary a way to keep
+            // a redirection unread as an ACL: what must be said is what happened.
+            return HostsFileRead.Failed(
+                $"Fichier hosts illisible : {ex.Message} Une redirection posée là "
+                + "court-circuiterait la résolution DNS sans apparaître ici.");
         }
     }
 }

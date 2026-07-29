@@ -27,28 +27,34 @@ public sealed class RecordingRegistryProvider(IRegistryProvider inner, MachineSn
         return status;
     }
 
-    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    public RegistryValueList ListValues(string keyPath)
     {
-        var values = inner.ListValues(keyPath);
+        var read = inner.ListValues(keyPath);
 
         // The list of names is recorded separately: without it, replay would not
         // know what to enumerate, and would find an empty location instead of the
         // content the machine had.
-        snapshot.RegistryLists[keyPath] = [.. values.Keys];
+        snapshot.RegistryLists[keyPath] = [.. read.Values.Keys];
 
-        foreach (var (name, value) in values)
+        // And the status beside it, in the same statement: a capture taken on a key the scan
+        // was refused must replay as « je n'ai pas pu regarder », not as a key holding
+        // nothing. The two were the same empty list until REV-11.
+        snapshot.RegistryListsStatus[keyPath] = read.Status;
+
+        foreach (var (name, value) in read.Values)
         {
             snapshot.Registry[SnapshotKeys.Value(keyPath, name)] = RegistryRead.Found(value);
         }
 
-        return values;
+        return read;
     }
 
-    public IReadOnlyList<string> ListSubKeys(string keyPath)
+    public RegistrySubKeyList ListSubKeys(string keyPath)
     {
-        var names = inner.ListSubKeys(keyPath);
-        snapshot.SubKeyLists[keyPath] = [.. names];
-        return names;
+        var read = inner.ListSubKeys(keyPath);
+        snapshot.SubKeyLists[keyPath] = [.. read.Names];
+        snapshot.SubKeyListsStatus[keyPath] = read.Status;
+        return read;
     }
 }
 
@@ -89,16 +95,20 @@ public sealed class SnapshotRegistryProvider(MachineSnapshot snapshot) : IRegist
             : throw new SnapshotIncompleteException($"Test d'existence non enregistré : {key}.");
     }
 
-    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    public RegistryValueList ListValues(string keyPath)
     {
         var values = new Dictionary<string, RegistryValue>(StringComparer.OrdinalIgnoreCase);
 
-        // Location never enumerated at capture time: return an empty list rather
-        // than throw. A fixture predating this batch stays replayable, it simply
-        // produces fewer findings.
+        // Location never enumerated at capture time: NotFound rather than a throw, and
+        // deliberately not a refusal. A fixture predating this batch stays replayable and
+        // just as silent as before — this is the degradation AutorunsCollector reads
+        // ListValues for instead of ReadValue, which throws on that same capture. Claiming
+        // « on m'a refusé » about a key nobody asked would put a finding on every old
+        // fixture; the capture never said the key was absent either, and NotFound is the
+        // reading that keeps the silence it had.
         if (!snapshot.RegistryLists.TryGetValue(keyPath, out var names))
         {
-            return values;
+            return RegistryValueList.NotFound;
         }
 
         foreach (var name in names)
@@ -110,11 +120,23 @@ public sealed class SnapshotRegistryProvider(MachineSnapshot snapshot) : IRegist
             }
         }
 
-        return values;
+        return new RegistryValueList(Status(snapshot.RegistryListsStatus, keyPath), values);
     }
 
-    public IReadOnlyList<string> ListSubKeys(string keyPath) =>
-        snapshot.SubKeyLists.TryGetValue(keyPath, out var names) ? names : [];
+    public RegistrySubKeyList ListSubKeys(string keyPath) =>
+        snapshot.SubKeyLists.TryGetValue(keyPath, out var names)
+            ? new RegistrySubKeyList(Status(snapshot.SubKeyListsStatus, keyPath), names)
+            : RegistrySubKeyList.NotFound;
+
+    /// <summary>
+    /// The status recorded beside a listing, or <c>Found</c> when the capture carries the
+    /// listing and no status — a capture predating the field, read as the enumeration it was
+    /// taken to be. The two-way version of what <see cref="StatusChannel.Replay"/> decides
+    /// three ways; the third case cannot arise here, because a key absent from the listing
+    /// map has already been answered above.
+    /// </summary>
+    private static ReadStatus Status(Dictionary<string, ReadStatus> statuses, string keyPath) =>
+        statuses.TryGetValue(keyPath, out var recorded) ? recorded : ReadStatus.Found;
 }
 
 public sealed class RecordingServiceStateProvider(
@@ -347,13 +369,29 @@ public sealed class SnapshotDnsProvider(MachineSnapshot snapshot) : IDnsProvider
 public sealed class RecordingHostsFileProvider(
     IHostsFileProvider inner, MachineSnapshot snapshot) : IHostsFileProvider
 {
-    public IReadOnlyList<string> ReadLines() => snapshot.HostsFile ??= [.. inner.ReadLines()];
+    public HostsFileRead ReadLines() => StatusChannel.Record(
+        snapshot.HostsFileStatus, snapshot.HostsFile, snapshot.HostsFileDiagnostic,
+        inner.ReadLines,
+        // The status is recorded alongside the lines: a capture taken on a hosts file the
+        // scan was refused must replay as « je n'ai pas pu lire », not as a machine whose
+        // resolution nothing overrides — which is what a refusal is laid there to look like.
+        read =>
+        {
+            snapshot.HostsFile = [.. read.Lines];
+            snapshot.HostsFileStatus = read.Status;
+            snapshot.HostsFileDiagnostic = read.Diagnostic;
+        });
 }
 
 public sealed class SnapshotHostsFileProvider(MachineSnapshot snapshot) : IHostsFileProvider
 {
-    // Absent from an earlier capture: no lines, the fixture stays replayable.
-    public IReadOnlyList<string> ReadLines() => snapshot.HostsFile ?? [];
+    public HostsFileRead ReadLines() => StatusChannel.Replay(
+        snapshot.HostsFileStatus, snapshot.HostsFile, snapshot.HostsFileDiagnostic,
+        // Absent from an earlier capture: an empty, successful read. Unlike the drivers and
+        // like the browser extensions, a hosts file with no entry is a plausible state — the
+        // default one, in fact — so a fixture predating this collection replays as « rien à
+        // signaler » rather than as a failure it never had.
+        static () => HostsFileRead.Found([]));
 }
 
 public sealed class RecordingProxyProvider(IProxyProvider inner, MachineSnapshot snapshot) : IProxyProvider

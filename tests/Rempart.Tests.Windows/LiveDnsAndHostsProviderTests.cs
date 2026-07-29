@@ -150,10 +150,65 @@ public sealed class LiveHostsFileProviderTests
     [Fact]
     public void The_real_hosts_file_is_read()
     {
-        var lines = new LiveHostsFileProvider().ReadLines();
+        var read = new LiveHostsFileProvider().ReadLines();
 
-        Assert.NotEmpty(lines);
-        Assert.Contains(lines, line => line.TrimStart().StartsWith('#'));
+        Assert.Equal(Core.Providers.ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.NotEmpty(read.Lines);
+        Assert.Contains(read.Lines, line => line.TrimStart().StartsWith('#'));
+    }
+
+    /// <summary>
+    /// A path nothing answers at. It stands for the two states this read used to fold into
+    /// the empty list Windows' own comment-only file produces — the file is not there, or it
+    /// is there and refused.
+    ///
+    /// <para>
+    /// The absence is the one a test can stage without an ACL, and it is the harmless half:
+    /// a machine with no hosts file resolves through DNS alone, which is what a file with no
+    /// entry means too. What it proves here is that the read <em>separates</em> — nothing
+    /// answers, and the status says so instead of the caller inferring it from a count.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_hosts_file_that_is_not_there_is_absent_rather_than_empty()
+    {
+        var read = new LiveHostsFileProvider(@"C:\Rempart\CeCheminNExistePas").ReadLines();
+
+        Assert.Equal(Core.Providers.ReadStatus.NotFound, read.Status);
+        Assert.Empty(read.Lines);
+    }
+
+    /// <summary>
+    /// The refusal, staged the one way a non-elevated test can: a file held open with no
+    /// sharing, which is what malware protecting its own redirection does as readily as it
+    /// sets an ACL. <c>File.ReadAllLines</c> throws <c>IOException</c> there, and the read
+    /// must not call that « accès refusé » — the invariant CONTRIBUTING records, paid for
+    /// once by two milestones of a mute WMI.
+    /// </summary>
+    [Fact]
+    public void A_hosts_file_held_open_fails_without_being_called_a_denial()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"rempart-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(directory, "System32", "drivers", "etc"));
+        var path = Path.Combine(directory, "System32", "drivers", "etc", "hosts");
+        File.WriteAllText(path, "0.0.0.0 windowsupdate.microsoft.com\n");
+
+        try
+        {
+            using var held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+
+            var read = new LiveHostsFileProvider(directory).ReadLines();
+
+            Assert.Empty(read.Lines);
+            Assert.NotEqual(Core.Providers.ReadStatus.Found, read.Status);
+            Assert.NotNull(read.Diagnostic);
+            Assert.DoesNotContain("accès refusé", read.Diagnostic, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     /// <summary>
@@ -185,6 +240,6 @@ public sealed class LiveHostsFileProviderTests
 
         Assert.True(File.Exists(expected), $"Fichier hosts absent de {expected}.");
 
-        Assert.Equal(File.ReadAllLines(expected), new LiveHostsFileProvider().ReadLines());
+        Assert.Equal(File.ReadAllLines(expected), new LiveHostsFileProvider().ReadLines().Lines);
     }
 }

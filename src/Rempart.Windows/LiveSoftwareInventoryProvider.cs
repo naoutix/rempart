@@ -62,7 +62,7 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
     {
         foreach (var root in UninstallRoots)
         {
-            foreach (var key in registry.ListSubKeys(root))
+            foreach (var key in registry.ListSubKeys(root).Names)
             {
                 var path = $@"{root}\{key}";
                 var name = Text(path, "DisplayName");
@@ -86,14 +86,14 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
 
     private void ReadAppx(List<InstalledSoftware> software)
     {
-        var provisioned = new HashSet<string>(registry.ListSubKeys(AppxProvisioned), StringComparer.OrdinalIgnoreCase);
+        var provisioned = new HashSet<string>(registry.ListSubKeys(AppxProvisioned).Names, StringComparer.OrdinalIgnoreCase);
 
         // A leftover scale or language asset is not an installed application, and the
         // repository keeps one long after its package is gone. Of what remains, an
         // updated package leaves its older versions registered: one row per identity,
         // the highest version, architectures kept apart.
         var installed = AppxPackageName.LatestPerIdentity(
-            registry.ListSubKeys(AppxInstalled)
+            registry.ListSubKeys(AppxInstalled).Names
                 .Where(fullName => !AppxPackageName.IsResourcePackage(fullName)));
 
         foreach (var fullName in installed)
@@ -113,7 +113,7 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
 
     private void ReadAppPaths(List<InstalledSoftware> software)
     {
-        foreach (var exe in registry.ListSubKeys(AppPaths))
+        foreach (var exe in registry.ListSubKeys(AppPaths).Names)
         {
             software.Add(new InstalledSoftware(
                 exe, Version: null, Publisher: null, SoftwareSource.AppPath,

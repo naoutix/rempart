@@ -34,7 +34,25 @@ public sealed class ComHijackCollector : IFindingCollector
     {
         var findings = new List<Finding>();
 
-        foreach (var clsid in providers.Registry.ListSubKeys(UserClsid))
+        var hive = providers.Registry.ListSubKeys(UserClsid);
+
+        // The hive belongs to the user, its ACL included, so whoever registers a component
+        // there can also make it unreadable — and this collector has nothing to fall back on,
+        // since the whole point is discovering identifiers nobody can name in advance.
+        // Refused, it reported the same nothing as a healthy machine (REV-11).
+        if (hive.Status == ReadStatus.AccessDenied)
+        {
+            findings.Add(new Finding(
+                "com-hijack", UserClsid, "—", FindingSeverity.Notable,
+                ["Enregistrements COM de l'utilisateur illisibles : accès refusé. Un "
+                 + "composant enregistré là primerait sur le composant système de même "
+                 + "CLSID, sans droits d'administrateur et sans apparaître ici."],
+                new Dictionary<string, string>()));
+        }
+
+        // The walk continues whatever the status: an empty hive is the ordinary state, and a
+        // refusal that also emptied the inventory would trade one silence for another.
+        foreach (var clsid in hive.Names)
         {
             foreach (var kind in ServerKinds)
             {

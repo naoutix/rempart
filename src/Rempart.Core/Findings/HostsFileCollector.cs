@@ -43,7 +43,28 @@ public sealed class HostsFileCollector : IFindingCollector
         var blocked = new List<string>();
         var blockedCriticals = new List<string>();
 
-        foreach (var (ip, host) in Parse(providers.HostsFile.ReadLines()))
+        var read = providers.HostsFile.ReadLines();
+
+        // Only a failed read speaks. A file holding nothing but comments is the default state
+        // of Windows, and a machine without one resolves the same way, so both stay silent.
+        // What was wrongly silent alongside them is the refusal — the very technique that
+        // protects a redirection already in place (REV-12).
+        if (read.Status == ReadStatus.AccessDenied)
+        {
+            findings.Add(new Finding(
+                "hosts-entry", "hosts", "—", FindingSeverity.Notable,
+                [read.Diagnostic ?? "Fichier hosts illisible. Une redirection posée là "
+                    + "court-circuiterait la résolution DNS sans apparaître ici."],
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["type"] = "lecture",
+                }));
+        }
+
+        // Added, not returned: whatever came back is still parsed. One file has no partial
+        // read today, but a collector that stopped on a status would be one more place to fix
+        // the day it does.
+        foreach (var (ip, host) in Parse(read.Lines))
         {
             var critical = CriticalFragments.Any(
                 fragment => host.Contains(fragment, StringComparison.OrdinalIgnoreCase));

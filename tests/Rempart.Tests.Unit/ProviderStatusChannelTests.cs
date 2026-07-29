@@ -39,8 +39,9 @@ public sealed class ProviderStatusChannelTests
     ///
     /// <para>
     /// Written as one line per read rather than per provider, because the gaps are not
-    /// uniform inside a provider: <c>IRegistryProvider.ReadValue</c> carries a status and
-    /// its two enumerating siblings carry none.
+    /// uniform inside a provider: <c>IRegistryProvider.ReadValue</c> carried a status for
+    /// three milestones while its two enumerating siblings carried none, and the line that
+    /// said so is what made the hole nameable.
     /// </para>
     /// </summary>
     /// <remarks>
@@ -54,7 +55,12 @@ public sealed class ProviderStatusChannelTests
         "IBrowserExtensionProvider.Read → statut + diagnostic",
         "IComponentStoreProvider.Read → statut + diagnostic",
 
-        // Une machine sans interface réseau configurée existe : zéro est une réponse.
+        // Une machine sans interface réseau configurée existe : zéro est une réponse. La
+        // raison ne couvre plus tout depuis REV-11 : ce provider énumère les interfaces avec
+        // ListSubKeys, qui sait désormais dire « refusé », et il jette ce statut faute d'un
+        // canal où le poser. Un refus sur Tcpip\Parameters\Interfaces rend donc encore zéro
+        // résolveur. Consigné ici plutôt que corrigé au passage — c'est une autre lecture,
+        // avec son propre champ d'instantané à ajouter.
         "IDnsProvider.Read → aucun",
 
         // DET-WMI-MUET même : zéro pilote sur une machine allumée est une panne.
@@ -82,8 +88,13 @@ public sealed class ProviderStatusChannelTests
         // qui a refusé, et c'est lui qui distingue « refusé » de « jamais collecté ».
         "IFirewallProvider.Read → booléen dédié",
 
-        // Un fichier hosts sans entrée est l'état par défaut de Windows.
-        "IHostsFileProvider.ReadLines → aucun",
+        // Un fichier hosts sans entrée est l'état par défaut de Windows, et le reste : c'est
+        // pourquoi la lecture a le droit de se taire sur zéro ligne. Ce qui était plié dans
+        // cette phrase, et qui n'en relevait pas, c'est le REFUS — la technique même qui
+        // protège une redirection déjà posée (REV-12, fermée). Diagnostic et pas seulement
+        // statut : File.ReadAllLines lève IOException sur un fichier tenu en exclusif, ce
+        // qui n'est pas un accès refusé et ne doit pas se présenter comme tel.
+        "IHostsFileProvider.ReadLines → statut + diagnostic",
 
         // DET-PORTS-MUET, fermée. C'est la ligne pour laquelle ce test existe : elle est
         // arrivée ici en « aucun », inscrite au registre à sa première exécution, et le
@@ -101,15 +112,21 @@ public sealed class ProviderStatusChannelTests
         // Un test d'existence : le statut EST la donnée.
         "IRegistryProvider.KeyExists → statut, sans donnée",
 
-        // Dégradation voulue, et déjà payée : ReadValue lève sur une clé absente d'une
-        // fixture ancienne là où ces deux-là rendent vide, ce qui est ce qui permet à une
-        // capture antérieure d'être rejouée par du code plus récent.
-        "IRegistryProvider.ListSubKeys → aucun",
-        "IRegistryProvider.ListValues → aucun",
+        // La dégradation voulue tient toujours — ReadValue lève sur une clé absente d'une
+        // fixture ancienne là où ces deux-là rendent vide — mais elle portait sur l'ABSENCE,
+        // et le refus s'était glissé dans la même liste vide : une clé Run refusée rendait
+        // « aucun démarrage automatique » (REV-11, fermée). Les deux réponses sont
+        // séparables, et le sont : NotFound pour ce qu'une capture n'a pas énuméré, qui reste
+        // muet et rejouable, AccessDenied pour ce qu'on a refusé de lire.
+        "IRegistryProvider.ListSubKeys → statut seul",
+        "IRegistryProvider.ListValues → statut seul",
 
-        // Statut sans diagnostic, toléré : l'appelant a nommé la valeur qu'il lisait, donc
-        // « refusé » se suffit presque. Les énumérations n'ont pas ce contexte — elles
-        // échouent pour une catégorie entière d'un coup.
+        // Statut sans diagnostic, toléré, et pour la même raison sur les trois lectures de
+        // cette interface : l'appelant a nommé la clé qu'il lisait, donc « refusé » se suffit.
+        // Les énumérations sans argument — pilotes, processus, ports — n'ont pas ce contexte
+        // et échouent pour une catégorie entière d'un coup ; celles-ci prennent un chemin.
+        // S'y ajoute qu'aucune autre panne n'est avalée ici : le provider n'attrape que les
+        // deux exceptions de refus, tout le reste remonte.
         "IRegistryProvider.ReadValue → statut seul",
 
         "IScheduledTaskProvider.Enumerate → statut + diagnostic",
@@ -128,7 +145,9 @@ public sealed class ProviderStatusChannelTests
 
         // Zéro logiciel installé est faux sur une machine réelle, mais un inventaire vide
         // n'est pas une bonne nouvelle qu'on pourrait prendre pour un verdict : il ne
-        // déclenche aucune règle. Moins urgent que les ports.
+        // déclenche aucune règle. Moins urgent que les ports. Même réserve que pour le DNS
+        // ci-dessus : les quatre ListSubKeys de ce provider savent maintenant dire « refusé »
+        // et il n'a pas où le mettre.
         "ISoftwareInventoryProvider.Read → aucun",
 
         // Pas de forme « vide » : le type rend toujours une machine décrite.

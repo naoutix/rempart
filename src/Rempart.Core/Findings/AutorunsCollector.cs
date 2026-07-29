@@ -47,13 +47,43 @@ public sealed class AutorunsCollector : IFindingCollector
 
         foreach (var key in RunKeys)
         {
-            foreach (var (name, value) in providers.Registry.ListValues(key))
+            var read = providers.Registry.ListValues(key);
+
+            // AccessDenied, and not "anything other than Found": four of these five keys hold
+            // nothing on an ordinary machine and several are not there at all, so only a
+            // refusal is a hole in what the scan saw. The same line the startup folders draw
+            // below, one surface over — and the reason it can be drawn at all is that the
+            // enumeration finally answers something other than an empty listing (REV-11).
+            if (read.Status == ReadStatus.AccessDenied)
+            {
+                findings.Add(Unreadable(key,
+                    "Clé de démarrage automatique illisible : accès refusé. Une entrée "
+                    + "déposée là s'exécuterait au démarrage sans apparaître ici."));
+            }
+
+            // Added, not returned: a refused key must not cost the entries of the four that
+            // answered — the rule ScheduledTaskRead.Partial settled one issue ago.
+            foreach (var (name, value) in read.Values)
             {
                 if (value.ToString() is { Length: > 0 } command)
                 {
                     findings.Add(Examine(
                         $"{key}\\{name}", command, providers.Signatures, TransientReason(key)));
                 }
+            }
+        }
+
+        foreach (var key in ShellFolderKeys)
+        {
+            // The refusal that hides a refusal. Without a Shell Folders value no path is
+            // produced, so the startup folders are never walked and the AccessDenied finding
+            // below cannot fire either: the report loses the surface and the reason at once.
+            if (providers.Registry.ListValues(key).Status == ReadStatus.AccessDenied)
+            {
+                findings.Add(Unreadable(key,
+                    "Emplacement des dossiers de démarrage illisible : accès refusé. Leur "
+                    + "contenu n'a donc pas été énuméré, et un programme déposé là "
+                    + "s'exécuterait à l'ouverture de session sans apparaître ici."));
             }
         }
 
@@ -73,13 +103,10 @@ public sealed class AutorunsCollector : IFindingCollector
                 // not cost the files of the user folder that answered. Same shape as the
                 // partial port read, one level up — see DirectoryRead on why the shape is
                 // here rather than in the read.
-                findings.Add(new Finding(
-                    "autorun", folder, "—",
-                    FindingSeverity.Notable,
-                    [read.Diagnostic ?? "Contenu du dossier de démarrage illisible. Un "
-                        + "programme déposé là s'exécuterait à l'ouverture de session sans "
-                        + "apparaître ici."],
-                    new Dictionary<string, string>()));
+                findings.Add(Unreadable(folder,
+                    read.Diagnostic ?? "Contenu du dossier de démarrage illisible. Un "
+                    + "programme déposé là s'exécuterait à l'ouverture de session sans "
+                    + "apparaître ici."));
             }
 
             foreach (var file in read.Files)
@@ -97,6 +124,29 @@ public sealed class AutorunsCollector : IFindingCollector
     }
 
     /// <summary>
+    /// Where the startup folder paths are kept, machine then user — the order
+    /// <see cref="StartupFolders"/> reads them in, and the list the refusal loop walks, so a
+    /// location added gains its « illisible » case without anyone remembering to write one.
+    /// </summary>
+    private static readonly string[] ShellFolderKeys =
+    [
+        @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+        @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+    ];
+
+    /// <summary>The value each of those keys holds the startup folder under.</summary>
+    private static readonly string[] ShellFolderValues = ["Common Startup", "Startup"];
+
+    /// <summary>
+    /// A surface the scan could not read. Reported rather than skipped, and <c>Notable</c>
+    /// rather than <c>Suspicious</c>: nothing was observed, so nothing is being accused —
+    /// what is being said is that the report has a hole where its first surface should be.
+    /// </summary>
+    private static Finding Unreadable(string source, string reason) =>
+        new("autorun", source, "—", FindingSeverity.Notable, [reason],
+            new Dictionary<string, string>());
+
+    /// <summary>
     /// Startup folders, machine then user. Their content runs at logon without any
     /// registry key mentioning it — an audit that only inspected the registry would
     /// miss them entirely.
@@ -111,27 +161,25 @@ public sealed class AutorunsCollector : IFindingCollector
     /// </summary>
     private static IEnumerable<string> StartupFolders(IRegistryProvider registry)
     {
-        // Read via ListValues rather than ReadValue: on a snapshot taken before this
-        // collection existed, ReadValue throws "unrecorded read" and would abort the
-        // collector, whereas ListValues returns an empty list — the old fixture stays
-        // replayable, it simply yields fewer findings.
-        if (Value(registry,
-                @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
-                "Common Startup") is { Length: > 0 } machine)
+        for (var i = 0; i < ShellFolderKeys.Length; i++)
         {
-            yield return machine;
-        }
-
-        if (Value(registry,
-                @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
-                "Startup") is { Length: > 0 } user)
-        {
-            yield return user;
+            if (Value(registry, ShellFolderKeys[i], ShellFolderValues[i])
+                is { Length: > 0 } folder)
+            {
+                yield return folder;
+            }
         }
     }
 
+    // Read via ListValues rather than ReadValue: on a snapshot taken before this collection
+    // existed, ReadValue throws "unrecorded read" and would abort the collector, whereas
+    // ListValues degrades to NotFound — the old fixture stays replayable, it simply yields
+    // fewer findings. That degradation still covers only the *absence*; the refusal it used
+    // to be folded into is reported by the caller above.
     private static string? Value(IRegistryProvider registry, string keyPath, string valueName) =>
-        registry.ListValues(keyPath).TryGetValue(valueName, out var value) ? value.Text : null;
+        registry.ListValues(keyPath).Values.TryGetValue(valueName, out var value)
+            ? value.Text
+            : null;
 
     /// <summary>
     /// <c>desktop.ini</c> describes the folder's appearance; it does not execute.

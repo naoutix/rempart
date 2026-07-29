@@ -116,8 +116,19 @@ public sealed class LiveFirewallProvider : IFirewallProvider
                 continue;
             }
 
+            // The refusal KeyExists cannot see: a per-value ACL leaves the key opening and
+            // its values unreadable. Until REV-11 this enumeration answered the same empty
+            // dictionary for that and for a container holding nothing, so the read walked on
+            // and applied the Windows defaults to rules nobody had managed to list.
+            var enumerated = registry.ListValues(surface.Path);
+            if (enumerated.Status == ReadStatus.AccessDenied)
+            {
+                unreadable.Add(surface.Label);
+                continue;
+            }
+
             rulesKeyAnswered = true;
-            foreach (var value in registry.ListValues(surface.Path).Values)
+            foreach (var (_, value) in enumerated.Values)
             {
                 if (value.Text is { } raw && FirewallRule.Parse(raw) is { } rule)
                 {
@@ -135,15 +146,16 @@ public sealed class LiveFirewallProvider : IFirewallProvider
             ?? ReadFlag(LocalPublicProfile, "DefaultInboundAction", unreadable)
             ?? false; // Absent: the Windows inbound default is block.
 
-        // A rules key that opened and yielded nothing usable. Every Windows installation
-        // ships hundreds of built-in rules, so zero is a failure and not a machine without
-        // rules — the belief the Windows suite already asserted on the CI runner, moved to
-        // where it protects an audited machine instead.
+        // A rules key that opened, enumerated, and yielded nothing usable. Every Windows
+        // installation ships hundreds of built-in rules, so zero is a failure and not a
+        // machine without rules — the belief the Windows suite already asserted on the CI
+        // runner, moved to where it protects an audited machine instead.
         //
-        // This is also, for now, the only thing that catches a refused *enumeration*:
-        // IRegistryProvider.ListValues returns the same empty dictionary for « clé vide »
-        // and for « accès refusé » (REV-11, #115). When it learns to say which, this count
-        // stops being the signal and becomes a redundant safety net.
+        // This used to be the only thing that caught a refused *enumeration*, because
+        // ListValues returned the same empty dictionary for « clé vide » and for « accès
+        // refusé ». It says which now (REV-11, #115), so the count has become what it was
+        // meant to be: the net under a container that answered with values none of which
+        // parse — half a rule set lost without a refusal anywhere.
         if (rulesKeyAnswered && rules.Count == 0)
         {
             unreadable.Add("règles illisibles là où la clé a pourtant répondu");

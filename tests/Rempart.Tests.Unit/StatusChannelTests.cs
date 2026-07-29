@@ -411,6 +411,175 @@ public sealed class StatusChannelTests
         Assert.NotEmpty(read.Tasks);
     }
 
+    /// <summary>
+    /// The <c>hosts</c> file, sixth read to take this channel, through the same four steps:
+    /// recorded by the scan, serialised into the capture, replayed out of it, and — in
+    /// <c>AnonymiserTests</c> — scrubbed.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object, for the reason the
+    /// scheduler test gives: the capture is a <em>file</em>, and a status the recorder sets
+    /// but the source-generated serialiser drops would pass every in-memory assertion and
+    /// still replay as a file with no entry in it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_hosts_read_is_recorded_serialised_and_replayed_as_a_refusal()
+    {
+        var snapshot = new MachineSnapshot();
+        var source = new CountingHostsFileProvider(
+            HostsFileRead.Failed("Fichier hosts illisible : accès refusé."));
+        var recording = new RecordingHostsFileProvider(source, snapshot);
+
+        recording.ReadLines();
+        recording.ReadLines();
+
+        // A scan walks the collectors twice; asking the disk again on the second pass would
+        // make the capture depend on which pass caught the machine in a better mood.
+        Assert.Equal(1, source.Calls);
+
+        var replayed = new SnapshotHostsFileProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).ReadLines();
+
+        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+        Assert.Equal("Fichier hosts illisible : accès refusé.", replayed.Diagnostic);
+        Assert.Empty(replayed.Lines);
+    }
+
+    /// <summary>
+    /// The compatibility half, against a capture genuinely written before the field.
+    /// <c>default-win11</c> carries <c>hostsFile</c> and nothing beside it, and the absence
+    /// of a status has to mean exactly what it meant yesterday: a file with no entry in it,
+    /// which is the ordinary state of Windows and the reason this read is allowed to be
+    /// silent about zero.
+    /// </summary>
+    [Fact]
+    public void A_capture_written_before_the_hosts_status_replays_as_a_file_with_no_entry()
+    {
+        var json = File.ReadAllText(Path.Combine(
+            FixtureReplayTests.FixtureDirectory, "synthetic", "default-win11.capture.json"));
+
+        using (var document = JsonDocument.Parse(json))
+        {
+            // The premise of the test, asserted rather than assumed: the day this capture is
+            // regenerated with a status, it stops being evidence about older ones.
+            Assert.False(document.RootElement.TryGetProperty("hostsFileStatus", out _),
+                "La fixture porte désormais un statut de lecture du fichier hosts : elle ne "
+                + "prouve plus la compatibilité des captures antérieures au champ.");
+        }
+
+        var read = new SnapshotHostsFileProvider(
+            RempartJson.DeserialiseSnapshot(json)).ReadLines();
+
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.Empty(read.Lines);
+    }
+
+    private const string RunKey = @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+
+    /// <summary>
+    /// The registry enumerations, whose status is stored in a map beside the listing rather
+    /// than in the read — the same shape the directory listing takes, and for the same
+    /// reason: the key is an argument, so one refused <c>Run</c> key must not describe the
+    /// four that answered.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_refused_registry_enumeration_is_recorded_serialised_and_replayed(bool values)
+    {
+        var snapshot = new MachineSnapshot();
+        var recording = new RecordingRegistryProvider(new RefusingRegistryProvider(), snapshot);
+
+        if (values)
+        {
+            Assert.Equal(ReadStatus.AccessDenied, recording.ListValues(RunKey).Status);
+        }
+        else
+        {
+            Assert.Equal(ReadStatus.AccessDenied, recording.ListSubKeys(RunKey).Status);
+        }
+
+        var replay = new SnapshotRegistryProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot)));
+
+        var read = values
+            ? (replay.ListValues(RunKey).Status, replay.ListValues(RunKey).Values.Count)
+            : (replay.ListSubKeys(RunKey).Status, replay.ListSubKeys(RunKey).Names.Count);
+
+        Assert.Equal((ReadStatus.AccessDenied, 0), read);
+    }
+
+    /// <summary>
+    /// The compatibility half, on a versioned capture that really predates the field.
+    /// <c>compromised-win11</c> is the one fixture carrying enumerated <c>Run</c> keys, and
+    /// its <c>registryLists</c> block has no status map beside it: read as a refusal, every
+    /// capture older than this batch would grow a NOTABLE on the two keys whose entries its
+    /// golden freezes.
+    /// </summary>
+    [Fact]
+    public void A_capture_written_before_the_list_status_replays_as_the_listing_it_recorded()
+    {
+        var json = File.ReadAllText(Path.Combine(
+            FixtureReplayTests.FixtureDirectory, "synthetic", "compromised-win11.capture.json"));
+
+        using (var document = JsonDocument.Parse(json))
+        {
+            Assert.False(document.RootElement.TryGetProperty("registryListsStatus", out _),
+                "La fixture porte désormais un statut d'énumération : elle ne prouve plus la "
+                + "compatibilité des captures antérieures au champ.");
+        }
+
+        var read = new SnapshotRegistryProvider(RempartJson.DeserialiseSnapshot(json))
+            .ListValues(RunKey);
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.NotEmpty(read.Values);
+    }
+
+    /// <summary>
+    /// The other half of the same promise, and the one that decides whether an old fixture
+    /// stays replayable at all: a key this capture never enumerated. It answered an empty
+    /// listing before the status existed and must stay just as silent — <c>NotFound</c>, not
+    /// a refusal nobody was given. That deliberate degradation is what
+    /// <c>AutorunsCollector.StartupFolders</c> reads <c>ListValues</c> for instead of
+    /// <c>ReadValue</c>, which throws on the same capture.
+    /// </summary>
+    [Fact]
+    public void A_key_this_capture_never_enumerated_stays_silent_rather_than_refused()
+    {
+        var read = new SnapshotRegistryProvider(new MachineSnapshot());
+
+        Assert.Equal(ReadStatus.NotFound, read.ListValues(RunKey).Status);
+        Assert.Equal(ReadStatus.NotFound, read.ListSubKeys(RunKey).Status);
+    }
+
+    /// <summary>Refuses every enumeration, answers nothing else: the machine-side half of
+    /// the recording test above.</summary>
+    private sealed class RefusingRegistryProvider : IRegistryProvider
+    {
+        public RegistryRead ReadValue(string keyPath, string valueName) =>
+            RegistryRead.AccessDenied;
+
+        public ReadStatus KeyExists(string keyPath) => ReadStatus.AccessDenied;
+
+        public RegistryValueList ListValues(string keyPath) => RegistryValueList.AccessDenied;
+
+        public RegistrySubKeyList ListSubKeys(string keyPath) => RegistrySubKeyList.AccessDenied;
+    }
+
+    private sealed class CountingHostsFileProvider(HostsFileRead answer) : IHostsFileProvider
+    {
+        public int Calls { get; private set; }
+
+        public HostsFileRead ReadLines()
+        {
+            Calls++;
+            return answer;
+        }
+    }
+
     private sealed class CountingScheduledTaskProvider(ScheduledTaskRead answer)
         : IScheduledTaskProvider
     {
