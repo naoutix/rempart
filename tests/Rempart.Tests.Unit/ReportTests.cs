@@ -22,8 +22,17 @@ namespace Rempart.Tests.Unit;
 /// </summary>
 public sealed class ReportTests
 {
-    /// <summary>The payload planted in every machine-supplied field.</summary>
-    private const string Payload = "<script>alert('xss')</script>";
+    /// <summary>
+    /// The payload planted in every machine-supplied field.
+    ///
+    /// One payload for both renderers rather than one each: a tag, a quote, a pipe, a
+    /// link, a code fence and a line break travel together, so neither format can be
+    /// exercised on only the half of the hazard that happens to suit it. That split is
+    /// exactly how the Markdown findings section came to interpolate five values raw
+    /// while thirteen other sites escaped.
+    /// </summary>
+    private const string Payload =
+        "<script>alert('xss')</script> | [rapport](javascript:alert(1)) `fence` <img src=x>\nsuite";
 
     [Fact]
     public void Html_escapes_markup_planted_in_every_machine_supplied_field()
@@ -213,6 +222,78 @@ public sealed class ReportTests
         Assert.Contains("deux lignes", row, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The backslash rule, which is the one part of <c>Cell</c> a later simplification
+    /// would get wrong in either direction.
+    ///
+    /// <para>
+    /// Doubling every backslash would double them through every Windows path in the
+    /// report, in a format read as plain text as often as it is rendered. Doubling none
+    /// would let a backslash already in the value absorb the one we add and hand back a
+    /// live <c>[</c> — the very character the escape exists to kill.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(@"C:\Windows\System32", @"C:\Windows\System32")]
+    [InlineData(@"x\[y", @"x\\\[y")]
+    [InlineData("[Rapport complet](javascript:alerte)", @"\[Rapport complet](javascript:alerte)")]
+    public void Markdown_doubles_a_backslash_only_where_it_would_absorb_an_escape(
+        string value, string expected) =>
+        Assert.Equal(expected, MarkdownReport.Cell(value));
+
+    /// <summary>
+    /// The Markdown counterpart of
+    /// <see cref="Html_escapes_markup_planted_in_every_machine_supplied_field"/>, and
+    /// deliberately not written as one assertion per interpolation.
+    ///
+    /// <para>
+    /// A list of sites is only right on the day it is written: the findings section
+    /// interpolated five values raw while thirteen other sites in the same file escaped,
+    /// and no test noticed because every Markdown assertion named a site. What is pinned
+    /// here are properties of the whole document instead — nothing lands raw, no link can
+    /// be formed, no code span outlives its line, no row shifts a column. A fourteenth
+    /// interpolation written without <c>Cell</c> fails this test wherever it is added.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Markdown_leaves_no_live_construct_when_every_field_is_hostile()
+    {
+        var markdown = MarkdownReport.Render(Hostile());
+
+        // Not vacuous: the section the payload has to come out of intact is there.
+        Assert.Contains("Constats — ce qui est présent", markdown, StringComparison.Ordinal);
+
+        // Nothing lands raw. A site that skips Cell puts the payload back verbatim,
+        // line break included, whichever section it sits in.
+        Assert.DoesNotContain(Payload, markdown, StringComparison.Ordinal);
+
+        // No link and no image can be formed anywhere. This report writes no "[" of its
+        // own, so a live one could only have been assembled out of machine text — the
+        // Markdown twin of "no href exists in the HTML".
+        Assert.Equal(0, Live(markdown, '['));
+
+        foreach (var line in markdown.Split('\n'))
+        {
+            // No code span outlives its line: one that fails to close swallows what
+            // follows and shows it as part of the previous finding.
+            Assert.Equal(0, Live(line, '`') % 2);
+
+            // And no escaped value sits inside a span. Backslash escapes are inert in
+            // code spans, so a fenced value is by construction an unescaped one.
+            foreach (var span in CodeSpans(line))
+            {
+                Assert.DoesNotContain("\\", span, StringComparison.Ordinal);
+            }
+        }
+
+        // No row shifts a column: inside one table, every line separates the same
+        // number of cells as its header.
+        foreach (var table in Tables(markdown))
+        {
+            Assert.Single(table.Select(Delimiters).Distinct());
+        }
+    }
+
     [Fact]
     public void Markdown_lists_the_flagged_findings_with_their_reasons()
     {
@@ -321,9 +402,63 @@ public sealed class ReportTests
     }
 
     /// <summary>Pipes that still separate cells — the escaped ones do not.</summary>
-    private static int Delimiters(string row) =>
-        row.Where((character, index) =>
-            character == '|' && (index == 0 || row[index - 1] != '\\')).Count();
+    private static int Delimiters(string row) => Live(row, '|');
+
+    /// <summary>Occurrences a Markdown reader still takes as syntax rather than as text.</summary>
+    private static int Live(string text, char syntax) =>
+        text.Where((character, index) =>
+            character == syntax && (index == 0 || text[index - 1] != '\\')).Count();
+
+    /// <summary>Runs of consecutive table lines, header and separator included.</summary>
+    private static IEnumerable<List<string>> Tables(string markdown)
+    {
+        var table = new List<string>();
+
+        foreach (var line in markdown.Split('\n'))
+        {
+            if (line.StartsWith('|'))
+            {
+                table.Add(line);
+            }
+            else if (table.Count > 0)
+            {
+                yield return table;
+                table = [];
+            }
+        }
+
+        if (table.Count > 0)
+        {
+            yield return table;
+        }
+    }
+
+    /// <summary>
+    /// What a renderer reads as code on one line. An escaped backtick opens nothing: it
+    /// is text, which is the whole point of escaping it.
+    /// </summary>
+    private static IEnumerable<string> CodeSpans(string line)
+    {
+        var opened = -1;
+
+        for (var index = 0; index < line.Length; index++)
+        {
+            if (line[index] != '`' || (index > 0 && line[index - 1] == '\\'))
+            {
+                continue;
+            }
+
+            if (opened < 0)
+            {
+                opened = index;
+            }
+            else
+            {
+                yield return line[(opened + 1)..index];
+                opened = -1;
+            }
+        }
+    }
 
     private static int Occurrences(string haystack, string needle)
     {

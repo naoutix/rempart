@@ -19,9 +19,11 @@ namespace Rempart.Core.Reports;
 ///
 /// <para>
 /// Machine-supplied strings meet a different hazard here than in HTML: a pipe in a
-/// service path silently breaks a table row, and a report whose rows shift by one
-/// column is a report that attributes a finding to the wrong binary. Hence
-/// <see cref="Cell"/> on every table cell.
+/// service path silently breaks a table row, a report whose rows shift by one column
+/// attributes a finding to the wrong binary, and an extension named
+/// <c>[Rapport complet](…)</c> turns an audit report into a link someone clicks. Hence
+/// <see cref="Cell"/> on every value the scan carries — in a table or not — and never a
+/// code span around one, for the reason given there.
 /// </para>
 /// </summary>
 public static class MarkdownReport
@@ -31,7 +33,7 @@ public static class MarkdownReport
         var view = ReportView.From(result);
         var md = new StringBuilder(32 * 1024);
 
-        md.Append($"# Rempart — {view.MachineName}\n\n");
+        md.Append($"# Rempart — {Cell(view.MachineName)}\n\n");
         md.Append($"- **Scan** : {result.StartedAtUtc}\n");
         md.Append($"- **Version** : {result.ToolVersion}\n");
         md.Append($"- **Règles** : `{result.RulesFingerprint}`\n");
@@ -89,7 +91,7 @@ public static class MarkdownReport
 
         foreach (var collector in view.DegradedCollectors)
         {
-            caveats.Add($"**Collecteur « {collector.Name} »** : {ReportLabels.Of(collector.Status)}. "
+            caveats.Add($"**Collecteur « {Cell(collector.Name)} »** : {ReportLabels.Of(collector.Status)}. "
                         + "Ce qu'il aurait remonté est absent de ce rapport.");
         }
 
@@ -149,12 +151,12 @@ public static class MarkdownReport
             md.Append("|---|---|---|---|---|\n");
             foreach (var verdict in view.Failures)
             {
-                // No backticks around machine-supplied values in a table: a code span
-                // that fails to close spills its formatting into the next cell, and a
-                // report where a value appears to belong to another column is worse
-                // than an unstyled one.
+                // No code span around a value, here or anywhere below: one that fails to
+                // close spills its formatting into the next cell, and a report where a
+                // value appears to belong to another column is worse than an unstyled
+                // one. Cell says why the two cannot be combined either way.
                 md.Append($"| {ReportLabels.Of(verdict.Severity)} "
-                          + $"| `{Cell(verdict.RuleId)}` {Cell(verdict.Title)} "
+                          + $"| {Cell(verdict.RuleId)} {Cell(verdict.Title)} "
                           + $"| {Cell(verdict.Domain)} "
                           + $"| {Cell(verdict.Observed ?? "absent")} "
                           + $"| {Cell(verdict.Expected ?? "—")} |\n");
@@ -170,7 +172,7 @@ public static class MarkdownReport
             md.Append("Ni conformes ni non conformes : exclus du score. Un scan élevé les tranche.\n\n");
             foreach (var verdict in view.Unverifiable)
             {
-                md.Append($"- `{verdict.RuleId}` {verdict.Title}\n");
+                md.Append($"- {Cell(verdict.RuleId)} {Cell(verdict.Title)}\n");
             }
 
             md.Append('\n');
@@ -199,21 +201,21 @@ public static class MarkdownReport
 
         foreach (var group in view.Groups.Where(g => g.Flagged.Count > 0))
         {
-            md.Append($"### {ReportLabels.Family(group.Kind)}\n\n");
+            md.Append($"### {Cell(ReportLabels.Family(group.Kind))}\n\n");
 
             foreach (var finding in group.Flagged)
             {
-                md.Append($"**{ReportLabels.Of(finding.Severity)}** — {finding.Target}\n\n");
-                md.Append($"- source : `{finding.Source}`\n");
+                md.Append($"**{ReportLabels.Of(finding.Severity)}** — {Cell(finding.Target)}\n\n");
+                md.Append($"- source : {Cell(finding.Source)}\n");
 
                 foreach (var reason in finding.Reasons)
                 {
-                    md.Append($"- {reason}\n");
+                    md.Append($"- {Cell(reason)}\n");
                 }
 
                 foreach (var (key, value) in finding.Details.OrderBy(d => d.Key, StringComparer.Ordinal))
                 {
-                    md.Append($"- {key} : `{value}`\n");
+                    md.Append($"- {Cell(key)} : {Cell(value)}\n");
                 }
 
                 md.Append('\n');
@@ -243,7 +245,7 @@ public static class MarkdownReport
 
         md.Append('\n');
         md.Append(probe.RecommendedResolver is { } resolver
-            ? $"Suggestion : {resolver} en {probe.RecommendedProtocol} "
+            ? $"Suggestion : {Cell(resolver)} en {probe.RecommendedProtocol} "
               + $"({probe.RecommendedLatencyMs} ms) est le plus rapide joignable.\n\n"
             : "Aucun résolveur chiffré joignable depuis ce réseau.\n\n");
     }
@@ -293,11 +295,11 @@ public static class MarkdownReport
 
         foreach (var collector in view.Result.Collectors)
         {
-            md.Append($"### {collector.Name} — {ReportLabels.Of(collector.Status)}\n\n");
+            md.Append($"### {Cell(collector.Name)} — {ReportLabels.Of(collector.Status)}\n\n");
 
             foreach (var diagnostic in collector.Diagnostics)
             {
-                md.Append($"> {diagnostic}\n>\n");
+                md.Append($"> {Cell(diagnostic)}\n>\n");
             }
 
             if (collector.Diagnostics.Count > 0)
@@ -331,16 +333,99 @@ public static class MarkdownReport
     }
 
     /// <summary>
-    /// Makes a value safe inside a table cell.
+    /// Makes a value the audited machine chose inert. Applied to every one of them,
+    /// wherever it lands — a table cell, a heading, a bullet, a quoted diagnostic.
     ///
-    /// An unescaped pipe does not break the render — it shifts every following column
-    /// by one, so the row still looks plausible while attributing a value to the wrong
-    /// field. Newlines end the row outright. Both come straight from the machine:
-    /// service paths and command lines carry pipes routinely.
+    /// <para>
+    /// Each character below carries structure a value must not be able to seize. A pipe
+    /// does not break the render, it shifts every following column by one, so the row
+    /// stays plausible while naming the wrong binary. A newline ends the row, or the
+    /// bullet, outright. A backtick closes a code span early and spills its formatting
+    /// over what follows. A <c>[</c> is the only way to open a link or an image, which
+    /// is how an extension named <c>[Rapport complet](javascript:…)</c> becomes one
+    /// click in a report about that very extension — GitHub neutralises the scheme,
+    /// several previews and wiki importers do not. A <c>&lt;</c> opens an autolink or a
+    /// raw HTML tag, which Markdown hands through untouched. Service paths, registry
+    /// values and extension names carry all five routinely.
+    /// </para>
+    ///
+    /// <para>
+    /// Emphasis markers are deliberately left alone. They can make a value bold; they
+    /// cannot make it look like another value or become a link. Escaping every
+    /// underscore of every registry path would cost the reader more than the stray
+    /// italics do — this format is read as plain text as often as it is rendered.
+    /// </para>
+    ///
+    /// <para>
+    /// A backslash is doubled only when it guards one of those characters, so that a
+    /// backslash already in the value cannot swallow the one we add and hand the
+    /// character back live. Left alone everywhere else, which is what keeps
+    /// <c>C:\Windows\System32</c> readable.
+    /// </para>
+    ///
+    /// <para>
+    /// The result must never be wrapped in a code span. Backslash escapes are inert
+    /// inside one, so fencing an escaped value hands every character back and adds a
+    /// delimiter the value can close early: fencing and escaping are alternatives, and
+    /// only escaping survives a value that is chosen against us. A test walks the whole
+    /// rendered document for both mistakes rather than naming the sites, because the
+    /// naming is what failed here.
+    /// </para>
     /// </summary>
-    internal static string Cell(string text) => text
-        .Replace("|", @"\|", StringComparison.Ordinal)
-        .Replace("\r\n", " ", StringComparison.Ordinal)
-        .Replace("\n", " ", StringComparison.Ordinal)
-        .Replace("\r", " ", StringComparison.Ordinal);
+    internal static string Cell(string text)
+    {
+        // Fast path: a report carries thousands of strings and almost none need work.
+        if (text.AsSpan().IndexOfAny(Structural) < 0)
+        {
+            return text;
+        }
+
+        var escaped = new StringBuilder(text.Length + 16);
+
+        for (var index = 0; index < text.Length; index++)
+        {
+            var character = text[index];
+
+            switch (character)
+            {
+                case '\r':
+                    // CRLF is one break, not two.
+                    if (index + 1 < text.Length && text[index + 1] == '\n')
+                    {
+                        index++;
+                    }
+
+                    escaped.Append(' ');
+                    break;
+
+                case '\n':
+                    escaped.Append(' ');
+                    break;
+
+                case '\\' when index + 1 < text.Length && Structural.Contains(text[index + 1]):
+                    escaped.Append(@"\\");
+                    break;
+
+                case '|':
+                case '`':
+                case '[':
+                case '<':
+                    escaped.Append('\\').Append(character);
+                    break;
+
+                default:
+                    escaped.Append(character);
+                    break;
+            }
+        }
+
+        return escaped.ToString();
+    }
+
+    /// <summary>
+    /// What <see cref="Cell"/> has to look at: the characters it escapes, plus the
+    /// backslash that could neutralise an escape and the two line breaks it flattens.
+    /// One list, so the fast path and the backslash rule cannot drift apart.
+    /// </summary>
+    private const string Structural = "|`[<\\\r\n";
 }

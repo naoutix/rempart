@@ -374,7 +374,9 @@ public static class DiffReport
 
             foreach (var change in changes)
             {
-                md.Append($"| `{MarkdownReport.Cell(change.RuleId)}` "
+                // Bare, not fenced: MarkdownReport.Cell escapes, and a backslash escape
+                // is inert inside a code span.
+                md.Append($"| {MarkdownReport.Cell(change.RuleId)} "
                           + $"{MarkdownReport.Cell(change.Title)} "
                           + $"| {MarkdownReport.Cell(change.Domain)} "
                           + $"| {Status(change.Before)} | {Status(change.After)} |\n");
