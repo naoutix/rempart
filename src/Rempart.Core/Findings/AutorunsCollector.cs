@@ -243,6 +243,13 @@ public sealed class AutorunsCollector : IFindingCollector
         var path = ExtractExecutablePath(command);
         var judgement = SignatureLadder.Judge(path, signatures);
 
+        // The second half of the same question. The ladder above answers "what attests to
+        // the origin of this file", which is exact and, for an interpreter, empty: a Run
+        // value launching the signed powershell.exe of the machine came out benign with no
+        // reason at all, and the console, the HTML and the Markdown all print only what is
+        // not benign — so the entry was not merely unjudged, it was invisible.
+        var payload = InterpreterPayload.Inspect(path, ArgumentsOf(command, path));
+
         var details = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["commande"] = command,
@@ -256,7 +263,34 @@ public sealed class AutorunsCollector : IFindingCollector
         SignatureLadder.Describe(judgement.Signature, details);
 
         return new Finding(
-            "autorun", source, path, judgement.Severity, judgement.Reasons, details);
+            "autorun", source, path, payload.Over(judgement.Severity),
+            [.. judgement.Reasons, .. payload.Reasons], details);
+    }
+
+    /// <summary>
+    /// Everything the command line holds beyond the executable itself.
+    ///
+    /// <para>
+    /// Taken back out of the original string rather than rebuilt from the split above:
+    /// <see cref="ExtractExecutablePath"/> normalises what it returns — it drops the
+    /// opening quote and rejoins on single spaces — and an argument list rebuilt from that
+    /// would no longer be the one Windows will hand to the interpreter.
+    /// </para>
+    /// </summary>
+    private static string ArgumentsOf(string command, string path)
+    {
+        var trimmed = command.Trim();
+        var start = trimmed.IndexOf(path, StringComparison.OrdinalIgnoreCase);
+
+        if (start < 0)
+        {
+            return string.Empty;
+        }
+
+        var rest = trimmed[(start + path.Length)..];
+
+        // The closing quote of a quoted path belongs to the path, not to the arguments.
+        return rest.StartsWith('"') ? rest[1..] : rest;
     }
 
     /// <summary>

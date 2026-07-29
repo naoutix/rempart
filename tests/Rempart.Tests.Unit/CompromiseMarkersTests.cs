@@ -52,6 +52,12 @@ public sealed class CompromiseMarkersTests
         { "autorun", "OneDriveSync", FindingSeverity.Suspicious },
         { "autorun", "SecurityHealth", FindingSeverity.Benign },
 
+        // Command line over signature: both entries launch an interpreter Windows ships,
+        // validly signed, from System32 — the ladder above is silent on both and only the
+        // arguments tell them apart.
+        { "autorun", "WindowsUpdateAssistant", FindingSeverity.Notable },
+        { "autorun", "OneDriveCleanup", FindingSeverity.Benign },
+
         { "driver", "syndrv64", FindingSeverity.Suspicious },
         { "driver", "Ntfs", FindingSeverity.Benign },
 

@@ -127,7 +127,7 @@ données : catalogue au 2026-07-21, à jour
 
   « rempart explain <ID> » détaille une règle et ce que coûte sa correction.
 
-[constats] 2 autorun, 2 browser-extension, 2 dns-resolver, 2 driver, 3 listening-port, 2 logon-extension, 2 lsa-package, 2 process, 197 scheduled-task, 3 wmi-subscription — 10 à examiner
+[constats] 4 autorun, 2 browser-extension, 2 dns-resolver, 2 driver, 3 listening-port, 2 logon-extension, 2 lsa-package, 2 process, 197 scheduled-task, 3 wmi-subscription — 11 à examiner
 
   SUSPICIOUS  HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\OneDriveSync
               C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\OneDriveSync.exe
@@ -161,6 +161,14 @@ données : catalogue au 2026-07-21, à jour
   SUSPICIOUS  Chrome/anon:7c1e05b4a930
               Secure Browsing Helper
               → Installée hors du magasin d'extensions (sideload) — le vecteur classique d'extension malveillante.
+
+  NOTABLE     HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\WindowsUpdateAssistant
+              C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+              → Interpréteur : ce qui s'exécute est décidé par ses arguments, et la signature ne porte que sur l'interpréteur lui-même.
+              → Commande encodée en base64 (-EncodedCommand) : ce qui sera exécuté n'apparaît nulle part en clair, ni ici ni dans un journal.
+              → Fenêtre masquée (hidden) : l'exécution ne laisse rien voir à qui est devant l'écran.
+              → Profil PowerShell ignoré (-NoProfile) : l'exécution ne dépend pas de la configuration de l'utilisateur.
+              éditeur : CN=Microsoft Windows, O=Microsoft Corporation
 
   NOTABLE     __EventFilter / SystemUpdaterFilter
               SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System'

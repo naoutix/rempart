@@ -125,6 +125,50 @@ public class ScheduledTasksTests
     }
 
     /// <summary>
+    /// The other half of REV-17. The scheduler is the larger persistence surface and it
+    /// carried the same blind spot as the <c>Run</c> keys: <c>Arguments</c> went into a
+    /// detail string and was judged by nobody, so a task launching the validly signed
+    /// <c>powershell.exe</c> of the machine came out benign with nothing written beside it.
+    /// </summary>
+    [Fact]
+    public void A_task_hiding_its_payload_behind_a_signed_interpreter_is_notable()
+    {
+        const string Interpreter = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+
+        var findings = Collect(
+            ScheduledTaskRead.Found([Task(@"\Microsoft\Windows\Maintenance",
+                new TaskAction("exec", Interpreter, "-NoProfile -w hidden -enc SQBFAFgA"))]),
+            new FakeSignatureProvider().With(Interpreter, SignatureStatus.Valid));
+
+        var finding = Assert.Single(findings);
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Contains("encodée", string.Join(" ", finding.Reasons));
+    }
+
+    /// <summary>
+    /// And the false positive it must not become. Windows ships a dozen tasks calling into
+    /// a system DLL through <c>rundll32</c>; flagging them would put a line on every machine
+    /// in the fleet, which is precisely why this collector counts the crowd rather than
+    /// detailing it.
+    /// </summary>
+    [Fact]
+    public void A_system_task_calling_into_a_dll_stays_benign()
+    {
+        const string Interpreter = @"C:\Windows\System32\rundll32.exe";
+
+        var findings = Collect(
+            ScheduledTaskRead.Found([Task(@"\Microsoft\Windows\Autochk\Proxy",
+                new TaskAction("exec", Interpreter, "/d acproxy.dll,PerformAutochkOperations"))]),
+            new FakeSignatureProvider().With(Interpreter, SignatureStatus.Valid));
+
+        var finding = Assert.Single(findings);
+
+        Assert.Equal(FindingSeverity.Benign, finding.Severity);
+        Assert.Empty(finding.Reasons);
+    }
+
+    /// <summary>
     /// The signature is recorded even when valid. Recording it only when it is a
     /// problem would make "verified and good" indistinguishable from "never
     /// verified" — the silent variant of the defect that left WMI inoperative

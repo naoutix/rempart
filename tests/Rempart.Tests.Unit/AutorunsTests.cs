@@ -112,6 +112,77 @@ public class AutorunsTests
     }
 
     /// <summary>
+    /// The gap REV-17 names, end to end. Everything about the entry is above suspicion —
+    /// Microsoft's interpreter, validly signed, in System32 — so the finding used to come
+    /// out benign with an empty reason list, and the console, the HTML and the Markdown all
+    /// print only what is not benign. The entry was not merely unjudged: it was invisible.
+    /// </summary>
+    [Fact]
+    public void An_encoded_powershell_autorun_is_reported_with_its_reasons()
+    {
+        const string Interpreter = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+
+        var registry = new FakeRegistryProvider().WithText(
+            @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "Updater",
+            $@"""{Interpreter}"" -NoProfile -w hidden -enc SQBFAFgA");
+        var signatures = new FakeSignatureProvider().With(Interpreter, SignatureStatus.Valid);
+
+        var finding = Assert.Single(
+            Collect(registry, signatures, new FakeFileSystemProvider()));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Contains("encodée", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+        Assert.Equal("Valid", finding.Details["signature"]);
+    }
+
+    /// <summary>
+    /// The other half, and the one that decides whether the report keeps being read: a
+    /// <c>RunOnce</c> entry Windows itself writes launches <c>cmd.exe</c>, and it must stay
+    /// exactly where it was. The quoted path carries a space, which is also what the
+    /// argument splitting has to survive.
+    /// </summary>
+    [Fact]
+    public void An_ordinary_interpreter_autorun_stays_benign()
+    {
+        const string Interpreter = @"C:\Windows\System32\cmd.exe";
+
+        var registry = new FakeRegistryProvider().WithText(
+            @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce", "Delete Cached Binary",
+            $@"{Interpreter} /q /c del /q ""C:\Program Files\Microsoft OneDrive\Setup.exe""");
+        var signatures = new FakeSignatureProvider().With(Interpreter, SignatureStatus.Valid);
+
+        var finding = Assert.Single(
+            Collect(registry, signatures, new FakeFileSystemProvider()));
+
+        Assert.Equal(FindingSeverity.Benign, finding.Severity);
+        Assert.Empty(finding.Reasons);
+    }
+
+    /// <summary>
+    /// The two axes add up rather than replace one another. An unsigned interpreter dropped
+    /// in a temporary folder is suspicious because of its signature, and lowering that to
+    /// notable because the command line only asks for a look would be a regression the
+    /// reader pays for.
+    /// </summary>
+    [Fact]
+    public void A_payload_reason_never_lowers_what_the_signature_decided()
+    {
+        const string Dropped = @"C:\Users\anon\AppData\Local\Temp\powershell.exe";
+
+        var registry = new FakeRegistryProvider().WithText(
+            @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "Updater",
+            $"{Dropped} -enc SQBFAFgA");
+        var signatures = new FakeSignatureProvider().With(Dropped, SignatureStatus.Unsigned);
+
+        var finding = Assert.Single(
+            Collect(registry, signatures, new FakeFileSystemProvider()));
+
+        Assert.Equal(FindingSeverity.Suspicious, finding.Severity);
+        Assert.Contains("non signé", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+        Assert.Contains("encodée", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Without a <c>Shell Folders</c> value in the registry, no startup folder is
     /// scanned — no path gets invented, only the Run keys count.
     /// </summary>

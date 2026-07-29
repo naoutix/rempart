@@ -122,11 +122,18 @@ public sealed class ScheduledTasksCollector : IFindingCollector
                 judged[action.Path] = judgement;
             }
 
-            if (worst is null || judgement.Severity > severity)
+            // Not cached beside the signature: the arguments are the whole point here, and
+            // two tasks launching the same signed interpreter can carry opposite payloads.
+            // The task surface has the same blind spot the Run keys had — Arguments was
+            // recorded in a detail string and judged by nobody.
+            var payload = InterpreterPayload.Inspect(action.Path, action.Arguments);
+            var actionSeverity = payload.Over(judgement.Severity);
+
+            if (worst is null || actionSeverity > severity)
             {
-                severity = judgement.Severity > severity ? judgement.Severity : severity;
+                severity = actionSeverity > severity ? actionSeverity : severity;
                 target = action.Path;
-                reasons = [.. judgement.Reasons];
+                reasons = [.. judgement.Reasons, .. payload.Reasons];
                 worst = judgement;
             }
         }

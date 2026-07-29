@@ -2,10 +2,10 @@ anon:000000000002 contre anon:000000000004
   avant : 2026-01-01T00:00:00.0000000Z
   après : 2026-01-01T00:00:00.0000000Z
 
-[synthèse] 15 constat(s) apparu(s).
+[synthèse] 17 constat(s) apparu(s).
   conformité 52 % → 52 %
 
-[constats] 18 écart(s)
+[constats] 20 écart(s)
 
   apparu    C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\OneDriveSync.exe
             HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\OneDriveSync
@@ -40,6 +40,13 @@ anon:000000000002 contre anon:000000000004
             → Exécute une ligne de commande à chaque déclenchement.
             → Persistance sans fichier : invisible des clés Run et des tâches planifiées.
 
+  apparu    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+            HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\WindowsUpdateAssistant
+            → Interpréteur : ce qui s'exécute est décidé par ses arguments, et la signature ne porte que sur l'interpréteur lui-même.
+            → Commande encodée en base64 (-EncodedCommand) : ce qui sera exécuté n'apparaît nulle part en clair, ni ici ni dans un journal.
+            → Fenêtre masquée (hidden) : l'exécution ne laisse rien voir à qui est devant l'écran.
+            → Profil PowerShell ignoré (-NoProfile) : l'exécution ne dépend pas de la configuration de l'utilisateur.
+
   apparu    Password Vault
             Chrome/anon:7c1e05b4a930
             → Accès à toutes les pages web : peut lire et modifier tout ce qui s'affiche.
@@ -61,6 +68,9 @@ anon:000000000002 contre anon:000000000004
   apparu    SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System'
             __EventFilter / SystemUpdaterFilter
             → Filtre d'événement enregistré. Seul il n'exécute rien ; associé à un consommateur, il déclenche du code.
+
+  apparu    C:\Windows\System32\cmd.exe
+            HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\OneDriveCleanup
 
   apparu    C:\Windows\System32\SecurityHealthSystray.exe
             HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\SecurityHealth
