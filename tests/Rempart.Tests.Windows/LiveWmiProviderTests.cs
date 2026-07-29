@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Rempart.Core.Providers;
 using Rempart.Windows.Wmi;
 using Xunit.Abstractions;
@@ -125,5 +126,55 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
             ["DriveLetter", "ProtectionStatus"]);
 
         Assert.Contains(read.Status, new[] { ReadStatus.Found, ReadStatus.AccessDenied, ReadStatus.NotFound });
+    }
+
+    /// <summary>
+    /// A COM failure carrying a chosen HRESULT, so that the three tests below judge the
+    /// mapping rather than the runner's WMI. Synthesized because the codes that matter — a
+    /// damaged repository, a service that will not start — cannot be provoked on a healthy
+    /// machine, and the check above, which only asks that the status be one of three enum
+    /// values, cannot tell any of them from a denial.
+    /// </summary>
+    private static COMException Com(uint hresult) =>
+        new("échec COM simulé", unchecked((int)hresult));
+
+    [Theory]
+    [InlineData(0x80041010u)] // WBEM_E_INVALID_CLASS: damaged or partial repository
+    [InlineData(0x800706BAu)] // RPC_S_SERVER_UNAVAILABLE: Winmgmt is not serving
+    [InlineData(0x80041013u)] // WBEM_E_PROVIDER_LOAD_FAILURE
+    [InlineData(0x80041045u)] // WBEM_E_SERVER_TOO_BUSY
+    [InlineData(0x80041014u)] // WBEM_E_INITIALIZATION_FAILURE
+    public void A_com_failure_names_its_hresult_instead_of_claiming_a_denial(uint hresult)
+    {
+        // Every one of these once returned WmiRead.AccessDenied with a null diagnostic, so
+        // the four `type: wmi` rules — plus drivers, processes and unquoted service paths —
+        // advised « relancer en administrateur » to a user who already was.
+        var read = LiveWmiProvider.Classify(Com(hresult));
+
+        Assert.NotNull(read.Diagnostic);
+        Assert.Contains($"0x{hresult:X8}", read.Diagnostic, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0x80041003u)] // WBEM_E_ACCESS_DENIED
+    [InlineData(0x80070005u)] // E_ACCESSDENIED
+    [InlineData(0x80041062u)] // WBEM_E_PRIVILEGE_NOT_HELD
+    public void A_genuine_refusal_stays_a_refusal_without_a_diagnostic(uint hresult)
+    {
+        // The counterpart: dropping one of these from the list would turn a real denial into
+        // a failure, and « relancer en administrateur » would stop being said when it is the
+        // right advice.
+        var read = LiveWmiProvider.Classify(Com(hresult));
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Null(read.Diagnostic);
+    }
+
+    [Theory]
+    [InlineData(0x8004100Eu)] // WBEM_E_INVALID_NAMESPACE: feature absent from this edition
+    [InlineData(0x80041002u)] // WBEM_E_NOT_FOUND
+    public void An_absent_namespace_is_absence_not_refusal(uint hresult)
+    {
+        Assert.Equal(ReadStatus.NotFound, LiveWmiProvider.Classify(Com(hresult)).Status);
     }
 }

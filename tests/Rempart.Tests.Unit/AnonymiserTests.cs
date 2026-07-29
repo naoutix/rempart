@@ -375,6 +375,11 @@ public sealed class AnonymiserTests
             ListeningPortsDiagnostic = $@"table sans réponse : C:\Users\{marker}\s.exe",
             BrowserExtensionsDiagnostic = $@"profil illisible : C:\Users\{marker}\prefs.js",
             DirectoriesDiagnostic = { [$@"C:\Users\{marker}"] = $@"refusé : C:\Users\{marker}" },
+
+            // The fifth sibling, and the one that shows why the sweep is written this way:
+            // it was an unreachable field when the four above were fixed, and became a live
+            // one the day a COM failure started naming itself instead of claiming a denial.
+            Wmi = { ["root/cimv2:Win32_Service"] = WmiRead.Failed($@"COM 0x80041013 : C:\Users\{marker}\svc.exe") },
         };
 
         var serialised = RempartJson.Serialise(Anonymiser.Apply(snapshot));
