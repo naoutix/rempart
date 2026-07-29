@@ -13,7 +13,22 @@ public sealed record ChromiumManifest(
 /// <summary>One entry of <c>extensions.settings</c>, already filtered and decoded.</summary>
 public sealed record ChromiumExtensionSetting(
     string Id,
-    string RelativePath,
+
+    /// <summary>
+    /// The install directory exactly as the browser wrote it — relative to the
+    /// profile's <c>Extensions</c> folder for an ordinary install, absolute for an
+    /// extension living outside the profile. This used to be called
+    /// <c>RelativePath</c>, and the name was the bug: see <see cref="PathIsAbsolute"/>.
+    /// </summary>
+    string Path,
+
+    /// <summary>
+    /// True when <see cref="Path"/> is to be used as written instead of being joined
+    /// under the profile's <c>Extensions</c> folder. Absoluteness describes the entry,
+    /// it no longer selects it.
+    /// </summary>
+    bool PathIsAbsolute,
+
     bool Enabled,
     bool FromStore,
     IReadOnlyList<string>? GrantedApi,
@@ -25,10 +40,14 @@ public sealed record ChromiumExtensionSetting(
 ///
 /// <para>
 /// Field semantics were verified against a real Chrome 150 and Edge profile
-/// (2026-07-24) rather than taken from documentation — see the M5c design note. Two
+/// (2026-07-24) rather than taken from documentation — see the M5c design note. Three
 /// findings matter: <c>state</c> no longer exists (enabled/disabled is carried by
-/// <c>disable_reasons</c>), and <c>from_webstore</c> is false for Microsoft Add-ons
-/// installs on Edge, so only <c>location</c> can tell a sideload apart.
+/// <c>disable_reasons</c>); <c>from_webstore</c> is false for Microsoft Add-ons
+/// installs on Edge, so only <c>location</c> can tell a sideload apart; and the shape
+/// of <c>path</c> tells nothing about provenance — measured on Chrome 150.0.7871.187
+/// (2026-07-29), an unpacked extension records an absolute path to the developer's
+/// source directory, exactly like a component extension records one into the browser's
+/// installation. <c>location</c> is the only field that distinguishes the two.
 /// </para>
 /// </summary>
 public static class ChromiumExtensions
@@ -168,13 +187,10 @@ public static class ChromiumExtensions
             return null;
         }
 
-        // Sync leaves stub entries with no path; components point into the browser's
-        // own installation with an absolute path. Only a path relative to the profile
-        // denotes an extension actually installed there. Absolute is detected by hand:
-        // System.IO.Path reads Windows paths wrongly when fixtures replay on Linux.
+        // Sync leaves stub entries with no path: nothing is installed behind them.
         var path = JsonValues.String(value, "path");
 
-        if (string.IsNullOrEmpty(path) || IsAbsolute(path))
+        if (string.IsNullOrEmpty(path))
         {
             return null;
         }
@@ -196,6 +212,18 @@ public static class ChromiumExtensions
         var location = value.TryGetProperty("location", out var loc)
             && loc.ValueKind == JsonValueKind.Number ? loc.GetInt32() : 1;
 
+        // Component extensions (5) are shipped inside the browser's own installation;
+        // reporting them would be a false positive on every machine. They are excluded
+        // on what the entry declares itself to be, because the previous criterion — an
+        // absolute path — happens to describe an unpacked extension too, whose path is
+        // the developer's source directory. That dropped location 4, the one sideload
+        // vector a "Load unpacked" represents, and dropped it in silence: a discarded
+        // entry appears in no inventory and in no list of unreadable profiles.
+        if (location == 5)
+        {
+            return null;
+        }
+
         IReadOnlyList<string>? grantedApi = null;
         IReadOnlyList<string>? grantedHosts = null;
 
@@ -212,12 +240,15 @@ public static class ChromiumExtensions
         }
 
         return new ChromiumExtensionSetting(
-            id, path, !disabled, location is not (2 or 3 or 4), grantedApi, grantedHosts);
+            id, path, IsAbsolute(path), !disabled,
+            location is not (2 or 3 or 4), grantedApi, grantedHosts);
     }
 
     private static bool IsHostPattern(string token) =>
         token == "<all_urls>" || token.Contains("://", StringComparison.Ordinal);
 
+    // Detected by hand: System.IO.Path reads Windows paths wrongly when fixtures
+    // replay on Linux.
     private static bool IsAbsolute(string path) =>
         path.StartsWith('\\') || path.StartsWith('/')
         || (path.Length >= 2 && path[1] == ':');
