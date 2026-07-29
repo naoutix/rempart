@@ -1,6 +1,7 @@
 using Rempart.Core.Collectors;
 using Rempart.Core.Diff;
 using Rempart.Core.Engine;
+using Rempart.Core.Findings;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
 
@@ -118,10 +119,23 @@ public static class ExitCodes
     /// An <c>Unknown</c> verdict is the same condition <see cref="ScoreCard.IsPartial"/>
     /// states, read where it is decided.
     /// </para>
+    ///
+    /// <para>
+    /// The findings are read on the same two rungs as the collectors, and for the same
+    /// reason: they are where the other half of the tool says it could not look. A finding
+    /// collector answers with a list of findings and nothing else — it has no
+    /// <see cref="CollectorResult"/> to put a status in — so a refused surface reached the
+    /// report, the console and the HTML, then stopped dead at the one channel a scheduler
+    /// reads. Each <see cref="AuditGap"/> lands on the rung its answer belongs to, which is
+    /// what the whole precedence is ordered by: a collector that threw does not repair
+    /// itself by re-running elevated, a refused surface does.
+    /// </para>
     /// </summary>
     public static ExitCode ForScan(ScanResult scan) =>
-        scan.Collectors.Any(c => c.Status == CollectorStatus.Failed) ? ExitCode.Failure
+        scan.Collectors.Any(c => c.Status == CollectorStatus.Failed)
+        || scan.Findings.Any(f => f.Gap == AuditGap.Broken) ? ExitCode.Failure
         : scan.Collectors.Any(c => c.Status == CollectorStatus.InsufficientPrivileges)
+          || scan.Findings.Any(f => f.Gap == AuditGap.Refused)
             ? ExitCode.InsufficientPrivileges
             : scan.Verdicts.Any(v => v.Status == VerdictStatus.Unknown)
                 ? ExitCode.Partial

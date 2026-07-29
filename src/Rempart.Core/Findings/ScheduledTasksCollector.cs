@@ -38,15 +38,13 @@ public sealed class ScheduledTasksCollector : IFindingCollector
             //
             // The folders are listed one per line, uncapped: a list cut short would be this
             // very silence again, one folder further down.
-            findings.Add(new Finding(
-                "scheduled-task", "planificateur de tâches", "—",
-                FindingSeverity.Notable,
+            findings.Add(Finding.Refused(
+                "scheduled-task", "planificateur de tâches",
                 [
                     read.Diagnostic ?? "Énumération refusée. Relancer en administrateur : "
                         + "une tâche planifiée resterait invisible.",
                     .. (read.Gaps ?? []).Select(gap => $"{gap.Folder} — {gap.Reason}"),
-                ],
-                new Dictionary<string, string>()));
+                ]));
         }
 
         // System tasks share a handful of executables. Verifying each signature only

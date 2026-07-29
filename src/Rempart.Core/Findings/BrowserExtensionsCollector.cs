@@ -30,9 +30,8 @@ public sealed class BrowserExtensionsCollector : IFindingCollector
         // sideloaded extension would sit.
         if (read.Diagnostic is { } diagnostic)
         {
-            findings.Add(new Finding(
-                "browser-extension", "profil de navigateur", "—",
-                FindingSeverity.Notable, [diagnostic], new Dictionary<string, string>()));
+            findings.Add(Finding.Refused(
+                "browser-extension", "profil de navigateur", [diagnostic]));
         }
 
         foreach (var extension in read.Extensions)

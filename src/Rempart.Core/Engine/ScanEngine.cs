@@ -159,9 +159,16 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             }
             catch (Exception ex)
             {
-                // A finding collector that fails must not abort the scan.
-                findings.Add(new Finding(collector.Name, "collecteur", collector.Name,
-                    FindingSeverity.Notable, [$"Enumeration interrompue : {ex.Message}"], new Dictionary<string, string>()));
+                // A finding collector that fails must not abort the scan — a partial report
+                // that discloses its gaps beats no report.
+                //
+                // Told apart from a refusal, which it looked exactly like: same severity, same
+                // shape, and neither reached the exit code. The two ask for opposite things
+                // from whoever reads the number — this one is a bug and elevation will not fix
+                // it — and a field collector that throws has said so since the first milestone,
+                // through the CollectorStatus.Failed just above.
+                findings.Add(Finding.Broken(
+                    collector.Name, "collecteur", $"Enumeration interrompue : {ex.Message}"));
             }
         }
 

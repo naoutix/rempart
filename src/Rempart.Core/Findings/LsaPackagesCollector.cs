@@ -51,11 +51,9 @@ public sealed class LsaPackagesCollector : IFindingCollector
             {
                 // Report the failure: an unreadable list is not an empty list, and it
                 // is exactly where a malicious package would sit.
-                findings.Add(new Finding("lsa-package", $"Lsa\\{value}", "—",
-                    FindingSeverity.Notable,
+                findings.Add(Finding.Refused("lsa-package", $"Lsa\\{value}",
                     ["Liste refusée à la lecture. Relancer en administrateur : un paquet " +
-                     "LSA ajouté resterait invisible."],
-                    new Dictionary<string, string>()));
+                     "LSA ajouté resterait invisible."]));
                 continue;
             }
 

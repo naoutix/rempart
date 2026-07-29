@@ -54,12 +54,10 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
         {
             // Report the failure: an unreadable namespace is not an empty namespace,
             // and it is exactly where what this collector looks for would hide.
-            findings.Add(new Finding(
-                "wmi-subscription", $"{Namespace}:{className}", "—",
-                FindingSeverity.Notable,
+            findings.Add(Finding.Refused(
+                "wmi-subscription", $"{Namespace}:{className}",
                 [read.Diagnostic ?? "Énumération refusée. Relancer en administrateur : "
-                    + "un abonnement permanent resterait invisible."],
-                new Dictionary<string, string>()));
+                    + "un abonnement permanent resterait invisible."]));
             return;
         }
 

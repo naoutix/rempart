@@ -39,12 +39,10 @@ public sealed class ListeningPortsCollector : IFindingCollector
             // Added rather than returned: a partial read keeps the endpoints it did get.
             // Only the total failure leaves this finding on its own, because Ports is then
             // empty and the loop below has nothing to iterate.
-            findings.Add(new Finding(
-                "listening-port", "ports en écoute", "—",
-                FindingSeverity.Notable,
+            findings.Add(Finding.Refused(
+                "listening-port", "ports en écoute",
                 [read.Diagnostic ?? "Lecture des points d'écoute refusée. Un service exposé "
-                    + "au réseau resterait invisible."],
-                new Dictionary<string, string>()));
+                    + "au réseau resterait invisible."]));
         }
 
         // PID → path of the owning binary. Ports only carry a PID; the process table is
@@ -71,11 +69,7 @@ public sealed class ListeningPortsCollector : IFindingCollector
             // replays as FirewallState.Unread, which carries no diagnostic: nobody looked,
             // so there is nothing to report, and announcing it on every older capture would
             // be the crying wolf this repository keeps refusing.
-            findings.Add(new Finding(
-                "listening-port", "pare-feu", "—",
-                FindingSeverity.Notable,
-                [refused],
-                new Dictionary<string, string>()));
+            findings.Add(Finding.Refused("listening-port", "pare-feu", [refused]));
         }
 
         // The same binary often holds several ports: its signature is judged once.

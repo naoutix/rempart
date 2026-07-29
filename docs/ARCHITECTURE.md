@@ -599,15 +599,21 @@ list a code the tool does not return — which it did, for code 4, for months.
 | `0` | succès | Everything requested was checked |
 | `1` | échec | A collector broke, or a file could not be written |
 | `2` | instantané incomplet | A replayed snapshot lacks data the rules need |
-| `3` | droits insuffisants | A **collector** was denied — re-run elevated |
+| `3` | droits insuffisants | A **surface** was denied — re-run elevated |
 | `4` | régression | `diff` found a control that used to pass |
 | `5` | audit partiel | A **rule** came back `Unknown` — the score covers less than the machine |
 
-`3` and `5` are deliberately distinct: the first says a collector was denied, the
-second that every collector read fine and some controls still have no answer.
+`3` and `5` are deliberately distinct: the first says a surface was denied, the
+second that everything was read fine and some controls still have no answer.
 Precedence for a scan is `1 > 3 > 5 > 0`, ordered by what the caller can act on: a
-breakdown does not repair itself by re-running elevated, a denied collector does,
+breakdown does not repair itself by re-running elevated, a denied surface does,
 and an unevaluable rule is the weakest of the three signals without being nothing.
+
+A **surface**, not a collector, because the two halves of the tool say it differently.
+A field collector carries a `CollectorStatus`; a finding collector answers with findings
+and nothing else, so it reports a refusal as a finding carrying an `AuditGap` — and both
+reach `ForScan`. Until they did, a refused surface reached the report, the console and
+the HTML, then stopped at the one channel a scheduler reads.
 
 **`5` does not always mean "re-run elevated"** — `WIN-ENC-001` returns `Unknown`
 from an elevated console too, when the machine has no volume-encryption WMI class to
