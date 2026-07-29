@@ -19,23 +19,77 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to build a draft release from'
+        # Naming it as well as selecting it: the job refuses a tag that is not the ref the
+        # run was started from, because the checks run on the commit that triggered the run
+        # and that is the commit this workflow publishes.
+        description: 'Tag to build a draft release from — must be the ref this run starts on'
         required: true
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   DOTNET_NOLOGO: 1
 
+# Read at the file level, write only on the job that publishes. What the called workflow
+# below inherits is therefore the read, whatever it declares for itself.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  # Nothing used to require a tag to name a commit the checks had run on. ci.yml triggers on
+  # a push to main, on pull_request and on workflow_dispatch -- not on tags -- and this job
+  # carried neither a needs: nor a test of its own: `git push origin v1.0.1` on any commit
+  # assembled and drafted a release having run zero unit tests, zero Windows tests, and not
+  # the fixtures-anonymised guard. A tag is cut on main in practice, which passed CI when it
+  # was pushed; in practice is not a gate.
+  #
+  # Called rather than restated: one definition of what CI is, gating the one workflow that
+  # publishes.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   stick:
+    needs: ci
     runs-on: windows-latest
+    # The only job here that writes anything, and the only one that needs to.
+    permissions:
+      contents: write
     steps:
+      # The one place the tag expression is read, and it is bound to the environment rather
+      # than written into a script: ${{ }} is substituted as raw text before pwsh parses the
+      # line, so a tag holding a double quote closed the literal and ran whatever followed.
+      # workflow_dispatch takes that tag as free text, and this is the only job here carrying
+      # contents: write and a GH_TOKEN. Every later step reads the value back through
+      # $env:TAG, where it is data and not source.
+      - name: The tag must name a version
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          REF: ${{ github.ref_name }}
+        run: |
+          # Checked here rather than deeper down: the two steps below build a file name and a
+          # staging path out of this string, and the AOT publish between them costs four
+          # minutes that a malformed tag should not spend. GitHub has no pattern constraint
+          # to put on a workflow_dispatch input, so the shape is asserted in the job.
+          $tag = $env:TAG
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') {
+            throw "Tag rejected: '$tag'. Expected vX.Y.Z, optionally with a pre-release suffix such as -rc.1."
+          }
+
+          # The checks ran on the commit that started this run, and the checkout below takes
+          # that same commit because it selects no ref. The tag input must therefore name the
+          # ref the run was started from, or this job would publish one commit while having
+          # tested another. Keeping the input rather than deriving everything from the ref is
+          # deliberate: the one workflow that writes to the repository asks the publisher to
+          # name what they are releasing, and disagreement stops the run.
+          if ($tag -ne $env:REF) {
+            throw "Tag '$tag' is not the ref this run was started from ('$env:REF'). Start the run from the tag itself: the checks run on the commit that triggered the run, and that is the commit this job publishes."
+          }
+
+          "TAG=$tag" >> $env:GITHUB_ENV
+
+      # No ref: what is checked out is the commit that triggered the run, which is the commit
+      # the ci job above ran its checks on. Naming a ref here is how the two come apart.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -54,7 +108,7 @@ jobs:
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
           if (-not (Test-Path $exe)) { throw "Binary missing: $exe" }
 
-          $tag = "${{ inputs.tag || github.ref_name }}"
+          $tag = $env:TAG
           $expected = $tag -replace '^v', ''
           $reported = (& $exe version).Trim()
 
@@ -77,13 +131,20 @@ jobs:
           # third-party supplement: all 82 identifiers collided and RuleCatalog refused to
           # load, exactly as it is written to. That shipped as v1.0.0-rc.2, where scan,
           # explain and capture all stopped on the same error.
-          $tag = "${{ inputs.tag || github.ref_name }}"
+          $tag = $env:TAG
           $version = $tag -replace '^v', ''
           $stage = "stick/rempart-$version-win-x64"
 
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe" $stage
-          Copy-Item "README.md", "LICENSE" $stage -ErrorAction SilentlyContinue
+
+          # No -ErrorAction here, and the absence is the fix. A per-cmdlet -ErrorAction
+          # outranks the $ErrorActionPreference = 'Stop' GitHub sets for shell: pwsh, so
+          # SilentlyContinue let a renamed or missing file drop out of the archive with the
+          # job still green -- the stick could be published without its licence. Let it stop
+          # the run instead: a deliverable missing a file it is meant to carry is not a
+          # release, and the parity guard next door only compares the two lists.
+          Copy-Item "README.md", "LICENSE" $stage
 
           # "unsealed" is in the *file* name so this archive cannot be published by mistake
           # as if it were the real thing -- but never in the folder name inside it, which
@@ -125,7 +186,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "${{ inputs.tag || github.ref_name }}"
+          $tag = $env:TAG
 
           # The release body is the CHANGELOG section for this version, not text written
           # here: the notes a reader gets and the notes the repository keeps should not be

@@ -18,10 +18,23 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Called by release.yml, whose publishing job waits on it. Nothing used to require a tag
+  # to name a commit these checks had run on: this workflow does not trigger on tags, and
+  # the release job referred to no run of it. Calling the workflow rather than restating its
+  # jobs over there keeps one definition of what CI is -- a second copy is exactly the drift
+  # DET-SCRIPTS describes.
+  workflow_call:
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   DOTNET_NOLOGO: 1
+
+# What the token these jobs run with may do. Without this block they took the repository
+# default, which is set in a web page, differs on a fork, and cannot be read from here.
+# Reading the code is all any of them does -- the artifacts they upload travel on the
+# Actions runtime token, not on this one.
+permissions:
+  contents: read
 
 jobs:
   lint-workflows:
