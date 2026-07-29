@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -32,12 +33,13 @@ public class UpdatePlannerTests
     /// preparation sees exactly what it would see on disk.
     /// </summary>
     private static (string Manifest, Func<string, byte[]?> Read, ManifestVerifier Verifier)
-        Publish(TestPublisher publisher, string datasetName, string yaml)
+        Publish(TestPublisher publisher, string datasetName, string yaml,
+            string kind = DatasetKind.Rules)
     {
         var bytes = Encoding.UTF8.GetBytes(yaml);
         var entry = new ManifestEntry(
             datasetName, "2.0.0",
-            Convert.ToHexStringLower(SHA256.HashData(bytes)), bytes.Length);
+            Convert.ToHexStringLower(SHA256.HashData(bytes)), bytes.Length, kind);
 
         var payload = JsonSerializer.SerializeToUtf8Bytes(
             new ManifestPayload(1, "2026-08-01T00:00:00Z", [entry]),
@@ -216,5 +218,139 @@ public class UpdatePlannerTests
 
         Assert.False(dataset.Verified);
         Assert.Contains("illisible", dataset.Problem);
+    }
+
+    private const string Catalogue = """
+        {
+          "asOfUtc": "2026-08-01T00:00:00Z",
+          "source": "test",
+          "entries": [
+            {
+              "id": "BLOAT-TEST-001",
+              "match": "PackageName",
+              "value": "Éditeur.Exemple",
+              "category": "media",
+              "risk": "Unwanted",
+              "impact": "Une application d'exemple, désinstallable sans dépendance connue.",
+              "impactSource": "Upstream"
+            }
+          ]
+        }
+        """;
+
+    /// <summary>
+    /// The channel has known this dataset kind since M5b, and <c>UpdateStore</c> routes it,
+    /// but the planner — the path <c>rempart update</c> actually takes to verify, preview
+    /// and apply — did not. A correctly signed catalogue was refused as a kind "unknown to
+    /// this version", while <c>fetch-bloatware</c> printed that very path as its
+    /// instructions.
+    /// </summary>
+    [Fact]
+    public void A_signed_bloatware_catalogue_is_ready_to_apply()
+    {
+        using var publisher = new TestPublisher();
+        var (manifest, read, verifier) = Publish(
+            publisher, "bloatware.json", Catalogue, DatasetKind.Bloatware);
+
+        var preview = UpdatePlanner.Prepare(manifest, verifier, read, Current());
+
+        Assert.True(preview.ReadyToApply);
+        Assert.True(Assert.Single(preview.Datasets).Verified);
+    }
+
+    /// <summary>
+    /// The preview exists so that a decision can be made before writing (D14). "Verified,
+    /// and I will not say what it holds" is not a preview, so the count travels like the
+    /// driver one.
+    /// </summary>
+    [Fact]
+    public void The_preview_says_how_many_entries_the_catalogue_holds()
+    {
+        using var publisher = new TestPublisher();
+        var (manifest, read, verifier) = Publish(
+            publisher, "bloatware.json", Catalogue, DatasetKind.Bloatware);
+
+        var dataset = Assert.Single(
+            UpdatePlanner.Prepare(manifest, verifier, read, Current()).Datasets);
+
+        Assert.Equal(1, dataset.BloatwareCount);
+    }
+
+    /// <summary>
+    /// The refusal that must survive: a kind this binary genuinely does not know is still
+    /// refused, and still says to update the binary rather than looking like corruption.
+    /// </summary>
+    [Fact]
+    public void A_kind_this_version_does_not_know_is_still_refused()
+    {
+        using var publisher = new TestPublisher();
+        var (manifest, read, verifier) = Publish(
+            publisher, "futur.json", "{}", "quelque-chose-de-plus-recent");
+
+        var dataset = Assert.Single(
+            UpdatePlanner.Prepare(manifest, verifier, read, Current()).Datasets);
+
+        Assert.False(dataset.Verified);
+        Assert.Contains("version plus récente", dataset.Problem);
+    }
+
+    /// <summary>
+    /// A well-formed sample per dataset kind the channel declares. Not a second list of
+    /// kinds — the kinds come from <see cref="DatasetKind"/> below, and a kind with no
+    /// sample here fails the guard rather than being skipped.
+    /// </summary>
+    private static readonly Dictionary<string, string> Samples = new(StringComparer.Ordinal)
+    {
+        [DatasetKind.Rules] = BaseRule,
+        [DatasetKind.Drivers] = """
+            { "asOfUtc": "2026-08-01T00:00:00Z", "source": "test",
+              "drivers": [ { "sha256": "aa", "name": "pilote.sys", "category": "byovd" } ] }
+            """,
+        [DatasetKind.Bloatware] = Catalogue,
+    };
+
+    /// <summary>
+    /// The guard this file was missing, and the reason the bloatware gap survived a whole
+    /// milestone: <c>UpdateStore</c> and <c>UpdatePlanner</c> each switch over the kinds
+    /// separately, so one can learn a kind the other refuses — and the store's half was
+    /// never the half a user goes through. <c>update</c> only ever reaches the planner.
+    ///
+    /// <para>
+    /// The kinds are read from <see cref="DatasetKind"/> rather than listed here, so
+    /// declaring a new one turns this red until the planner accepts it and a sample says
+    /// what a valid one looks like. <c>Binary</c> is excluded because it is not a dataset:
+    /// it exists so the seal can reuse the signed envelope, and the store refuses it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_dataset_kind_the_channel_declares_can_be_planned()
+    {
+        var kinds = typeof(DatasetKind)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+            .Select(f => (string)f.GetRawConstantValue()!)
+            .Where(kind => kind != DatasetKind.Binary)
+            .ToList();
+
+        // Without this the test would pass vacuously if reflection ever stopped matching.
+        Assert.Equal(3, kinds.Count);
+
+        foreach (var kind in kinds)
+        {
+            Assert.True(Samples.ContainsKey(kind),
+                $"Type « {kind} » déclaré sans exemple : compléter Samples, " +
+                "sinon cette garde ne le vérifie pas.");
+
+            using var publisher = new TestPublisher();
+            var (manifest, read, verifier) = Publish(
+                publisher, $"jeu-{kind}", Samples[kind], kind);
+
+            var dataset = Assert.Single(
+                UpdatePlanner.Prepare(manifest, verifier, read, Current()).Datasets);
+
+            Assert.True(dataset.Verified,
+                $"Type « {kind} » : le magasin sait le router, le planificateur le refuse — " +
+                $"aucune commande ne peut donc l'installer. Problème rapporté : {dataset.Problem}");
+        }
     }
 }

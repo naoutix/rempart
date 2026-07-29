@@ -12,7 +12,9 @@ public sealed record DatasetPreview(
     /// <summary>Diff, for a rules dataset.</summary>
     CatalogDiff? Diff = null,
     /// <summary>Entry count, for a driver blocklist.</summary>
-    int DriverCount = 0);
+    int DriverCount = 0,
+    /// <summary>Entry count, for a bloatware catalogue.</summary>
+    int BloatwareCount = 0);
 
 /// <summary>
 /// What an update would do, without having done it.
@@ -115,9 +117,17 @@ public static class UpdatePlanner
                     entry.Name, entry.Version, entry.Kind, Verified: true, null,
                     DriverCount: DriverBlocklist.Parse(text).Count),
 
-                // Kind unknown to this version: neither rules nor drivers. The manifest
-                // is newer than the binary. Do not guess; refuse — and say so, so the
-                // takeaway is "update the binary", not "corrupted".
+                // Routed here as well as in UpdateStore, and the two must stay in step:
+                // this planner is the only path "update" takes to verify, preview and
+                // apply, so a kind the store can route but the planner cannot leaves a
+                // dataset that no supported command can install.
+                DatasetKind.Bloatware => new DatasetPreview(
+                    entry.Name, entry.Version, entry.Kind, Verified: true, null,
+                    BloatwareCount: BloatwareCatalog.Parse(text).Entries.Count),
+
+                // Kind unknown to this version. The manifest is newer than the binary.
+                // Do not guess; refuse — and say so, so the takeaway is "update the
+                // binary", not "corrupted".
                 _ => Unverified(entry,
                     $"Type de jeu de données inconnu de cette version : « {entry.Kind} ». " +
                     "Installer une version plus récente."),

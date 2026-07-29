@@ -178,7 +178,24 @@ internal static class UpdateCommand
             return;
         }
 
-        var diff = dataset.Diff!;
+        // A catalogue replaces the previous one too, so it is counted rather than diffed.
+        if (dataset.Kind == DatasetKind.Bloatware)
+        {
+            Console.WriteLine($"  ✓ {dataset.Name} ({dataset.Version}) — " +
+                              $"{dataset.BloatwareCount} logiciel(s) indésirable(s) catalogué(s)");
+            return;
+        }
+
+        // Only a rules dataset carries a diff. Reaching this with none means a kind was
+        // taught to the planner and not to this renderer: say which, rather than fail on
+        // a null nobody would trace back here.
+        if (dataset.Diff is not { } diff)
+        {
+            Console.WriteLine($"  ✓ {dataset.Name} ({dataset.Version}) — type " +
+                              $"« {dataset.Kind} », vérifié ; cette version ne sait pas le résumer.");
+            return;
+        }
+
         if (diff.ChangesNothing)
         {
             Console.WriteLine($"  = {dataset.Name} ({dataset.Version}) — rien ne change " +
