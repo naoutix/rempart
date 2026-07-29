@@ -269,6 +269,157 @@ public sealed class LiveSecurityPolicyProviderTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// A scripted netapi32 enumeration: it hands back the status codes it was given, one per
+    /// call, and records what was freed.
+    ///
+    /// <para>
+    /// <c>ERROR_MORE_DATA</c> is not reachable on this machine — a local SAM holds a few
+    /// accounts and <c>MAX_PREFERRED_LENGTH</c> asks netapi32 to size the buffer itself — and
+    /// the two consequences of mishandling it are both invisible from outside: a leaked
+    /// allocation, and three facts silently not established. Neither shows up in the read the
+    /// tests above examine, which is why the walk is exercised through a double rather than
+    /// through the machine.
+    /// </para>
+    ///
+    /// <para>
+    /// The pointers are fabricated and never dereferenced. <c>NetApiBufferFree</c> is a
+    /// parameter of the walk for exactly this reason: handing a made-up pointer to the real
+    /// one would corrupt the heap instead of failing a test.
+    /// </para>
+    /// </summary>
+    private sealed class Netapi(params int[] statuses)
+    {
+        public List<IntPtr> Freed { get; } = [];
+
+        public List<int> ResumeHandles { get; } = [];
+
+        public List<int> Batches { get; } = [];
+
+        public int Calls { get; private set; }
+
+        public int Step(ref nint resume, out IntPtr buffer, out int read)
+        {
+            ResumeHandles.Add((int)resume);
+
+            var status = statuses[Math.Min(Calls, statuses.Length - 1)];
+
+            // A distinct allocation per call, so that a buffer freed twice — or the wrong
+            // one freed — is visible rather than plausible.
+            buffer = new IntPtr(1000 + Calls);
+            read = 2;
+
+            Calls++;
+            resume = Calls;
+
+            return status;
+        }
+
+        public void Consume(IntPtr buffer, int read) => Batches.Add(read);
+
+        public void Free(IntPtr buffer) => Freed.Add(buffer);
+    }
+
+    private const int NerrSuccess = 0;
+    private const int ErrorMoreData = 234;      // netapi32 allocated, and there is more
+    private const int ErrorAccessDenied = 5;
+
+    /// <summary>
+    /// The leak. On <c>ERROR_MORE_DATA</c> netapi32 <b>has</b> allocated the buffer, and the
+    /// early return that treated « status is not zero » as « nothing happened » walked past
+    /// the only <c>NetApiBufferFree</c> in the method — the very leak this file's own
+    /// docstring promises to avoid, on a read that runs once per scan.
+    /// </summary>
+    [Fact]
+    public void A_partially_answered_enumeration_still_frees_what_netapi32_allocated()
+    {
+        var netapi = new Netapi(ErrorMoreData, NerrSuccess);
+
+        LiveSecurityPolicyProvider.Enumerate(netapi.Step, netapi.Consume, netapi.Free);
+
+        Assert.Equal(netapi.Calls, netapi.Freed.Count);
+        Assert.Equal(netapi.Freed.Distinct().Count(), netapi.Freed.Count);
+    }
+
+    /// <summary>
+    /// The silence beside the leak. <c>ERROR_MORE_DATA</c> means « here is part of the
+    /// answer, ask again with this handle » — the resume handle exists for nothing else, and
+    /// it was being discarded into <c>out _</c>. Dropping the batch made
+    /// <c>accounts.withoutPassword</c>, <c>accounts.passwordNeverExpires</c> and
+    /// <c>accounts.guestEnabled</c> vanish at once, so six shipped controls turned « non
+    /// vérifiable » with nothing said about why.
+    /// </summary>
+    [Fact]
+    public void A_partially_answered_enumeration_is_resumed_rather_than_dropped()
+    {
+        var netapi = new Netapi(ErrorMoreData, ErrorMoreData, NerrSuccess);
+
+        Assert.True(LiveSecurityPolicyProvider.Enumerate(
+            netapi.Step, netapi.Consume, netapi.Free));
+
+        // Every batch counted, not just the last: the accounts of the first call are as real
+        // as the ones of the third.
+        Assert.Equal([2, 2, 2], netapi.Batches);
+
+        // And the handle netapi32 wrote back was handed to the next call. Starting each call
+        // from zero would re-read the first batch for ever.
+        Assert.Equal([0, 1, 2], netapi.ResumeHandles);
+    }
+
+    /// <summary>
+    /// The other half: a walk that could not be completed must establish nothing. A count
+    /// taken from a truncated enumeration is a small plausible integer that no band would
+    /// reject — the failure shape this provider's tests keep naming — whereas an absent fact
+    /// reads as « non vérifiable », which is true.
+    /// </summary>
+    [Fact]
+    public void A_refused_enumeration_frees_its_buffer_and_concludes_nothing()
+    {
+        var netapi = new Netapi(ErrorAccessDenied);
+
+        Assert.False(LiveSecurityPolicyProvider.Enumerate(
+            netapi.Step, netapi.Consume, netapi.Free));
+
+        Assert.Empty(netapi.Batches);
+        Assert.Single(netapi.Freed);
+    }
+
+    /// <summary>
+    /// A resumption that never converges ends anyway. Reading <c>ERROR_MORE_DATA</c> as
+    /// « call again » is only safe if « again » is bounded: the enumeration that never
+    /// completes is the same defect as the WMI enumeration that never returns, and the scan
+    /// must come back either way.
+    /// </summary>
+    [Fact]
+    public void An_enumeration_that_never_completes_stops_without_hanging_the_scan()
+    {
+        var netapi = new Netapi(ErrorMoreData);
+
+        Assert.False(LiveSecurityPolicyProvider.Enumerate(
+            netapi.Step, netapi.Consume, netapi.Free));
+
+        Assert.InRange(netapi.Calls, 1, 1000);
+        Assert.Equal(netapi.Calls, netapi.Freed.Count);
+    }
+
+    /// <summary>
+    /// The ordinary path, unchanged: one call, one batch, one buffer freed. Without this the
+    /// walk could be « always resume » or « always refuse » and the three tests above would
+    /// still pass.
+    /// </summary>
+    [Fact]
+    public void A_complete_enumeration_reads_one_batch_and_frees_it()
+    {
+        var netapi = new Netapi(NerrSuccess);
+
+        Assert.True(LiveSecurityPolicyProvider.Enumerate(
+            netapi.Step, netapi.Consume, netapi.Free));
+
+        Assert.Equal(1, netapi.Calls);
+        Assert.Equal([2], netapi.Batches);
+        Assert.Single(netapi.Freed);
+    }
+
+    /// <summary>
     /// The values of <c>net accounts</c>, one per row, in the order the tool prints them. The
     /// value is everything after the last colon — the labels are never looked at, and the
     /// separator survives the non-breaking space French Windows puts in front of it.

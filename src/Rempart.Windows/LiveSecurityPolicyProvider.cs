@@ -18,16 +18,38 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
     private const int MaxPreferredLength = -1;
     private const int FilterNormalAccount = 0x0002;
 
+    /// <summary><c>NERR_Success</c>, from <c>lmerr.h</c>: the enumeration is complete.</summary>
+    private const int NerrSuccess = 0;
+
+    /// <summary>
+    /// <c>ERROR_MORE_DATA</c> (234). Not a failure: netapi32 allocated the buffer, filled
+    /// part of it, and expects to be called again with the resume handle it wrote back.
+    /// </summary>
+    private const int ErrorMoreData = 234;
+
+    /// <summary>
+    /// How many times one enumeration may be resumed. The local SAM holds a handful of
+    /// accounts and <c>MAX_PREFERRED_LENGTH</c> lets netapi32 size the buffer itself, so a
+    /// second batch is already unusual; the ceiling is not a limit on the machine, it is the
+    /// exit from a resumption that stops making progress.
+    /// </summary>
+    private const int MaxBatches = 64;
+
     private const int UfAccountDisable = 0x0002;
     private const int UfPasswordNotRequired = 0x0020;
     private const int UfDontExpirePassword = 0x10000;
 
     private const uint TimeqForever = 0xFFFFFFFF;
 
+    // The resume handles are `ref` and not `out`: netapi32 reads them back on the next call,
+    // which is how an enumeration that answered in part is continued. Declared with the
+    // widths lmaccess.h gives them — a DWORD here, a DWORD_PTR for the group members — since
+    // a handle is opaque and truncating one is not something the compiler would notice.
+
     [LibraryImport("netapi32.dll", EntryPoint = "NetUserEnum")]
     private static partial int NetUserEnum(
         [MarshalAs(UnmanagedType.LPWStr)] string? server, int level, int filter,
-        out IntPtr buffer, int prefMaxLen, out int read, out int total, out int resume);
+        out IntPtr buffer, int prefMaxLen, out int read, out int total, ref int resume);
 
     [LibraryImport("netapi32.dll", EntryPoint = "NetUserModalsGet")]
     private static partial int NetUserModalsGet(
@@ -37,7 +59,7 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
     private static partial int NetLocalGroupGetMembers(
         [MarshalAs(UnmanagedType.LPWStr)] string? server,
         [MarshalAs(UnmanagedType.LPWStr)] string group, int level,
-        out IntPtr buffer, int prefMaxLen, out int read, out int total, out IntPtr resume);
+        out IntPtr buffer, int prefMaxLen, out int read, out int total, ref nint resume);
 
     [LibraryImport("netapi32.dll")]
     private static partial int NetApiBufferFree(IntPtr buffer);
@@ -165,21 +187,116 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         }
     }
 
+    /// <summary>
+    /// One call of a netapi32 enumeration, with the resume handle it carries between calls.
+    /// </summary>
+    internal delegate int NetEnumeration(ref nint resume, out IntPtr buffer, out int read);
+
+    /// <summary>
+    /// Runs a netapi32 enumeration to its end, handing every batch to
+    /// <paramref name="consume"/> and freeing what the API allocated on every path out.
+    ///
+    /// <para>
+    /// <b>Why the walk is here and not at each call site.</b> Both callers had the same two
+    /// bugs, because both had written the same three lines: <c>if (status != 0) return;</c>
+    /// before the <c>try</c>. On <c>ERROR_MORE_DATA</c> netapi32 <em>has</em> allocated the
+    /// buffer and filled part of it, so that early return leaked it — the leak the docstring
+    /// at the top of this file promises to avoid — and threw away a batch of real accounts,
+    /// leaving three facts unestablished. A truncated read presenting itself as a missing
+    /// one. Written once, the buffer's release is tied to its allocation rather than to the
+    /// status code, and a third enumeration added later inherits both.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The resume handle is the point of <c>ERROR_MORE_DATA</c>.</b> It does not mean
+    /// « failed », it means « here is part of the answer, ask again with this ». Both call
+    /// sites were discarding it into <c>out _</c>, so the continuation the API offers was
+    /// not merely unused, it was unreachable.
+    /// </para>
+    /// </summary>
+    /// <returns>
+    /// Whether the enumeration completed. A caller that gets <see langword="false"/> has
+    /// seen only part of the machine and must establish nothing: a count drawn from a
+    /// truncated walk is a plausible number that is wrong, which is worse than an absent
+    /// fact.
+    /// </returns>
+    internal static bool Enumerate(
+        NetEnumeration step, Action<IntPtr, int> consume, Action<IntPtr> free)
+    {
+        nint resume = 0;
+
+        for (var batch = 0; batch < MaxBatches; batch++)
+        {
+            var status = step(ref resume, out var buffer, out var read);
+
+            try
+            {
+                // Nothing allocated is nothing to walk and nothing to release, whatever the
+                // status says. Kept ahead of the codes so that a netapi32 that answers
+                // ERROR_MORE_DATA without a buffer cannot spin here.
+                if (buffer == IntPtr.Zero
+                    || (status != NerrSuccess && status != ErrorMoreData))
+                {
+                    return false;
+                }
+
+                consume(buffer, read);
+
+                if (status == NerrSuccess)
+                {
+                    return true;
+                }
+            }
+            finally
+            {
+                if (buffer != IntPtr.Zero)
+                {
+                    free(buffer);
+                }
+            }
+        }
+
+        // Still asking after MaxBatches: the enumeration is not converging, and the caller
+        // gets nothing rather than a partial count. A resumption without a ceiling is the
+        // netapi32 spelling of an enumeration that never gives the scan back.
+        return false;
+    }
+
+    /// <summary>The same walk, freeing through netapi32 rather than through a test double.</summary>
+    private static bool Enumerate(NetEnumeration step, Action<IntPtr, int> consume) =>
+        Enumerate(step, consume, buffer => NetApiBufferFree(buffer));
+
     private static unsafe void ReadAccounts(Dictionary<string, string> facts)
     {
-        // Level 1: name and flags in a single pass.
-        if (NetUserEnum(null, 1, FilterNormalAccount, out var buffer,
-                MaxPreferredLength, out var read, out _, out _) != 0 || buffer == IntPtr.Zero)
+        var withoutPassword = 0;
+        var neverExpires = 0;
+        var guestEnabled = false;
+
+        if (!Enumerate(Batch, Count))
         {
             return;
         }
 
-        try
+        facts[PolicyFactNames.AccountsWithoutPassword] = withoutPassword.ToString();
+        facts[PolicyFactNames.AccountsPasswordNeverExpires] = neverExpires.ToString();
+        facts[PolicyFactNames.GuestEnabled] = guestEnabled ? "true" : "false";
+
+        // Level 1: name and flags in a single pass.
+        static int Batch(ref nint resume, out IntPtr buffer, out int read)
+        {
+            var handle = (int)resume;
+
+            var status = NetUserEnum(null, 1, FilterNormalAccount, out buffer,
+                MaxPreferredLength, out read, out _, ref handle);
+
+            resume = handle;
+
+            return status;
+        }
+
+        void Count(IntPtr buffer, int read)
         {
             var entries = (UserInfo1*)buffer;
-            var withoutPassword = 0;
-            var neverExpires = 0;
-            var guestEnabled = false;
 
             for (var i = 0; i < read; i++)
             {
@@ -212,14 +329,6 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
                     guestEnabled = true;
                 }
             }
-
-            facts[PolicyFactNames.AccountsWithoutPassword] = withoutPassword.ToString();
-            facts[PolicyFactNames.AccountsPasswordNeverExpires] = neverExpires.ToString();
-            facts[PolicyFactNames.GuestEnabled] = guestEnabled ? "true" : "false";
-        }
-        finally
-        {
-            NetApiBufferFree(buffer);
         }
     }
 
@@ -236,20 +345,18 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
             return;
         }
 
-        if (NetLocalGroupGetMembers(null, groupName, 0, out var buffer,
-                MaxPreferredLength, out var read, out _, out _) != 0 || buffer == IntPtr.Zero)
+        var members = 0;
+
+        if (!Enumerate(Batch, (_, read) => members += read))
         {
             return;
         }
 
-        try
-        {
-            facts[PolicyFactNames.LocalAdminCount] = read.ToString();
-        }
-        finally
-        {
-            NetApiBufferFree(buffer);
-        }
+        facts[PolicyFactNames.LocalAdminCount] = members.ToString();
+
+        int Batch(ref nint resume, out IntPtr buffer, out int read) =>
+            NetLocalGroupGetMembers(null, groupName, 0, out buffer,
+                MaxPreferredLength, out read, out _, ref resume);
     }
 
     /// <summary>

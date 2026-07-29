@@ -220,6 +220,11 @@ internal static unsafe partial class CatalogSignature
                 UnionChoice = WtdChoiceCatalog,
                 Info = catalogInfoPointer,
                 StateAction = WtdStateActionVerify,
+
+                // Same regime as the embedded verification, and the reason it is named in
+                // Core rather than written twice: this is the call that runs on most of the
+                // machine's files, since most Windows binaries are catalog-signed.
+                ProviderFlags = RevocationPolicy.ProviderFlags,
             };
 
             var action = ActionGenericVerifyV2;

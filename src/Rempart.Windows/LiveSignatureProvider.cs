@@ -13,6 +13,10 @@ namespace Rempart.Windows;
 /// A binary signed with an expired or revoked certificate is signed — and still not
 /// trustworthy.
 ///
+/// Revocation is looked up in the machine's own cache and nowhere else, which is what
+/// keeps a scan off the network (ADR-001 D9). <see cref="RevocationPolicy"/> holds that
+/// decision, for this file and for the catalog one.
+///
 /// A verification that cannot complete returns <see cref="SignatureStatus.Unknown"/>,
 /// never <c>Unsigned</c>: conflating "could not verify" with "not signed" would
 /// produce false alerts on the least auditable machines.
@@ -124,6 +128,12 @@ public sealed partial class LiveSignatureProvider : ISignatureProvider
                     UnionChoice = WtdChoiceFile,
                     FileInfo = filePointer,
                     StateAction = WtdStateActionVerify,
+
+                    // The whole chain is still checked for revocation; what changes is where
+                    // the answer may come from. This field defaulted to zero, so every
+                    // unknown chain went to a CRL distribution point over the network, once
+                    // per binary reported — outside the opt-in regime ADR-001 D9 describes.
+                    ProviderFlags = RevocationPolicy.ProviderFlags,
                 };
 
                 var action = ActionGenericVerifyV2;

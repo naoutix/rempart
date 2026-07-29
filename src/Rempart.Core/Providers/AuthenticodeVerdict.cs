@@ -57,9 +57,22 @@ public static class AuthenticodeVerdict
     /// at the call site because it is arithmetic on a number, and arithmetic is the half
     /// of this check the Linux job can hold to account.
     /// </para>
+    ///
+    /// <para>
+    /// The middle arm is the offline regime's: a catalog whose certificates could not be
+    /// checked against a revocation list was not verified <em>and</em> was not refused, so
+    /// it is <see cref="CatalogOutcome.Unaskable"/> — the outcome that already means nobody
+    /// answered. Folding it into <see cref="CatalogOutcome.Refused"/> would make a machine
+    /// with a cold CRL cache accuse every catalog-signed file it holds, which is most of
+    /// Windows.
+    /// </para>
     /// </summary>
-    public static CatalogOutcome FromCatalogHResult(int hresult) =>
-        hresult == Ok ? CatalogOutcome.Verified : CatalogOutcome.Refused;
+    public static CatalogOutcome FromCatalogHResult(int hresult) => hresult switch
+    {
+        Ok => CatalogOutcome.Verified,
+        _ when RevocationPolicy.CouldNotBeEstablished(hresult) => CatalogOutcome.Unaskable,
+        _ => CatalogOutcome.Refused,
+    };
 
     /// <summary>
     /// The status a file gets, from the embedded HRESULT and the catalog outcome.
@@ -79,9 +92,17 @@ public static class AuthenticodeVerdict
 
         // Signed, and the chain does not hold: expired, revoked, or tampered with. Not a
         // reason to go to the catalog — the file answered for itself, badly.
+        //
+        // Unless what did not hold is the revocation check itself, which says nothing about
+        // the file: the chain could not be confronted with a revocation list, so there is no
+        // verdict to render. That branch is not hypothetical since revocation was restricted
+        // to the local cache (RevocationPolicy) — a machine that has never been online holds
+        // nothing to confront it with, and it is exactly the machine this tool audits.
         if (!HasNoEmbeddedSignature(embedded))
         {
-            return SignatureStatus.Invalid;
+            return RevocationPolicy.CouldNotBeEstablished(embedded)
+                ? SignatureStatus.Unknown
+                : SignatureStatus.Invalid;
         }
 
         return catalog switch
