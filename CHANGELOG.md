@@ -5,6 +5,66 @@ release. The milestone-by-milestone account of how the tool got here, including 
 tried and rejected, lives in [docs/ROADMAP.md](docs/ROADMAP.md) — this file records what
 changed between releases.
 
+## Unreleased
+
+The 33 findings of the [2026-07-29 review](docs/revues/2026-07-29-revue-complete.md), fixed
+one issue per pull request. What the review actually charged the repository with was fixing a
+class of defect in one place and leaving the layer next to it, so the entries below are grouped
+by the mechanism that replaced a hand-maintained list rather than by file.
+
+### A refused read stops looking like a clean answer
+
+- **The firewall.** An unreadable firewall reported the Windows defaults — enabled, inbound
+  blocked — so an unsigned binary listening on `0.0.0.0` came back `Benign` with the claim
+  "blocked inbound". It now says it could not read, and no port is called blocked on that basis.
+- **Scheduled tasks.** A walk refused in one folder was handed over as complete. It now keeps
+  the tasks it read and names the folders it gave up on, and every COM result in the walk is
+  recorded by construction rather than by four hand-written branches.
+- **Registry enumeration and the `hosts` file.** `ListValues` and `ListSubKeys` returned an
+  empty result for a denial exactly as for a missing key, so a deny ACL on a `Run` key printed
+  "no autorun" and one on `HKCU\…\CLSID` printed "no COM hijack". Both now carry a status, and
+  an unreadable `hosts` file is no longer indistinguishable from an empty one.
+- **The exit code hears them.** A refusal seen by a *finding* collector never reached
+  `ForScan`: three refused surfaces could exit `0`. Three versioned fixtures now exit `3`
+  instead of `0` or `5` — their captures predate the collection of drivers, processes and
+  listening ports, and replaying them genuinely hears "denied" on those surfaces.
+
+### A failure stops borrowing the meaning of a denial
+
+- An unrecognised WMI `HRESULT` is reported as a failure naming its code, instead of advising
+  an elevation the user already had.
+- A manifest with a missing field is refused rather than throwing outside the `try` — fifty
+  bytes written into `rempart-data/`, a folder the seal deliberately excludes, could otherwise
+  kill every later scan.
+- `--fetch-pac` no longer destroys a completed scan over a `file://` or `ftp://` proxy URL,
+  which WinINET accepts as a legitimate value.
+- WMI enumeration gains the timeout DISM and netsh already had, `NetUserEnum` no longer leaks
+  its buffer on `ERROR_MORE_DATA`, and `WinVerifyTrust` revocation returns to the opt-in
+  network regime ADR-001 describes.
+
+### What is written by hand is now held against what is on disk
+
+- A finding collector missing from the registration table produced nothing and moved no golden.
+  A guard confronts the table with the compiled implementations and with the files on disk.
+- A multi-document rule file silently lost everything after the first `---`, and `.yml` files
+  were ignored in a mixed folder. Both are read; a rule file that is not read now says so.
+- The Markdown report escapes every machine-chosen value, held by a sweep over the whole
+  document rather than by an assertion per interpolation site. Rule identifiers, finding
+  sources and detail values lose their code spans as a result.
+- An autorun whose executable is an interpreter has its command line judged:
+  `powershell.exe -enc <base64>` was `Benign`, with no reason, and vanished from every report.
+- The debt register's count of unverified impact notes said 113 of 116 where the catalogue
+  carried 120 of 123. All four hand-written copies of that count are now held against the
+  catalogue itself.
+
+### Build and release
+
+- The release tag is bound to a step's `env:` and validated before use, instead of being
+  interpolated into a PowerShell body on the one job carrying `contents: write` and `GH_TOKEN`.
+- A tag must now point at a commit that passed CI, `ci.yml` declares `permissions:`, the key is
+  no longer publishable without its licence, and `verify.ps1` stops printing `ok` for a tool it
+  never ran.
+
 ## 1.0.0 — 2026-07-28
 
 **The exit criterion this project set for itself is met, and that is the only reason this is
