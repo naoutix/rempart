@@ -138,13 +138,13 @@ public sealed class AutorunsCollector : IFindingCollector
     private static readonly string[] ShellFolderValues = ["Common Startup", "Startup"];
 
     /// <summary>
-    /// A surface the scan could not read. Reported rather than skipped, and <c>Notable</c>
-    /// rather than <c>Suspicious</c>: nothing was observed, so nothing is being accused —
-    /// what is being said is that the report has a hole where its first surface should be.
+    /// A surface the scan could not read. Reported rather than skipped, and asked of
+    /// <see cref="Finding.Refused"/> rather than spelled out here: the severity and the
+    /// missing target were already its answer, and what the shared door adds is the marker
+    /// that carries « on m'a refusé » as far as the exit code.
     /// </summary>
     private static Finding Unreadable(string source, string reason) =>
-        new("autorun", source, "—", FindingSeverity.Notable, [reason],
-            new Dictionary<string, string>());
+        Finding.Refused("autorun", source, [reason]);
 
     /// <summary>
     /// Startup folders, machine then user. Their content runs at logon without any

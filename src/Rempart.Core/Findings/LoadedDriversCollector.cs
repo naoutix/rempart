@@ -37,12 +37,10 @@ public sealed class LoadedDriversCollector(DriverBlocklist blocklist) : IFinding
             // unsigned driver loaded in the kernel.
             return
             [
-                new Finding(
-                    "driver", "pilotes chargés", "—",
-                    FindingSeverity.Notable,
+                Finding.Refused(
+                    "driver", "pilotes chargés",
                     [read.Diagnostic ?? "Énumération des pilotes refusée. Relancer en "
-                        + "administrateur : un pilote vulnérable chargé resterait invisible."],
-                    new Dictionary<string, string>()),
+                        + "administrateur : un pilote vulnérable chargé resterait invisible."]),
             ];
         }
 

@@ -51,8 +51,8 @@ public sealed class HostsFileCollector : IFindingCollector
         // protects a redirection already in place (REV-12).
         if (read.Status == ReadStatus.AccessDenied)
         {
-            findings.Add(new Finding(
-                "hosts-entry", "hosts", "—", FindingSeverity.Notable,
+            findings.Add(Finding.Refused(
+                "hosts-entry", "hosts",
                 [read.Diagnostic ?? "Fichier hosts illisible. Une redirection posée là "
                     + "court-circuiterait la résolution DNS sans apparaître ici."],
                 new Dictionary<string, string>(StringComparer.Ordinal)

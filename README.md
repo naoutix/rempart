@@ -183,16 +183,19 @@ and `rempart help` prints the same six lines because it derives them from that s
 | `0` | Complete audit — everything requested was checked |
 | `1` | The run failed: a collector broke, or a file could not be written |
 | `2` | A replayed snapshot lacks data the rules need |
-| `3` | A **collector** was denied access — re-run elevated |
+| `3` | A **surface** was denied — re-run elevated |
 | `4` | `diff` found a control that used to pass and no longer does |
 | `5` | The scan finished, but some **rules** have no answer — the score covers less of the machine than it appears to |
 
-**`5` is the normal outcome, not the edge case.** Three of the four versioned
-fixtures exit `5`, including `default-win11`, a plain unhardened Windows 11:
-`WIN-ENC-001` (BitLocker) is unverifiable even from an elevated console when the
-machine has no volume-encryption WMI class. Treat anything but `0` as failure and
-you will alert on healthy machines; treat `5` as success and you will hide that part
-of the audit never ran. CI accepts `0`, `3` and `5` from a scan, and nothing else.
+**Non-zero is the normal outcome, not the edge case.** All four versioned fixtures
+exit non-zero. `compromised-win11` exits `5`: `WIN-ENC-001` (BitLocker) is
+unverifiable even from an elevated console when the machine has no volume-encryption
+WMI class. The three others exit `3` — `restricted-access` was captured without
+elevation, and all three predate the collection of drivers, processes and listening
+ports, so their replay reports three surfaces it never looked at rather than passing
+for a full audit. Treat anything but `0` as failure and you will alert on healthy
+machines; treat `3` or `5` as success and you will hide that part of the audit never
+ran. CI accepts `0`, `3` and `5` from a scan, and nothing else.
 
 ## What it is not
 

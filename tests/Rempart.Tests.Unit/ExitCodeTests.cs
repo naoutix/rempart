@@ -2,6 +2,8 @@ using Rempart.Core.Cli;
 using Rempart.Core.Collectors;
 using Rempart.Core.Diff;
 using Rempart.Core.Engine;
+using Rempart.Core.Findings;
+using Rempart.Core.Providers;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
 using Rempart.Core.Updates;
@@ -213,6 +215,144 @@ public sealed class ExitCodeTests
         [.. Enum.GetValues<VerdictStatus>()];
 
     /// <summary>
+    /// The third input, and the one the contract read nothing of. A finding collector has no
+    /// <see cref="CollectorResult"/> to carry a status in: the sixteen of them say « je n'ai
+    /// pas pu regarder » with a finding, and a finding was invisible to the exit code. Three
+    /// refused surfaces exited 0 — for a scheduler, a machine that was fully checked.
+    ///
+    /// <para>
+    /// The two gaps map to different codes because they call for different actions, which is
+    /// the only ordering that makes a single number useful. A refused surface is repaired by
+    /// re-running elevated; a collector that threw is not, and calling both « droits
+    /// insuffisants » would send whoever reads the number to do the one thing that cannot
+    /// help.
+    /// </para>
+    /// </summary>
+    private static readonly Dictionary<AuditGap, ExitCode> GapCodes = new()
+    {
+        [AuditGap.Refused] = ExitCode.InsufficientPrivileges,
+        [AuditGap.Broken] = ExitCode.Failure,
+    };
+
+    [Theory]
+    [MemberData(nameof(AuditGaps))]
+    public void Every_audit_gap_maps_to_the_code_it_was_given(AuditGap gap)
+    {
+        Assert.True(GapCodes.TryGetValue(gap, out var expected),
+            $"La lacune d'audit « {gap} » a été ajoutée sans que personne décide du code de "
+            + "sortie qu'elle entraîne. Sans décision elle tombe sur 0, et 0 est précisément "
+            + "la réponse que personne ne relit.");
+
+        Assert.Equal(expected, ExitCodes.ForScan(Scan(gaps: [gap])));
+    }
+
+    public static TheoryData<AuditGap> AuditGaps() => [.. Enum.GetValues<AuditGap>()];
+
+    /// <summary>
+    /// The guard that closes the class rather than one collector's case: whatever surface was
+    /// refused, and whichever collector saw it refused, the number reaching the caller says so.
+    ///
+    /// <para>
+    /// The collectors walked are <see cref="ScanEngine"/>'s own, so a seventeenth one is
+    /// covered without anyone remembering this file exists — the alternative, one assertion
+    /// per collector, is the hand-kept list this batch was opened over. Nothing else can move
+    /// the code here: no field collector and no rule is wired, so the two lists the contract
+    /// used to read are empty and only the findings are left to speak.
+    /// </para>
+    ///
+    /// <para>
+    /// The second assertion is what keeps the first honest. Under a machine that refuses
+    /// everything, no finding can be a claim about that machine, so a finding produced without
+    /// the marker is one the exit code cannot see. Written that way, a collector that
+    /// hand-rolls a refusal instead of asking <see cref="Finding.Refused"/> for one fails
+    /// here, which the aggregate code alone would not catch: fifteen collectors speaking up
+    /// would cover for the sixteenth staying silent.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_refused_surface_reaches_the_exit_code_whichever_collector_saw_it()
+    {
+        var scan = RefusedEverywhere();
+
+        // The premise, asserted rather than assumed: without it this test would pass on a
+        // signal that has nothing to do with the findings.
+        Assert.Empty(scan.Collectors);
+        Assert.Empty(scan.Verdicts);
+        Assert.NotEmpty(scan.Findings);
+
+        Assert.All(scan.Findings, finding => Assert.True(finding.Gap is not null,
+            $"Le constat « {finding.Kind} / {finding.Source} » a été produit sur une machine "
+            + "qui a tout refusé, donc il ne peut pas être une affirmation sur elle — et sans "
+            + "marqueur, le code de sortie ne le voit pas."));
+
+        Assert.Equal(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(scan));
+    }
+
+    /// <summary>
+    /// A finding collector that throws is not a finding collector that was refused, and
+    /// <c>ScanEngine</c> turned both into the same <c>Notable</c> finding. The two answers a
+    /// caller can give are opposite: one re-runs elevated, the other files a bug — and
+    /// re-running elevated forever is what a scheduler does with the wrong number.
+    ///
+    /// <para>
+    /// Both signals are present at once, so the assertion is on the precedence too: a
+    /// breakdown outranks a refusal, being the half that elevation will not fix.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_finding_collector_that_broke_outranks_the_surfaces_that_were_refused()
+    {
+        var scan = RefusedEverywhere([.. DefaultFindingCollectors, new BrokenFindingCollector()]);
+
+        Assert.Contains(scan.Findings, finding => finding.Gap == AuditGap.Refused);
+        Assert.Contains(scan.Findings, finding => finding.Gap == AuditGap.Broken);
+
+        Assert.Equal(ExitCode.Failure, ExitCodes.ForScan(scan));
+    }
+
+    private static IReadOnlyList<IFindingCollector> DefaultFindingCollectors =>
+        ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty);
+
+    /// <summary>
+    /// A scan of a machine that answers « accès refusé » to everything, run through the
+    /// finding collectors the tool really ships. No field collector and no rule: the findings
+    /// are then the only thing that can move the exit code.
+    ///
+    /// <para>
+    /// The registry is the only provider that has to be written here. Every other one defaults
+    /// to a refusal already — that is what <see cref="ProviderSet"/> decided a missing provider
+    /// means on a surface where zero could not be true.
+    /// </para>
+    /// </summary>
+    private static ScanResult RefusedEverywhere(
+        IReadOnlyList<IFindingCollector>? findingCollectors = null) =>
+        new ScanEngine([], []).Run(
+            new ProviderSet(new RefusingRegistry(), new FakeSystemInfoProvider()),
+            "test", "2026-07-24T09:15:00Z", findingCollectors: findingCollectors);
+
+    /// <summary>Refuses every read, so nothing a collector reports can be about the machine.</summary>
+    private sealed class RefusingRegistry : IRegistryProvider
+    {
+        public RegistryRead ReadValue(string keyPath, string valueName) =>
+            RegistryRead.AccessDenied;
+
+        public ReadStatus KeyExists(string keyPath) => ReadStatus.AccessDenied;
+
+        public RegistryValueList ListValues(string keyPath) => RegistryValueList.AccessDenied;
+
+        public RegistrySubKeyList ListSubKeys(string keyPath) => RegistrySubKeyList.AccessDenied;
+    }
+
+    /// <summary>The collector that breaks rather than the machine that refuses.</summary>
+    private sealed class BrokenFindingCollector : IFindingCollector
+    {
+        public string Name => "cassé";
+
+        public IReadOnlyList<Finding> Collect(ProviderSet providers) =>
+            throw new InvalidOperationException("boum");
+    }
+
+    /// <summary>
     /// The fixture that motivated the debt, mounted rather than fabricated: a capture taken
     /// without elevation whose collectors all read fine, which scores <b>100 %</b>, and
     /// which has four controls it never managed to look at. Before code 5 it exited 0 —
@@ -226,9 +366,17 @@ public sealed class ExitCodeTests
     /// makes it complete, this test must fail loudly rather than quietly stop proving
     /// anything.
     /// </para>
+    ///
+    /// <para>
+    /// It exits <c>3</c> and not <c>5</c> since the finding collectors were heard: the same
+    /// capture has seven surfaces it was refused outright, and elevation is what answers
+    /// those, where an unevaluable rule leaves the caller nothing to do. The 5 it used to
+    /// answer is still asserted, on the same scan stripped of its gaps — that claim did not
+    /// stop being true, it stopped being the strongest thing this fixture has to say.
+    /// </para>
     /// </summary>
     [Fact]
-    public void The_fixture_that_scores_full_marks_without_seeing_everything_exits_partial()
+    public void The_fixture_that_scores_full_marks_without_seeing_everything_never_exits_zero()
     {
         var scan = FixtureReplayTests.Scan("synthetic/restricted-access");
 
@@ -237,21 +385,54 @@ public sealed class ExitCodeTests
         Assert.Equal(4, scan.Verdicts.Count(v => v.Status == VerdictStatus.Unknown));
         Assert.All(scan.Collectors, c => Assert.Equal(CollectorStatus.Ok, c.Status));
 
-        Assert.Equal(ExitCode.Partial, ExitCodes.ForScan(scan));
+        Assert.Equal(7, scan.Findings.Count(f => f.Gap == AuditGap.Refused));
+        Assert.Equal(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(scan));
+
+        Assert.Equal(ExitCode.Partial, ExitCodes.ForScan(WithoutGaps(scan)));
     }
 
     /// <summary>
     /// The counterweight, without which the previous test would still pass if every scan
-    /// returned 5: the hardened capture evaluates every rule it touches, and exits 0.
+    /// returned the same thing: the hardened capture evaluates every rule it touches, and the
+    /// moment it has no gap left it exits 0.
+    ///
+    /// <para>
+    /// It does have three, and they are why it no longer exits 0 on its own. This capture
+    /// predates the collection of drivers, processes and listening ports, so its replay is
+    /// told « accès refusé » on all three and says so in the report — while answering 0, which
+    /// reads as a machine that was fully checked. That is REV-13 with the repository's own
+    /// fixture as the witness.
+    /// </para>
+    ///
+    /// <para>
+    /// It is also the one place where the number gives advice that does not apply: re-running
+    /// a <em>replay</em> elevated changes nothing, the answer is to re-capture. A snapshot
+    /// provider answers <c>AccessDenied</c> for a surface the capture never held — deliberately,
+    /// since « je n'ai pas regardé » must not read as « il n'y a rien » — and no collector can
+    /// tell that apart from a machine saying no. Telling them apart means a fourth
+    /// <c>ReadStatus</c> travelling the whole channel, which is a design question and not this
+    /// fix; what is not in question is that neither of the two deserves a 0.
+    /// </para>
     /// </summary>
     [Fact]
-    public void The_fixture_that_saw_everything_still_exits_zero()
+    public void The_hardened_fixture_exits_zero_only_once_nothing_was_refused()
     {
         var scan = FixtureReplayTests.Scan("synthetic/hardened-win11");
 
         Assert.DoesNotContain(scan.Verdicts, v => v.Status == VerdictStatus.Unknown);
-        Assert.Equal(ExitCode.Success, ExitCodes.ForScan(scan));
+
+        Assert.Equal(3, scan.Findings.Count(f => f.Gap == AuditGap.Refused));
+        Assert.Equal(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(scan));
+
+        Assert.Equal(ExitCode.Success, ExitCodes.ForScan(WithoutGaps(scan)));
     }
+
+    /// <summary>
+    /// The same scan with nothing left it could not read — the shape both fixtures had before
+    /// their gaps were audible, and the only way to keep asserting what they used to prove.
+    /// </summary>
+    private static ScanResult WithoutGaps(ScanResult scan) =>
+        scan with { Findings = [.. scan.Findings.Where(finding => finding.Gap is null)] };
 
     /// <summary>
     /// A control that became unreadable calls for elevation; one that fell calls for a
@@ -341,20 +522,27 @@ public sealed class ExitCodeTests
         Fields: []);
 
     /// <summary>
-    /// A scan reduced to the two lists the exit code reads. Both default to empty so
+    /// A scan reduced to the three lists the exit code reads. All default to empty so
     /// <c>Scan()</c> still stands for "a run with nothing to report" — the shape the diff
     /// tests below need.
     /// </summary>
     private static ScanResult Scan(
         IEnumerable<CollectorStatus>? collectors = null,
-        IEnumerable<VerdictStatus>? verdicts = null) => new(
+        IEnumerable<VerdictStatus>? verdicts = null,
+        IEnumerable<AuditGap>? gaps = null) => new(
         ToolVersion: "test",
         StartedAtUtc: "2026-07-24T09:15:00Z",
         Collectors: [.. (collectors ?? []).Select(status =>
             new CollectorResult("test", status, [], []))],
         Verdicts: [.. (verdicts ?? []).Select(status =>
             new Verdict("WIN-A-001", "Contrôle A", Severity.High, "réseau", status, null, null))],
-        Findings: [],
+
+        // Built by hand rather than through the factories, which each pin one gap: the table
+        // above has to be able to hand over a value nobody has written a factory for, since
+        // that is the case it exists to catch.
+        Findings: [.. (gaps ?? []).Select(gap => new Finding(
+            "test", "surface", Finding.NoTarget, FindingSeverity.Notable, [],
+            new Dictionary<string, string>(), gap))],
 
         // Left null on purpose, and the codes still come out right: the score is null
         // whenever nothing at all could be evaluated — the most partial scan there is —

@@ -34,12 +34,10 @@ public sealed class RunningProcessesCollector : IFindingCollector
             // the scan could not look — which must be said, not shown as a clean table.
             return
             [
-                new Finding(
-                    "process", "processus courants", "—",
-                    FindingSeverity.Notable,
+                Finding.Refused(
+                    "process", "processus courants",
                     [read.Diagnostic ?? "Énumération des processus refusée. Relancer en "
-                        + "administrateur : un exécutable non signé en cours resterait invisible."],
-                    new Dictionary<string, string>()),
+                        + "administrateur : un exécutable non signé en cours resterait invisible."]),
             ];
         }
 

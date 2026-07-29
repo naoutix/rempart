@@ -42,12 +42,11 @@ public sealed class ComHijackCollector : IFindingCollector
         // Refused, it reported the same nothing as a healthy machine (REV-11).
         if (hive.Status == ReadStatus.AccessDenied)
         {
-            findings.Add(new Finding(
-                "com-hijack", UserClsid, "—", FindingSeverity.Notable,
+            findings.Add(Finding.Refused(
+                "com-hijack", UserClsid,
                 ["Enregistrements COM de l'utilisateur illisibles : accès refusé. Un "
                  + "composant enregistré là primerait sur le composant système de même "
-                 + "CLSID, sans droits d'administrateur et sans apparaître ici."],
-                new Dictionary<string, string>()));
+                 + "CLSID, sans droits d'administrateur et sans apparaître ici."]));
         }
 
         // The walk continues whatever the status: an empty hive is the ordinary state, and a

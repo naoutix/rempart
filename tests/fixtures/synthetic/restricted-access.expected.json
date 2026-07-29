@@ -3552,7 +3552,8 @@
       "reasons": [
         "Pilotes charg\u00E9s absents de l\u0027instantan\u00E9."
       ],
-      "details": {}
+      "details": {},
+      "gap": "Refused"
     },
     {
       "kind": "process",
@@ -3562,7 +3563,8 @@
       "reasons": [
         "Processus courants absents de l\u0027instantan\u00E9."
       ],
-      "details": {}
+      "details": {},
+      "gap": "Refused"
     },
     {
       "kind": "logon-extension",
@@ -3596,7 +3598,8 @@
       "reasons": [
         "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
       ],
-      "details": {}
+      "details": {},
+      "gap": "Refused"
     },
     {
       "kind": "lsa-package",
@@ -3606,7 +3609,8 @@
       "reasons": [
         "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
       ],
-      "details": {}
+      "details": {},
+      "gap": "Refused"
     },
     {
       "kind": "lsa-package",
@@ -3616,7 +3620,8 @@
       "reasons": [
         "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
       ],
-      "details": {}
+      "details": {},
+      "gap": "Refused"
     },
     {
       "kind": "lsa-package",
@@ -3626,7 +3631,8 @@
       "reasons": [
         "Liste refus\u00E9e \u00E0 la lecture. Relancer en administrateur : un paquet LSA ajout\u00E9 resterait invisible."
       ],
-      "details": {}
+      "details": {},
+      "gap": "Refused"
     },
     {
       "kind": "listening-port",
@@ -3636,7 +3642,8 @@
       "reasons": [
         "Points d\u0027\u00E9coute absents de l\u0027instantan\u00E9."
       ],
-      "details": {}
+      "details": {},
+      "gap": "Refused"
     }
   ],
   "score": {

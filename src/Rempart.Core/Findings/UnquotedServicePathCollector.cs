@@ -35,11 +35,9 @@ public sealed class UnquotedServicePathCollector : IFindingCollector
         {
             return
             [
-                new Finding("unquoted-service-path", "Win32_Service", "—",
-                    FindingSeverity.Notable,
+                Finding.Refused("unquoted-service-path", "Win32_Service",
                     [read.Diagnostic ?? "Énumération des services refusée. Relancer en " +
-                        "administrateur : un chemin non quoté resterait invisible."],
-                    new Dictionary<string, string>()),
+                        "administrateur : un chemin non quoté resterait invisible."]),
             ];
         }
 
