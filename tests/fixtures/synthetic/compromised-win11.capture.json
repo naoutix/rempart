@@ -886,6 +886,22 @@
         "text": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\OneDriveSync.exe",
         "number": null
       }
+    },
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run||OneDriveCleanup": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "C:\\Windows\\System32\\cmd.exe /q /c del /q \u0022C:\\Program Files\\Microsoft OneDrive\\Setup.exe\u0022",
+        "number": null
+      }
+    },
+    "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run||WindowsUpdateAssistant": {
+      "status": "Found",
+      "value": {
+        "kind": "String",
+        "text": "\u0022C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\u0022 -NoProfile -WindowStyle Hidden -EncodedCommand VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAGYAaQB4AHQAdQByAGUAIABSAGUAbQBwAGEAcgB0ACcA",
+        "number": null
+      }
     }
   },
   "systemInfo": {
@@ -2786,10 +2802,12 @@
   },
   "registryLists": {
     "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run": [
-      "SecurityHealth"
+      "SecurityHealth",
+      "OneDriveCleanup"
     ],
     "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run": [
-      "OneDriveSync"
+      "OneDriveSync",
+      "WindowsUpdateAssistant"
     ]
   },
   "subKeyLists": {},
@@ -4303,6 +4321,16 @@
       "status": "Unsigned",
       "publisher": null,
       "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000002"
+    },
+    "C:\\Windows\\System32\\cmd.exe": {
+      "status": "Valid",
+      "publisher": "CN=Microsoft Windows, O=Microsoft Corporation",
+      "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000008"
+    },
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe": {
+      "status": "Valid",
+      "publisher": "CN=Microsoft Windows, O=Microsoft Corporation",
+      "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000009"
     },
     "C:\\Windows\\System32\\drivers\\ntfs.sys": {
       "status": "Valid",

@@ -110,7 +110,8 @@ public static class CompromiseMarkers
     }
 
     /// <summary>
-    /// Two <c>Run</c> entries, one of each verdict.
+    /// Four <c>Run</c> entries: an unsigned binary, a hidden payload, and one benign
+    /// counterpart for each.
     ///
     /// <para>
     /// The suspicious one is named <c>OneDriveSync</c> and launches from the user's
@@ -118,6 +119,23 @@ public static class CompromiseMarkers
     /// exact claim <see cref="Findings.SignatureLadder"/> makes in its own summary — the
     /// judgement rests on the signature, not on the name or the path — and until now no
     /// fixture put it to the test end to end.
+    /// </para>
+    ///
+    /// <para>
+    /// The second pair exercises the axis the first cannot reach. Both entries launch an
+    /// interpreter Windows itself ships, validly signed, from System32 — so the signature
+    /// ladder is silent on both and only the command line separates them. One deletes a
+    /// cached installer, which is what a <c>RunOnce</c> Windows writes actually does; the
+    /// other hands PowerShell a base64 blob with the window hidden. Until this pair, the
+    /// startup surface of a fixture called "compromised" produced a non-benign finding
+    /// almost only when it was <b>refused</b>.
+    /// </para>
+    ///
+    /// <para>
+    /// The blob decodes — deliberately — to <c>Write-Output 'fixture Rempart'</c>. It has
+    /// to be real base64 for the marker to mean anything, and anyone who decodes it out of
+    /// curiosity has to find something that says what it is rather than a download cradle
+    /// copied from an incident.
     /// </para>
     ///
     /// <para>
@@ -135,13 +153,28 @@ public static class CompromiseMarkers
         const string Legitimate = @"C:\Windows\System32\SecurityHealthSystray.exe";
         const string Dropped = $@"{TempFolder}\OneDriveSync.exe";
 
+        const string Shell = @"C:\Windows\System32\cmd.exe";
+        const string PowerShell =
+            @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+        const string Encoded =
+            "VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAGYAaQB4AHQAdQByAGUAIABSAGUAbQBwAGEAcgB0ACcA";
+
         Enumerated(snapshot, MachineRun, "SecurityHealth", Legitimate);
         Enumerated(snapshot, UserRun, "OneDriveSync", Dropped);
+
+        Enumerated(snapshot, MachineRun, "OneDriveCleanup",
+            $@"{Shell} /q /c del /q ""C:\Program Files\Microsoft OneDrive\Setup.exe""");
+        Enumerated(snapshot, UserRun, "WindowsUpdateAssistant",
+            $@"""{PowerShell}"" -NoProfile -WindowStyle Hidden -EncodedCommand {Encoded}");
 
         snapshot.Signatures[Legitimate] =
             new FileSignature(SignatureStatus.Valid, MicrosoftPublisher, $"{FabricatedHash}00000001");
         snapshot.Signatures[Dropped] =
             new FileSignature(SignatureStatus.Unsigned, null, $"{FabricatedHash}00000002");
+        snapshot.Signatures[Shell] =
+            new FileSignature(SignatureStatus.Valid, MicrosoftPublisher, $"{FabricatedHash}00000008");
+        snapshot.Signatures[PowerShell] =
+            new FileSignature(SignatureStatus.Valid, MicrosoftPublisher, $"{FabricatedHash}00000009");
     }
 
     /// <summary>

@@ -787,6 +787,19 @@
     },
     {
       "kind": "autorun",
+      "source": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\OneDriveCleanup",
+      "target": "C:\\Windows\\System32\\cmd.exe",
+      "severity": "Benign",
+      "reasons": [],
+      "details": {
+        "commande": "C:\\Windows\\System32\\cmd.exe /q /c del /q \u0022C:\\Program Files\\Microsoft OneDrive\\Setup.exe\u0022",
+        "signature": "Valid",
+        "\u00E9diteur": "CN=Microsoft Windows, O=Microsoft Corporation",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000008"
+      }
+    },
+    {
+      "kind": "autorun",
       "source": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\OneDriveSync",
       "target": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\OneDriveSync.exe",
       "severity": "Suspicious",
@@ -798,6 +811,24 @@
         "commande": "C:\\Users\\anon:1a2b3c4d5e6f\\AppData\\Local\\Temp\\OneDriveSync.exe",
         "signature": "Unsigned",
         "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000002"
+      }
+    },
+    {
+      "kind": "autorun",
+      "source": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\WindowsUpdateAssistant",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "severity": "Notable",
+      "reasons": [
+        "Interpr\u00E9teur : ce qui s\u0027ex\u00E9cute est d\u00E9cid\u00E9 par ses arguments, et la signature ne porte que sur l\u0027interpr\u00E9teur lui-m\u00EAme.",
+        "Commande encod\u00E9e en base64 (-EncodedCommand) : ce qui sera ex\u00E9cut\u00E9 n\u0027appara\u00EEt nulle part en clair, ni ici ni dans un journal.",
+        "Fen\u00EAtre masqu\u00E9e (hidden) : l\u0027ex\u00E9cution ne laisse rien voir \u00E0 qui est devant l\u0027\u00E9cran.",
+        "Profil PowerShell ignor\u00E9 (-NoProfile) : l\u0027ex\u00E9cution ne d\u00E9pend pas de la configuration de l\u0027utilisateur."
+      ],
+      "details": {
+        "commande": "\u0022C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\u0022 -NoProfile -WindowStyle Hidden -EncodedCommand VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAGYAaQB4AHQAdQByAGUAIABSAGUAbQBwAGEAcgB0ACcA",
+        "signature": "Valid",
+        "\u00E9diteur": "CN=Microsoft Windows, O=Microsoft Corporation",
+        "sha256": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000009"
       }
     },
     {
