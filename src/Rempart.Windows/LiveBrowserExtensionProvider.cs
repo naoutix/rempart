@@ -111,7 +111,11 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
 
         foreach (var setting in settings.Values)
         {
-            var extensionDir = Path.Combine(profileDir, "Extensions", setting.RelativePath);
+            // An absolute path is resolved as written: an unpacked extension lives in
+            // the directory it was loaded from, which is not under the profile.
+            var extensionDir = setting.PathIsAbsolute
+                ? setting.Path
+                : Path.Combine(profileDir, "Extensions", setting.Path);
 
             // No manifest on disk: a sync leftover, not an install.
             if (TryReadAllText(Path.Combine(extensionDir, "manifest.json")) is not { } manifestJson

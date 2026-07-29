@@ -93,6 +93,13 @@ public class ChromiumSettingsTests
 {
     // Shape observed in Secure Preferences on Chrome 150 / Edge (2026-07-24): no
     // "state" field any more, enabled/disabled carried by "disable_reasons".
+    //
+    // Entry "d" carries an absolute path because that is what was measured on
+    // 2026-07-29: an extension loaded unpacked into Chrome 150.0.7871.187 is recorded
+    // with "location": 4 and the developer's source directory as "path", outside the
+    // profile. It used to carry a relative path here, a shape no browser writes, and
+    // that invented shape is what kept the test green over a parser that discarded the
+    // real thing.
     private const string RealisticSettings = """
         {
           "extensions": {
@@ -124,7 +131,7 @@ public class ChromiumSettingsTests
                 "disable_reasons": [],
                 "from_webstore": false,
                 "location": 4,
-                "path": "dddddddddddddddddddddddddddddddd\\9.9_0"
+                "path": "C:\\src\\hello-extension"
               },
               "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": {
                 "account_extension_type": 0
@@ -148,7 +155,8 @@ public class ChromiumSettingsTests
         var entry = Assert.Single(settings, s => s.Id == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         Assert.True(entry.Enabled);
         Assert.True(entry.FromStore);
-        Assert.Equal(@"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\3.17.190_0", entry.RelativePath);
+        Assert.Equal(@"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\3.17.190_0", entry.Path);
+        Assert.False(entry.PathIsAbsolute);
         Assert.Equal(["storage", "unlimitedStorage"], entry.GrantedApi);
         Assert.Equal(
             ["https://example.com/*", "https://example.com/account/*"], entry.GrantedHosts);
@@ -163,7 +171,7 @@ public class ChromiumSettingsTests
     }
 
     [Fact]
-    public void Component_extensions_with_an_absolute_path_are_excluded()
+    public void Component_extensions_are_excluded_on_their_location_not_on_their_path()
     {
         var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
@@ -176,6 +184,26 @@ public class ChromiumSettingsTests
         var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
 
         Assert.False(Assert.Single(settings, s => s.Id.StartsWith('d')).FromStore);
+    }
+
+    [Fact]
+    public void An_unpacked_extension_living_outside_the_profile_is_still_inventoried()
+    {
+        // The entry the parser used to drop. Its path is absolute because that is what
+        // Chrome writes for an unpacked extension, and an absolute path was the sole
+        // criterion for discarding an entry — so the one sideload vector a developer
+        // mode load represents left no trace at all: no extension, no unreadable
+        // profile, a Found read.
+        var settings = ParsedOrFail.Readable(ChromiumExtensions.ParseSettings(RealisticSettings));
+
+        var unpacked = Assert.Single(settings, s => s.Id.StartsWith('d'));
+        Assert.False(unpacked.FromStore);
+        Assert.True(unpacked.Enabled);
+
+        // Kept as written, and flagged so: joining it under the profile's Extensions
+        // folder would look for the manifest somewhere it has never been.
+        Assert.Equal(@"C:\src\hello-extension", unpacked.Path);
+        Assert.True(unpacked.PathIsAbsolute);
     }
 
     [Fact]
