@@ -14,6 +14,13 @@ public sealed class RuleFormatException(string message) : Exception(message);
 ///
 /// Any deviation fails the load. A malformed rule that was silently ignored would
 /// produce an audit that looks complete while having skipped a check.
+///
+/// That promise was broken by the file's own punctuation: only the first YAML document
+/// was read, so everything below a <c>---</c> separator was dropped and the load still
+/// reported success. Splitting rules on <c>---</c> is reflex for anyone arriving from
+/// Kubernetes or Ansible, and the shipped catalog — which uses no separator — could not
+/// notice. Hence the whole stream is walked, uniqueness of identifiers spans it, and a
+/// document that is not a list of rules names its own position.
 /// </summary>
 public static class RuleLoader
 {
@@ -29,35 +36,57 @@ public static class RuleLoader
             throw new RuleFormatException($"{origin} : YAML illisible — {ex.Message}");
         }
 
-        if (stream.Documents.Count == 0)
-        {
-            return [];
-        }
-
-        if (stream.Documents[0].RootNode is not YamlSequenceNode root)
-        {
-            throw new RuleFormatException(
-                $"{origin} : le document doit être une liste de règles.");
-        }
-
         var rules = new List<Rule>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        for (var index = 0; index < stream.Documents.Count; index++)
+        {
+            // The position is only worth naming when there is more than one document;
+            // on the common single-document file it would be noise in every message.
+            var where = stream.Documents.Count > 1 ? $"{origin}, document {index + 1}" : origin;
+            var node = stream.Documents[index].RootNode;
+
+            // A file ending on a separator opens a document that carries nothing.
+            // Refusing it would reject a perfectly good file over its last line.
+            if (node is YamlScalarNode { Value: null or "" })
+            {
+                continue;
+            }
+
+            if (node is not YamlSequenceNode root)
+            {
+                throw new RuleFormatException(
+                    $"{where} : le document doit être une liste de règles.");
+            }
+
+            ReadInto(root, where, rules, seen);
+        }
+
+        return rules;
+    }
+
+    /// <summary>
+    /// Reads one document into the file's accumulated rules. <paramref name="seen"/> is
+    /// shared across documents on purpose: a rule copied below a separator is exactly
+    /// how a duplicate identifier gets written, and a per-document check would let it
+    /// through.
+    /// </summary>
+    private static void ReadInto(
+        YamlSequenceNode root, string where, List<Rule> rules, HashSet<string> seen)
+    {
         foreach (var node in root)
         {
-            var rule = ReadRule(Mapping(node, origin), origin);
+            var rule = ReadRule(Mapping(node, where), where);
 
             if (!seen.Add(rule.Id))
             {
                 throw new RuleFormatException(
-                    $"{origin} : identifiant en double « {rule.Id} ». " +
+                    $"{where} : identifiant en double « {rule.Id} ». " +
                     "Les identifiants sont référencés dans les rapports et les profils.");
             }
 
             rules.Add(rule);
         }
-
-        return rules;
     }
 
     private static Rule ReadRule(YamlMappingNode map, string origin)
