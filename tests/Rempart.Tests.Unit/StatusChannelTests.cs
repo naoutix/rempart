@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Snapshots;
 
@@ -251,6 +253,93 @@ public sealed class StatusChannelTests
         // it have to say the same thing.
         Assert.Equal(ReadStatus.AccessDenied, again.Status);
         Assert.Equal("Accès refusé.", again.Diagnostic);
+    }
+
+    private const string Refused = "Pare-feu non lu : règles locales.";
+
+    /// <summary>
+    /// The firewall's own version of the branch above, and the four steps a field added to
+    /// the snapshot has to survive: recorded by the scan, serialised into the capture,
+    /// replayed out of it, and — next door in <c>AnonymiserTests</c> — scrubbed. This
+    /// repository has already shipped three of those four.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object, and that is the
+    /// point of the test: the capture is a <em>file</em>. A property the recorder sets and
+    /// the source-generated serialiser does not carry would pass every in-memory assertion
+    /// and still reach the replay as « lu », which is the exact failure being closed.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_firewall_read_is_recorded_serialised_and_replayed_as_refused()
+    {
+        var snapshot = new MachineSnapshot();
+        var source = new CountingFirewallProvider(FirewallState.Failed(Refused));
+        var recording = new RecordingFirewallProvider(source, snapshot);
+
+        var first = recording.Read();
+        recording.Read();
+
+        // A scan walks the collectors twice; asking the machine again on the second pass
+        // would make the capture depend on which pass caught it in a better mood.
+        Assert.Equal(1, source.Calls);
+        Assert.False(first.Readable);
+        Assert.Equal(Refused, snapshot.Firewall!.Diagnostic);
+
+        var replayed = new SnapshotFirewallProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read();
+
+        Assert.False(replayed.Readable);
+        Assert.Equal(Refused, replayed.Diagnostic);
+        Assert.Equal(FirewallReachability.Unknown,
+            replayed.InboundReachability("TCP", 4444, null));
+    }
+
+    /// <summary>
+    /// The compatibility half, against a capture that really was written before the field
+    /// existed — <c>compromised-win11</c>, versioned, whose <c>firewall</c> block carries
+    /// rules and <c>readable</c> and nothing else.
+    ///
+    /// <para>
+    /// The absence of the new field has to mean exactly what the old behaviour meant: read,
+    /// nothing to report. Inventing a refusal for it would turn every capture older than
+    /// this batch into a machine whose firewall nobody could see, and the fixture's own
+    /// reachability verdicts — the ones its golden freezes — would go with it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_firewall_captured_before_the_diagnostic_existed_replays_as_read()
+    {
+        var json = File.ReadAllText(Path.Combine(
+            FixtureReplayTests.FixtureDirectory, "synthetic", "compromised-win11.capture.json"));
+
+        using (var document = JsonDocument.Parse(json))
+        {
+            // The premise of the test, asserted rather than assumed: the day this capture is
+            // regenerated with a diagnostic, it stops being evidence about older ones.
+            Assert.False(
+                document.RootElement.GetProperty("firewall").TryGetProperty("diagnostic", out _),
+                "La fixture porte désormais un diagnostic : elle ne prouve plus la "
+                + "compatibilité des captures antérieures au champ.");
+        }
+
+        var read = new SnapshotFirewallProvider(RempartJson.DeserialiseSnapshot(json)).Read();
+
+        Assert.True(read.Readable);
+        Assert.Null(read.Diagnostic);
+        Assert.NotEmpty(read.Rules);
+        Assert.Equal(FirewallReachability.Reachable, read.InboundReachability("TCP", 4444, null));
+    }
+
+    private sealed class CountingFirewallProvider(FirewallState answer) : IFirewallProvider
+    {
+        public int Calls { get; private set; }
+
+        public FirewallState Read()
+        {
+            Calls++;
+            return answer;
+        }
     }
 
     private sealed class CountingDriverProvider(DriverRead answer) : IDriverProvider

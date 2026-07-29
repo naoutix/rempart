@@ -182,11 +182,18 @@ public static class Anonymiser
             ];
         }
 
-        if (snapshot.Firewall is { Rules.Count: > 0 } firewall)
+        if (snapshot.Firewall is { } firewall)
         {
             // A rule's application path sometimes carries a user profile — six rules
             // did on the reference machine. The owner SID (LUOwn), however, is not
             // kept at parse time, so there is nothing to scrub there.
+            //
+            // The diagnostic is scrubbed beside the rules, and not under the « at least one
+            // rule » test this block used to open with: a refused read has *no* rules and is
+            // the only state that carries a diagnostic, so that test skipped precisely the
+            // field worth cleaning. It names surfaces today and nothing else, but it is free
+            // text written by a Windows-side provider — the same shape that carried a
+            // Firefox profile salt out of a capture one milestone ago.
             snapshot.Firewall = firewall with
             {
                 Rules =
@@ -195,6 +202,7 @@ public static class Anonymiser
                         ? rule with { App = ScrubProfile(app) }
                         : rule),
                 ],
+                Diagnostic = ScrubDiagnostic(firewall.Diagnostic),
             };
         }
 

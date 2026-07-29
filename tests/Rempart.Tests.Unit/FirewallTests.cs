@@ -68,6 +68,35 @@ public class FirewallReachabilityTests
             FirewallState.Unread.InboundReachability("TCP", 445, null));
     }
 
+    /// <summary>
+    /// A read that was attempted and refused. It settles nothing either, and unlike
+    /// <see cref="FirewallState.Unread"/> it has something to say about why — « personne
+    /// n'a regardé » and « j'ai regardé et on m'a refusé » are not the same answer, and the
+    /// report has to be able to print the second.
+    /// </summary>
+    [Fact]
+    public void A_refused_read_answers_unknown_and_says_why()
+    {
+        var state = FirewallState.Failed("Pare-feu non lu : règles locales.");
+
+        Assert.False(state.Readable);
+        Assert.Equal("Pare-feu non lu : règles locales.", state.Diagnostic);
+        Assert.Equal(FirewallReachability.Unknown, state.InboundReachability("TCP", 4444, null));
+    }
+
+    /// <summary>
+    /// The other half of the same invariant: silence on the diagnostic means « rien à
+    /// signaler », so neither a state that was read nor one nobody collected may carry one.
+    /// A capture written before the field existed deserialises into the first of those two,
+    /// which is what keeps it replayable.
+    /// </summary>
+    [Fact]
+    public void Only_a_refused_read_carries_a_diagnostic()
+    {
+        Assert.Null(With().Diagnostic);
+        Assert.Null(FirewallState.Unread.Diagnostic);
+    }
+
     /// <summary>Firewall off: everything that listens is reachable.</summary>
     [Fact]
     public void A_disabled_firewall_makes_everything_reachable()

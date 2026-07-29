@@ -60,6 +60,24 @@ public sealed class ListeningPortsCollector : IFindingCollector
 
         var firewall = providers.Firewall.Read();
 
+        if (firewall.Diagnostic is { } refused)
+        {
+            // Said out loud, exactly as the listening table above is. A refused firewall
+            // read removes the cross-check from every port below it, and an audit that
+            // quietly loses its reachability question reads like one that asked it and got
+            // a reassuring answer.
+            //
+            // Only a *refused* read speaks. A capture predating the firewall collection
+            // replays as FirewallState.Unread, which carries no diagnostic: nobody looked,
+            // so there is nothing to report, and announcing it on every older capture would
+            // be the crying wolf this repository keeps refusing.
+            findings.Add(new Finding(
+                "listening-port", "pare-feu", "—",
+                FindingSeverity.Notable,
+                [refused],
+                new Dictionary<string, string>()));
+        }
+
         // The same binary often holds several ports: its signature is judged once.
         var judgements = new Dictionary<string, SignatureJudgement>(StringComparer.OrdinalIgnoreCase);
 
@@ -247,6 +265,13 @@ public sealed class ListeningPortsCollector : IFindingCollector
         ListeningPort port, string target, bool unsigned, SignatureJudgement? judgement,
         Dictionary<string, string> details)
     {
+        // The detail says the firewall was not consulted, where the other two branches say
+        // what it answered. Leaving the key out was honest and unreadable: a port with no
+        // « pare-feu » line looks like a port whose line was not worth printing, next to
+        // ports that carry one — and the reader has no way to tell « non lu » from an
+        // oversight. Absence of a claim has to be a claim.
+        details["pare-feu"] = "non lu";
+
         // Without firewall state, we do not claim to settle reachability: an exposed
         // unsigned binary stays suspicious on its signature alone, the rest is inventoried.
         if (unsigned)
