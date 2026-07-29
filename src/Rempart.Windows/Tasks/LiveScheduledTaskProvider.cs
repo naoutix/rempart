@@ -20,8 +20,11 @@ namespace Rempart.Windows.Tasks;
 ///
 /// <para>
 /// Non-elevated enumeration sees the user's tasks and most system tasks; some folders
-/// remain denied. A denial is recorded and enumeration continues: a partial, honest
-/// inventory is better than none.
+/// remain denied. A denial is recorded — as a <see cref="TaskFolderGap"/> naming the
+/// folder, which is what makes the read <see cref="ScheduledTaskRead.Partial"/> — and the
+/// walk continues: a partial, honest inventory is better than none, and better still than
+/// a partial one handed over as complete. This paragraph made both promises from the
+/// first day and kept only the second.
 /// </para>
 /// </summary>
 public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskProvider
@@ -81,9 +84,15 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
         }
 
         var tasks = new List<ScheduledTask>();
-        Walk(root, tasks, 0);
+        var gaps = new List<TaskFolderGap>();
+        Walk(root, tasks, gaps, 0);
 
-        return ScheduledTaskRead.Found(tasks);
+        // A walk that gave nothing up is the ordinary case, and it stays silent. One that
+        // did says so and keeps what it read: the summary of this class has promised both
+        // halves since it was written, and only the second was ever implemented.
+        return gaps.Count == 0
+            ? ScheduledTaskRead.Found(tasks)
+            : ScheduledTaskRead.Partial(tasks, gaps);
     }
 
     private static ITaskService CreateService()
@@ -113,53 +122,107 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
 
     /// <summary>
     /// Walks a folder and its subfolders. An unreadable folder is skipped without
-    /// interrupting the others: most tasks live under <c>\Microsoft\Windows</c>, and
-    /// losing one branch must not cost the rest.
+    /// interrupting the others — most tasks live under <c>\Microsoft\Windows</c>, and
+    /// losing one branch must not cost the rest — and every skip is written into
+    /// <paramref name="gaps"/>.
+    ///
+    /// <para>
+    /// Nothing here decides whether a failure deserves to be recorded, and that is the
+    /// point: <see cref="Ok"/> is the only way this method reads an HRESULT, and it records
+    /// before it answers. Four branches used to drop data quietly, two more sat beside them,
+    /// and naming six is no better than naming four — the next call added here records
+    /// itself because there is no other way to write it. A test reads this method from disk
+    /// and holds that shut.
+    /// </para>
     /// </summary>
-    private static void Walk(ITaskFolder folder, List<ScheduledTask> tasks, int depth)
+    private static void Walk(
+        ITaskFolder folder, List<ScheduledTask> tasks, List<TaskFolderGap> gaps, int depth)
     {
+        // The folder names itself first: every gap below is filed against this path. A
+        // folder that will not say where it is is named by its depth — losing the label
+        // must not also lose the gap.
+        var fallback = $"(dossier de profondeur {depth})";
+        var path = Ok(folder.get_Path(out var self), gaps, fallback, "get_Path(dossier)")
+            && self is { Length: > 0 }
+                ? self
+                : fallback;
+
         if (depth > MaxDepth)
         {
+            // The guard against a cyclic tree is still a subtree nobody read.
+            gaps.Add(new TaskFolderGap(
+                path, $"profondeur maximale atteinte ({MaxDepth}) : sous-dossiers non parcourus"));
             return;
         }
 
-        if (folder.GetTasks(TaskSchedulerIds.EnumHidden, out var collection) >= 0
-            && collection.get_Count(out var count) >= 0)
+        if (Ok(folder.GetTasks(TaskSchedulerIds.EnumHidden, out var collection), gaps, path, "GetTasks")
+            && Ok(collection.get_Count(out var count), gaps, path, "get_Count(tâches)"))
         {
             for (var i = 1; i <= count; i++)
             {
-                if (collection.get_Item(Index(i), out var task) >= 0)
+                if (!Ok(collection.get_Item(Index(i), out var task), gaps, path, $"get_Item(tâche {i})"))
                 {
-                    if (Read(task) is { } read)
-                    {
-                        tasks.Add(read);
-                    }
+                    continue;
+                }
+
+                if (Read(task, out var failure) is { } read)
+                {
+                    tasks.Add(read);
+                }
+                else
+                {
+                    // A task whose own path could not be read: the inventory loses it
+                    // entirely, so it is the one abandonment that must never be quiet.
+                    gaps.Add(TaskFolderGap.Of(path, $"get_Path(tâche {i})", failure));
                 }
             }
         }
 
-        if (folder.GetFolders(0, out var children) < 0
-            || children.get_Count(out var childCount) < 0)
+        if (!Ok(folder.GetFolders(0, out var children), gaps, path, "GetFolders")
+            || !Ok(children.get_Count(out var childCount), gaps, path, "get_Count(sous-dossiers)"))
         {
             return;
         }
 
         for (var i = 1; i <= childCount; i++)
         {
-            if (children.get_Item(Index(i), out var child) >= 0)
+            if (Ok(children.get_Item(Index(i), out var child), gaps, path, $"get_Item(sous-dossier {i})"))
             {
-                Walk(child, tasks, depth + 1);
+                Walk(child, tasks, gaps, depth + 1);
             }
         }
+    }
+
+    /// <summary>
+    /// The only way the walk reads a COM result: true when the call succeeded, and what its
+    /// failure abandoned recorded against <paramref name="folder"/> when it did not.
+    /// </summary>
+    private static bool Ok(int hresult, List<TaskFolderGap> gaps, string folder, string call)
+    {
+        if (hresult >= 0)
+        {
+            return true;
+        }
+
+        gaps.Add(TaskFolderGap.Of(folder, call, hresult));
+        return false;
     }
 
     /// <summary>An integer VARIANT: COM collections are indexed starting at 1.</summary>
     private static Variant Index(int value) =>
         new() { Vt = VariantType.I4, Data = (IntPtr)value };
 
-    private static ScheduledTask? Read(IRegisteredTask task)
+    /// <summary>
+    /// One task, or null when it cannot even say where it lives — the caller records that
+    /// abandonment against the folder, since a task without a path cannot be inventoried
+    /// under any name. <paramref name="failure"/> carries the HRESULT so the record names
+    /// what happened rather than assuming a denial.
+    /// </summary>
+    private static ScheduledTask? Read(IRegisteredTask task, out int failure)
     {
-        if (task.get_Path(out var path) < 0)
+        failure = task.get_Path(out var path);
+
+        if (failure < 0)
         {
             return null;
         }

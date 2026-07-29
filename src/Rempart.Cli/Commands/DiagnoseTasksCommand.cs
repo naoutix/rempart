@@ -35,9 +35,19 @@ internal static class DiagnoseTasksCommand
             Console.WriteLine($"  défaillance : {diagnostic}");
         }
 
+        foreach (var gap in read.Gaps ?? [])
+        {
+            Console.WriteLine($"  dossier incomplet : {gap.Folder} — {gap.Reason}");
+        }
+
         // A Windows with no tasks at all does not exist: zero indicts the enumeration, not
         // the machine. The bar stays low — a CI runner carries fewer than a real machine.
-        if (read.Status != ReadStatus.Found || read.Tasks.Count == 0)
+        //
+        // The count alone, and no longer the status beside it. A walk refused in one folder
+        // now reports AccessDenied while answering with everything else, which proves the
+        // interop works rather than that it is broken; failing on it would blame the vtables
+        // for an ACL, on the one command whose whole job is to tell those two apart.
+        if (read.Tasks.Count == 0)
         {
             Console.Error.WriteLine(
                 "Le planificateur ne rend aucune tâche. Toute installation de Windows en " +
