@@ -12,6 +12,7 @@ internal sealed class FakeRegistryProvider : IRegistryProvider
     private readonly Dictionary<string, RegistryRead> values = [];
     private readonly Dictionary<string, ReadStatus> keys = [];
     private readonly Dictionary<string, List<string>> subKeys = [];
+    private readonly HashSet<string> deniedEnumerations = new(StringComparer.OrdinalIgnoreCase);
 
     public FakeRegistryProvider WithText(string keyPath, string valueName, string text)
     {
@@ -49,18 +50,45 @@ internal sealed class FakeRegistryProvider : IRegistryProvider
         return this;
     }
 
-    public IReadOnlyList<string> ListSubKeys(string keyPath) =>
-        subKeys.TryGetValue(keyPath, out var names) ? names : [];
-
-    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    /// <summary>
+    /// A key whose <em>enumeration</em> is refused, values and subkeys alike — an ACL laid
+    /// on the key itself, which is what an attacker does to a <c>Run</c> key or to the
+    /// per-user CLSID hive.
+    ///
+    /// <para>
+    /// Distinct from <see cref="WithAccessDenied"/>, which refuses one named value: a
+    /// collector that discovers what is there never names anything, so that refusal is
+    /// invisible to it.
+    /// </para>
+    /// </summary>
+    public FakeRegistryProvider WithDeniedEnumeration(string keyPath)
     {
+        deniedEnumerations.Add(keyPath);
+        return this;
+    }
+
+    // Found rather than NotFound for a key this fake was told nothing about: every test
+    // written before enumeration carried a status expects an empty listing to be an answer,
+    // and it is one — an empty Run key is the ordinary state of four out of five.
+    public RegistrySubKeyList ListSubKeys(string keyPath) =>
+        deniedEnumerations.Contains(keyPath) ? RegistrySubKeyList.AccessDenied
+        : subKeys.TryGetValue(keyPath, out var names) ? RegistrySubKeyList.Found(names)
+        : RegistrySubKeyList.Found([]);
+
+    public RegistryValueList ListValues(string keyPath)
+    {
+        if (deniedEnumerations.Contains(keyPath))
+        {
+            return RegistryValueList.AccessDenied;
+        }
+
         var prefix = keyPath + "||";
 
-        return values
+        return RegistryValueList.Found(values
             .Where(v => v.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             .Where(v => v.Value.Value is not null)
             .ToDictionary(v => v.Key[prefix.Length..], v => v.Value.Value!,
-                StringComparer.OrdinalIgnoreCase);
+                StringComparer.OrdinalIgnoreCase));
     }
 
     private static string Key(string keyPath, string valueName) => $"{keyPath}||{valueName}";

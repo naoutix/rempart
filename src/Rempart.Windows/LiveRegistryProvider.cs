@@ -57,7 +57,7 @@ public sealed class LiveRegistryProvider : IRegistryProvider
         }
     }
 
-    public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+    public RegistryValueList ListValues(string keyPath)
     {
         var values = new Dictionary<string, RegistryValue>(StringComparer.OrdinalIgnoreCase);
 
@@ -66,7 +66,7 @@ public sealed class LiveRegistryProvider : IRegistryProvider
             using var key = OpenKey(keyPath);
             if (key is null)
             {
-                return values;
+                return RegistryValueList.NotFound;
             }
 
             foreach (var name in key.GetValueNames())
@@ -80,25 +80,30 @@ public sealed class LiveRegistryProvider : IRegistryProvider
         }
         catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException)
         {
-            // A denial returns an empty list rather than an exception: enumeration
-            // of the other locations must continue.
+            // A denial still returns rather than throwing — enumeration of the other
+            // locations must continue — but it returns a *refusal* and no longer an empty
+            // listing. Those were the same value for three milestones, and a denial laid on
+            // a Run key therefore read as « aucun démarrage automatique » (REV-11).
+            return RegistryValueList.AccessDenied;
         }
 
-        return values;
+        return RegistryValueList.Found(values);
     }
 
-    public IReadOnlyList<string> ListSubKeys(string keyPath)
+    public RegistrySubKeyList ListSubKeys(string keyPath)
     {
         try
         {
             using var key = OpenKey(keyPath);
-            return key is null ? [] : key.GetSubKeyNames();
+            return key is null
+                ? RegistrySubKeyList.NotFound
+                : RegistrySubKeyList.Found(key.GetSubKeyNames());
         }
         catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException)
         {
-            // A denial returns an empty list, as for values: the other locations
-            // must still be enumerated.
-            return [];
+            // As for values: the other locations must still be enumerated, and the refusal
+            // travels with the answer instead of being flattened into it.
+            return RegistrySubKeyList.AccessDenied;
         }
     }
 

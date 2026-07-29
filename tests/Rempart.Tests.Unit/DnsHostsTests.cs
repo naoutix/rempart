@@ -8,9 +8,14 @@ internal sealed class FakeDnsProvider(params DnsInterface[] interfaces) : IDnsPr
     public IReadOnlyList<DnsInterface> Read() => interfaces;
 }
 
-internal sealed class FakeHostsFileProvider(params string[] lines) : IHostsFileProvider
+internal sealed class FakeHostsFileProvider(HostsFileRead read) : IHostsFileProvider
 {
-    public IReadOnlyList<string> ReadLines() => lines;
+    public FakeHostsFileProvider(params string[] lines)
+        : this(HostsFileRead.Found(lines))
+    {
+    }
+
+    public HostsFileRead ReadLines() => read;
 }
 
 public class DnsResolverTests
@@ -168,5 +173,55 @@ public class HostsFileTests
         var finding = Assert.Single(Collect("93.184.216.34  example.com  # test local"));
 
         Assert.Equal("example.com", finding.Details["domaine"]);
+    }
+
+    private static IReadOnlyList<Finding> Collect(HostsFileRead read) =>
+        new HostsFileCollector().Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            hostsFile: new FakeHostsFileProvider(read)));
+
+    /// <summary>
+    /// A <c>hosts</c> file the read was refused. Denying read access to it is the very
+    /// technique that protects a redirection already in place, and it produced the same
+    /// empty list as the comment-only file Windows ships — so the collector reported
+    /// nothing, <c>CriticalFragments</c> included.
+    /// </summary>
+    [Fact]
+    public void A_refused_hosts_file_is_reported_rather_than_read_as_no_entry()
+    {
+        var finding = Assert.Single(Collect(
+            HostsFileRead.Failed("Fichier hosts illisible : accès refusé.")));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Contains("accès refusé", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The other half of the sentence the class summary used to assume. « Pas de fichier
+    /// hosts » really is « aucune entrée » — a machine without one resolves through DNS
+    /// alone, which is what an empty file means too. Only the <em>refusal</em> was wrongly
+    /// folded into it.
+    /// </summary>
+    [Fact]
+    public void An_absent_hosts_file_stays_silent()
+    {
+        Assert.Empty(Collect(HostsFileRead.Absent));
+    }
+
+    /// <summary>
+    /// A read that failed without being refused. <c>File.ReadAllLines</c> throws
+    /// <c>IOException</c> on a file held open exclusively — which malware does as readily as
+    /// it sets an ACL — and calling that « accès refusé » is the invariant CONTRIBUTING
+    /// records, paid for once already by two milestones of a mute WMI.
+    /// </summary>
+    [Fact]
+    public void A_failure_that_is_not_a_denial_is_reported_as_itself()
+    {
+        var finding = Assert.Single(Collect(
+            HostsFileRead.Failed("Fichier hosts illisible : le fichier est ouvert en exclusif.")));
+
+        var reasons = string.Join(" ", finding.Reasons);
+        Assert.Contains("exclusif", reasons, StringComparison.Ordinal);
+        Assert.DoesNotContain("accès refusé", reasons, StringComparison.Ordinal);
     }
 }

@@ -93,11 +93,12 @@ public sealed class FirewallReadRefusalTests
     }
 
     /// <summary>
-    /// The half no status can reach yet. <c>ListValues</c> returns the same empty dictionary
-    /// for a key that holds nothing and for an enumeration that was refused (REV-11, #115),
-    /// so a rules key that opens and yields nothing is the only visible trace of a denial —
-    /// and no Windows installation ships zero firewall rules. The Windows suite already
-    /// asserted this on the CI runner; here it protects the audited machine instead.
+    /// The safety net, now that the enumeration itself can speak. A rules key that opens and
+    /// yields nothing usable is still a failure — no Windows installation ships zero firewall
+    /// rules — but it is no longer the <em>only</em> trace of a denial: it used to be, because
+    /// <c>ListValues</c> returned the same empty dictionary for « clé vide » and for « accès
+    /// refusé » (REV-11). It now catches what a status cannot, an enumeration that answered
+    /// with values none of which parse.
     /// </summary>
     [Fact]
     public void A_rules_key_that_answers_nothing_is_not_a_machine_without_rules()
@@ -107,6 +108,44 @@ public sealed class FirewallReadRefusalTests
         var refused = new LiveFirewallProvider(registry).Read();
 
         Assert.False(refused.Readable);
+        Assert.Equal(FirewallReachability.Unknown, refused.InboundReachability("TCP", 4444, null));
+    }
+
+    /// <summary>
+    /// The rule containers, the only two surfaces the read enumerates. The profile keys are
+    /// read value by value and their refusal is already caught by <c>ReadValue</c>; filtered
+    /// from the provider's own list rather than named here, so a container added there gains
+    /// its case on its own.
+    /// </summary>
+    public static TheoryData<string> RuleSurfaces()
+    {
+        var data = new TheoryData<string>();
+        foreach (var surface in LiveFirewallProvider.Surfaces.Where(s => s.CarriesRules))
+        {
+            data.Add(surface.Path);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// A key whose <em>values</em> are refused while the key itself opens — what a per-value
+    /// ACL produces, and what <c>KeyExists</c> answers <c>Found</c> for throughout. The read
+    /// then walked an empty enumeration and concluded « ce conteneur ne porte aucune règle »,
+    /// which on the local container is a claim no Windows installation supports. The count
+    /// above caught it only because zero is impossible there; a container that answered one
+    /// parsable rule out of six hundred passed.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(RuleSurfaces))]
+    public void Refusing_the_enumeration_of_a_rules_key_makes_the_state_unreadable(string path)
+    {
+        var registry = new StubRegistryProvider(denied: null) { DeniedEnumeration = path };
+
+        var refused = new LiveFirewallProvider(registry).Read();
+
+        Assert.False(refused.Readable);
+        Assert.NotNull(refused.Diagnostic);
         Assert.Equal(FirewallReachability.Unknown, refused.InboundReachability("TCP", 4444, null));
     }
 
@@ -141,6 +180,13 @@ public sealed class FirewallReadRefusalTests
 
         public bool WithoutGroupPolicy { get; init; }
 
+        /// <summary>
+        /// A key that opens and whose values are refused — the per-value ACL
+        /// <see cref="KeyExists"/> cannot see, and the one case the rule count could not
+        /// cover on a container that still answered something.
+        /// </summary>
+        public string? DeniedEnumeration { get; init; }
+
         public RegistryRead ReadValue(string keyPath, string valueName) =>
             Status(keyPath) switch
             {
@@ -153,8 +199,13 @@ public sealed class FirewallReadRefusalTests
 
         public ReadStatus KeyExists(string keyPath) => Status(keyPath);
 
-        public IReadOnlyDictionary<string, RegistryValue> ListValues(string keyPath)
+        public RegistryValueList ListValues(string keyPath)
         {
+            if (string.Equals(keyPath, DeniedEnumeration, StringComparison.OrdinalIgnoreCase))
+            {
+                return RegistryValueList.AccessDenied;
+            }
+
             var values = new Dictionary<string, RegistryValue>(StringComparer.OrdinalIgnoreCase);
 
             if (!RulesAnswerNothing
@@ -164,10 +215,10 @@ public sealed class FirewallReadRefusalTests
                 values["RempartTest"] = RegistryValue.OfText(Rule);
             }
 
-            return values;
+            return RegistryValueList.Found(values);
         }
 
-        public IReadOnlyList<string> ListSubKeys(string keyPath) => [];
+        public RegistrySubKeyList ListSubKeys(string keyPath) => RegistrySubKeyList.Found([]);
 
         private ReadStatus Status(string keyPath)
         {

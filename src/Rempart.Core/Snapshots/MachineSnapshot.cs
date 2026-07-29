@@ -41,9 +41,35 @@ public sealed class MachineSnapshot
     /// </summary>
     public Dictionary<string, List<string>> RegistryLists { get; set; } = [];
 
+    /// <summary>
+    /// Whether each of those keys could be enumerated, or absent from this map on a capture
+    /// predating the field.
+    ///
+    /// <para>
+    /// A map beside the listing rather than a read object in its place, for the reason
+    /// <see cref="DirectoriesStatus"/> gives and this repository has now re-taken five times:
+    /// turning a <c>registryLists</c> entry from a JSON array into an object would make every
+    /// existing capture unreadable, the real-machine ones kept outside the repository
+    /// included. A key carrying a list and no status replays as the enumeration it was taken
+    /// to be — which is exactly what such a capture used to claim, and all it could claim.
+    /// </para>
+    ///
+    /// <para>
+    /// Keyed per key path because the read is: a refused <c>Run</c> key must not describe the
+    /// four beside it that answered. No diagnostic map next to it — the key path <em>is</em>
+    /// the diagnostic, and the provider calls nothing a denial but a denial.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, ReadStatus> RegistryListsStatus { get; set; } = [];
+
     /// <summary>Names of the subkeys of an enumerated key. Distinct from
     /// <see cref="RegistryLists"/>, which carries value names.</summary>
     public Dictionary<string, List<string>> SubKeyLists { get; set; } = [];
+
+    /// <summary>Whether each of those keys could be enumerated. Same reasoning as
+    /// <see cref="RegistryListsStatus"/>, and a separate map because the two enumerations are
+    /// asked separately: a key can answer one and refuse the other.</summary>
+    public Dictionary<string, ReadStatus> SubKeyListsStatus { get; set; } = [];
 
     /// <summary>Verified signatures, indexed by file path.</summary>
     public Dictionary<string, FileSignature> Signatures { get; set; } = [];
@@ -146,6 +172,14 @@ public sealed class MachineSnapshot
 
     /// <summary>Lines of the hosts file, or null if the snapshot predates its collection.</summary>
     public List<string>? HostsFile { get; set; }
+
+    /// <summary>Whether the hosts file could be read. Added beside the lines for the same
+    /// compatibility reason as <see cref="DriversStatus"/>: a capture carrying lines and no
+    /// status replays as the read it was taken to be.</summary>
+    public ReadStatus? HostsFileStatus { get; set; }
+
+    /// <summary>Why the hosts file could not be read, when it could not.</summary>
+    public string? HostsFileDiagnostic { get; set; }
 
     /// <summary>Decoded proxy configuration, or null if the snapshot predates its collection.</summary>
     public ProxyConfiguration? Proxy { get; set; }

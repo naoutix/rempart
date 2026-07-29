@@ -399,6 +399,7 @@ public sealed class AnonymiserTests
     [InlineData("processes")]
     [InlineData("ports")]
     [InlineData("extensions")]
+    [InlineData("hosts")]
     public void A_diagnostic_that_quotes_a_user_path_is_scrubbed_like_the_listing(string surface)
     {
         const string quoted = @"lecture refusée : C:\Users\claire\AppData\Local\x";
@@ -410,6 +411,7 @@ public sealed class AnonymiserTests
             ProcessesDiagnostic = surface == "processes" ? quoted : null,
             ListeningPortsDiagnostic = surface == "ports" ? quoted : null,
             BrowserExtensionsDiagnostic = surface == "extensions" ? quoted : null,
+            HostsFileDiagnostic = surface == "hosts" ? quoted : null,
         };
 
         var after = Anonymiser.Apply(snapshot);
@@ -418,6 +420,7 @@ public sealed class AnonymiserTests
             "drivers" => after.DriversDiagnostic,
             "processes" => after.ProcessesDiagnostic,
             "ports" => after.ListeningPortsDiagnostic,
+            "hosts" => after.HostsFileDiagnostic,
             _ => after.BrowserExtensionsDiagnostic,
         };
 
@@ -454,6 +457,7 @@ public sealed class AnonymiserTests
             ProcessesDiagnostic = $@"énumération refusée : C:\Users\{marker}\p.exe",
             ListeningPortsDiagnostic = $@"table sans réponse : C:\Users\{marker}\s.exe",
             BrowserExtensionsDiagnostic = $@"profil illisible : C:\Users\{marker}\prefs.js",
+            HostsFileDiagnostic = $@"hosts illisible : C:\Users\{marker}\hosts",
             DirectoriesDiagnostic = { [$@"C:\Users\{marker}"] = $@"refusé : C:\Users\{marker}" },
 
             // The fifth sibling, and the one that shows why the sweep is written this way:

@@ -30,7 +30,11 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
     {
         var interfaces = new List<DnsInterface>();
 
-        foreach (var guid in registry.ListSubKeys(InterfacesKey))
+        // .Names, without reading the status: IDnsProvider.Read carries no channel of its own
+        // (partition guard: « une machine sans interface réseau configurée existe »), so a
+        // refusal here has nowhere to go yet. Named rather than left implicit — it is the
+        // one caller of this enumeration that still drops the answer.
+        foreach (var guid in registry.ListSubKeys(InterfacesKey).Names)
         {
             var keyPath = $@"{InterfacesKey}\{guid}";
             var stat = Split(registry.ReadValue(keyPath, "NameServer").Value?.Text);

@@ -90,4 +90,21 @@ public class ComHijackTests
     {
         Assert.Empty(Collect(new FakeRegistryProvider(), new FakeSignatureProvider()));
     }
+
+    /// <summary>
+    /// The hive whose enumeration was refused. The user's own hive is writable without any
+    /// privilege — its ACL included — and this collector rests entirely on discovering
+    /// identifiers nobody can name in advance. Refused, it reported « aucun détournement
+    /// COM », which is also what a healthy machine reports.
+    /// </summary>
+    [Fact]
+    public void A_refused_clsid_hive_is_reported_rather_than_read_as_no_hijack()
+    {
+        var registry = new FakeRegistryProvider().WithDeniedEnumeration(Clsid);
+
+        var finding = Assert.Single(Collect(registry, new FakeSignatureProvider()));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Contains("illisible", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+    }
 }

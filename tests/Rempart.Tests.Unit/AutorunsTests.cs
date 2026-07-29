@@ -123,4 +123,78 @@ public class AutorunsTests
 
         Assert.Empty(Collect(new FakeRegistryProvider(), new FakeSignatureProvider(), files));
     }
+
+    private const string MachineRun =
+        @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+
+    /// <summary>
+    /// A <c>Run</c> key whose enumeration was refused. The same shape the startup folder
+    /// already had (DET-FICHIERS-MUET), one surface over: an ACL laid on the key by whoever
+    /// wants their entry unseen produced « aucun démarrage automatique » — on the first
+    /// place an audit looks, answering exactly like a clean machine.
+    /// </summary>
+    [Fact]
+    public void A_refused_run_key_is_reported_rather_than_read_as_no_autorun()
+    {
+        var registry = new FakeRegistryProvider().WithDeniedEnumeration(MachineRun);
+
+        var finding = Assert.Single(
+            Collect(registry, new FakeSignatureProvider(), new FakeFileSystemProvider()));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal(MachineRun, finding.Source);
+        Assert.Contains("illisible", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The asymmetry, asserted so the fix above cannot be widened into noise: an empty
+    /// <c>Run</c> key is an <em>answer</em>, and most machines hold nothing in four of the
+    /// five. Only a refusal is a hole in what the scan saw — the same line the collector
+    /// already draws between <c>NotFound</c> and <c>AccessDenied</c> on a startup folder.
+    /// </summary>
+    [Fact]
+    public void An_empty_run_key_stays_silent()
+    {
+        Assert.Empty(Collect(
+            new FakeRegistryProvider(), new FakeSignatureProvider(), new FakeFileSystemProvider()));
+    }
+
+    /// <summary>
+    /// The refusal does not cost the keys that answered. Four <c>Run</c> keys out of five
+    /// still enumerate, and the entry they hold is judged as usual — dropping it because a
+    /// neighbour refused would trade one silence for another, which is the rule
+    /// <c>ScheduledTaskRead.Partial</c> settled one issue ago.
+    /// </summary>
+    [Fact]
+    public void A_refused_run_key_does_not_cost_the_entries_of_the_keys_that_answered()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithDeniedEnumeration(MachineRun)
+            .WithText(@"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "App",
+                @"C:\App\app.exe");
+        var signatures = new FakeSignatureProvider().With(@"C:\App\app.exe", SignatureStatus.Valid);
+
+        var findings = Collect(registry, signatures, new FakeFileSystemProvider());
+
+        Assert.Contains(findings, finding => finding.Target == @"C:\App\app.exe");
+        Assert.Contains(findings, finding => finding.Source == MachineRun);
+    }
+
+    /// <summary>
+    /// The <c>Shell Folders</c> read, which goes through the same enumeration. A refusal
+    /// there yields no path at all, so no startup folder is ever walked and the
+    /// <c>AccessDenied</c> finding one level down cannot fire either: the silence hides a
+    /// silence.
+    /// </summary>
+    [Fact]
+    public void A_refused_shell_folders_key_says_the_startup_folders_were_never_reached()
+    {
+        var registry = new FakeRegistryProvider().WithDeniedEnumeration(MachineShellFolders);
+
+        var finding = Assert.Single(
+            Collect(registry, new FakeSignatureProvider(), new FakeFileSystemProvider()));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal(MachineShellFolders, finding.Source);
+    }
 }

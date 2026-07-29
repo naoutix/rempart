@@ -162,6 +162,17 @@ public static class Anonymiser
         snapshot.ListeningPortsDiagnostic = ScrubDiagnostic(snapshot.ListeningPortsDiagnostic);
         snapshot.BrowserExtensionsDiagnostic = ScrubDiagnostic(snapshot.BrowserExtensionsDiagnostic);
 
+        // The sixth, and the one that quotes an operating-system message verbatim: a hosts
+        // file held open comes back with whatever IOException said, in the machine's own
+        // language and sometimes with a path in it.
+        //
+        // The two status maps that arrived with it need nothing here, and that is a
+        // conclusion rather than an omission: they are keyed by the same registry paths as
+        // RegistryLists and SubKeyLists, which this method leaves alone because a key path
+        // names no account — no collector reads HKU, where a profile SID would sit. Scrubbing
+        // one map of the pair and not the other is what would break them apart.
+        snapshot.HostsFileDiagnostic = ScrubDiagnostic(snapshot.HostsFileDiagnostic);
+
         if (snapshot.SystemInfo is { } info)
         {
             snapshot.SystemInfo = info with { MachineName = Hash(info.MachineName) };
