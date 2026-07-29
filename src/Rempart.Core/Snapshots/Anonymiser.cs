@@ -167,9 +167,24 @@ public static class Anonymiser
             snapshot.SystemInfo = info with { MachineName = Hash(info.MachineName) };
         }
 
-        if (snapshot.ScheduledTasks is { } tasks && tasks.Tasks.Count > 0)
+        if (snapshot.ScheduledTasks is { } tasks)
         {
-            snapshot.ScheduledTasks = tasks with { Tasks = [.. tasks.Tasks.Select(ScrubTask)] };
+            // Not « at least one task », which is the shape the firewall block above was
+            // corrected out of one issue ago: a walk refused everywhere carries zero task
+            // and is precisely the read with something to clean.
+            snapshot.ScheduledTasks = tasks with
+            {
+                Tasks = [.. tasks.Tasks.Select(ScrubTask)],
+                Diagnostic = ScrubDiagnostic(tasks.Diagnostic),
+
+                // A folder the walk gave up on is a task path like the ones just above it,
+                // and it is scrubbed by the same criterion. Left alone, it would put in a
+                // neighbouring field the very label the task list went to the trouble of
+                // masking.
+                Gaps = tasks.Gaps is null
+                    ? null
+                    : [.. tasks.Gaps.Select(gap => gap with { Folder = ScrubTaskFolder(gap.Folder) })],
+            };
         }
 
         if (snapshot.Drivers is { Count: > 0 } drivers)
@@ -424,7 +439,7 @@ public static class Anonymiser
     /// </summary>
     private static ScheduledTask ScrubTask(ScheduledTask task)
     {
-        var thirdParty = !task.Path.StartsWith(MicrosoftTaskFolder, StringComparison.OrdinalIgnoreCase);
+        var thirdParty = !IsMicrosoftTask(task.Path);
 
         return task with
         {
@@ -445,6 +460,32 @@ public static class Anonymiser
             ],
         };
     }
+
+    private static bool IsMicrosoftTask(string path) =>
+        path.StartsWith(MicrosoftTaskFolder, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A task <em>folder</em> the enumeration gave up on, by the criterion
+    /// <see cref="ScrubTask"/> applies to a task: inside <c>\Microsoft\</c> the tree is
+    /// Windows' own and only an account SID buried in it identifies anyone; outside, the
+    /// folder names an installed product and goes whole.
+    ///
+    /// <para>
+    /// Two exceptions, and neither is a special case for its own sake. The root exists
+    /// identically on every Windows installation, exactly like the impersonal profiles
+    /// above. And a folder that would not name itself is recorded under a placeholder the
+    /// provider writes, which describes a position in a walk rather than a machine. Hashing
+    /// either would cost the reader the one thing the field is for — knowing where the walk
+    /// stopped — while protecting nobody.
+    /// </para>
+    /// </summary>
+    private static string ScrubTaskFolder(string folder) => folder switch
+    {
+        @"\" or "" => folder,
+        _ when !folder.StartsWith('\\') => folder,
+        _ when IsMicrosoftTask(folder) => ScrubSegments(folder),
+        _ => Hash(folder),
+    };
 
     /// <summary>
     /// Replaces account SIDs buried in a path, leaving the rest untouched.

@@ -331,6 +331,98 @@ public sealed class StatusChannelTests
         Assert.Equal(FirewallReachability.Reachable, read.InboundReachability("TCP", 4444, null));
     }
 
+    private static readonly TaskFolderGap Gap =
+        TaskFolderGap.Of(@"\Microsoft\Windows\UpdateOrchestrator", "GetTasks",
+            unchecked((int)0x80070005));
+
+    /// <summary>
+    /// The scheduler's version of the partial branch, and the four steps a field added to
+    /// the snapshot has to survive: recorded by the scan, serialised into the capture,
+    /// replayed out of it, and — next door in <c>AnonymiserTests</c> — scrubbed.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object: the capture is a
+    /// <em>file</em>, and a field the recorder sets but the source-generated serialiser does
+    /// not carry would pass every in-memory assertion and still reach the replay as a walk
+    /// that lost nothing. The read is stored whole here, unlike the five loose-field ones
+    /// above, so nothing in the recording path had to change for this — which is precisely
+    /// what an assertion is for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_partial_task_walk_is_recorded_serialised_and_replayed_with_its_gaps()
+    {
+        var task = new ScheduledTask(
+            @"\Perso", "Perso", Enabled: true, "ready", null, null, null, []);
+
+        var snapshot = new MachineSnapshot();
+        var source = new CountingScheduledTaskProvider(ScheduledTaskRead.Partial([task], [Gap]));
+        var recording = new RecordingScheduledTaskProvider(source, snapshot);
+
+        var first = recording.Enumerate();
+        recording.Enumerate();
+
+        // A scan walks the collectors twice; asking the scheduler again on the second pass
+        // would make the capture depend on which pass caught the machine in a better mood.
+        Assert.Equal(1, source.Calls);
+        Assert.Equal(ReadStatus.AccessDenied, first.Status);
+
+        var replayed = new SnapshotScheduledTaskProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Enumerate();
+
+        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+        Assert.Equal(@"\Perso", Assert.Single(replayed.Tasks).Path);
+        Assert.Equal(Gap, Assert.Single(replayed.Gaps!));
+    }
+
+    /// <summary>
+    /// The compatibility half, against a capture genuinely written before the field —
+    /// <c>default-win11</c>, versioned, whose <c>scheduledTasks</c> block carries a status,
+    /// a list and a diagnostic and nothing else.
+    ///
+    /// <para>
+    /// The absence of the new field has to mean exactly what the old behaviour meant: the
+    /// walk lost nothing. Reading it as an unknown gap would turn every capture older than
+    /// this batch into a machine whose scheduler was half refused, and put a NOTABLE on the
+    /// two hundred tasks its golden freezes.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_walk_captured_before_the_gaps_existed_replays_as_one_that_lost_nothing()
+    {
+        var json = File.ReadAllText(Path.Combine(
+            FixtureReplayTests.FixtureDirectory, "synthetic", "default-win11.capture.json"));
+
+        using (var document = JsonDocument.Parse(json))
+        {
+            // The premise of the test, asserted rather than assumed: the day this capture is
+            // regenerated with gaps, it stops being evidence about older ones.
+            Assert.False(
+                document.RootElement.GetProperty("scheduledTasks").TryGetProperty("gaps", out _),
+                "La fixture porte désormais des lacunes de parcours : elle ne prouve plus la "
+                + "compatibilité des captures antérieures au champ.");
+        }
+
+        var read = new SnapshotScheduledTaskProvider(
+            RempartJson.DeserialiseSnapshot(json)).Enumerate();
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Null(read.Gaps);
+        Assert.NotEmpty(read.Tasks);
+    }
+
+    private sealed class CountingScheduledTaskProvider(ScheduledTaskRead answer)
+        : IScheduledTaskProvider
+    {
+        public int Calls { get; private set; }
+
+        public ScheduledTaskRead Enumerate()
+        {
+            Calls++;
+            return answer;
+        }
+    }
+
     private sealed class CountingFirewallProvider(FirewallState answer) : IFirewallProvider
     {
         public int Calls { get; private set; }

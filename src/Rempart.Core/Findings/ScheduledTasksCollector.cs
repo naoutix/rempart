@@ -23,24 +23,31 @@ public sealed class ScheduledTasksCollector : IFindingCollector
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
         var read = providers.ScheduledTasks.Enumerate();
+        var findings = new List<Finding>();
 
         if (read.Status != ReadStatus.Found)
         {
             // Report the failure: an unreadable scheduler is not an empty scheduler.
             // Returning zero tasks silently would make an outage look like a healthy
             // machine — the same confusion that left WMI broken for two batches.
-            return
-            [
-                new Finding(
-                    "scheduled-task", "planificateur de tâches", "—",
-                    FindingSeverity.Notable,
-                    [read.Diagnostic ?? "Énumération refusée. Relancer en administrateur : "
-                        + "une tâche planifiée resterait invisible."],
-                    new Dictionary<string, string>()),
-            ];
+            //
+            // Added rather than returned: a walk refused halfway keeps the tasks it did
+            // read, and answering with this finding alone would hide three hundred of them
+            // because one folder said no. Only a total failure leaves it on its own, and
+            // then because the loop below has nothing to iterate.
+            //
+            // The folders are listed one per line, uncapped: a list cut short would be this
+            // very silence again, one folder further down.
+            findings.Add(new Finding(
+                "scheduled-task", "planificateur de tâches", "—",
+                FindingSeverity.Notable,
+                [
+                    read.Diagnostic ?? "Énumération refusée. Relancer en administrateur : "
+                        + "une tâche planifiée resterait invisible.",
+                    .. (read.Gaps ?? []).Select(gap => $"{gap.Folder} — {gap.Reason}"),
+                ],
+                new Dictionary<string, string>()));
         }
-
-        var findings = new List<Finding>();
 
         // System tasks share a handful of executables. Verifying each signature only
         // once avoids a few hundred identical catalog lookups, each of which costs a

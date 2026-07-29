@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rempart.Core.Findings;
 using Rempart.Core.Providers;
 using Rempart.Core.Json;
@@ -212,6 +213,157 @@ public class ScheduledTasksTests
 
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Contains("bidule", string.Join(" ", finding.Reasons));
+    }
+
+    /// <summary>
+    /// <c>E_ACCESSDENIED</c>, the single HRESULT that genuinely means "elevate and retry".
+    /// </summary>
+    private const int AccessDenied = unchecked((int)0x80070005);
+
+    /// <summary>
+    /// A walk refused halfway keeps what it read, and says what it lost.
+    ///
+    /// <para>
+    /// The scenario: an unelevated scan on a machine where one task folder carries a
+    /// restrictive ACL — or where an intruder put one on the folder holding their task.
+    /// <c>GetTasks</c> answers <c>E_ACCESSDENIED</c>, that branch is skipped, and the report
+    /// presented the remaining tasks as the complete inventory of what this project calls the
+    /// largest persistence surface on Windows.
+    /// </para>
+    ///
+    /// <para>
+    /// Both halves in one test because it is their conjunction that is the fix: answering
+    /// with the refusal alone would drop the tasks that were read, which is the same silence
+    /// one folder over.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_partly_refused_walk_keeps_its_tasks_and_names_the_folder_it_lost()
+    {
+        const string Refused = @"\Microsoft\Windows\UpdateOrchestrator";
+
+        var findings = Collect(
+            ScheduledTaskRead.Partial(
+                [Task(@"\Perso", Exec(@"C:\tools\agent.exe"))],
+                [TaskFolderGap.Of(Refused, "GetTasks", AccessDenied)]),
+            new FakeSignatureProvider().With(@"C:\tools\agent.exe", SignatureStatus.Unsigned));
+
+        Assert.Equal(2, findings.Count);
+
+        var gap = Assert.Single(findings, f => f.Source == "planificateur de tâches");
+        Assert.Equal(FindingSeverity.Notable, gap.Severity);
+        Assert.Contains(Refused, string.Join(" ", gap.Reasons), StringComparison.Ordinal);
+
+        var task = Assert.Single(findings, f => f.Source == @"\Perso");
+        Assert.Equal(FindingSeverity.Suspicious, task.Severity);
+    }
+
+    /// <summary>
+    /// "Never translate a failure into « access denied »", on the surface where it is
+    /// easiest to break: the walk reads five HRESULTs per folder and exactly one of them
+    /// means the operator lacks a privilege. A damaged scheduler reported as
+    /// « relancer en administrateur » sends someone to elevate forever — what a mute WMI
+    /// cost this project for two milestones.
+    /// </summary>
+    [Theory]
+    [InlineData(AccessDenied, "0x80070005", true)]
+    [InlineData(unchecked((int)0x80041318), "0x80041318", false)]
+    public void Only_the_denial_hresult_is_reported_as_a_denial(
+        int hresult, string code, bool denial)
+    {
+        var gap = TaskFolderGap.Of(@"\Microsoft\Windows", "GetTasks", hresult);
+
+        Assert.Equal(denial, gap.Reason.Contains("refus", StringComparison.Ordinal));
+        Assert.Contains(code, gap.Reason, StringComparison.Ordinal);
+        Assert.Contains("GetTasks", gap.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// No COM result the walk reads can be dropped without leaving a trace — checked against
+    /// the file, not against a list of the branches somebody remembered.
+    ///
+    /// <para>
+    /// That distinction is this review's central reproach. Four branches were named in the
+    /// finding; a fifth and a sixth were sitting beside them, and a seventh added next year
+    /// would sit outside any list written today. The HRESULT-returning members are read from
+    /// the interop file on disk, so a call added to the walk — or a member added to the
+    /// interop and then used — is inside this guard the day it is written.
+    /// </para>
+    ///
+    /// <para>
+    /// Scoped to the walk, deliberately. <c>Execute</c> throws on its two failures, and the
+    /// per-task read degrades on purpose: a definition that will not open leaves a task with
+    /// no action, which the collector reports as « aucune action lisible » rather than
+    /// swallows. Those are answers. The walk's were nothing at all.
+    /// </para>
+    ///
+    /// <para>
+    /// This is also the only test that reaches the scheduler's COM path. It has no machine
+    /// test — five vtables derived from <c>IDispatch</c>, the riskiest interop in the
+    /// repository — so what can be checked without a machine is checked here, and the
+    /// judgement below it lives in <c>Rempart.Core</c> where a fake provider can drive it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_com_result_the_walk_reads_is_recorded_when_it_fails()
+    {
+        var members = Regex.Matches(
+                RepositoryFiles.Read("src/Rempart.Windows/Tasks/TaskSchedulerInterop.cs"),
+                @"\[PreserveSig\]\s+int (\w+)\(")
+            .Select(match => match.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        // A pattern that matches nothing reports success: the two counts below are what
+        // stops this guard from passing because it looked at an empty set.
+        Assert.NotEmpty(members);
+
+        var body = WalkBody(
+            RepositoryFiles.Read("src/Rempart.Windows/Tasks/LiveScheduledTaskProvider.cs"));
+
+        Assert.Contains(members, member => Calls(body, member));
+
+        // Statement by statement: a COM call reads its result through the recorder or it
+        // does not read it at all. Braces and semicolons cut the body up, which is enough
+        // to tell one call from the next.
+        var silent = body.Split(';', '{', '}')
+            .Where(statement => members.Any(member => Calls(statement, member))
+                && !statement.Contains("Ok(", StringComparison.Ordinal))
+            .Select(statement => Regex.Replace(statement, @"\s+", " ").Trim())
+            .ToList();
+
+        Assert.True(silent.Count == 0,
+            "Appel(s) COM dont l'échec ne laisse aucune trace dans le parcours des dossiers "
+            + $"de tâches : {string.Join(" | ", silent)}");
+    }
+
+    private static bool Calls(string code, string member) =>
+        code.Contains($".{member}(", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The body of the folder walk, brace-matched. Interpolations balance their own braces,
+    /// so counting them is enough here and does not need a parser.
+    /// </summary>
+    private static string WalkBody(string source)
+    {
+        var start = source.IndexOf("private static void Walk(", StringComparison.Ordinal);
+        Assert.True(start >= 0,
+            "Le parcours des dossiers a changé de signature : ce garde ne regarde plus rien.");
+
+        var open = source.IndexOf('{', start);
+        var depth = 0;
+
+        for (var i = open; i < source.Length; i++)
+        {
+            depth += source[i] switch { '{' => 1, '}' => -1, _ => 0 };
+
+            if (depth == 0)
+            {
+                return source[open..(i + 1)];
+            }
+        }
+
+        throw new InvalidOperationException("Corps du parcours non délimité.");
     }
 
     /// <summary>

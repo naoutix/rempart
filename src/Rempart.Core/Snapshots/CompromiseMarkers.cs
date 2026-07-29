@@ -375,7 +375,11 @@ public static class CompromiseMarkers
 
         var existing = snapshot.ScheduledTasks;
 
-        snapshot.ScheduledTasks = existing is { Status: ReadStatus.Found }
+        // Keyed on what the read carried rather than on its status: a walk refused in one
+        // folder comes back as AccessDenied with its two hundred tasks, and testing the
+        // status would drop that crowd on the floor — the crowd this fixture exists to make
+        // the collector pick a line out of.
+        snapshot.ScheduledTasks = existing is { Tasks.Count: > 0 }
             ? existing with { Tasks = [.. existing.Tasks, planted] }
             : ScheduledTaskRead.Found([planted]);
 

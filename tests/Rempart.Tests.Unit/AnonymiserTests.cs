@@ -51,6 +51,54 @@ public sealed class AnonymiserTests
         Assert.Contains(scrubbed, result.DirectoriesDiagnostic[scrubbed], StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The label's newest way out of a capture, opened by the partial task walk.
+    ///
+    /// <para>
+    /// A folder the walk gave up on is a task path like the ones stored beside it: outside
+    /// <c>\Microsoft\</c> it names an installed product, and some products create a per-user
+    /// folder named after the account SID. Hashing the task list and leaving the folder that
+    /// refused in the clear would put back, in a neighbouring field, exactly the label the
+    /// list two lines up went to the trouble of masking.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_folder_a_task_walk_gave_up_on_is_scrubbed_like_the_tasks_beside_it()
+    {
+        const string Sid = "S-1-5-21-2354378594-2253722242-1776815907-1002";
+        const string Reason = "GetTasks : accès refusé (0x80070005)";
+
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default,
+            ScheduledTasks = ScheduledTaskRead.Partial([],
+            [
+                new TaskFolderGap($@"\SoftLanding\{Sid}", Reason),
+                new TaskFolderGap($@"\Microsoft\Windows\SoftLanding\{Sid}\Sync", Reason),
+            ]),
+        };
+
+        var gaps = Anonymiser.Apply(snapshot).ScheduledTasks!.Gaps!;
+
+        // Outside \Microsoft\ the whole path goes, exactly as a third-party task path does:
+        // five nested folders under a product name are a fingerprint quite apart from the
+        // words.
+        Assert.StartsWith("anon:", gaps[0].Folder, StringComparison.Ordinal);
+
+        // Inside, only the identifying segment: which product put what stays readable, and
+        // the folder still says where the walk stopped.
+        Assert.StartsWith(@"\Microsoft\Windows\SoftLanding\anon:", gaps[1].Folder,
+            StringComparison.Ordinal);
+        Assert.EndsWith(@"\Sync", gaps[1].Folder, StringComparison.Ordinal);
+
+        // The reason is left alone, and that is the design rather than an oversight: it names
+        // a COM call and an HRESULT, never a path, so the folder stays the single field an
+        // anonymiser has to reach.
+        Assert.Equal(Reason, gaps[0].Reason);
+
+        Assert.DoesNotContain(Sid, RempartJson.Serialise(snapshot), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Firewall_rule_application_paths_are_scrubbed()
     {
@@ -412,6 +460,11 @@ public sealed class AnonymiserTests
             // it was an unreachable field when the four above were fixed, and became a live
             // one the day a COM failure started naming itself instead of claiming a denial.
             Wmi = { ["root/cimv2:Win32_Service"] = WmiRead.Failed($@"COM 0x80041013 : C:\Users\{marker}\svc.exe") },
+
+            // The folder a partial task walk names is not free text and is not a profile
+            // path: it is a scheduler path, scrubbed by the rule that applies to a task.
+            ScheduledTasks = ScheduledTaskRead.Partial([],
+                [new TaskFolderGap($@"\{marker}", "GetTasks : accès refusé (0x80070005)")]),
         };
 
         var serialised = RempartJson.Serialise(Anonymiser.Apply(snapshot));
