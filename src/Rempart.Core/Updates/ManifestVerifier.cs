@@ -22,6 +22,15 @@ namespace Rempart.Core.Updates;
 /// bad trade for a tool whose whole point is not breaking. P-256 is stable, available
 /// everywhere, and its signatures are a fixed 64 bytes.
 /// </para>
+///
+/// <para>
+/// <b>Every rejection returns a verdict; none of them throws.</b> A manifest is a file
+/// anyone can write — the update store and the stick seal live in the two folders the
+/// seal deliberately leaves out — and this class used to check the top level only. Fifty
+/// bytes of well-formed JSON with a field missing therefore reached a null dereference
+/// outside the <c>try</c>, and "update refused, embedded baseline kept" became no scan at
+/// all, on that machine and on every machine the stick met afterwards.
+/// </para>
 /// </summary>
 public sealed class ManifestVerifier
 {
@@ -78,14 +87,32 @@ public sealed class ManifestVerifier
                 $"Manifeste illisible : {ex.Message}");
         }
 
+        // The same holds one level down, and that level was left out: `[null]` and
+        // `[{"value":"x"}]` deserialize into signatures whose non-nullable fields are
+        // null all the same, and `ContainsKey(null)` threw here — outside the try, so a
+        // fifty-byte file dropped into the store aborted every later scan.
+        //
+        // Dropped rather than refused wholesale, deliberately: the signature list travels
+        // outside the signed bytes, so refusing the file over one junk entry would let
+        // anyone able to append to it turn a valid update into a refused one.
+        var usable = signed.Signatures
+            .Where(s => s is not null && s.KeyId is not null && s.Value is not null)
+            .ToList();
+
+        if (usable.Count == 0)
+        {
+            return Fail(ManifestStatus.Malformed,
+                "Aucune signature exploitable : identifiant de clé ou valeur manquants.");
+        }
+
         // Is there any signature from a known key at all? Distinguishing this case
         // avoids reporting tampering when the binary is merely too old to know the
         // current key.
-        var known = signed.Signatures.Where(s => keys.ContainsKey(s.KeyId)).ToList();
+        var known = usable.Where(s => keys.ContainsKey(s.KeyId)).ToList();
 
         if (known.Count == 0)
         {
-            var offered = string.Join(", ", signed.Signatures.Select(s => s.KeyId));
+            var offered = string.Join(", ", usable.Select(s => s.KeyId));
             return Fail(ManifestStatus.UnknownKey,
                 $"Aucune clé connue n'a signé ce manifeste. Signé par : {offered}. " +
                 "Ce binaire est peut-être antérieur à une rotation de clé ; " +
@@ -105,10 +132,17 @@ public sealed class ManifestVerifier
                 var payload = JsonSerializer.Deserialize(
                     payloadBytes, RempartJsonContext.Default.ManifestPayload);
 
-                if (payload?.Datasets is null)
+                if (payload?.Datasets is null || payload.PublishedAtUtc is null)
                 {
                     return Fail(ManifestStatus.Malformed,
-                        "Charge utile signée mais vide ou sans jeu de données.");
+                        "Charge utile signée mais vide, sans date ou sans jeu de données.");
+                }
+
+                if (payload.Datasets.Any(Incomplete))
+                {
+                    return Fail(ManifestStatus.Malformed,
+                        "Charge utile signée dont un jeu de données est incomplet : nom, " +
+                        "version, empreinte ou type manquants. Rien n'est chargé.");
                 }
 
                 return new ManifestVerdict(ManifestStatus.Trusted, payload, signature.KeyId,
@@ -129,6 +163,19 @@ public sealed class ManifestVerifier
             "Une clé connue est revendiquée, mais la signature ne correspond pas à la " +
             "charge utile. Le contenu a été modifié après signature. Ne rien charger.");
     }
+
+    /// <summary>
+    /// A dataset entry with a hole in it — <c>"datasets":[{}]</c>, or an entry left null.
+    ///
+    /// Refused here because this is the one place all three readers of a manifest go
+    /// through, and none of them asks again: the store resolves <c>Name</c> into a path,
+    /// the seal looks it up in a dictionary, <see cref="FileMatches"/> lowercases
+    /// <c>Sha256</c>. A trusted verdict promises a payload that can be read, so the
+    /// promise is checked before it is made rather than at each of the three.
+    /// </summary>
+    private static bool Incomplete(ManifestEntry entry) =>
+        entry is null || entry.Name is null || entry.Version is null
+        || entry.Sha256 is null || entry.Kind is null;
 
     private static bool Matches(string publicKeyBase64, byte[] payload, string signatureBase64)
     {
