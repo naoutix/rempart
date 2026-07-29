@@ -134,6 +134,77 @@ public class PortTests
             new ListeningPort("TCP", "0.0.0.0", 4444, 500));
 
         Assert.Equal(FindingSeverity.Suspicious, Assert.Single(findings).Severity);
+
+        // And the port says the firewall was not consulted, rather than leaving the reader
+        // to notice a missing line: the two neighbouring branches both print one.
+        Assert.Equal("non lu", Assert.Single(findings).Details["pare-feu"]);
+    }
+
+    /// <summary>
+    /// REV-07, the false negative this closes. A firewall the scan could not read used to
+    /// answer « bloqué » for every port, because its failed read is field-for-field a
+    /// firewall that blocks: no rules, <c>EnableFirewall</c> absent (default on),
+    /// <c>DefaultInboundAction</c> absent (default block). The unsigned binary on
+    /// <c>0.0.0.0:4444</c> then came out Benign, with an empty reason list and the printed
+    /// claim « bloqué en entrée (Public) » — strictly worse than having no firewall provider
+    /// at all, since the Unread branch beside it keeps the same binary Suspicious.
+    ///
+    /// <para>
+    /// Two assertions, and the second is the one worth having: the severity could be reached
+    /// again by accident, whereas asserting on what the details <em>claim</em> pins the
+    /// sentence the report prints about a machine nobody read.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_firewall_that_could_not_be_read_never_declares_a_port_blocked()
+    {
+        var findings = Collect(
+            new FakeSignatureProvider().With(@"C:\tmp\srv.exe", SignatureStatus.Unsigned),
+            [new RunningProcess(500, 4, "srv.exe", @"C:\tmp\srv.exe", "")],
+            FirewallState.Failed("Pare-feu non lu : règles locales."),
+            new ListeningPort("TCP", "0.0.0.0", 4444, 500));
+
+        var port = Assert.Single(findings, f => f.Source == "TCP 0.0.0.0:4444");
+
+        Assert.Equal(FindingSeverity.Suspicious, port.Severity);
+        Assert.Equal("non lu", port.Details["pare-feu"]);
+        Assert.DoesNotContain("bloqué", string.Join(" ", port.Details.Values),
+            StringComparison.Ordinal);
+        Assert.NotEmpty(port.Reasons);
+    }
+
+    /// <summary>
+    /// The refusal itself, said out loud. A firewall read that was attempted and refused
+    /// removes the reachability cross-check from every port in the report; leaving that
+    /// invisible is the same silence one layer up, and the listening table beside it has
+    /// spoken since DET-PORTS-MUET.
+    ///
+    /// <para>
+    /// Only a refusal speaks. <see cref="FirewallState.Unread"/> — every capture predating
+    /// the firewall collection — carries no diagnostic and stays quiet, which is why the
+    /// test above asserts a single finding while this one asserts two.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_firewall_read_is_reported_and_an_uncollected_one_is_not()
+    {
+        var refused = Collect(
+            new FakeSignatureProvider(),
+            [],
+            FirewallState.Failed("Pare-feu non lu : règles locales."),
+            new ListeningPort("TCP", "0.0.0.0", 445, 4));
+
+        var said = Assert.Single(refused, f => f.Source == "pare-feu");
+        Assert.Equal(FindingSeverity.Notable, said.Severity);
+        Assert.Contains("Pare-feu non lu", Assert.Single(said.Reasons), StringComparison.Ordinal);
+
+        var uncollected = Collect(
+            new FakeSignatureProvider(),
+            [],
+            FirewallState.Unread,
+            new ListeningPort("TCP", "0.0.0.0", 445, 4));
+
+        Assert.DoesNotContain(uncollected, f => f.Source == "pare-feu");
     }
 
     /// <summary>

@@ -77,6 +77,38 @@ public sealed class AnonymiserTests
         Assert.Equal(@"%SystemRoot%\system32\svchost.exe", rules[1].App);
     }
 
+    /// <summary>
+    /// The reason the firewall could not be read, scrubbed like the four diagnostics beside
+    /// it — and the case the block above used to skip outright.
+    ///
+    /// <para>
+    /// That block opened on « at least one rule », which is true of every firewall that was
+    /// read and false of every firewall that was not. A refused read is the only state
+    /// carrying a diagnostic, so the single gate the anonymiser had was the one excluding
+    /// the only field worth cleaning. The sentence names registry surfaces today and nothing
+    /// else, but it is free text written on the Windows side — the same shape that carried a
+    /// Firefox profile salt out of a capture one milestone ago.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_reason_the_firewall_could_not_be_read_is_scrubbed()
+    {
+        var snapshot = new MachineSnapshot
+        {
+            SystemInfo = FakeSystemInfoProvider.Default,
+            Firewall = FirewallState.Failed(
+                @"Pare-feu non lu : export C:\Users\leoar\AppData\Local\fw.log illisible."),
+        };
+
+        var result = Anonymiser.Apply(snapshot);
+
+        Assert.DoesNotContain("leoar", RempartJson.Serialise(result), StringComparison.Ordinal);
+
+        // Scrubbed, not dropped: the replay still has to know the read was refused, and why.
+        Assert.False(result.Firewall!.Readable);
+        Assert.Contains("Pare-feu non lu", result.Firewall.Diagnostic!, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Machine_name_is_replaced()
     {

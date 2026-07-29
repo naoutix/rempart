@@ -522,7 +522,12 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
 
     private static string Normalise(string json) => json.ReplaceLineEndings("\n").Trim();
 
-    private static string FixtureDirectory { get; } = Locate();
+    /// <summary>
+    /// Where the captures live. Internal rather than private because a field added to the
+    /// snapshot has to be proved harmless against a capture written before it existed, and
+    /// the only captures old enough to prove that are the versioned ones sitting here.
+    /// </summary>
+    internal static string FixtureDirectory { get; } = Locate();
 
     private static string Locate()
     {

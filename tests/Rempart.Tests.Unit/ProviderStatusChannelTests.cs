@@ -75,7 +75,11 @@ public sealed class ProviderStatusChannelTests
         // deux, et un dossier vide reste muet — c'est l'asymétrie, pas son abandon.
         "IFileSystemProvider.ListFiles → statut + diagnostic",
 
-        // FirewallState.Readable, canal maison : « non lu » ne devient jamais « ouvert ».
+        // FirewallState.Readable, canal maison : « non lu » ne devient jamais « ouvert » —
+        // ni « bloqué », qui était le vrai danger, puisque les défauts Windows appliqués à
+        // une lecture ratée décrivent mot pour mot un pare-feu actif (REV-07, fermée). Le
+        // booléen reste le canal ; un Diagnostic s'est posé à côté pour nommer la surface
+        // qui a refusé, et c'est lui qui distingue « refusé » de « jamais collecté ».
         "IFirewallProvider.Read → booléen dédié",
 
         // Un fichier hosts sans entrée est l'état par défaut de Windows.

@@ -36,14 +36,64 @@ public sealed record FirewallState(
     bool PublicFirewallEnabled,
     bool PublicDefaultInboundAllow)
 {
-    /// <summary>Empty state: the firewall was not read. Every query returns "unknown".</summary>
+    /// <summary>
+    /// Empty state: nobody looked. Every query returns "unknown".
+    ///
+    /// <para>
+    /// What a capture taken before the firewall was collected replays as. Distinct from
+    /// <see cref="Failed"/>, which is a read that was attempted and refused: both settle
+    /// nothing, only the second one has something to report.
+    /// </para>
+    /// </summary>
     public static readonly FirewallState Unread = new([], PublicFirewallEnabled: false, false)
     {
         Readable = false,
     };
 
-    /// <summary>False when the state comes from <see cref="Unread"/>: no conclusions.</summary>
+    /// <summary>
+    /// A read that was attempted and could not be completed.
+    ///
+    /// <para>
+    /// The whole point of the record: the fields of a failed read are indistinguishable
+    /// from those of a firewall that blocks everything — no rules, enabled, inbound default
+    /// block — so the difference has to be carried, not inferred. Without it the tool
+    /// asserted « bloqué en entrée » about a machine nobody had managed to read, which is
+    /// worse than saying nothing: it silenced the exposure of a port it never measured.
+    /// </para>
+    /// </summary>
+    /// <param name="reason">
+    /// What could not be read, in French — it reaches the report. It names surfaces, never
+    /// the values behind them.
+    /// </param>
+    public static FirewallState Failed(string reason) =>
+        new([], PublicFirewallEnabled: false, false)
+        {
+            Readable = false,
+            Diagnostic = reason,
+        };
+
+    /// <summary>False when the state comes from <see cref="Unread"/> or
+    /// <see cref="Failed"/>: no conclusions.</summary>
     public bool Readable { get; init; } = true;
+
+    /// <summary>
+    /// Why the firewall could not be read, when the read was attempted and refused.
+    ///
+    /// <para>
+    /// Null in both other cases, and the two are told apart by <see cref="Readable"/>: a
+    /// state that was read has nothing to explain, and one that was never collected has
+    /// nothing to explain <em>either</em> — « je n'ai pas regardé » is not « j'ai regardé et
+    /// on m'a refusé », and a capture predating this field must not be replayed as the
+    /// second.
+    /// </para>
+    ///
+    /// <para>
+    /// Added beside <see cref="Readable"/> rather than replacing it, so that a capture
+    /// written before this field replays exactly as it did: the boolean keeps its meaning
+    /// and its default, and an absent diagnostic means « rien à signaler ».
+    /// </para>
+    /// </summary>
+    public string? Diagnostic { get; init; }
 
     /// <summary>
     /// Is a listening port reachable inbound on the Public profile?
