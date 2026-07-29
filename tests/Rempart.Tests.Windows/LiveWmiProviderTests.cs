@@ -177,4 +177,161 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
     {
         Assert.Equal(ReadStatus.NotFound, LiveWmiProvider.Classify(Com(hresult)).Status);
     }
+
+    /// <summary>
+    /// A stand-in for <c>IEnumWbemClassObject::Next</c>, so the tests below judge how the
+    /// enumeration is bounded rather than the runner's WMI.
+    ///
+    /// <para>
+    /// It is the only way to reach the case that matters. A WMI provider that stops
+    /// answering cannot be arranged on a healthy machine, and the whole failure is that
+    /// nothing comes back — a real one would hang the suite instead of failing it. So the
+    /// answers are scripted, and <see cref="Waits"/> records what each call was given as its
+    /// deadline, which is the value the defect was about.
+    /// </para>
+    /// </summary>
+    private sealed class Enumeration(
+        Func<int, (int Hresult, int Returned)> answer, int delayMilliseconds = 0)
+    {
+        /// <summary>The timeout handed to each call, in the order they were made.</summary>
+        public List<int> Waits { get; } = [];
+
+        public int Calls { get; private set; }
+
+        public int Next(int timeout, IntPtr[] slot, out int returned)
+        {
+            Waits.Add(timeout);
+
+            // A provider that answers, and takes its time doing it. Without this the fake
+            // costs nothing and no budget could ever run out — which is a fake that cannot
+            // reproduce what it exists to reproduce.
+            if (delayMilliseconds > 0)
+            {
+                Thread.Sleep(delayMilliseconds);
+            }
+
+            var (hresult, count) = answer(Calls++);
+            slot[0] = new IntPtr(Calls);
+            returned = count;
+
+            return hresult;
+        }
+    }
+
+    /// <summary>Stands in for the COM object read, without touching COM.</summary>
+    private static WmiInstance? ReadSlot(IntPtr pointer) =>
+        new(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Handle"] = pointer.ToString(),
+        });
+
+    private const int WbemSNoError = 0;
+    private const int WbemSFalse = 1;       // no more objects
+    private const int WbemSTimedout = 0x40004;
+
+    /// <summary>
+    /// The defect: <c>Next</c> was called with <c>WBEM_INFINITE</c>, so a provider that
+    /// never stops answering never gives the scan back.
+    ///
+    /// <para>
+    /// The fake gives up after 200 objects on purpose — an honest reproduction would hang
+    /// this suite rather than fail it, and a test that hangs reports nothing. What is
+    /// asserted is that the drain stopped long before that ceiling, on its own budget.
+    /// DISM and netsh have carried one since they were written; WMI, which is read on four
+    /// shipped rules plus drivers, processes and service paths, had none.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_enumeration_that_never_ends_stops_on_its_budget_instead_of_the_scan()
+    {
+        var enumeration = new Enumeration(
+            call => call < 200 ? (WbemSNoError, 1) : (WbemSFalse, 0), delayMilliseconds: 5);
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromMilliseconds(120), "Win32_Process");
+
+        Assert.NotNull(read.Diagnostic);
+        Assert.Contains("Win32_Process", read.Diagnostic, StringComparison.Ordinal);
+
+        Assert.True(enumeration.Calls < 200,
+            $"{enumeration.Calls} appels à Next : l'énumération est allée au bout du faux au "
+            + "lieu de s'arrêter sur son délai. Sur une vraie machine, le faux n'a pas de "
+            + "fin et le scan ne rend jamais la main.");
+
+        // And what it collected before giving up is not handed over as a lecture complète:
+        // a truncated enumeration presented as Found is the silence this repository keeps
+        // finding one layer down.
+        Assert.NotEqual(ReadStatus.Found, read.Status);
+        Assert.Empty(read.Instances);
+    }
+
+    /// <summary>
+    /// The other way the deadline arrives: <c>Next</c> itself reports it.
+    ///
+    /// <para>
+    /// <c>WBEM_S_TIMEDOUT</c> is 0x40004 — a <em>success</em> code, sign bit clear — so the
+    /// loop condition « HRESULT not negative » accepted it and the zero objects it came with
+    /// ended the walk. Two instances read out of a hundred were then returned as
+    /// <see cref="ReadStatus.Found"/>: not a failure, not a refusal, a complete answer that
+    /// happened to be short.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_provider_that_reports_a_timeout_names_it_instead_of_shortening_the_list()
+    {
+        var enumeration = new Enumeration(call =>
+            call < 2 ? (WbemSNoError, 1) : (WbemSTimedout, 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
+
+        Assert.NotEqual(ReadStatus.Found, read.Status);
+        Assert.NotNull(read.Diagnostic);
+        Assert.Contains("Win32_SystemDriver", read.Diagnostic, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Every wait is what is left of the budget, not the budget again: a provider handing
+    /// back one object just before each deadline would otherwise never exhaust anything, and
+    /// the ceiling would bound a single call rather than the enumeration.
+    /// </summary>
+    [Fact]
+    public void Each_wait_is_bounded_by_what_remains_of_the_budget()
+    {
+        var enumeration = new Enumeration(call => call < 3 ? (WbemSNoError, 1) : (WbemSFalse, 0));
+
+        LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromSeconds(2), "Win32_OperatingSystem");
+
+        Assert.NotEmpty(enumeration.Waits);
+
+        Assert.All(enumeration.Waits, wait => Assert.InRange(wait, 1, 2000));
+
+        Assert.True(enumeration.Waits[^1] <= enumeration.Waits[0],
+            $"Les délais passés à Next ne décroissent pas ({string.Join(", ", enumeration.Waits)}) : "
+            + "chacun repart du budget entier, donc l'énumération n'en a pas.");
+    }
+
+    /// <summary>
+    /// The half that must not move, and the reason the fix is not « toujours échouer » : an
+    /// enumeration that finishes inside its budget answers exactly as before, and an empty
+    /// one is still an absence rather than a failure.
+    /// </summary>
+    [Fact]
+    public void An_enumeration_that_finishes_in_time_is_unchanged()
+    {
+        var two = new Enumeration(call => call < 2 ? (WbemSNoError, 1) : (WbemSFalse, 0));
+
+        var read = LiveWmiProvider.Drain(
+            two.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_OperatingSystem");
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Equal(2, read.Instances.Count);
+        Assert.Null(read.Diagnostic);
+
+        var none = new Enumeration(_ => (WbemSFalse, 0));
+
+        Assert.Equal(ReadStatus.NotFound, LiveWmiProvider.Drain(
+            none.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_OperatingSystem").Status);
+    }
 }

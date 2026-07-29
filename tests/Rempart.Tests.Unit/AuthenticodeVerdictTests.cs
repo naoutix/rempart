@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rempart.Core.Findings;
 using Rempart.Core.Providers;
 
@@ -31,6 +32,17 @@ public sealed class AuthenticodeVerdictTests
 
     /// <summary>An HRESULT that is a real failure, not a redirection to the catalog.</summary>
     private const int CertExpired = unchecked((int)0x800B0101);
+
+    // The revocation family. What matters here is not the values but the pairs: the first
+    // two say « this certificate was revoked », the last three say « whether it was revoked
+    // could not be established ». CERT_E_REVOKED and CERT_E_REVOCATION_FAILURE are one
+    // hexadecimal digit apart and mean opposite things. Read back from the machine with
+    // `certutil -error`, which prints each symbolic name, rather than from memory.
+    private const int CertRevoked = unchecked((int)0x800B010C);
+    private const int CryptRevoked = unchecked((int)0x80092010);
+    private const int CertRevocationFailure = unchecked((int)0x800B010E);
+    private const int CryptNoRevocationCheck = unchecked((int)0x80092012);
+    private const int CryptRevocationOffline = unchecked((int)0x80092013);
 
     [Fact]
     public void A_valid_embedded_signature_settles_it_without_a_catalog()
@@ -179,6 +191,107 @@ public sealed class AuthenticodeVerdictTests
             AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, CatalogOutcome.NotCatalogued));
         Assert.False(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, CatalogOutcome.Refused));
         Assert.False(AuthenticodeVerdict.ReadsPublisher(TrustNoSignature, CatalogOutcome.Unaskable));
+    }
+
+    /// <summary>
+    /// The distinction the offline revocation regime rests on: <b>« revoked » and « I could
+    /// not find out whether it was revoked » are not the same answer.</b>
+    ///
+    /// <para>
+    /// Both used to land on the same branch. Anything that is not one of the three
+    /// redirections and not zero came out <see cref="SignatureStatus.Invalid"/>, which
+    /// <c>SignatureLadder</c> turns into an accusation about the file — so a machine that
+    /// cannot reach a CRL distribution point accused every third-party binary it enumerated.
+    /// That was already reachable on a machine scanned offline, which is the machine this
+    /// tool was built for (ADR-001: portable, hors-ligne), and restricting revocation to the
+    /// local cache is what makes it the ordinary case rather than the exotic one.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(CertRevocationFailure)]
+    [InlineData(CryptNoRevocationCheck)]
+    [InlineData(CryptRevocationOffline)]
+    public void A_revocation_that_could_not_be_checked_is_a_gap_and_not_an_accusation(int embedded)
+    {
+        Assert.Equal(SignatureStatus.Unknown,
+            AuthenticodeVerdict.Judge(embedded, CatalogOutcome.NotAsked));
+
+        // Through to the severity, because that is what the report prints and nothing else
+        // in this file would notice the ladder being changed underneath.
+        Assert.Equal(FindingSeverity.Notable,
+            SignatureLadder.Judge(@"C:\Windows\System32\drivers\x.sys",
+                new FixedSignature(
+                    AuthenticodeVerdict.Judge(embedded, CatalogOutcome.NotAsked))).Severity);
+
+        // The catalog half of the same call, which has its own mapping: a catalog whose
+        // revocation could not be established was never verified, so it is Unaskable — the
+        // outcome that already means « nobody answered » — and never Refused, which accuses.
+        Assert.Equal(CatalogOutcome.Unaskable, AuthenticodeVerdict.FromCatalogHResult(embedded));
+    }
+
+    /// <summary>
+    /// The other half, and the reason the fix is not « never accuse over revocation »: a
+    /// certificate the issuer actually revoked is the one thing this whole check exists to
+    /// catch, and it must survive the arm above.
+    /// </summary>
+    [Theory]
+    [InlineData(CertRevoked)]
+    [InlineData(CryptRevoked)]
+    public void A_certificate_the_issuer_revoked_is_still_an_invalid_signature(int embedded)
+    {
+        Assert.Equal(SignatureStatus.Invalid,
+            AuthenticodeVerdict.Judge(embedded, CatalogOutcome.NotAsked));
+
+        Assert.Equal(CatalogOutcome.Refused, AuthenticodeVerdict.FromCatalogHResult(embedded));
+    }
+
+    /// <summary>
+    /// Every <c>WinVerifyTrust</c> call in the project runs under the same revocation
+    /// regime, checked by reading the source rather than by trusting two call sites to stay
+    /// aligned.
+    ///
+    /// <para>
+    /// The flags are an <em>input</em> to <c>wintrust.dll</c>, so no assertion about a
+    /// return value can observe them, and the behaviour they change — a CRL fetch over the
+    /// network — is precisely what cannot be provoked from a test. What can be checked is
+    /// that no <c>WINTRUST_DATA</c> is built without them: the field defaulted to zero, and
+    /// a third call site added later would default to zero again, silently putting the
+    /// network back on the scan path. That is the failure this guard exists for, not the
+    /// two call sites that exist today.
+    /// </para>
+    ///
+    /// <para>
+    /// Reading repository files from a test is the technique the coverage and replay guards
+    /// use, for the same reason: the invariant spans files no compiler relates.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_trust_verification_declares_the_offline_revocation_regime()
+    {
+        string[] sources =
+        [
+            "src/Rempart.Windows/LiveSignatureProvider.cs",
+            "src/Rempart.Windows/CatalogSignature.cs",
+        ];
+
+        var built = 0;
+
+        foreach (var source in sources)
+        {
+            foreach (var initialiser in Regex.Matches(
+                         RepositoryFiles.Read(source), @"new WintrustData\s*\{[^}]*\}"))
+            {
+                built++;
+
+                Assert.Contains("ProviderFlags = RevocationPolicy.ProviderFlags",
+                    initialiser.ToString(), StringComparison.Ordinal);
+            }
+        }
+
+        Assert.True(built >= 2,
+            $"{built} construction(s) de WINTRUST_DATA trouvée(s) au lieu des deux attendues : "
+            + "la garde ne lit plus les appels qu'elle prétend surveiller, et resterait verte "
+            + "si le régime hors-ligne disparaissait des deux.");
     }
 
     /// <summary>A signature provider that answers the same thing whatever it is asked.</summary>

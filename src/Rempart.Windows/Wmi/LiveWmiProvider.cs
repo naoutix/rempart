@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
@@ -18,15 +19,25 @@ namespace Rempart.Windows.Wmi;
 /// « non vérifiable »: the scan could not look, the machine is not at fault.
 /// A failure is not a refusal and does not get to look like one — see
 /// <see cref="Classify"/>.
+///
+/// Nor does an enumeration get to run for ever: WMI is the one surface here whose answer
+/// comes from third-party code — every product that installs a WMI provider adds one — and
+/// it is queried with a budget, like DISM and netsh. See <see cref="Drain"/>.
 /// </summary>
-public sealed unsafe partial class LiveWmiProvider : IWmiProvider
+public sealed unsafe partial class LiveWmiProvider(TimeSpan? timeout = null) : IWmiProvider
 {
     private static readonly Guid ClsidWbemLocator = new("4590f811-1d3a-11d0-891f-00aa004b2e24");
     private static readonly Guid IidWbemLocator = new("dc12a687-737f-11cf-884d-00aa004b2e24");
 
     private const int WbemFlagForwardOnly = 0x20;
     private const int WbemFlagReturnImmediately = 0x10;
-    private const int WbemInfiniteTimeout = -1;
+
+    /// <summary>
+    /// <c>WBEM_S_TIMEDOUT</c>, from <c>WbemCli.h</c>. A <c>WBEM_S_</c> code: the deadline
+    /// arrives as a <em>success</em>, which is what let it pass for the end of the
+    /// enumeration.
+    /// </summary>
+    private const int WbemSTimedout = 0x40004;
 
     private const int RpcCAuthnLevelDefault = 0;
     private const int RpcCImpLevelImpersonate = 3;
@@ -41,6 +52,13 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
     private const uint WbemEInvalidNamespace = 0x8004100E;
     private const uint WbemEPrivilegeNotHeld = 0x80041062;
     private const uint EAccessDenied = 0x80070005;
+
+    /// <summary>
+    /// How long one enumeration may take. Generous on purpose — a healthy machine answers
+    /// <c>Win32_Process</c> in a few milliseconds, and this ceiling exists to end a wedged
+    /// provider, not to race a slow one. Injectable so a test can shorten it.
+    /// </summary>
+    private readonly TimeSpan budget = timeout ?? TimeSpan.FromSeconds(30);
 
     [LibraryImport("ole32.dll")]
     private static partial int CoInitializeSecurity(
@@ -129,7 +147,7 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
         _ => WmiRead.Failed($"COM 0x{(uint)ex.HResult:X8} : {ex.Message}"),
     };
 
-    private static WmiRead Execute(
+    private WmiRead Execute(
         string namespacePath, string className, IReadOnlyList<string> properties)
     {
         var locator = CreateLocator();
@@ -154,24 +172,112 @@ public sealed unsafe partial class LiveWmiProvider : IWmiProvider
 
         TrySetBlanket(enumerator);
 
-        var instances = new List<WmiInstance>();
-        var buffer = new IntPtr[1];
+        return Drain(Next, Read, budget, className);
 
-        while (enumerator.Next(WbemInfiniteTimeout, 1, buffer, out var returned) >= 0 && returned == 1)
+        int Next(int timeout, IntPtr[] slot, out int returned)
         {
-            var instance = ComInterfaceMarshaller<IWbemClassObject>.ConvertToManaged(
-                (void*)buffer[0]);
+            var hresult = enumerator.Next(timeout, 1, slot, out var count);
+            returned = (int)count;
 
-            if (instance is not null)
+            return hresult;
+        }
+
+        WmiInstance? Read(IntPtr pointer)
+        {
+            var instance = ComInterfaceMarshaller<IWbemClassObject>.ConvertToManaged((void*)pointer);
+
+            try
             {
-                instances.Add(ReadProperties(instance, properties));
+                return instance is null ? null : ReadProperties(instance, properties);
+            }
+            finally
+            {
+                Marshal.Release(pointer);
+            }
+        }
+    }
+
+    /// <summary>One call to <c>IEnumWbemClassObject::Next</c>, asking for a single object.</summary>
+    internal delegate int WbemNext(int timeoutMilliseconds, IntPtr[] slot, out int returned);
+
+    /// <summary>
+    /// Walks an enumeration to its end, or to the end of its budget.
+    ///
+    /// <para>
+    /// <b>What this replaces.</b> <c>Next</c> was called with <c>WBEM_INFINITE</c>, so a WMI
+    /// provider that stopped answering — a wedged third-party provider, a damaged repository
+    /// — suspended the scan with no way out and nothing printed. DISM and netsh, the two
+    /// other places this project waits on something it does not control, have each carried
+    /// an explicit budget since they were written; the two COM enumerations had none, and
+    /// they are the ones behind <c>Win32_Process</c>, <c>Win32_SystemDriver</c>, BitLocker
+    /// and SecurityCenter2.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The deadline is the enumeration's, not each call's.</b> Handing the whole budget
+    /// to every <c>Next</c> would bound one wait and not the walk: a provider yielding one
+    /// object just under the ceiling would keep the scan for as long as it liked. So each
+    /// call gets what is left.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Running out is a failure, and it says so.</b> Not a refusal — nothing was denied,
+    /// so « relancer en administrateur » is the wrong advice — and not an absence, which is
+    /// the trap <c>WBEM_S_TIMEDOUT</c> lays: 0x40004 has its sign bit clear, so a loop
+    /// testing « the HRESULT is not negative » reads it as success and the zero objects
+    /// beside it end the walk. What was collected until then was handed over as
+    /// <see cref="ReadStatus.Found"/>: a truncated enumeration presented as a complete one.
+    /// </para>
+    /// </summary>
+    internal static WmiRead Drain(
+        WbemNext next, Func<IntPtr, WmiInstance?> read, TimeSpan budget, string className)
+    {
+        var instances = new List<WmiInstance>();
+        var slot = new IntPtr[1];
+        var started = Stopwatch.GetTimestamp();
+
+        while (true)
+        {
+            var remaining = budget - Stopwatch.GetElapsedTime(started);
+
+            if (remaining <= TimeSpan.Zero)
+            {
+                return TimedOut(className, budget);
             }
 
-            Marshal.Release(buffer[0]);
+            // At least one millisecond: zero is a poll, and a provider that is merely slow
+            // would then be reported as wedged.
+            var wait = (int)Math.Clamp(Math.Ceiling(remaining.TotalMilliseconds), 1, int.MaxValue);
+
+            var hresult = next(wait, slot, out var returned);
+
+            if (hresult == WbemSTimedout)
+            {
+                return TimedOut(className, budget);
+            }
+
+            if (hresult < 0 || returned != 1)
+            {
+                break;
+            }
+
+            if (read(slot[0]) is { } instance)
+            {
+                instances.Add(instance);
+            }
         }
 
         return instances.Count == 0 ? WmiRead.NotFound : WmiRead.Found(instances);
     }
+
+    /// <summary>
+    /// What a WMI enumeration that ran out of time answers. Named after the class, because
+    /// one wedged provider does not make WMI mute and the report has to say which surface
+    /// went quiet.
+    /// </summary>
+    private static WmiRead TimedOut(string className, TimeSpan budget) => WmiRead.Failed(
+        $"L'énumération WMI de {className} n'a pas répondu en {budget.TotalSeconds:0} s. "
+        + "Un fournisseur WMI est peut-être bloqué.");
 
     private static WmiInstance ReadProperties(
         IWbemClassObject instance, IReadOnlyList<string> names)
