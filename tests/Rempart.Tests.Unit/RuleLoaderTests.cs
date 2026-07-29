@@ -196,4 +196,49 @@ public sealed class RuleLoaderTests
     {
         Assert.Empty(RuleLoader.Load(string.Empty));
     }
+
+    [Fact]
+    public void Reads_every_document_of_the_file_not_just_the_first()
+    {
+        // Reading Documents[0] alone dropped everything after the first "---" and
+        // still reported a successful load: a critical rule vanished from a scan
+        // that looked complete. Splitting on "---" is reflex for anyone arriving
+        // from Kubernetes or Ansible.
+        var second = Valid
+            .Replace("TEST-001", "TEST-002", StringComparison.Ordinal)
+            .Replace("severity: high", "severity: critical", StringComparison.Ordinal);
+
+        var rules = RuleLoader.Load($"{Valid}\n---\n{second}");
+
+        Assert.Equal(["TEST-001", "TEST-002"], rules.Select(r => r.Id));
+        Assert.Equal(Severity.Critical, rules[1].Severity);
+    }
+
+    [Fact]
+    public void Rejects_an_identifier_repeated_across_two_documents_of_one_file()
+    {
+        // The uniqueness check spans the whole file, not each document: a copy
+        // pasted below a separator is exactly how a duplicate gets written.
+        var ex = Assert.Throws<RuleFormatException>(() => RuleLoader.Load($"{Valid}\n---\n{Valid}"));
+
+        Assert.Contains("double", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rejects_a_later_document_that_is_not_a_list_and_says_which_one()
+    {
+        var ex = Assert.Throws<RuleFormatException>(
+            () => RuleLoader.Load($"{Valid}\n---\nid: TEST-002", "parc.yaml"));
+
+        Assert.Contains("parc.yaml", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("document 2", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_trailing_separator_adds_no_rule_and_is_not_an_error()
+    {
+        // A file ending on "---" is common enough; the empty document it opens
+        // carries nothing, and refusing it would reject a perfectly good file.
+        Assert.Single(RuleLoader.Load($"{Valid}\n---\n"));
+    }
 }

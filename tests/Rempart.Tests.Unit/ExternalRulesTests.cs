@@ -27,6 +27,9 @@ public sealed class ExternalRulesTests : IDisposable
             windowsDefault: "0"
         """;
 
+    private static readonly string Second =
+        Extra.Replace("LOCAL-001", "LOCAL-002", StringComparison.Ordinal);
+
     public void Dispose() => Directory.Delete(directory, recursive: true);
 
     [Fact]
@@ -83,7 +86,49 @@ public sealed class ExternalRulesTests : IDisposable
     {
         // Almost always a path mistake. Ignoring it would give a scan that looks
         // complete while having loaded zero extra rules.
-        Assert.Throws<RuleFormatException>(() => RuleCatalog.Load(directory));
+        var ex = Assert.Throws<RuleFormatException>(() => RuleCatalog.Load(directory));
+
+        // The message is where the user learns how to name their files; naming only
+        // half the accepted spellings is how the other half got written by mistake.
+        Assert.Contains(".yaml", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(".yml", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Both_spellings_of_the_extension_are_loaded_from_a_mixed_directory()
+    {
+        // A directory holding one of each used to load the ".yaml" and drop the
+        // ".yml" without a word, the file count being non-zero.
+        Write("a.yaml", Extra);
+        Write("b.yml", Second);
+
+        var rules = RuleCatalog.Load(directory);
+
+        Assert.Contains(rules, r => r.Id == "LOCAL-001");
+        Assert.Contains(rules, r => r.Id == "LOCAL-002");
+    }
+
+    [Fact]
+    public void A_directory_holding_only_the_short_spelling_is_loaded()
+    {
+        Write("local.yml", Extra);
+
+        Assert.Contains(RuleCatalog.Load(directory), r => r.Id == "LOCAL-001");
+    }
+
+    [Fact]
+    public void Neither_the_spelling_nor_a_document_separator_moves_the_fingerprint()
+    {
+        // The fingerprint is what says whether two reports are comparable. It must
+        // follow the rules loaded, never how the file carrying them was named or
+        // punctuated -- otherwise a reformatting would read as a catalog change.
+        Write("un-seul.yaml", $"{Extra}\n{Second}");
+        var joined = RuleCatalog.Fingerprint(RuleCatalog.Load(directory));
+
+        File.Delete(Path.Combine(directory, "un-seul.yaml"));
+        Write("coupe-en-deux.yml", $"{Extra}\n---\n{Second}");
+
+        Assert.Equal(joined, RuleCatalog.Fingerprint(RuleCatalog.Load(directory)));
     }
 
     [Fact]

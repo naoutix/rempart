@@ -14,8 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The YAML rules are embedded: the binary must stay self-sufficient on a USB stick. -->
+    <!-- The YAML rules are embedded: the binary must stay self-sufficient on a USB stick.
+         Both spellings, matching RuleFile.Extensions: a rule written as .yml would
+         otherwise never reach the binary, and the catalog would ship one check short
+         with nothing to show for it. A test confronts this glob to the working tree. -->
     <EmbeddedResource Include="..\..\rules\**\*.yaml" LinkBase="rules" />
+    <EmbeddedResource Include="..\..\rules\**\*.yml" LinkBase="rules" />
 
     <!-- Embedded bloatware baseline: stable Appx identifiers, extended by a signed catalog. -->
     <EmbeddedResource Include="data\bloatware-baseline.json" LinkBase="data" />

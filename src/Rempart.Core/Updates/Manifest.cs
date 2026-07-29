@@ -1,3 +1,5 @@
+using Rempart.Core.Rules;
+
 namespace Rempart.Core.Updates;
 
 /// <summary>The dataset kinds the channel knows how to route.</summary>
@@ -28,12 +30,14 @@ public static class DatasetKind
     /// Guesses a file's kind from its extension: <c>.yaml</c>/<c>.yml</c> are rules,
     /// everything else (JSON) a driver list. A publisher can always force it
     /// explicitly at signing time; this is only a convenient default.
+    ///
+    /// <para>
+    /// Delegated to <see cref="RuleFile"/> rather than spelled out here: a dataset the
+    /// channel routes as rules and a file the catalog reads from disk have to be the
+    /// same set, or an update would install a file the next scan then ignores.
+    /// </para>
     /// </summary>
-    public static string Infer(string name) =>
-        name.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase)
-        || name.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)
-            ? Rules
-            : Drivers;
+    public static string Infer(string name) => RuleFile.Matches(name) ? Rules : Drivers;
 }
 
 /// <summary>

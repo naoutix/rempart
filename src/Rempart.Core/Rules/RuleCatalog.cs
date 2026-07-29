@@ -125,7 +125,7 @@ public static class RuleCatalog
         var rules = new List<Rule>();
 
         foreach (var name in assembly.GetManifestResourceNames()
-                     .Where(n => n.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
+                     .Where(RuleFile.Matches)
                      .OrderBy(n => n, StringComparer.Ordinal))
         {
             rules.AddRange(RuleLoader.Load(ReadResource(assembly, name), name));
@@ -136,7 +136,8 @@ public static class RuleCatalog
         if (rules.Count == 0)
         {
             throw new RuleFormatException(
-                "Aucune règle embarquée. Vérifier l'inclusion de rules/**/*.yaml en ressources.");
+                $"Aucune règle embarquée. Vérifier l'inclusion de rules/** ({RuleFile.Expected}) "
+                + "en ressources.");
         }
 
         var violations = ProtectedComponents.FindViolations(rules);
@@ -157,8 +158,13 @@ public static class RuleCatalog
             throw new RuleFormatException($"Répertoire de règles introuvable : {directory}");
         }
 
+        // Every file, then filtered on the one list of accepted extensions. Asking the
+        // file system for the long spelling alone left the short one sitting unread and
+        // uncounted beside it, and matched case the way the host happens to, not the way
+        // a replay on another host would.
         var files = Directory
-            .EnumerateFiles(directory, "*.yaml", SearchOption.AllDirectories)
+            .EnumerateFiles(directory, "*", SearchOption.AllDirectories)
+            .Where(RuleFile.Matches)
             .OrderBy(f => f, StringComparer.Ordinal)
             .ToList();
 
@@ -166,7 +172,8 @@ public static class RuleCatalog
         {
             // An explicitly passed empty directory is most likely a path mistake.
             // Reporting it avoids a scan that merely looks complete.
-            throw new RuleFormatException($"Aucun fichier .yaml dans : {directory}");
+            throw new RuleFormatException(
+                $"Aucun fichier {RuleFile.Expected} dans : {directory}");
         }
 
         var rules = new List<Rule>();
