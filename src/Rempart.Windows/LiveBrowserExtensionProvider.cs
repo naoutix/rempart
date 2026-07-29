@@ -76,7 +76,7 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
                 // Locked or denied mid-scan. Skipping keeps the other profiles, but the
                 // skip is named: an extension living here would otherwise be absent from
                 // the inventory with nothing to show for it.
-                unreadable.Add($"{browser}/{profile}");
+                unreadable.Add($"{browser} (préférences)");
             }
         }
     }
@@ -99,7 +99,7 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
             if (ChromiumExtensions.ParseSettings(json) is not { } parsed)
             {
                 // The file is there and unreadable — the case that used to be swallowed.
-                unreadable.Add($"{browser}/{profile} ({file})");
+                unreadable.Add($"{browser} ({file})");
                 continue;
             }
 
@@ -157,7 +157,7 @@ public sealed class LiveBrowserExtensionProvider : IBrowserExtensionProvider
 
             if (FirefoxExtensions.Parse(json, profile) is not { } parsed)
             {
-                unreadable.Add($"Firefox/{profile} (extensions.json)");
+                unreadable.Add("Firefox (extensions.json)");
                 continue;
             }
 
