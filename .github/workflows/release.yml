@@ -33,8 +33,32 @@ jobs:
   stick:
     runs-on: windows-latest
     steps:
+      # The one place the tag expression is read, and it is bound to the environment rather
+      # than written into a script: ${{ }} is substituted as raw text before pwsh parses the
+      # line, so a tag holding a double quote closed the literal and ran whatever followed.
+      # workflow_dispatch takes that tag as free text, and this is the only job here carrying
+      # contents: write and a GH_TOKEN. Every later step reads the value back through
+      # $env:TAG, where it is data and not source.
+      - name: The tag must name a version
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          # Checked here rather than deeper down: the two steps below build a file name and a
+          # staging path out of this string, and the AOT publish between them costs four
+          # minutes that a malformed tag should not spend. GitHub has no pattern constraint
+          # to put on a workflow_dispatch input, so the shape is asserted in the job.
+          $tag = $env:TAG
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') {
+            throw "Tag rejected: '$tag'. Expected vX.Y.Z, optionally with a pre-release suffix such as -rc.1."
+          }
+
+          "TAG=$tag" >> $env:GITHUB_ENV
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # An action input, not a script: this value is passed to checkout, never handed to
+          # a shell.
           ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -54,7 +78,7 @@ jobs:
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
           if (-not (Test-Path $exe)) { throw "Binary missing: $exe" }
 
-          $tag = "${{ inputs.tag || github.ref_name }}"
+          $tag = $env:TAG
           $expected = $tag -replace '^v', ''
           $reported = (& $exe version).Trim()
 
@@ -77,7 +101,7 @@ jobs:
           # third-party supplement: all 82 identifiers collided and RuleCatalog refused to
           # load, exactly as it is written to. That shipped as v1.0.0-rc.2, where scan,
           # explain and capture all stopped on the same error.
-          $tag = "${{ inputs.tag || github.ref_name }}"
+          $tag = $env:TAG
           $version = $tag -replace '^v', ''
           $stage = "stick/rempart-$version-win-x64"
 
@@ -125,7 +149,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "${{ inputs.tag || github.ref_name }}"
+          $tag = $env:TAG
 
           # The release body is the CHANGELOG section for this version, not text written
           # here: the notes a reader gets and the notes the repository keeps should not be
