@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Updates;
@@ -269,4 +271,95 @@ public class BloatwareCatalogTests
             }
         }
     }
+
+    /// <summary>
+    /// Every live claim about the share of unverified impact notes, held against the catalogue
+    /// it describes instead of against a second number written by the same hand.
+    ///
+    /// <para>
+    /// It had already drifted. <c>DET-NOTES-AMONT</c> said "113 of 116", true the day it was
+    /// written and stale from the commit that catalogued four more vendors: seven entries
+    /// added, none of them observed on a machine, so both halves moved and neither followed.
+    /// The ROADMAP said 120 of 123, in three places — only the register, the document whose
+    /// whole job is to be the honest one, was behind.
+    /// </para>
+    ///
+    /// <para>
+    /// So the sweep, and not that one row: this count is copied by hand into four sentences
+    /// across two documents, and a guard holding one of them leaves the other three free to
+    /// drift the next time a piece of software is actually observed — which is precisely the
+    /// movement the debt exists to measure. The four are found by what they say rather than by
+    /// where they sit, so a fifth copy written tomorrow is held too, and <see cref="Expected"/>
+    /// makes a copy deleted rather than corrected fail rather than pass quietly.
+    /// </para>
+    ///
+    /// <para>
+    /// Both files also carry dated measurements frozen on purpose — an archived figure must not
+    /// be asked to age — which is why the sweep matches only sentences naming the impact notes,
+    /// never every pair of numbers in the file.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_document_states_the_share_of_impact_notes_the_catalogue_has_not_verified()
+    {
+        // Four sentences today: one in the debt register, three in the roadmap. The number is
+        // the point — a copy silently dropped is a claim that stopped being checked.
+        const int Expected = 4;
+
+        // Count of entries, not a second pass over the file: Parse rejects an entry without an
+        // impact note, so the catalogue's size is the number of notes.
+        var total = BloatwareCatalog.Embedded.Count;
+        var upstream = BloatwareCatalog.Embedded.Entries
+            .Count(entry => entry.ImpactSource == ImpactProvenance.Upstream);
+
+        var wrong = new List<string>();
+        var seen = 0;
+
+        foreach (var document in new[] { "docs/DEBT.md", "docs/ROADMAP.md" })
+        {
+            foreach (var line in RepositoryFiles.Read(document).Split('\n'))
+            {
+                if (!line.Contains("notes d'impact", StringComparison.OrdinalIgnoreCase)
+                    && !line.Contains("DET-NOTES-AMONT", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // Two shapes in use: "120 des 123" wherever both halves are stated, and
+                // "les 120 notes d'impact" where only the unverified share is.
+                foreach (Match claim in Regex.Matches(line, @"(\d+) des (\d+)"))
+                {
+                    seen++;
+                    if (Number(claim.Groups[1]) != upstream || Number(claim.Groups[2]) != total)
+                    {
+                        wrong.Add($"{document} : « {claim.Value} »");
+                    }
+                }
+
+                foreach (Match claim in Regex.Matches(line, @"les (\d+) notes d'impact"))
+                {
+                    seen++;
+                    if (Number(claim.Groups[1]) != upstream)
+                    {
+                        wrong.Add($"{document} : « {claim.Value} »");
+                    }
+                }
+            }
+        }
+
+        Assert.True(wrong.Count == 0,
+            $"Le catalogue porte {upstream} notes d'impact non vérifiées sur {total}. "
+            + $"Affirment autre chose : {string.Join(" ; ", wrong)}. Cette dette se réduit "
+            + "d'une unité à chaque logiciel réellement observé : un chiffre recopié à la "
+            + "main ne peut pas suivre ce mouvement, et la documentation finit par annoncer "
+            + "une dette plus petite que la vraie.");
+
+        Assert.True(seen == Expected,
+            $"{seen} affirmation(s) chiffrée(s) sur les notes d'impact trouvée(s), "
+            + $"{Expected} attendue(s) : une phrase a été reformulée ou supprimée, et ce "
+            + "test en garde d'autant moins qu'il n'en dit rien.");
+    }
+
+    private static int Number(Group group) =>
+        int.Parse(group.Value, CultureInfo.InvariantCulture);
 }
