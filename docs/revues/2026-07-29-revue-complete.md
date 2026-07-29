@@ -29,9 +29,15 @@ Trois défauts sortent du lot et appellent une correction avant la prochaine ét
 **Suivi.** Les 33 trouvailles sont réparties en 18 issues sous le jalon
 [Revue complète du 2026-07-29](https://github.com/naoutix/rempart/milestone/13). Chaque ligne
 des tableaux ci-dessous porte son numéro. La revue elle-même s'arrête au constat : rien
-n'était corrigé au moment où ce document a été écrit. **REV-01 l'a été depuis**, par
-[#126](https://github.com/naoutix/rempart/pull/126), qui ancre l'exemption MSIX et ouvre
-`DET-MSIX-VOLUME` pour ce que ce correctif laisse — les autres lignes restent ouvertes.
+n'était corrigé au moment où ce document a été écrit.
+
+**Toutes l'ont été depuis**, une PR par issue, sauf REV-29 — refusée par argument, non par
+oubli : les références golden sont suivies en git, la CI n'en a jamais d'absente, et toute
+contrainte plus forte casserait le flux de régénération que CONTRIBUTING documente. Trois
+correctifs laissent une dette nommée plutôt qu'une promesse : `DET-MSIX-VOLUME` (REV-01),
+`DET-INTERPRETEURS` (REV-17), `DET-REJEU-REFUS` (REV-13) et `DET-VERROU-NUGET` (REV-31).
+Le récit de ce que les correctifs ont généralisé est dans la
+[feuille de route](../ROADMAP.md).
 
 ---
 
@@ -149,6 +155,23 @@ production.
 | REV-31 | Aucun fichier de verrou NuGet et aucun `NuGet.config` : le graphe résolu n'est jamais vérifié par empreinte et la liste des sources vient de la machine | racine | rapporté | #120 |
 | REV-32 | Une extension Chromium dépaquetée dont le chemin est absolu est écartée avant que sa provenance ne soit lue — repose sur ce que Chrome écrit réellement pour `location: 4`, invérifiable depuis le dépôt | `Browsers/ChromiumExtensions.cs:175` | à confirmer | #123 |
 | REV-33 | `DET-NOTES-AMONT` annonce « 113 des 116 » notes d'impact ; le compte réel du catalogue est **120 sur 123**. Trois autres documents et le jalon GitHub sont justes | `docs/DEBT.md:107` | vérifié | #124 |
+
+---
+
+## Ce que la correction a fait apparaître
+
+Chaque correctif a été relu de façon adverse, avec pour consigne de le **réfuter**. Aucun n'a
+été cassé, mais cinq voisins du même motif ont été trouvés en chemin. Ils n'appartiennent à
+aucune ligne ci-dessus, et ne sont pas corrigés — chacun porte son issue :
+
+| Fichier | Voisin resté ouvert | Issue |
+|---|---|---|
+| `Windows/LiveServiceStateProvider.cs:56,67,78` | Tout code Win32 autre que « service inexistant » devient `AccessDenied` — la forme exacte que REV-04 condamne, une interface plus loin. Le champ qui l'aurait distingué existe et n'est jamais écrit | #147 |
+| `Reputation/FindingEnrichment.cs:52` | Le jumeau structurel de REV-08 : `--virustotal` enrichit un scan déjà terminé, et deux filtres de `catch` tenus à la main décident s'il le détruit | #148 |
+| `Updates/DriverBlocklist.cs:48`, `Updates/BloatwareCatalog.cs:227` | Un élément `null` dans le tableau JSON lève `NullReferenceException` — REV-06 un cran plus bas, dans les lecteurs que son correctif croyait couvrir | #149 |
+| `Updates/UpdateStore.cs:100,129` | `File.ReadAllText` et `ReadAllBytes` sans `try` sur un fichier de `rempart-data/`, que le sceau exclut : même origine, même conséquence que REV-06 | #150 |
+| `Engine/ScanEngine.cs:60`, `Cli/CliHost.cs:89` | La moitié « collecteurs de champs » de REV-09 : deux tables écrites à la main que rien ne confronte au disque. Mesuré : désenregistrer `--analyze-store` laisse la suite verte | #151 |
+| `Wmi/LiveWmiProvider.cs`, `Drain` | Un HRESULT négatif rendu par `IEnumWbemClassObject::Next` termine la boucle en silence : une énumération tronquée se présente en `Found` | #152 |
 
 ---
 

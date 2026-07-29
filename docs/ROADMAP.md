@@ -580,6 +580,39 @@ surtout montré que la doc avait un commit de retard sur le pipeline d'import (#
 - [ADR-006](adr/ADR-006-catalogue-bloatware-importe.md) passée de « Proposé » à
   « Accepté — exécuté le même jour (#94, #95) ».
 
+### Correction de la revue — ✅ 2026-07-29
+
+Les 33 trouvailles de la [revue complète](revues/2026-07-29-revue-complete.md) sont
+traitées, 18 issues fermées, une par PR. Ce qui compte n'est pas le compte mais ce que
+la revue reprochait : **une classe de défaut corrigée à un endroit, la couche d'à côté
+laissée**. Trois mécanismes remplacent des listes tenues à la main.
+
+- **Le canal de statut descend jusqu'aux fournisseurs.** Pare-feu, tâches planifiées,
+  énumérations du registre et fichier `hosts` savent désormais dire « refusé » là où ils
+  rendaient un vide indiscernable d'une machine saine. `ListValues` et `ListSubKeys`
+  changent de type de retour plutôt que de gagner une surcharge : le compilateur tient la
+  liste des seize appelants, une surcharge aurait laissé le silence revenir au prochain
+  collecteur écrit. Et ce refus atteint enfin le code de sortie, qui n'écoutait que les
+  collecteurs de champs.
+- **Ce qui est enregistré à la main est confronté au disque.** Les collecteurs de constats,
+  le compte de dette du catalogue, les corps de script des workflows : trois gardes qui
+  lisent la réalité au lieu d'une seconde liste écrite de la même main.
+- **Un échec cesse d'emprunter le sens d'un refus.** HRESULT COM inconnu, manifeste troué,
+  PAC en `file://`, énumération WMI sans délai maximal : chacun se nommait « accès refusé »
+  ou emportait un scan complet.
+
+Trois conséquences visibles : le Markdown échappe tout ce que la machine a choisi et perd
+ses spans de code ; un autorun `powershell.exe -enc` cesse d'être bénin ; trois fixtures
+rejouées sortent `3` au lieu de `0` ou `5`, ce qui est la trouvaille elle-même — leurs
+captures précèdent la collecte des pilotes, des processus et des points d'écoute.
+
+Trois dettes ouvertes en contrepartie, toutes argumentées : `DET-INTERPRETEURS`,
+`DET-REJEU-REFUS`, `DET-VERROU-NUGET`. Et REV-29 n'est pas corrigée — les références sont
+suivies en git, la CI n'en a jamais d'absente, et toute contrainte plus forte casserait le
+flux de régénération documenté.
+
+---
+
 ---
 
 ## Après la v1 — refondu le 2026-07-28
