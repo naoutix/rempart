@@ -142,7 +142,6 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         new("échec COM simulé", unchecked((int)hresult));
 
     [Theory]
-    [InlineData(0x80041010u)] // WBEM_E_INVALID_CLASS: damaged or partial repository
     [InlineData(0x800706BAu)] // RPC_S_SERVER_UNAVAILABLE: Winmgmt is not serving
     [InlineData(0x80041013u)] // WBEM_E_PROVIDER_LOAD_FAILURE
     [InlineData(0x80041045u)] // WBEM_E_SERVER_TOO_BUSY
@@ -173,12 +172,41 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         Assert.Null(read.Diagnostic);
     }
 
+    /// <summary>
+    /// <c>WBEM_E_INVALID_CLASS</c> moved here from the failure list above, and it is the one
+    /// entry of this mapping that was decided by measurement rather than by reading a header.
+    ///
+    /// <para>
+    /// It was classified as « damaged or partial repository » — plausible, and not what the
+    /// machine does. Querying <c>Win32_CetteClasseNExistePas</c> on this workstation returns
+    /// 0x80041010 on the first <c>Next</c>, so it is the ordinary answer for a class a Windows
+    /// edition does not carry, which is an absence and the same family as the two codes
+    /// beside it. Nothing observable produced it from a damaged repository; those arrive as
+    /// <c>WBEM_E_CRITICAL_ERROR</c> or <c>WBEM_E_INITIALIZATION_FAILURE</c>, which stay on the
+    /// failure arm.
+    /// </para>
+    ///
+    /// <para>
+    /// The move is what lets <c>Drain</c>'s first-call branch defer to <see
+    /// cref="LiveWmiProvider.Classify"/> instead of keeping a second opinion of its own: the
+    /// answer an absent class already got from that branch is <c>NotFound</c>, and this is
+    /// where that answer now comes from.
+    /// </para>
+    /// </summary>
     [Theory]
     [InlineData(0x8004100Eu)] // WBEM_E_INVALID_NAMESPACE: feature absent from this edition
     [InlineData(0x80041002u)] // WBEM_E_NOT_FOUND
+    [InlineData(0x80041010u)] // WBEM_E_INVALID_CLASS: measured on an absent class
     public void An_absent_namespace_is_absence_not_refusal(uint hresult)
     {
-        Assert.Equal(ReadStatus.NotFound, LiveWmiProvider.Classify(Com(hresult)).Status);
+        var read = LiveWmiProvider.Classify(Com(hresult));
+
+        Assert.Equal(ReadStatus.NotFound, read.Status);
+
+        // No diagnostic, and this half is load-bearing rather than incidental: a consumer
+        // reads « diagnostic écrit » as « the surface failed » and routes it to AuditGap.
+        // Unreadable. An absence did not fail.
+        Assert.Null(read.Diagnostic);
     }
 
     /// <summary>
@@ -261,11 +289,14 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
             + "lieu de s'arrêter sur son délai. Sur une vraie machine, le faux n'a pas de "
             + "fin et le scan ne rend jamais la main.");
 
-        // And what it collected before giving up is not handed over as a lecture complète:
-        // a truncated enumeration presented as Found is the silence this repository keeps
-        // finding one layer down.
+        // And what it collected before giving up is neither presented as a lecture complète
+        // — a truncated enumeration handed over as Found is the silence this repository keeps
+        // finding one layer down — nor thrown away along with the deadline that ended it.
+        // Exactly, not merely « non vide »: the budget is checked before each call, so every
+        // call that was made handed over its object and every one of them must still be here.
         Assert.NotEqual(ReadStatus.Found, read.Status);
-        Assert.Empty(read.Instances);
+        Assert.Equal(enumeration.Calls, read.Instances.Count);
+        Assert.NotEmpty(read.Instances);
     }
 
     /// <summary>
@@ -294,20 +325,24 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The count the deadline used to swallow.
+    /// The inventory the deadline used to throw away.
     ///
     /// <para>
-    /// A timeout discards what the walk had collected — that is #143's decision and the two
-    /// tests above pin it — but it used to discard it without a word. A report could then not
-    /// tell a provider that never answered at all from one that answered two hundred times
-    /// and then stopped: two different machines, two different things to go and look at, one
-    /// identical sentence. The objects are still dropped here; what is asserted is that their
-    /// number no longer is. It is the asymmetry with <see cref="WmiRead.Partial"/> stated,
-    /// not resolved.
+    /// A timeout discarded what the walk had collected, then — after #153 — said how many
+    /// objects it was discarding. Naming a loss is not undoing it: a walk stopped after two
+    /// hundred drivers still answered « aucun pilote », on the surface a BYOVD attack lands
+    /// on. It answers with the two hundred now, exactly as a walk broken by a negative
+    /// HRESULT already did, and the status still says the inventory is not the machine's.
+    /// </para>
+    ///
+    /// <para>
+    /// The count stays in the sentence. It is what tells a provider mute from the first call
+    /// apart from one that stopped after two hundred objects, and it is now a claim about
+    /// what the reader has in hand rather than about what was thrown away.
     /// </para>
     /// </summary>
     [Fact]
-    public void A_deadline_says_how_many_objects_it_is_discarding()
+    public void A_deadline_keeps_what_the_walk_had_read_and_names_the_gap()
     {
         var enumeration = new Enumeration(call =>
             call < 4 ? (WbemSNoError, 1) : (WbemSTimedout, 0));
@@ -315,16 +350,26 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         var read = LiveWmiProvider.Drain(
             enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
 
-        Assert.Empty(read.Instances);
+        Assert.Equal(4, read.Instances.Count);
+
+        // And never as a complete one: the four are what arrived, not what the machine runs.
+        Assert.NotEqual(ReadStatus.Found, read.Status);
+
         Assert.NotNull(read.Diagnostic);
+        Assert.Contains("Win32_SystemDriver", read.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("4 instance(s)", read.Diagnostic, StringComparison.Ordinal);
 
         // Still never dressed as a refusal: the deadline denied nothing, it ran out.
         Assert.DoesNotContain("administrateur", read.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refus", read.Diagnostic, StringComparison.OrdinalIgnoreCase);
 
-        // And a deadline reached before anything arrived has no loss to report. « 0
-        // instance(s) écartées » would claim one that never happened, which is the same kind
-        // of false precision as the silence it replaces.
+        // And the sentence no longer says objects were dropped, because none were. A reader
+        // acting on « écartées » would go looking for an inventory that is in front of them.
+        Assert.DoesNotContain("écart", read.Diagnostic, StringComparison.OrdinalIgnoreCase);
+
+        // A deadline reached before anything arrived has no count to give. « 0 instance(s) »
+        // would claim a prefix that never existed, which is the same false precision as the
+        // silence #153 replaced.
         var immediate = new Enumeration(_ => (WbemSTimedout, 0));
 
         var nothing = LiveWmiProvider.Drain(
@@ -332,6 +377,40 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
 
         Assert.NotNull(nothing.Diagnostic);
         Assert.DoesNotContain("instance(s)", nothing.Diagnostic, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The property behind the two tests above, asserted as a property rather than as three
+    /// more cases.
+    ///
+    /// <para>
+    /// <c>Drain</c> has four ways out — the enumeration ending, the budget running out,
+    /// <c>WBEM_S_TIMEDOUT</c>, and a negative HRESULT — and until now they disagreed about
+    /// what happens to the objects already handed over: two kept them, one dropped them, and
+    /// the fourth could not have any. Enumerating the exits is exactly the coverage this
+    /// repository keeps being caught doing, and it is what let the disagreement survive #153.
+    /// What is asserted here is the invariant itself: <b>whatever ends the walk, the read
+    /// carries every object the walk was handed</b>. A fifth exit added later either satisfies
+    /// it or has to say why.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(1u, 0)]           // WBEM_S_FALSE: the enumeration simply ends
+    [InlineData(1u, 3)]
+    [InlineData(0x40004u, 0)]     // WBEM_S_TIMEDOUT: the provider reports the deadline
+    [InlineData(0x40004u, 3)]
+    [InlineData(0x80041004u, 0)]  // WBEM_E_PROVIDER_FAILURE: the walk breaks
+    [InlineData(0x80041004u, 3)]
+    public void No_way_of_ending_a_walk_drops_an_object_it_was_already_handed(
+        uint ending, int handed)
+    {
+        var enumeration = new Enumeration(call =>
+            call < handed ? (WbemSNoError, 1) : (unchecked((int)ending), 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
+
+        Assert.Equal(handed, read.Instances.Count);
     }
 
     /// <summary>
@@ -402,6 +481,12 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
     /// silently skips on a runner whose WMI is not answering — the branch would then be
     /// unwatched on exactly the machines where it matters.
     /// </para>
+    ///
+    /// <para>
+    /// This is the half that must not move now that the branch defers to
+    /// <see cref="LiveWmiProvider.Classify"/>: the answer for an absent class is the same
+    /// answer it always gave, and it is only where the answer comes from that changed.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_failure_on_the_very_first_call_is_the_query_answering_late()
@@ -414,6 +499,100 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         Assert.Equal(ReadStatus.NotFound, read.Status);
         Assert.Empty(read.Instances);
         Assert.Null(read.Diagnostic);
+    }
+
+    /// <summary>
+    /// And the half that had to: every <em>other</em> code arriving on that first call.
+    ///
+    /// <para>
+    /// The branch answered <c>NotFound</c> with no diagnostic to all of them, which is a
+    /// verdict taken from the branch's position rather than from the code that reached it. It
+    /// was right for one code and wrong for the rest — measured, and stated in #153's own
+    /// commit: <c>WBEM_E_PROVIDER_LOAD_FAILURE</c> came out of the report as « Relancer en
+    /// administrateur », because a null diagnostic is what makes every consumer fall back to
+    /// its own hard-coded sentence.
+    /// </para>
+    ///
+    /// <para>
+    /// The fix is not a second list of codes here — that is the coverage-by-enumeration this
+    /// review keeps rejecting, and two lists disagreeing is precisely the defect. There is one
+    /// mapping in this file and the branch now asks it. So the assertion is the identity
+    /// itself, over codes on all three of its arms plus one nobody has ever classified: the
+    /// answer given here <em>is</em> <see cref="LiveWmiProvider.Classify"/>'s answer, so a
+    /// code added to that mapping later is honoured on this path without anyone remembering
+    /// to come back.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(0x80041013u)] // WBEM_E_PROVIDER_LOAD_FAILURE: the measured case
+    [InlineData(0x80041010u)] // WBEM_E_INVALID_CLASS: an absent class, and still an absence
+    [InlineData(0x80041003u)] // WBEM_E_ACCESS_DENIED: a genuine refusal, elevation is the answer
+    [InlineData(0x80041045u)] // WBEM_E_SERVER_TOO_BUSY: never elevation
+    [InlineData(0x8004100Eu)] // WBEM_E_INVALID_NAMESPACE
+    [InlineData(0xDEADBEEFu)] // classified by nobody, which is the point of asserting an identity
+    public void A_failure_before_the_first_object_answers_what_Classify_answers(uint hresult)
+    {
+        var expected = LiveWmiProvider.Classify(Com(hresult));
+
+        var enumeration = new Enumeration(_ => (unchecked((int)hresult), 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
+
+        Assert.Equal(expected.Status, read.Status);
+
+        // Nothing was handed over, so there is no inventory here whichever way it is read.
+        Assert.Empty(read.Instances);
+
+        // The rule every status-carrying read in this project documents, and the one the
+        // consumers actually branch on: written for a failure, null for a refusal or an
+        // absence. Asserted on the null-ness rather than on the text, because the two paths
+        // legitimately word their reason differently — one has a COM message, the other has
+        // the class it was walking.
+        Assert.Equal(expected.Diagnostic is null, read.Diagnostic is null);
+
+        if (read.Diagnostic is not null)
+        {
+            Assert.Contains($"0x{hresult:X8}", read.Diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "administrateur", read.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
+    /// The measured sentence, walked to the report rather than stopped at the read.
+    ///
+    /// <para>
+    /// #153 measured this and left it: <c>WBEM_E_PROVIDER_LOAD_FAILURE</c> on the first
+    /// <c>Next</c> reached the report as « Énumération des pilotes refusée. Relancer en
+    /// administrateur », advice that repairs nothing when a WMI provider will not load. The
+    /// twin of <c>A_broken_walk_reaches_the_report_as_its_code_and_never_as_a_refusal</c>
+    /// below, on the branch that one does not enter, and asserted at the same end: two layers
+    /// hold a fallback sentence, so the claim only holds where the reader sees it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_provider_that_will_not_load_reaches_the_report_as_its_code_not_as_elevation()
+    {
+        var enumeration = new Enumeration(_ => (unchecked((int)0x80041013u), 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadDriverSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
+
+        var findings = new LoadedDriversCollector(DriverBlocklist.Empty).Collect(
+            new ProviderSet(new NoRegistry(), new SomeMachine(),
+                drivers: new LiveDriverProvider(new OneAnswer(read))));
+
+        var gap = findings.Single(f => f.Source == "pilotes chargés");
+        var reason = Assert.Single(gap.Reasons);
+
+        Assert.Contains("0x80041013", reason, StringComparison.Ordinal);
+        Assert.DoesNotContain("administrateur", reason, StringComparison.OrdinalIgnoreCase);
+
+        // And the channel a scheduler reads, which no sentence can correct: the gap is a
+        // failure, not a refusal, so the exit code stops asking for privileges the caller
+        // already has.
+        Assert.Equal(AuditGap.Unreadable, gap.Gap);
     }
 
     /// <summary>
