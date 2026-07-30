@@ -228,6 +228,43 @@ public sealed unsafe partial class LiveWmiProvider(TimeSpan? timeout = null) : I
     /// beside it end the walk. What was collected until then was handed over as
     /// <see cref="ReadStatus.Found"/>: a truncated enumeration presented as a complete one.
     /// </para>
+    ///
+    /// <para>
+    /// <b>And so is breaking in mid-walk.</b> The sentence above was written about the
+    /// deadline and was just as true of the other half of the same condition: a
+    /// <em>negative</em> HRESULT — <c>WBEM_E_PROVIDER_FAILURE</c>,
+    /// <c>WBEM_E_CALL_CANCELLED</c>, a repository going bad after <c>ExecQuery</c> succeeded
+    /// — left the loop by the same door as the end of the enumeration, and the objects
+    /// already collected went out as <see cref="ReadStatus.Found"/> with nothing said. Only
+    /// <c>WBEM_S_FALSE</c> ends a walk; a failure ends it short, and
+    /// <see cref="Interrupted"/> names the code that did it while keeping what arrived.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Which is not the same as a failure on the first call.</b> <c>ExecQuery</c> is asked
+    /// with <c>WBEM_FLAG_RETURN_IMMEDIATELY</c>, so it is only semi-synchronous: the query's
+    /// own verdict is delivered here, on the first <c>Next</c> — an unknown class arrives as
+    /// <c>WBEM_E_INVALID_CLASS</c> at this loop and never at the call that asked for it.
+    /// Nothing has been handed over then, so there is no truncated inventory to report, and
+    /// that branch keeps the answer it has always given.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Which is not a silence, and is left standing anyway.</b> That branch drops every
+    /// first-call failure into <see cref="WmiRead.NotFound"/> with no diagnostic, and
+    /// « absent » is not what those codes mean. Measured rather than reasoned:
+    /// <c>WBEM_E_PROVIDER_LOAD_FAILURE</c> (0x80041013) on the first <c>Next</c> leaves here
+    /// as <c>NotFound</c> with a null diagnostic, whereupon <c>LiveDriverProvider</c> falls
+    /// back to its own sentence and the report reads « Énumération des pilotes refusée par
+    /// WMI. Relancer en administrateur » — elevation advised for a provider that merely
+    /// failed to load. <see cref="Classify"/> maps that same code to
+    /// <see cref="WmiRead.Failed"/> with the HRESULT printed, so the two paths contradict
+    /// each other and the one actually reached is the wrong one. Settling it means moving
+    /// Classify's opinion onto this loop, which would also turn every class absent from a
+    /// Windows edition into a failure; two live tests pin the current answer, and this
+    /// correction does not move it. Named here so the next reader finds it stated rather
+    /// than having to measure it again.
+    /// </para>
     /// </summary>
     internal static WmiRead Drain(
         WbemNext next, Func<IntPtr, WmiInstance?> read, TimeSpan budget, string className)
@@ -236,13 +273,17 @@ public sealed unsafe partial class LiveWmiProvider(TimeSpan? timeout = null) : I
         var slot = new IntPtr[1];
         var started = Stopwatch.GetTimestamp();
 
+        // Whether any object has been handed over yet. It is what separates the query
+        // answering late from the walk breaking: see the failure branch below.
+        var walking = false;
+
         while (true)
         {
             var remaining = budget - Stopwatch.GetElapsedTime(started);
 
             if (remaining <= TimeSpan.Zero)
             {
-                return TimedOut(className, budget);
+                return TimedOut(className, budget, instances);
             }
 
             // At least one millisecond: zero is a poll, and a provider that is merely slow
@@ -253,13 +294,39 @@ public sealed unsafe partial class LiveWmiProvider(TimeSpan? timeout = null) : I
 
             if (hresult == WbemSTimedout)
             {
-                return TimedOut(className, budget);
+                return TimedOut(className, budget, instances);
             }
 
-            if (hresult < 0 || returned != 1)
+            if (hresult < 0)
+            {
+                // A failure once objects have been handed over cannot be the query's own
+                // verdict — that one has already been given. The walk broke, and what it
+                // collected is not the machine's inventory: it is said, and kept.
+                if (walking)
+                {
+                    return Interrupted(className, hresult, instances);
+                }
+
+                // Nothing walked yet, so this is ExecQuery answering late: with
+                // WBEM_FLAG_RETURN_IMMEDIATELY the query is only semi-synchronous, and an
+                // unknown class comes back as WBEM_E_INVALID_CLASS here rather than there —
+                // measured on this machine, not assumed. Left exactly as it was, which means
+                // an absent class and a provider that failed to load still leave by the same
+                // door as an empty enumeration — and downstream that is not a silence but a
+                // wrong sentence: NotFound with no diagnostic lets the consumer fall back to
+                // « relancer en administrateur », which Classify would never have said about
+                // the same code. Beyond this correction's reach; measured and set out on Drain.
+                break;
+            }
+
+            // The end of the enumeration, and now the only thing that reaches here:
+            // WBEM_S_FALSE with no object, or a success that handed nothing back.
+            if (returned != 1)
             {
                 break;
             }
+
+            walking = true;
 
             if (read(slot[0]) is { } instance)
             {
@@ -274,10 +341,54 @@ public sealed unsafe partial class LiveWmiProvider(TimeSpan? timeout = null) : I
     /// What a WMI enumeration that ran out of time answers. Named after the class, because
     /// one wedged provider does not make WMI mute and the report has to say which surface
     /// went quiet.
+    ///
+    /// <para>
+    /// <b>It discards what the walk had collected, and now says so.</b> This is the one place
+    /// in this file that does not follow <see cref="Interrupted"/>: <see cref="WmiRead.Failed"/>
+    /// hands back an empty list, so a deadline reached after two hundred objects returns none
+    /// of them. That is #143's decision and it is left standing — a provider that stopped
+    /// answering mid-inventory gives no ground to trust the prefix it did deliver, and
+    /// <c>An_enumeration_that_never_ends_stops_on_its_budget_instead_of_the_scan</c> pins it.
+    /// What was missing was the count: the read dropped its objects in silence, so nothing in
+    /// the report could tell a deadline hit on the first call from one hit after two hundred.
+    /// It is named now, which is the least a discarded inventory owes the reader — and it is
+    /// the honest statement of an asymmetry with <see cref="WmiRead.Partial"/>, not its
+    /// resolution.
+    /// </para>
     /// </summary>
-    private static WmiRead TimedOut(string className, TimeSpan budget) => WmiRead.Failed(
+    private static WmiRead TimedOut(
+        string className, TimeSpan budget, IReadOnlyList<WmiInstance> dropped) => WmiRead.Failed(
         $"L'énumération WMI de {className} n'a pas répondu en {budget.TotalSeconds:0} s. "
-        + "Un fournisseur WMI est peut-être bloqué.");
+        + "Un fournisseur WMI est peut-être bloqué."
+        + (dropped.Count == 0
+            ? string.Empty
+            : $" {dropped.Count} instance(s) déjà lue(s) sont écartées."));
+
+    /// <summary>
+    /// What a WMI enumeration that broke in mid-walk answers: the objects that did arrive,
+    /// and beside them the code that ended the walk and how far it had got.
+    ///
+    /// <para>
+    /// <see cref="WmiRead.Partial"/> and not <see cref="WmiRead.Failed"/>, which would drop
+    /// them. Both are the same status — the enum has three members and none of them is
+    /// « partial » — so what a consumer has to read is the instance list, and every consumer
+    /// of a WMI read was gone over for that.
+    /// </para>
+    ///
+    /// <para>
+    /// The HRESULT is printed, not interpreted. <see cref="Classify"/> owns the question of
+    /// which codes mean « relancer en administrateur » and answers it for a query that never
+    /// started; here the query was accepted — namespace opened, class resolved, objects
+    /// already handed over — so a failure arriving afterwards is not a rights problem and
+    /// must not be dressed as one. That is the invariant CONTRIBUTING records, and the same
+    /// trap #147 found one interface away.
+    /// </para>
+    /// </summary>
+    private static WmiRead Interrupted(
+        string className, int hresult, IReadOnlyList<WmiInstance> instances) =>
+        WmiRead.Partial(instances,
+            $"L'énumération WMI de {className} s'est interrompue sur 0x{(uint)hresult:X8} "
+            + $"après {instances.Count} instance(s) : l'inventaire est incomplet.");
 
     private static WmiInstance ReadProperties(
         IWbemClassObject instance, IReadOnlyList<string> names)

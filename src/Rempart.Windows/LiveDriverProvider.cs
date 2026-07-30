@@ -32,15 +32,6 @@ public sealed class LiveDriverProvider(IWmiProvider wmi) : IDriverProvider
     {
         var read = wmi.Query(Namespace, "Win32_SystemDriver", ["Name", "PathName", "State"]);
 
-        if (read.Status != ReadStatus.Found)
-        {
-            // Never an empty list: this is the surface a BYOVD attack lands on, and
-            // "no drivers" would read as a clean machine rather than as a failed read.
-            return new DriverRead(read.Status, [],
-                read.Diagnostic ?? "Énumération des pilotes refusée par WMI. Relancer en "
-                + "administrateur : un pilote vulnérable chargé resterait invisible.");
-        }
-
         var drivers = new List<LoadedDriver>();
 
         foreach (var instance in read.Instances)
@@ -62,6 +53,20 @@ public sealed class LiveDriverProvider(IWmiProvider wmi) : IDriverProvider
                 instance.Find("Name") ?? Path.GetFileName(path), path));
         }
 
-        return DriverRead.Found(drivers);
+        if (read.Status == ReadStatus.Found)
+        {
+            return DriverRead.Found(drivers);
+        }
+
+        // Never an empty list where the read is: this is the surface a BYOVD attack lands
+        // on, and "no drivers" would read as a clean machine rather than as a failed read.
+        //
+        // What is handed over is what the walk did collect, which used to be discarded here.
+        // A WMI enumeration breaks one object at a time, so a driver already returned before
+        // the provider faulted was dropped along with the failure that followed it — the
+        // silence DET-WMI-MUET closed, re-entered from the other side.
+        return new DriverRead(read.Status, drivers,
+            read.Diagnostic ?? "Énumération des pilotes refusée par WMI. Relancer en "
+            + "administrateur : un pilote vulnérable chargé resterait invisible.");
     }
 }

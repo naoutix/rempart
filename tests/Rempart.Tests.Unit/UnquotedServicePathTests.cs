@@ -74,4 +74,34 @@ public class UnquotedServicePathTests
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Contains("refusée", string.Join(" ", finding.Reasons));
     }
+
+    /// <summary>
+    /// The state between the two: <c>Win32_Service</c> answered for a while and then stopped.
+    ///
+    /// <para>
+    /// This collector opened on « refused → return the finding », which threw away the
+    /// services the walk had already handed over. A machine whose enumeration breaks after
+    /// the vulnerable service would then be told its audit failed and nothing else, with the
+    /// unquoted path sitting in the list that was dropped on the way out. The gap is
+    /// reported <em>and</em> what was read is judged — the shape
+    /// <c>ListeningPortsCollector</c> and <c>ScheduledTasksCollector</c> already take.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_truncated_enumeration_reports_the_gap_and_still_judges_what_it_read()
+    {
+        var findings = Collect(WmiRead.Partial(
+            [
+                Service("BonService", @"C:\Windows\system32\bon.exe -k pool"),
+                Service("MauvaisService", @"C:\Program Files\Éditeur\mauvais.exe"),
+            ],
+            "L'énumération WMI de Win32_Service s'est interrompue sur 0x80041004."));
+
+        Assert.Equal(2, findings.Count);
+
+        var gap = Assert.Single(findings, f => f.Source == "Win32_Service");
+        Assert.Contains("0x80041004", string.Join(" ", gap.Reasons), StringComparison.Ordinal);
+
+        Assert.Single(findings, f => f.Source == "MauvaisService");
+    }
 }

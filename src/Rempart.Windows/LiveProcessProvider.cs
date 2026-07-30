@@ -34,15 +34,6 @@ public sealed class LiveProcessProvider(IWmiProvider wmi) : IProcessProvider
         var read = wmi.Query(Namespace, "Win32_Process",
             ["ProcessId", "ParentProcessId", "Name", "ExecutablePath", "CommandLine"]);
 
-        if (read.Status != ReadStatus.Found)
-        {
-            // No machine runs zero processes. An empty list here could only ever be a
-            // failed read, and reporting it as an inventory would be a lie of omission.
-            return new ProcessRead(read.Status, [],
-                read.Diagnostic ?? "Énumération des processus refusée par WMI. Relancer en "
-                + "administrateur : un exécutable non signé en cours resterait invisible.");
-        }
-
         var processes = new List<RunningProcess>();
 
         foreach (var instance in read.Instances)
@@ -61,7 +52,20 @@ public sealed class LiveProcessProvider(IWmiProvider wmi) : IProcessProvider
                 instance.Find("CommandLine") ?? string.Empty));
         }
 
-        return ProcessRead.Found(processes);
+        if (read.Status == ReadStatus.Found)
+        {
+            return ProcessRead.Found(processes);
+        }
+
+        // No machine runs zero processes. An empty list here could only ever be a failed
+        // read, and reporting it as an inventory would be a lie of omission.
+        //
+        // The processes the walk did collect travel with the failure, for the reason the
+        // driver provider states: an enumeration that broke on its tenth object still holds
+        // nine, and throwing them away hides whichever of them is worth reporting.
+        return new ProcessRead(read.Status, processes,
+            read.Diagnostic ?? "Énumération des processus refusée par WMI. Relancer en "
+            + "administrateur : un exécutable non signé en cours resterait invisible.");
     }
 
     private static int Number(string? value) =>

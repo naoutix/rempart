@@ -29,22 +29,24 @@ public sealed class LoadedDriversCollector(DriverBlocklist blocklist) : IFinding
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
         var read = providers.Drivers.Enumerate();
+        var findings = new List<Finding>();
 
         if (read.Status != ReadStatus.Found)
         {
             // An unreadable driver table is not a machine without drivers. Staying silent
             // here would hide exactly what this collector exists to find: a vulnerable or
             // unsigned driver loaded in the kernel.
-            return
-            [
-                Finding.Refused(
-                    "driver", "pilotes chargés",
-                    [read.Diagnostic ?? "Énumération des pilotes refusée. Relancer en "
-                        + "administrateur : un pilote vulnérable chargé resterait invisible."]),
-            ];
+            //
+            // Added rather than returned, the shape the ports and the scheduler took before
+            // it. The WMI walk under this read hands over one driver at a time and can break
+            // partway, so answering with this finding alone dropped the drivers it did
+            // return — including, on a bad day, the vulnerable one. Only a total failure
+            // leaves it on its own, the loop below having nothing to walk.
+            findings.Add(Finding.Refused(
+                "driver", "pilotes chargés",
+                [read.Diagnostic ?? "Énumération des pilotes refusée. Relancer en "
+                    + "administrateur : un pilote vulnérable chargé resterait invisible."]));
         }
-
-        var findings = new List<Finding>();
 
         foreach (var driver in read.Drivers)
         {

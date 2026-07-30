@@ -463,7 +463,25 @@ public sealed class AnonymiserTests
             // The fifth sibling, and the one that shows why the sweep is written this way:
             // it was an unreachable field when the four above were fixed, and became a live
             // one the day a COM failure started naming itself instead of claiming a denial.
-            Wmi = { ["root/cimv2:Win32_Service"] = WmiRead.Failed($@"COM 0x80041013 : C:\Users\{marker}\svc.exe") },
+            Wmi =
+            {
+                ["root/cimv2:Win32_Service"] =
+                    WmiRead.Failed($@"COM 0x80041013 : C:\Users\{marker}\svc.exe"),
+
+                // A read that failed *and* carries instances, which is the shape a walk
+                // broken in mid-enumeration produces. Both halves have to be scrubbed in the
+                // same pass, and until WmiRead.Partial nothing produced them together: every
+                // factory that wrote a diagnostic handed back an empty list, so the instance
+                // branch had never been exercised beside a written one.
+                ["root/cimv2:Win32_Process"] = WmiRead.Partial(
+                    [
+                        new WmiInstance(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["ExecutablePath"] = $@"C:\Users\{marker}\p.exe",
+                        }),
+                    ],
+                    $@"interrompue sur 0x80041004 : C:\Users\{marker}\p.exe"),
+            },
 
             // The folder a partial task walk names is not free text and is not a profile
             // path: it is a scheduler path, scrubbed by the rule that applies to a task.

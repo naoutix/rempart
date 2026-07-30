@@ -1,5 +1,8 @@
 using System.Runtime.InteropServices;
+using Rempart.Core.Findings;
 using Rempart.Core.Providers;
+using Rempart.Core.Updates;
+using Rempart.Windows;
 using Rempart.Windows.Wmi;
 using Xunit.Abstractions;
 
@@ -291,6 +294,129 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// The count the deadline used to swallow.
+    ///
+    /// <para>
+    /// A timeout discards what the walk had collected — that is #143's decision and the two
+    /// tests above pin it — but it used to discard it without a word. A report could then not
+    /// tell a provider that never answered at all from one that answered two hundred times
+    /// and then stopped: two different machines, two different things to go and look at, one
+    /// identical sentence. The objects are still dropped here; what is asserted is that their
+    /// number no longer is. It is the asymmetry with <see cref="WmiRead.Partial"/> stated,
+    /// not resolved.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_deadline_says_how_many_objects_it_is_discarding()
+    {
+        var enumeration = new Enumeration(call =>
+            call < 4 ? (WbemSNoError, 1) : (WbemSTimedout, 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
+
+        Assert.Empty(read.Instances);
+        Assert.NotNull(read.Diagnostic);
+        Assert.Contains("4 instance(s)", read.Diagnostic, StringComparison.Ordinal);
+
+        // Still never dressed as a refusal: the deadline denied nothing, it ran out.
+        Assert.DoesNotContain("administrateur", read.Diagnostic, StringComparison.OrdinalIgnoreCase);
+
+        // And a deadline reached before anything arrived has no loss to report. « 0
+        // instance(s) écartées » would claim one that never happened, which is the same kind
+        // of false precision as the silence it replaces.
+        var immediate = new Enumeration(_ => (WbemSTimedout, 0));
+
+        var nothing = LiveWmiProvider.Drain(
+            immediate.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_Process");
+
+        Assert.NotNull(nothing.Diagnostic);
+        Assert.DoesNotContain("instance(s)", nothing.Diagnostic, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The third way a walk ends short, and the one the two above left standing: <c>Next</c>
+    /// returns a <em>failure</em> once the enumeration is already running.
+    ///
+    /// <para>
+    /// <c>ExecQuery</c> had succeeded, so the namespace was open and the class was there;
+    /// what breaks afterwards is the provider answering the walk — a third-party WMI
+    /// provider that faults, a repository that goes bad, a call cancelled underneath. The
+    /// loop treated that exactly like the end of the enumeration, and handed over what it
+    /// had collected as <see cref="ReadStatus.Found"/>: a truncated inventory presented as
+    /// the machine's.
+    /// </para>
+    ///
+    /// <para>
+    /// Both halves are asserted together, because it is their conjunction that is the fix.
+    /// Not <c>Found</c> — the list is not the machine's inventory. And not empty either:
+    /// dropping the three objects that did arrive would trade one silence for another, which
+    /// is what <c>ListeningPortRead.Partial</c> and <c>ScheduledTaskRead.Partial</c> exist to
+    /// prevent one interface over.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(0x80041004u)] // WBEM_E_PROVIDER_FAILURE: the provider broke while answering
+    [InlineData(0x80041032u)] // WBEM_E_CALL_CANCELLED
+    [InlineData(0x80041015u)] // WBEM_E_TRANSPORT_FAILURE
+    public void An_enumeration_broken_mid_walk_keeps_what_it_read_and_names_the_code(uint hresult)
+    {
+        var enumeration = new Enumeration(call =>
+            call < 3 ? (WbemSNoError, 1) : (unchecked((int)hresult), 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
+
+        Assert.NotEqual(ReadStatus.Found, read.Status);
+        Assert.Equal(3, read.Instances.Count);
+
+        Assert.NotNull(read.Diagnostic);
+        Assert.Contains("Win32_SystemDriver", read.Diagnostic, StringComparison.Ordinal);
+
+        // The code, printed as itself. It is the only thing a reader can search for, and the
+        // one this layer must not interpret: 0x80041004 and 0x80041045 sit two digits apart
+        // and mean « ce fournisseur est cassé » and « rappelle plus tard ».
+        Assert.Contains($"0x{hresult:X8}", read.Diagnostic, StringComparison.Ordinal);
+
+        // And never « relancer en administrateur ». The query had already been accepted, so
+        // nothing was denied to this scan; advising elevation to a user who has it is the
+        // confusion that left WMI mute for two milestones, and #147 found it again next door.
+        Assert.DoesNotContain("administrateur", read.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refus", read.Diagnostic, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The boundary of the case above, and the reason it is drawn where it is.
+    ///
+    /// <para>
+    /// <c>ExecQuery</c> is asked with <c>WBEM_FLAG_RETURN_IMMEDIATELY</c>, so it is only
+    /// semi-synchronous and the query's own verdict lands on the first <c>Next</c>. An
+    /// unknown class reaches this loop as <c>WBEM_E_INVALID_CLASS</c> — measured on this
+    /// machine, and the reason <c>An_unknown_class_yields_no_instances</c> above passes at
+    /// all. Nothing was handed over, so there is no truncated inventory to report, and
+    /// calling it one would turn every class absent from a Windows edition into a failure.
+    /// </para>
+    ///
+    /// <para>
+    /// Written against the fake rather than left to the live test, which is guarded and
+    /// silently skips on a runner whose WMI is not answering — the branch would then be
+    /// unwatched on exactly the machines where it matters.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_failure_on_the_very_first_call_is_the_query_answering_late()
+    {
+        var enumeration = new Enumeration(_ => (unchecked((int)0x80041010u), 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_CetteClasseNExistePas");
+
+        Assert.Equal(ReadStatus.NotFound, read.Status);
+        Assert.Empty(read.Instances);
+        Assert.Null(read.Diagnostic);
+    }
+
+    /// <summary>
     /// Every wait is what is left of the budget, not the budget again: a provider handing
     /// back one object just before each deadline would otherwise never exhaust anything, and
     /// the ceiling would bound a single call rather than the enumeration.
@@ -333,5 +459,154 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
 
         Assert.Equal(ReadStatus.NotFound, LiveWmiProvider.Drain(
             none.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_OperatingSystem").Status);
+    }
+
+    /// <summary>Answers the same read to every query, whatever is asked of it.</summary>
+    private sealed class OneAnswer(WmiRead read) : IWmiProvider
+    {
+        public WmiRead Query(
+            string namespacePath, string className, IReadOnlyList<string> properties) => read;
+    }
+
+    private static WmiInstance Instance(params (string Name, string Value)[] properties) =>
+        new(properties.ToDictionary(p => p.Name, p => p.Value, StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The two consumers of <see cref="WmiRead"/> that live on this side of the wall, and
+    /// the reason a <c>Partial</c> read had to be walked all the way through rather than
+    /// just produced.
+    ///
+    /// <para>
+    /// Both opened on « <c>Status != Found</c> → an empty list plus a sentence », which was
+    /// right while the only failures were total. A partial read handed to that shape loses
+    /// every driver and every process it did collect, and the report says « aucun pilote » —
+    /// the very silence DET-WMI-MUET closed, re-entered through the door this fix opens.
+    /// Both surfaces in one test because it is the shared shape that is the invariant.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_partial_read_keeps_its_drivers_and_its_processes()
+    {
+        const string Reason = "Interrompue sur 0x80041004 après 1 instance(s).";
+
+        var drivers = new LiveDriverProvider(new OneAnswer(WmiRead.Partial(
+            [
+                Instance(
+                    ("Name", "pilote"),
+                    ("PathName", @"C:\Windows\System32\drivers\x.sys"),
+                    ("State", "Running")),
+            ],
+            Reason))).Enumerate();
+
+        Assert.NotEqual(ReadStatus.Found, drivers.Status);
+        Assert.Equal("pilote", Assert.Single(drivers.Drivers).Name);
+        Assert.Equal(Reason, drivers.Diagnostic);
+
+        var processes = new LiveProcessProvider(new OneAnswer(WmiRead.Partial(
+            [
+                Instance(
+                    ("ProcessId", "1234"),
+                    ("Name", "p.exe"),
+                    ("ExecutablePath", @"C:\Temp\p.exe")),
+            ],
+            Reason))).Enumerate();
+
+        Assert.NotEqual(ReadStatus.Found, processes.Status);
+        Assert.Equal(1234, Assert.Single(processes.Processes).Pid);
+        Assert.Equal(Reason, processes.Diagnostic);
+    }
+
+    /// <summary>
+    /// The half that must not move on those two: a total failure still answers an empty
+    /// list, so nothing reads a refused enumeration as a machine with one driver in it.
+    /// Asserted beside the case above rather than apart, because the fix is the
+    /// <em>difference</em> between them.
+    /// </summary>
+    [Fact]
+    public void A_total_failure_still_answers_an_empty_inventory()
+    {
+        var drivers = new LiveDriverProvider(
+            new OneAnswer(WmiRead.Failed("COM 0x80041010 : dépôt endommagé."))).Enumerate();
+
+        Assert.Equal(ReadStatus.AccessDenied, drivers.Status);
+        Assert.Empty(drivers.Drivers);
+        Assert.Equal("COM 0x80041010 : dépôt endommagé.", drivers.Diagnostic);
+
+        var processes = new LiveProcessProvider(
+            new OneAnswer(WmiRead.AccessDenied)).Enumerate();
+
+        Assert.Equal(ReadStatus.AccessDenied, processes.Status);
+        Assert.Empty(processes.Processes);
+
+        // WmiRead.AccessDenied carries no diagnostic — a genuine refusal has nothing to
+        // explain — so the consumer's own sentence is what reaches the report.
+        Assert.Contains("administrateur", processes.Diagnostic!, StringComparison.Ordinal);
+    }
+
+    /// <summary>A slot that decodes into a running driver, so a real walk carries real ones.</summary>
+    private static WmiInstance? ReadDriverSlot(IntPtr pointer) =>
+        new(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Name"] = $"pilote{pointer}",
+            ["PathName"] = $@"C:\Windows\System32\drivers\pilote{pointer}.sys",
+            ["State"] = "Running",
+        });
+
+    /// <summary>The two providers <see cref="ProviderSet"/> demands and this test never reads.</summary>
+    private sealed class NoRegistry : IRegistryProvider
+    {
+        public RegistryRead ReadValue(string keyPath, string valueName) => RegistryRead.NotFound;
+
+        public ReadStatus KeyExists(string keyPath) => ReadStatus.NotFound;
+
+        public RegistryValueList ListValues(string keyPath) => RegistryValueList.NotFound;
+
+        public RegistrySubKeyList ListSubKeys(string keyPath) => RegistrySubKeyList.NotFound;
+    }
+
+    private sealed class SomeMachine : ISystemInfoProvider
+    {
+        public SystemInfo Read() => new("TEST", "10.0.26200", true, false, 8, 0, "UEFI");
+    }
+
+    /// <summary>
+    /// The invariant asserted where it is actually read, rather than where it is produced.
+    ///
+    /// <para>
+    /// Every other test here stops at the <see cref="WmiRead"/>, which leaves the claim — the
+    /// HRESULT never disguises itself as a rights refusal — resting on a string that two more
+    /// layers are entitled to replace. <c>LiveDriverProvider</c> holds a fallback sentence
+    /// advising elevation and <c>LoadedDriversCollector</c> holds another; both fire on
+    /// <c>Diagnostic == null</c>, so the whole invariant hangs on one diagnostic surviving the
+    /// trip from the COM loop to the finding. Measured on the first-call branch, that trip
+    /// fails: a <c>NotFound</c> with no diagnostic comes out of the report as « relancer en
+    /// administrateur ». So the chain is walked here rather than assumed, real
+    /// <see cref="LiveWmiProvider.Drain"/> at one end and the real collector at the other.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_broken_walk_reaches_the_report_as_its_code_and_never_as_a_refusal()
+    {
+        var enumeration = new Enumeration(call =>
+            call < 2 ? (WbemSNoError, 1) : (unchecked((int)0x80041004u), 0));
+
+        var read = LiveWmiProvider.Drain(
+            enumeration.Next, ReadDriverSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
+
+        var findings = new LoadedDriversCollector(DriverBlocklist.Empty).Collect(
+            new ProviderSet(new NoRegistry(), new SomeMachine(),
+                drivers: new LiveDriverProvider(new OneAnswer(read))));
+
+        var reason = Assert.Single(findings.Single(f => f.Source == "pilotes chargés").Reasons);
+
+        Assert.Contains("0x80041004", reason, StringComparison.Ordinal);
+
+        // The point of the whole chain, at its end rather than at its start.
+        Assert.DoesNotContain("administrateur", reason, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refus", reason, StringComparison.OrdinalIgnoreCase);
+
+        // And the two drivers the walk did hand over are judged, not dropped alongside the
+        // failure that followed them.
+        Assert.Equal(2, findings.Count(f => f.Source != "pilotes chargés"));
     }
 }

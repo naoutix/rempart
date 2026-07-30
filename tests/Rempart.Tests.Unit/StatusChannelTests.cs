@@ -476,6 +476,117 @@ public sealed class StatusChannelTests
         Assert.Empty(read.Lines);
     }
 
+    /// <summary>
+    /// The WMI read's version of the partial branch, through the same four steps: recorded by
+    /// the scan, serialised into the capture, replayed out of it, and — next door in
+    /// <c>AnonymiserTests</c> — scrubbed.
+    ///
+    /// <para>
+    /// No field was added for it, and that is what this checks. <c>WmiRead</c> already
+    /// carried a status, a list and a diagnostic; what is new is the <em>combination</em> —
+    /// a failed status beside a non-empty list, which no capture written before this could
+    /// hold, because a diagnostic implied an empty list by construction. The three keys are
+    /// serialised individually today and that says nothing about the trio surviving
+    /// together, which is precisely the branch a truncated enumeration lands in.
+    /// </para>
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object, for the reason the
+    /// scheduler test gives: the capture is a <em>file</em>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_truncated_wmi_walk_is_recorded_serialised_and_replayed_with_its_instances()
+    {
+        const string Namespace = @"root\CIMV2";
+        const string Class = "Win32_SystemDriver";
+        string[] properties = ["Name"];
+
+        const string Reason =
+            "L'énumération WMI de Win32_SystemDriver s'est interrompue sur 0x80041004 "
+            + "après 1 instance(s) : l'inventaire est incomplet.";
+
+        var snapshot = new MachineSnapshot();
+        var source = new CountingWmiProvider(WmiRead.Partial(
+            [
+                new WmiInstance(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Name"] = "pilote",
+                }),
+            ],
+            Reason));
+
+        var first = new RecordingWmiProvider(source, snapshot).Query(Namespace, Class, properties);
+
+        Assert.Equal(1, source.Calls);
+        Assert.Equal(ReadStatus.AccessDenied, first.Status);
+
+        var replayed = new SnapshotWmiProvider(
+                RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot)))
+            .Query(Namespace, Class, properties);
+
+        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+        Assert.Equal(Reason, replayed.Diagnostic);
+        Assert.Equal("pilote", Assert.Single(replayed.Instances).Find("Name"));
+    }
+
+    /// <summary>
+    /// The compatibility half, on a versioned capture that really predates any of this.
+    /// <c>default-win11</c> holds eight <c>wmi</c> entries, and the three that came back with
+    /// nothing — one refusal on <c>Win32_EncryptableVolume</c>, two absences under
+    /// <c>root\subscription</c> — record their status with an empty list and a null
+    /// diagnostic, the only shape this read could take before a walk was allowed to come back
+    /// half-done. The premise below is asserted over all eight rather than over the one the
+    /// test then reads, so a capture regenerated with a fourth does not slip past it.
+    /// </summary>
+    [Fact]
+    public void A_wmi_read_captured_before_partial_existed_replays_exactly_as_recorded()
+    {
+        var json = File.ReadAllText(Path.Combine(
+            FixtureReplayTests.FixtureDirectory, "synthetic", "default-win11.capture.json"));
+
+        using (var document = JsonDocument.Parse(json))
+        {
+            // The premise, asserted rather than assumed: the day this capture is regenerated
+            // with a truncated walk in it, it stops being evidence about older ones.
+            Assert.DoesNotContain(
+                document.RootElement.GetProperty("wmi").EnumerateObject(),
+                entry => entry.Value.GetProperty("status").GetString() != "Found"
+                    && entry.Value.GetProperty("instances").GetArrayLength() > 0);
+        }
+
+        var wmi = new SnapshotWmiProvider(RempartJson.DeserialiseSnapshot(json));
+
+        // A recorded failure: still a failure, still empty, still without a diagnostic —
+        // inventing one would put a NOTABLE on every capture older than this batch.
+        var denied = wmi.Query(
+            @"root\CIMV2\Security\MicrosoftVolumeEncryption",
+            "Win32_EncryptableVolume",
+            ["ProtectionStatus"]);
+
+        Assert.Equal(ReadStatus.AccessDenied, denied.Status);
+        Assert.Empty(denied.Instances);
+        Assert.Null(denied.Diagnostic);
+
+        // And a recorded success keeps every instance it recorded.
+        var services = wmi.Query(@"root\CIMV2", "Win32_Service", ["Name", "PathName"]);
+
+        Assert.Equal(ReadStatus.Found, services.Status);
+        Assert.NotEmpty(services.Instances);
+    }
+
+    private sealed class CountingWmiProvider(WmiRead answer) : IWmiProvider
+    {
+        public int Calls { get; private set; }
+
+        public WmiRead Query(
+            string namespacePath, string className, IReadOnlyList<string> properties)
+        {
+            Calls++;
+            return answer;
+        }
+    }
+
     private const string RunKey = @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
     /// <summary>
