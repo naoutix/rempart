@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Rempart.Core.Json;
@@ -121,30 +120,7 @@ public class DatasetHoleTests
         }
     }
 
-    /// <summary>
-    /// The kinds a table declares, in both forms a string field can take.
-    ///
-    /// <para>
-    /// <c>const</c> is what <see cref="DatasetKind"/> writes today and the only form the
-    /// first version of this read saw. <c>static readonly</c> is just as legitimate, and is
-    /// the only form left the day a kind's value stops being a literal — a kind declared
-    /// that way would have arrived with no reader, no exclusion and no red.
-    /// </para>
-    ///
-    /// <para>
-    /// What it still cannot see, and the honest limit of the guard below: a kind that never
-    /// becomes a field of the table at all. A string written straight into a
-    /// <c>switch</c> arm routes just as well and is invisible here.
-    /// </para>
-    /// </summary>
-    private static IReadOnlyList<string> KindsDeclaredOn(Type table) =>
-        [.. table
-            .GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Where(field => field.FieldType == typeof(string) && (field.IsLiteral || field.IsInitOnly))
-            .Select(field => field.IsLiteral ? field.GetRawConstantValue() : field.GetValue(null))
-            .OfType<string>()];
-
-    /// <summary>A table declaring one kind in each of the two forms, for the read above.</summary>
+    /// <summary>A table declaring one kind in each of the two forms, for the read below.</summary>
     private static class KindsInBothForms
     {
         public const string Written = "written";
@@ -157,12 +133,18 @@ public class DatasetHoleTests
     /// The read that feeds the guard sees both forms. Narrowed to <c>IsLiteral</c> it saw
     /// only the const, and the guard stayed green while blind — the one thing a guard must
     /// never do.
+    ///
+    /// <para>
+    /// The read itself now lives in <see cref="StringTables"/>, because the guard in
+    /// <c>UpdatePlannerTests</c> derives its coverage from the same table and had its own
+    /// half-blind copy of it. One read, tested here, used by both.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_kind_table_is_read_in_both_forms_a_string_field_can_take() =>
         Assert.Equal(
             ["computed", "written"],
-            KindsDeclaredOn(typeof(KindsInBothForms)).Order(StringComparer.Ordinal));
+            StringTables.Declared(typeof(KindsInBothForms)).Order(StringComparer.Ordinal));
 
     /// <summary>
     /// The sweep above walks the fields by construction; this one keeps the list of
@@ -174,7 +156,7 @@ public class DatasetHoleTests
     [Fact]
     public void Every_dataset_kind_the_channel_routes_is_swept_or_declared_out_of_scope()
     {
-        var declared = KindsDeclaredOn(typeof(DatasetKind));
+        var declared = StringTables.Declared(typeof(DatasetKind));
 
         // Reflection that stopped finding anything would make this vacuously green.
         Assert.NotEmpty(declared);

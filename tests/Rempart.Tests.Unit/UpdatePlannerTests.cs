@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -380,19 +379,45 @@ public class UpdatePlannerTests
     /// what a valid one looks like. <c>Binary</c> is excluded because it is not a dataset:
     /// it exists so the seal can reuse the signed envelope, and the store refuses it.
     /// </para>
+    ///
+    /// <para>
+    /// Through <see cref="StringTables"/>, which reads both forms a public static string
+    /// field can take. This read used to be its own copy, narrowed to <c>IsLiteral</c>: a
+    /// kind declared <c>public static readonly string</c> was invisible to it, so the guard
+    /// would have stayed green while checking one kind fewer (issue #163).
+    /// </para>
+    ///
+    /// <para>
+    /// Which is why the coverage is held in <em>both</em> directions against
+    /// <see cref="Samples"/>. A read that returns a subset of the table leaves every kind it
+    /// did return correct, so nothing in the loop below can notice — and now that the read is
+    /// shared with <c>DatasetHoleTests</c>, whose guard asks « is anything unswept », a
+    /// question a shorter list only answers better, one narrowing would otherwise blind two
+    /// guards at once. <c>Samples</c> is the list that does not come from reflection, so a
+    /// kind that stops being read arrives here as a sample nobody claims. Same shape as the
+    /// fact-name guard in <c>Rempart.Tests.Windows</c>, which holds its reflected list
+    /// against the surfaces table for the same reason.
+    /// </para>
     /// </summary>
     [Fact]
     public void Every_dataset_kind_the_channel_declares_can_be_planned()
     {
-        var kinds = typeof(DatasetKind)
-            .GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
-            .Select(f => (string)f.GetRawConstantValue()!)
+        var kinds = StringTables.Declared(typeof(DatasetKind))
             .Where(kind => kind != DatasetKind.Binary)
             .ToList();
 
-        // Without this the test would pass vacuously if reflection ever stopped matching.
-        Assert.Equal(3, kinds.Count);
+        // The direction the loop below cannot check, and the one that keeps this from passing
+        // vacuously: a kind the read stopped seeing. It subsumes « the read found nothing »,
+        // Samples being non-empty, and it names the kind instead of reporting a count that
+        // differs — a hand-kept three would have gone red here on a newly declared kind too,
+        // on an arithmetic mismatch rather than on the message that says what to do about it.
+        var unread = Samples.Keys.Except(kinds, StringComparer.Ordinal).ToList();
+
+        Assert.True(unread.Count == 0,
+            $"Exemple(s) sans type déclaré correspondant : {string.Join(", ", unread)}. "
+            + "Soit le type a disparu de DatasetKind et l'exemple est à retirer, soit la "
+            + "lecture par réflexion a cessé de le voir et cette garde en vérifie un de "
+            + "moins sans le dire.");
 
         foreach (var kind in kinds)
         {

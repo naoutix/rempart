@@ -30,6 +30,100 @@ public sealed class StatusChannelTests
     private static readonly LoadedDriver Driver = new("syndrv64", @"C:\Windows\System32\drivers\x.sys");
 
     /// <summary>
+    /// Whether a versioned capture really carries something under <paramref name="name"/>, as
+    /// opposed to merely having the key.
+    ///
+    /// <para>
+    /// Every compatibility test below rests on the same premise — this fixture predates a
+    /// field — and the only durable way to state it is on the <em>value</em>.
+    /// <see cref="RempartJsonContext"/> is declared
+    /// <c>DefaultIgnoreCondition = JsonIgnoreCondition.Never</c>, so the serialiser writes
+    /// every field of every object handed to it, and the next run of
+    /// <c>scripts/regenerate-fixtures.ps1</c> — prescribed by CONTRIBUTING after any change to
+    /// the rule catalogue — rewrites these captures with the key present and empty. Measured
+    /// by running <c>rempart synthesise</c> over both fixtures: <c>"diagnostic": null</c>,
+    /// <c>"gaps": null</c>, <c>"hostsFileStatus": null</c> and
+    /// <c>"registryListsStatus": {}</c>. A premise reading <c>TryGetProperty</c> alone goes
+    /// red there on files whose meaning has not changed — measured too: it fails these four
+    /// tests and no other, out of 953 — in the middle of an unrelated pull request, and the
+    /// only obvious gesture is to delete the assertion, which is the premise that made the
+    /// replay test worth running (issue #163).
+    /// </para>
+    ///
+    /// <para>
+    /// The rule, and the only one that generalises: a shape carries nothing when it
+    /// deserialises to exactly what an <em>absent</em> key deserialises to. Null qualifies,
+    /// and so does an empty map, a non-nullable <c>Dictionary</c> property being left on its
+    /// <c>[]</c> initialiser either way — which is why the map shape is needed at all, such a
+    /// property never being written null. Every other shape counts as something, so the day a
+    /// capture does record a status these tests go red and say they have stopped being
+    /// evidence about the captures that could not.
+    /// </para>
+    ///
+    /// <para>
+    /// An empty <em>array</em> deliberately does not qualify, and the difference is not
+    /// cosmetic: every collection these five fields deserialise into is nullable, so <c>[]</c>
+    /// arrives as an empty list where an absent key arrives as null. Measured rather than
+    /// assumed — planting <c>"gaps": []</c> in a fixture and answering <c>false</c> here lets
+    /// the premise stand and moves the red one line down onto
+    /// <c>Assert.Null(read.Gaps)</c>, which is the same test failing with nothing to say. The
+    /// case is pinned below so that answering <c>false</c> for it is a red with this reason
+    /// attached rather than a plausible-looking one-line edit.
+    /// </para>
+    /// </summary>
+    private static bool Carries(JsonElement parent, string name) =>
+        parent.TryGetProperty(name, out var written) && written.ValueKind switch
+        {
+            JsonValueKind.Null => false,
+            JsonValueKind.Object => written.EnumerateObject().Any(),
+            _ => true,
+        };
+
+    /// <summary>
+    /// The reading the five premises rest on, pinned shape by shape — because a premise that
+    /// cannot itself be wrong is a premise nobody checks. Every branch of the switch above is
+    /// exercised here, the catch-all included, so neither widening it nor narrowing it is a
+    /// silent edit.
+    ///
+    /// <para>
+    /// Narrowed back to the presence of the key, this goes red on <c>nul</c> — the absent key
+    /// above it still reads false, <c>TryGetProperty</c> being right about that one and only
+    /// that one, which is exactly why the bug of #163 was invisible: the shape a premise was
+    /// written against is the one shape the broken reading gets right.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_key_written_empty_carries_no_more_than_a_key_that_is_absent()
+    {
+        using var document = JsonDocument.Parse(
+            """
+            {"nul":null,"carteVide":{},"statut":"Found","tableauVide":[],
+             "carteRemplie":{"HKLM\\Run":"AccessDenied"},"texte":"Pare-feu non lu.",
+             "tableauRempli":[{"chemin":"\\Microsoft"}]}
+            """);
+
+        var root = document.RootElement;
+
+        // The shapes a regeneration writes for a field no capture recorded. All of them
+        // replay as the absent key does, so all of them leave the premise standing.
+        Assert.False(Carries(root, "jamaisEcrit"));
+        Assert.False(Carries(root, "nul"));
+        Assert.False(Carries(root, "carteVide"));
+
+        // And what a capture that really recorded something looks like.
+        Assert.True(Carries(root, "statut"));
+        Assert.True(Carries(root, "carteRemplie"));
+        Assert.True(Carries(root, "texte"));
+
+        // An empty array is on this side of the line, not the one above: the list-typed
+        // fields these premises read are nullable, so [] is an empty list and not the null an
+        // absent key gives. See the reason on Carries — answering false here hides the change
+        // from the premise and lets the same test fail one line later instead.
+        Assert.True(Carries(root, "tableauVide"));
+        Assert.True(Carries(root, "tableauRempli"));
+    }
+
+    /// <summary>
     /// The branch no fixture covers, on the surface it was written for. A capture taken on a
     /// machine whose WMI answered nothing recorded <c>AccessDenied</c> and an empty list;
     /// replaying that as <c>Found</c> would turn a machine nobody could audit into a machine
@@ -316,9 +410,10 @@ public sealed class StatusChannelTests
         using (var document = JsonDocument.Parse(json))
         {
             // The premise of the test, asserted rather than assumed: the day this capture is
-            // regenerated with a diagnostic, it stops being evidence about older ones.
+            // regenerated with a diagnostic, it stops being evidence about older ones. On the
+            // value and never on the key — see Carries.
             Assert.False(
-                document.RootElement.GetProperty("firewall").TryGetProperty("diagnostic", out _),
+                Carries(document.RootElement.GetProperty("firewall"), "diagnostic"),
                 "La fixture porte désormais un diagnostic : elle ne prouve plus la "
                 + "compatibilité des captures antérieures au champ.");
         }
@@ -396,9 +491,10 @@ public sealed class StatusChannelTests
         using (var document = JsonDocument.Parse(json))
         {
             // The premise of the test, asserted rather than assumed: the day this capture is
-            // regenerated with gaps, it stops being evidence about older ones.
+            // regenerated with gaps, it stops being evidence about older ones. On the value
+            // and never on the key — see Carries.
             Assert.False(
-                document.RootElement.GetProperty("scheduledTasks").TryGetProperty("gaps", out _),
+                Carries(document.RootElement.GetProperty("scheduledTasks"), "gaps"),
                 "La fixture porte désormais des lacunes de parcours : elle ne prouve plus la "
                 + "compatibilité des captures antérieures au champ.");
         }
@@ -462,8 +558,9 @@ public sealed class StatusChannelTests
         using (var document = JsonDocument.Parse(json))
         {
             // The premise of the test, asserted rather than assumed: the day this capture is
-            // regenerated with a status, it stops being evidence about older ones.
-            Assert.False(document.RootElement.TryGetProperty("hostsFileStatus", out _),
+            // regenerated with a status, it stops being evidence about older ones. On the
+            // value and never on the key — see Carries.
+            Assert.False(Carries(document.RootElement, "hostsFileStatus"),
                 "La fixture porte désormais un statut de lecture du fichier hosts : elle ne "
                 + "prouve plus la compatibilité des captures antérieures au champ.");
         }
@@ -640,15 +737,9 @@ public sealed class StatusChannelTests
     ///
     /// <para>
     /// The premise is asserted on the <em>value</em> and not on the presence of the key, and
-    /// the difference is the whole reliability of this test.
-    /// <see cref="RempartJsonContext"/> is declared
-    /// <c>DefaultIgnoreCondition = JsonIgnoreCondition.Never</c>, so the next run of
-    /// <c>scripts/regenerate-fixtures.ps1</c> — prescribed by its own header after any change
-    /// to the rule catalogue — writes <c>"diagnostic": null</c> on all six entries of all
-    /// four captures, exactly as the <c>wmi</c> blocks beside them already carry it. A
-    /// premise reading <c>TryGetProperty</c> would then fail on four files that had not
-    /// changed meaning, in the middle of an unrelated pull request, and accuse them of
-    /// having lost their evidential value.
+    /// the difference is the whole reliability of this test — see <see cref="Carries"/>, which
+    /// is where that reading now lives for all five premises of this file rather than being
+    /// spelled out once per test and got right only here.
     /// </para>
     ///
     /// <para>
@@ -676,8 +767,7 @@ public sealed class StatusChannelTests
                 // failure, it stops being evidence about captures that could not.
                 Assert.DoesNotContain(
                     document.RootElement.GetProperty("services").EnumerateObject(),
-                    entry => entry.Value.TryGetProperty("diagnostic", out var reason)
-                        && reason.ValueKind is not JsonValueKind.Null);
+                    entry => Carries(entry.Value, "diagnostic"));
             }
 
             var services = new SnapshotServiceStateProvider(
@@ -775,7 +865,10 @@ public sealed class StatusChannelTests
 
         using (var document = JsonDocument.Parse(json))
         {
-            Assert.False(document.RootElement.TryGetProperty("registryListsStatus", out _),
+            // On the value and never on the key — see Carries. This one is the reason the
+            // reading has to know about maps at all: RegistryListsStatus is a non-nullable
+            // Dictionary initialised to [], so a regeneration writes it {} rather than null.
+            Assert.False(Carries(document.RootElement, "registryListsStatus"),
                 "La fixture porte désormais un statut d'énumération : elle ne prouve plus la "
                 + "compatibilité des captures antérieures au champ.");
         }

@@ -532,17 +532,22 @@ public sealed class LiveSecurityPolicyProviderTests(ITestOutputHelper output)
     /// <see cref="PolicyFactNames"/> is a free-form string in the one place the project keeps
     /// them out of.
     /// </para>
+    ///
+    /// <para>
+    /// Through <see cref="NamesDeclaredOn"/>, which sees both forms a string field can take.
+    /// Narrowed to <c>IsLiteral</c>, as this read was when it was written, the direction that
+    /// matters was the blind one: a name added as <c>public static readonly string</c> is
+    /// missing from <em>both</em> lists, so it stays out of <c>unclaimed</c>, out of
+    /// <c>stray</c>, and out of the count — and the fact nobody establishes arrives with the
+    /// guard still green (issue #163).
+    /// </para>
     /// </summary>
     [Fact]
     public void Every_fact_name_a_rule_can_read_is_claimed_by_exactly_one_surface()
     {
         var declared = LiveSecurityPolicyProvider.DeclaredFacts();
 
-        var named = typeof(PolicyFactNames)
-            .GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Where(field => field is { IsLiteral: true, FieldType: { } type } && type == typeof(string))
-            .Select(field => (string)field.GetRawConstantValue()!)
-            .ToList();
+        var named = NamesDeclaredOn(typeof(PolicyFactNames));
 
         var unclaimed = named.Except(declared, StringComparer.Ordinal).ToList();
         Assert.True(unclaimed.Count == 0,
@@ -601,6 +606,50 @@ public sealed class LiveSecurityPolicyProviderTests(ITestOutputHelper output)
         Assert.Equal(established.Count, PolicyFactNames.All.Count);
         Assert.NotEmpty(established);
     }
+
+    /// Every string a static table declares, in both forms a public static string field can
+    /// take: <c>const</c>, which is what <see cref="PolicyFactNames"/> writes today, and
+    /// <c>static readonly</c>, which is the only form left the day a name stops being a
+    /// compile-time literal.
+    ///
+    /// <para>
+    /// A near-copy of <c>StringTables.Declared</c> in the unit suite, and copied only because
+    /// it has to be: the two test projects are separate assemblies targeting different
+    /// frameworks, neither references the other, and this repository links no file across
+    /// them. Both copies are pinned by their own two-form test rather than left to be trusted.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<string> NamesDeclaredOn(Type table) =>
+        [.. table
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.FieldType == typeof(string)
+                && (field.IsLiteral || field.IsInitOnly))
+            // GetRawConstantValue is the only one that answers for a const, GetValue the only
+            // one that answers for a static readonly.
+            .Select(field => field.IsLiteral
+                ? field.GetRawConstantValue()
+                : field.GetValue(null))
+            .OfType<string>()];
+
+    /// <summary>A table declaring one name in each of the two forms, for the read above.</summary>
+    private static class NamesInBothForms
+    {
+        public const string Written = "written";
+
+        /// <summary>Not a const, and could not be — the case the first read missed.</summary>
+        public static readonly string Computed = string.Concat("comp", "uted");
+    }
+
+    /// <summary>
+    /// The read that feeds the guard above sees both forms. Narrowed to <c>IsLiteral</c> it
+    /// saw only the const, and the guard stayed green while blind — the one thing a guard
+    /// must never do.
+    /// </summary>
+    [Fact]
+    public void The_fact_name_table_is_read_in_both_forms_a_string_field_can_take() =>
+        Assert.Equal(
+            ["computed", "written"],
+            NamesDeclaredOn(typeof(NamesInBothForms)).Order(StringComparer.Ordinal));
 
     /// <summary>
     /// A scripted netapi32 enumeration: it hands back the status codes it was given, one per
