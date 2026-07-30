@@ -111,7 +111,7 @@ JSON report and a console rendering. Each proves something the others cannot:
 
 | Fixture | Posture | What it alone proves |
 |---|---|---|
-| `default-win11` | Windows defaults, elevated | The report of a machine nobody hardened: 52/100, 49 failing controls. Exits `5` — `WIN-ENC-001` is unverifiable even elevated |
+| `default-win11` | Windows defaults, elevated | The report of a machine nobody hardened: 52/100, 49 failing controls. Exits `5` on two counts — `WIN-ENC-001` is unverifiable even elevated, and the capture predates the collection of drivers, processes and listening ports, so the replay also reports three surfaces it never looked at |
 | `hardened-win11` | Hardened, elevated | 100/100 and not one `Unknown`, so the success path is exercised too. Exits `5` all the same: it predates the collection of drivers, processes and listening ports, and a replay says so rather than passing for a full audit |
 | `restricted-access` | Hardened, **not** elevated, LSA denied | A perfect score built on partial visibility: 100/100 with four controls `Unknown`. This case is why exit code `5` exists — though the fixture itself exits `3`, the LSA lists being a denial the caller can answer |
 | `compromised-win11` | Windows defaults, elevated, **intrusion planted** | 7 `Suspicious` and 3 `Notable` findings. Before it existed, every reference output froze "nothing found" — the same reassuring shape a broken scan has |
@@ -619,11 +619,20 @@ the HTML, then stopped at the one channel a scheduler reads.
 `AuditGap` has three values because a gap has three possible owners, and the owner is
 what decides the code. `Refused` is the caller's rights, and lands on `3`. `Broken` is
 our bug, and lands on `1`. `Unreadable` is the machine's own state — a WMI repository
-that no longer serves, a service control manager that will not open, a capture replayed
-for a surface it never held — and lands on `5`, because neither elevating nor filing a
-bug moves it. Which of the two a read is never a collector's judgement: every provider
-writes a diagnostic for a failure and leaves it null for a denial, and `Finding.Unread`
-is the one place that reads the rule.
+that no longer serves, a listening table that failed a call needing no privilege, a
+browser profile whose preferences will not parse, a capture replayed for a surface it
+never held — and lands on `5`, because neither elevating nor filing a bug moves it.
+
+Which of the two a gap is, **the collector says**, and it says so because it is the only
+thing that knows. There is no rule across the providers to read it off: one
+`ReadStatus.AccessDenied` spells a denial on one channel and a failure on the next, and
+the diagnostic beside it is no better a witness — `DirectoryRead.Failed` is documented as
+"the listing was refused" *and* carries a reason, `WmiRead.AccessDenied` is a genuine
+refusal and carries none. A first attempt at this derived the answer from the diagnostic
+and inverted it for five channels at once, so a startup folder denied to a non-elevated
+scan reported that no amount of rights would change it. `Finding.Unread` now takes the
+value as a required argument; the two guards in `ExitCodeTests` — one machine refusing
+everything, one failing everything — are what check the answer is right.
 
 **`5` does not always mean "re-run elevated"** — in fact it never does. `WIN-ENC-001`
 returns `Unknown` from an elevated console too, when the machine has no

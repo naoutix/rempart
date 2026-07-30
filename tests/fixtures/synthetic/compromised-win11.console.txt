@@ -105,8 +105,6 @@ données : catalogue au 2026-07-21, à jour
 [posture] non vérifiable
   WIN-ENC-001  Volume non protege par BitLocker
 
-  Sans raison indiquée, la lecture a été refusée : un scan élevé les tranche.
-
 [score] par domaine
   accounts            40 %   conformes 3, échecs 3, non vérifiés 0
   asr                  0 %   conformes 0, échecs 18, non vérifiés 0

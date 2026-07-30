@@ -172,9 +172,11 @@ public static class MarkdownReport
             // dropped it: it labelled a failure as a permission, and elevating answers only
             // one of the two. The reason belongs to the verdict and is printed there.
             md.Append($"### Non vérifiables ({view.Unverifiable.Count})\n\n");
+            // Any, not All, and not elevated: see the console, which carries the argument for
+            // all three.
             md.Append("Ni conformes ni non conformes : exclus du score."
-                      + (view.Unverifiable.Any(v => v.Observed is null)
-                          ? $" {ReportLabels.RefusalAdvice}"
+                      + (!view.Elevated && view.Unverifiable.Any(v => v.Observed is null)
+                          ? $" {ReportLabels.UnexplainedAdvice}"
                           : string.Empty)
                       + "\n\n");
             foreach (var verdict in view.Unverifiable)

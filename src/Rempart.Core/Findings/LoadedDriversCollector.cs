@@ -42,8 +42,15 @@ public sealed class LoadedDriversCollector(DriverBlocklist blocklist) : IFinding
             // partway, so answering with this finding alone dropped the drivers it did
             // return — including, on a bad day, the vulnerable one. Only a total failure
             // leaves it on its own, the loop below having nothing to walk.
+            //
+            // The WMI rule, cited rather than assumed: this surface is a Win32_SystemDriver
+            // enumeration, and WmiRead is the one channel that promises an absent diagnostic
+            // means a denial — the three refusal HRESULTs come back with no reason, every
+            // other code comes back carrying one. So a namespace that refused is Refused, a
+            // repository that stopped serving is Unreadable, and a capture that never held
+            // this surface names itself and is Unreadable too.
             findings.Add(Finding.Unread(
-                "driver", "pilotes chargés", read.Diagnostic,
+                "driver", "pilotes chargés", Finding.WmiGap(read.Diagnostic), read.Diagnostic,
                 "Énumération des pilotes refusée. Relancer en administrateur : un pilote "
                 + "vulnérable chargé resterait invisible."));
         }

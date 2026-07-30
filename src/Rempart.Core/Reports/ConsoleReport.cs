@@ -376,10 +376,18 @@ public static class ConsoleReport
                 }
             }
 
-            if (unknown.Any(v => v.Observed is null))
+            // Any, not All: a section holding one control that explained itself and one that
+            // did not still owes its reader the remedy for the second. All reads the same on
+            // every section the tests had — each carried a single Unknown — so the mutation
+            // survived all three renderings and the guard guarded nothing.
+            //
+            // And only where elevation is still available to try. The remedy is elevation, so
+            // on a scan that already had it the sentence is noise at best, which is what two
+            // committed goldens printed over captures recording isElevated: true.
+            if (!ReportView.ElevatedIn(result) && unknown.Any(v => v.Observed is null))
             {
                 text.AppendLine();
-                text.AppendLine($"  {ReportLabels.RefusalAdvice}");
+                text.AppendLine($"  {ReportLabels.UnexplainedAdvice}");
             }
         }
 

@@ -38,8 +38,18 @@ public sealed class ScheduledTasksCollector : IFindingCollector
             //
             // The folders are listed one per line, uncapped: a list cut short would be this
             // very silence again, one folder further down.
+            //
+            // Refused, on the interface's own words: IScheduledTaskProvider calls
+            // E_ACCESSDENIED « the one HRESULT that means elevate and retry », and a walk that
+            // meets it comes back through Partial, which always writes a sentence. Reading
+            // that sentence as proof of a failure took the commonest scheduler gap there is —
+            // a non-elevated scan refused on \Microsoft\Windows\… — and answered it by
+            // withdrawing the elevation advice. The folders listed alongside carry each
+            // HRESULT verbatim, so a walk that broke on something other than a denial still
+            // says which; that per-folder distinction exists only inside those sentences, and
+            // the pull request carries it as spillover.
             findings.Add(Finding.Unread(
-                "scheduled-task", "planificateur de tâches", read.Diagnostic,
+                "scheduled-task", "planificateur de tâches", AuditGap.Refused, read.Diagnostic,
                 "Énumération refusée. Relancer en administrateur : une tâche planifiée "
                 + "resterait invisible.",
                 alongside: [.. (read.Gaps ?? []).Select(gap => $"{gap.Folder} — {gap.Reason}")]));

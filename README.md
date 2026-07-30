@@ -191,19 +191,25 @@ and `rempart help` prints the same six lines because it derives them from that s
 makes one number useful: `3` is a door you have the key to, `5` is a door with no lock.
 A WMI repository that has stopped serving, a service control manager that will not
 open, a replay of a capture taken before a surface was collected — none of those is a
-permission, and calling them `3` sent the caller to re-run elevated forever.
+permission, and calling them `3` sent the caller to re-run elevated forever. The
+converse costs as much: a startup folder, a `hosts` file, a scheduler folder or a
+firewall key the machine denied is a `3`, and answering `5` there withholds the one
+remedy that works. Which of the two a gap is comes from the collector, which knows
+which provider it asked — never from the shape of the reply, because the two channels
+share it.
 
 **Non-zero is the normal outcome, not the edge case.** All four versioned fixtures
-exit non-zero. Three exit `5`: `compromised-win11` because `WIN-ENC-001` (BitLocker)
-is unverifiable even from an elevated console when the machine has no
-volume-encryption WMI class, and `default-win11` and `hardened-win11` because they
-predate the collection of drivers, processes and listening ports — their replay
-reports three surfaces it never looked at, and re-running a *replay* elevated cannot
-change that; re-capturing can. `restricted-access` exits `3`: it was captured without
-elevation and the registry denied its LSA package lists outright. Treat anything but
-`0` as failure and you will alert on healthy machines; treat `3` or `5` as success and
-you will hide that part of the audit never ran. CI accepts `0`, `3` and `5` from a
-scan, and nothing else.
+exit non-zero, and three exit `5`. `compromised-win11` has no gap at all: its `5` is
+`WIN-ENC-001` (BitLocker) alone, unverifiable even from an elevated console when the
+machine has no volume-encryption WMI class. `hardened-win11` is the mirror — not one
+`Unknown` control, and three surfaces its capture predates, drivers, processes and
+listening ports. `default-win11` carries both at once. Re-running a *replay* elevated
+recovers none of them; re-capturing does. `restricted-access` exits `3`: captured
+without elevation, the registry denied its four LSA package lists outright, and `3`
+outranks the three unread surfaces it also carries. Treat anything but `0` as failure
+and you will alert on healthy machines; treat `3` or `5` as success and you will hide
+that part of the audit never ran. CI accepts `0`, `3` and `5` from a scan, and nothing
+else.
 
 ## What it is not
 

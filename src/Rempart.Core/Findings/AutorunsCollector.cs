@@ -103,7 +103,14 @@ public sealed class AutorunsCollector : IFindingCollector
                 // not cost the files of the user folder that answered. Same shape as the
                 // partial port read, one level up — see DirectoryRead on why the shape is
                 // here rather than in the read.
-                findings.Add(Finding.Unread("autorun", folder, read.Diagnostic,
+                //
+                // Refused, and stated here rather than derived from the diagnostic, because
+                // IFileSystemProvider says what its one speaking state is: « Failed — the
+                // listing was refused. The only one that speaks. » It carries a reason and it
+                // is still a denial, so the rule that read the reason classified the commonest
+                // gap in the tool — a startup folder out of reach of a non-elevated scan — as
+                // one elevation could not fix. Elevation is exactly what fixes it.
+                findings.Add(Finding.Unread("autorun", folder, AuditGap.Refused, read.Diagnostic,
                     "Contenu du dossier de démarrage illisible : accès refusé. Relancer en "
                     + "administrateur, un programme déposé là s'exécuterait à l'ouverture de "
                     + "session sans apparaître ici."));

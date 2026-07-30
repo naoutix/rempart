@@ -277,9 +277,13 @@ public static class HtmlReport
             // for half of them. The reason is per-verdict and is printed as such.
             html.Append($"<details>\n<summary>Non vérifiables "
                         + $"<span class=\"count\">{view.Unverifiable.Count}</span></summary>\n");
+            // Any, not All, and not elevated: see the console, which carries the argument for
+            // all three — one explained control must not silence the remedy owed to an
+            // unexplained one beside it, and no remedy naming elevation is owed to a scan
+            // that already ran elevated.
             html.Append("<p class=\"hint\">Ni conformes ni non conformes : exclus du score."
-                        + (view.Unverifiable.Any(v => v.Observed is null)
-                            ? $" {Escape(ReportLabels.RefusalAdvice)}"
+                        + (!view.Elevated && view.Unverifiable.Any(v => v.Observed is null)
+                            ? $" {Escape(ReportLabels.UnexplainedAdvice)}"
                             : string.Empty)
                         + "</p>\n<ul class=\"plainlist\">\n");
             foreach (var verdict in view.Unverifiable)

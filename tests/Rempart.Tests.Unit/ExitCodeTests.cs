@@ -315,35 +315,66 @@ public sealed class ExitCodeTests
     }
 
     /// <summary>
-    /// The rule the whole third value rests on, asserted on the one door that applies it: a
-    /// read that handed back a diagnostic is a failure, a read that handed back nothing is a
-    /// refusal. Both come out of <see cref="Finding.Unread"/> with the same shape, the same
-    /// severity and a different answer for the caller.
+    /// The door carries the wording and not the verdict: whichever gap the caller names, the
+    /// read's own sentence is what gets printed, and the classification is the caller's.
     ///
     /// <para>
-    /// Written on the door rather than on a collector on purpose. The classification is what
-    /// is under test, and a collector-shaped test would freeze one of the twelve call sites
-    /// while the other eleven kept the choice — which is exactly the state this fix found.
+    /// This used to assert the opposite — that <c>Unread</c> derived the gap from the presence
+    /// of a diagnostic. No provider promises that, and five document the contrary, so the
+    /// derivation classified a startup folder denied to a non-elevated scan as one no rights
+    /// could open. What survives of it is the wording rule, which is sound: a read that
+    /// explained itself is printed in its own words, and the fallback speaks only for a read
+    /// that said nothing.
     /// </para>
     /// </summary>
     [Fact]
-    public void A_read_that_named_its_failure_is_not_a_surface_that_refused()
+    public void The_read_supplies_the_words_and_the_caller_supplies_the_verdict()
     {
-        const string Refusal = "Énumération refusée. Relancer en administrateur : un pilote "
+        const string Unexplained = "Énumération refusée. Relancer en administrateur : un pilote "
             + "vulnérable chargé resterait invisible.";
         const string Diagnostic = "Le dépôt WMI a cessé de répondre (0x8004100e).";
 
-        var refused = Finding.Unread("driver", "pilotes chargés", diagnostic: null, Refusal);
-        var failed = Finding.Unread("driver", "pilotes chargés", Diagnostic, Refusal);
+        var silent = Finding.Unread(
+            "driver", "pilotes chargés", AuditGap.Refused, diagnostic: null, Unexplained);
+        var spoke = Finding.Unread(
+            "driver", "pilotes chargés", AuditGap.Unreadable, Diagnostic, Unexplained);
 
-        Assert.Equal(AuditGap.Refused, refused.Gap);
-        Assert.Equal([Refusal], refused.Reasons);
+        Assert.Equal(AuditGap.Refused, silent.Gap);
+        Assert.Equal([Unexplained], silent.Reasons);
 
-        // The diagnostic replaces the refusal instead of joining it: the advice to re-run
-        // elevated is not merely incomplete here, it is wrong, and a report that prints both
-        // has still told the reader to go and do the thing that cannot help.
-        Assert.Equal(AuditGap.Unreadable, failed.Gap);
-        Assert.Equal([Diagnostic], failed.Reasons);
+        // The diagnostic replaces the fallback instead of joining it: under Unreadable the
+        // advice to re-run elevated is not merely incomplete, it is wrong, and a report that
+        // printed both would still have sent the reader to do the thing that cannot help.
+        Assert.Equal(AuditGap.Unreadable, spoke.Gap);
+        Assert.Equal([Diagnostic], spoke.Reasons);
+
+        // And the gap is the caller's alone: the same diagnostic under the other value comes
+        // out under the other value. Nothing in here second-guesses it.
+        Assert.Equal(AuditGap.Refused, Finding.Unread(
+            "driver", "pilotes chargés", AuditGap.Refused, Diagnostic, Unexplained).Gap);
+    }
+
+    /// <summary>
+    /// The rule for the one channel that earns it, asserted where it is stated:
+    /// <see cref="Finding.WmiGap"/>.
+    ///
+    /// <para>
+    /// <c>LiveWmiProvider.Classify</c> is what makes it true — the three denial HRESULTs
+    /// return <c>WmiRead.AccessDenied</c>, which carries no reason, and every other code
+    /// returns a read that carries one. The four WMI-backed sites cite this; nothing else may.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void On_the_wmi_channel_silence_is_the_refusal_and_a_reason_is_the_failure()
+    {
+        Assert.Equal(AuditGap.Refused, Finding.WmiGap(WmiRead.AccessDenied.Diagnostic));
+        Assert.Equal(AuditGap.Unreadable,
+            Finding.WmiGap(WmiRead.Failed("Le dépôt WMI a cessé de répondre.").Diagnostic));
+
+        // The premise the rule rests on, asserted rather than trusted: the refusal really does
+        // travel without a reason on this channel, and it is the only one where that holds.
+        Assert.Null(WmiRead.AccessDenied.Diagnostic);
+        Assert.Equal(ReadStatus.AccessDenied, WmiRead.AccessDenied.Status);
     }
 
     /// <summary>
@@ -358,14 +389,19 @@ public sealed class ExitCodeTests
     /// unmistakable string, so a finding carrying it is by construction a finding built out
     /// of a diagnostic — and a collector that then marks it <see cref="AuditGap.Refused"/>,
     /// or reprints the « relancer en administrateur » fallback beside it, fails here. That is
-    /// the shape all twelve call sites had.
+    /// the shape every one of the thirteen gap sites had.
     /// </para>
     ///
     /// <para>
-    /// The registry is deliberately answering, not refusing. It is the one provider with no
-    /// diagnostic channel — <c>RegistryRead.AccessDenied</c> carries no reason — so a refusal
-    /// there is all it can ever mean, and <c>Refused</c> is the right answer for it. Making
-    /// it refuse here would fail this guard over the one case it must not judge.
+    /// Only the surfaces whose channel can <em>say</em> « failure » are wired to fail, and
+    /// that list is the judgement this batch had to make one site at a time. WMI says it — the
+    /// three denial HRESULTs come back without a reason and every other code comes back with
+    /// one — so drivers, processes, service paths and subscriptions belong here. The listening
+    /// tables and the browser profiles say it by having no refusal to say instead: iphlpapi
+    /// asks no privilege, and a profile is the current user's own file. The registry, the
+    /// startup folders, <c>hosts</c>, the scheduler and the firewall are wired to
+    /// <em>answer</em>, because on those channels the same shape is a denial — which is the
+    /// whole of the mirror guard below.
     /// </para>
     /// </summary>
     [Fact]
@@ -392,9 +428,155 @@ public sealed class ExitCodeTests
         Assert.NotEqual(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(scan));
     }
 
+    /// <summary>
+    /// The mirror, and the guard this batch was reopened over: on a machine that denies every
+    /// surface capable of denying one, nothing may come back saying elevation would not help.
+    ///
+    /// <para>
+    /// A green guard that guards nothing is worse than none, and the one above was half of a
+    /// pair. Left alone it is satisfied by a tool that answers <c>Unreadable</c> to
+    /// everything — which is what the first attempt at #159 shipped: <c>Finding.Unread</c>
+    /// classified on the presence of a diagnostic, five channels write one for a genuine
+    /// denial, and a startup folder refused to a non-elevated scan came back telling its
+    /// reader that no amount of rights would change the answer. The commonest gap in the tool,
+    /// and the report had stopped naming the one thing that fixes it.
+    /// </para>
+    ///
+    /// <para>
+    /// So each provider here denies in the way its own channel spells a denial:
+    /// <c>DirectoryRead.Failed</c> for the startup folders — « the listing was refused, the
+    /// only one that speaks » — <c>HostsFileRead.Failed</c> for the ACL that protects a
+    /// redirection, <c>ScheduledTaskRead.Partial</c> carrying the <c>E_ACCESSDENIED</c> its
+    /// interface calls « the one HRESULT that means elevate and retry »,
+    /// <c>FirewallState.Failed</c> which the live read builds from a registry denial, and the
+    /// bare <c>AccessDenied</c> the WMI-backed reads use. The listening tables and the browser
+    /// profiles answer instead: they have no refusal to express, which is exactly why they are
+    /// the ones wired to fail in the guard above.
+    /// </para>
+    ///
+    /// <para>
+    /// A thirteenth site that reaches for <see cref="AuditGap.Unreadable"/> over a denial
+    /// fails here. That is the half the compiler cannot check: a required argument forces an
+    /// answer, these two guards judge it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_surface_that_was_denied_comes_back_as_something_elevation_cannot_fix()
+    {
+        var scan = DeniedEverywhereItCanBeSaid();
+        var gaps = scan.Findings.Where(finding => finding.Gap is not null).ToList();
+
+        // The premise, asserted rather than assumed. A guard that walks an empty list reports
+        // success, and an exact set says which surfaces are being spoken for — so a collector
+        // that stops reporting one, or starts reporting a new one nobody classified, lands
+        // here rather than passing quietly.
+        Assert.Equal(
+            ["autorun", "driver", "hosts-entry", "listening-port", "process", "scheduled-task",
+             "unquoted-service-path", "wmi-subscription"],
+            gaps.Select(finding => finding.Kind).Distinct(StringComparer.Ordinal)
+                .OrderBy(kind => kind, StringComparer.Ordinal).ToArray());
+
+        Assert.All(gaps, finding => Assert.True(finding.Gap == AuditGap.Refused,
+            $"Le constat « {finding.Kind} / {finding.Source} » vient d'une surface qui a "
+            + $"refusé et ressort en « {finding.Gap} » : l'appelant lira que relancer en "
+            + "administrateur n'y changera rien, alors que c'est précisément la réponse."));
+
+        // And the number a scheduler reads says the same thing as the text.
+        Assert.Equal(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(scan));
+    }
+
     /// <summary>The sentence every failing provider below hands back, and nothing else does.</summary>
     private const string FailedDiagnostic =
         "Surface interrogée, réponse en échec — planté par le test.";
+
+    /// <summary>
+    /// The sentence every denying provider hands back. Worded as a denial because that is what
+    /// these channels put in the field — the point of the mirror guard is that a reason and a
+    /// denial coexist on them, which is what defeated classifying on the reason.
+    /// </summary>
+    private const string DeniedDiagnostic =
+        "Surface interrogée, accès refusé — planté par le test.";
+
+    /// <summary>
+    /// A scan of a machine that denies every surface whose channel has a way of saying so,
+    /// run through the finding collectors the tool really ships. The exact mirror of
+    /// <see cref="FailedEverywhere"/>, registry included: it answers here too, so that the
+    /// startup folders are walked and the file channel is actually reached.
+    /// </summary>
+    private static ScanResult DeniedEverywhereItCanBeSaid() =>
+        new ScanEngine([], []).Run(
+            new ProviderSet(
+                new FakeRegistryProvider()
+                    .WithText(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+                        "Common Startup", @"C:\ProgramData\…\Startup")
+                    .WithText(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+                        "Startup", @"C:\Users\anon\…\Startup"),
+                new FakeSystemInfoProvider(),
+                wmi: new DenyingWmi(),
+                files: new DenyingFileSystem(),
+                scheduledTasks: new DenyingScheduledTasks(),
+                drivers: new DenyingDrivers(),
+                processes: new DenyingProcesses(),
+                // No refusal to express: the tables need no privilege and the profiles are the
+                // user's own files. Answering keeps them out of a guard that is not about them.
+                listeningPorts: new AnsweringListeningPorts(),
+                firewall: new DenyingFirewall(),
+                hostsFile: new DenyingHostsFile(),
+                browserExtensions: new AnsweringBrowserExtensions()),
+            "test", "2026-07-24T09:15:00Z");
+
+    /// <summary>The bare refusal of the WMI channel: <c>AccessDenied</c> and no reason.</summary>
+    private sealed class DenyingWmi : IWmiProvider
+    {
+        public WmiRead Query(string ns, string className, IReadOnlyList<string> properties) =>
+            WmiRead.AccessDenied;
+    }
+
+    private sealed class DenyingFileSystem : IFileSystemProvider
+    {
+        public DirectoryRead ListFiles(string directory) => DirectoryRead.Failed(DeniedDiagnostic);
+    }
+
+    /// <summary>
+    /// The shape a non-elevated walk of <c>\Microsoft\Windows\…</c> really takes: tasks kept,
+    /// the refused folder named beside them, and a composed sentence in the diagnostic.
+    /// </summary>
+    private sealed class DenyingScheduledTasks : IScheduledTaskProvider
+    {
+        public ScheduledTaskRead Enumerate() => ScheduledTaskRead.Partial(
+            [], [TaskFolderGap.Of(@"\Microsoft\Windows\…", "GetFolders", unchecked((int)0x80070005))]);
+    }
+
+    private sealed class DenyingDrivers : IDriverProvider
+    {
+        public DriverRead Enumerate() => DriverRead.AccessDenied;
+    }
+
+    private sealed class DenyingProcesses : IProcessProvider
+    {
+        public ProcessRead Enumerate() => ProcessRead.AccessDenied;
+    }
+
+    private sealed class DenyingFirewall : IFirewallProvider
+    {
+        public FirewallState Read() => FirewallState.Failed(DeniedDiagnostic);
+    }
+
+    private sealed class DenyingHostsFile : IHostsFileProvider
+    {
+        public HostsFileRead ReadLines() => HostsFileRead.Failed(DeniedDiagnostic);
+    }
+
+    private sealed class AnsweringListeningPorts : IListeningPortProvider
+    {
+        public ListeningPortRead Enumerate() =>
+            ListeningPortRead.Found([new ListeningPort("TCP", "127.0.0.1", 135, 4)]);
+    }
+
+    private sealed class AnsweringBrowserExtensions : IBrowserExtensionProvider
+    {
+        public BrowserExtensionRead Read() => BrowserExtensionRead.Found([]);
+    }
 
     /// <summary>
     /// A scan of a machine whose every diagnosable surface answers with a failure, run through
@@ -420,15 +602,42 @@ public sealed class ExitCodeTests
                         "Startup", @"C:\Users\anon\…\Startup"),
                 new FakeSystemInfoProvider(),
                 wmi: new FailingWmi(),
-                files: new FailingFileSystem(),
-                scheduledTasks: new FailingScheduledTasks(),
                 drivers: new FailingDrivers(),
                 processes: new FailingProcesses(),
                 listeningPorts: new FailingListeningPorts(),
-                firewall: new FailingFirewall(),
-                hostsFile: new FailingHostsFile(),
-                browserExtensions: new FailingBrowserExtensions()),
+                browserExtensions: new FailingBrowserExtensions(),
+                // Answering, not failing. On these four channels the same shape is a denial —
+                // DirectoryRead.Failed is documented « the listing was refused »,
+                // HostsFileRead.Failed is what an ACL produces, ScheduledTaskRead.Partial
+                // carries E_ACCESSDENIED, and FirewallState.Diagnostic is « the read was
+                // attempted and refused ». Wiring them to fail would ask this guard to certify
+                // the very inversion the mirror guard below exists to forbid.
+                files: new AnsweringFileSystem(),
+                scheduledTasks: new AnsweringScheduledTasks(),
+                firewall: new AnsweringFirewall(),
+                hostsFile: new AnsweringHostsFile()),
             "test", "2026-07-24T09:15:00Z");
+
+    private sealed class AnsweringFileSystem : IFileSystemProvider
+    {
+        public DirectoryRead ListFiles(string directory) => DirectoryRead.Found([]);
+    }
+
+    private sealed class AnsweringScheduledTasks : IScheduledTaskProvider
+    {
+        public ScheduledTaskRead Enumerate() => ScheduledTaskRead.Found([]);
+    }
+
+    private sealed class AnsweringFirewall : IFirewallProvider
+    {
+        public FirewallState Read() =>
+            new([], PublicFirewallEnabled: true, PublicDefaultInboundAllow: false);
+    }
+
+    private sealed class AnsweringHostsFile : IHostsFileProvider
+    {
+        public HostsFileRead ReadLines() => HostsFileRead.Found([]);
+    }
 
     private sealed class FailingWmi : IWmiProvider
     {

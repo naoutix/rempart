@@ -2,6 +2,7 @@ using Rempart.Core.Collectors;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Json;
+using Rempart.Core.Providers;
 using Rempart.Core.Reports;
 using Rempart.Core.Rules;
 using Rempart.Core.Updates;
@@ -395,10 +396,10 @@ public sealed class ReportTests
     }
 
     /// <summary>
-    /// The sentence the three renderings share when a control was genuinely refused. Written
-    /// once here because the point of the two tests below is that the three agree.
+    /// The sentence the three renderings share when a control said nothing about what stopped
+    /// it. Written once here because the point of the tests below is that the three agree.
     /// </summary>
-    private const string ElevationAnswersIt = "un scan élevé les tranche";
+    private const string ElevationAnswersIt = "un scan élevé tranchera";
 
     /// <summary>
     /// A control that came back unverifiable because the read <em>failed</em> is not a control
@@ -414,25 +415,116 @@ public sealed class ReportTests
     /// </para>
     ///
     /// <para>
-    /// The scan is elevated on purpose. The advice would then be doubly wrong, and asserting
-    /// its absence on a non-elevated scan would prove nothing: the banner that legitimately
-    /// tells a non-elevated run to re-run as administrator would satisfy the search.
+    /// Run both elevated and not, because the two prove different halves. Elevated, no word
+    /// anywhere in the document may send the reader to elevate, which is the strongest form of
+    /// the assertion. Non-elevated, the banner legitimately says « relancer en administrateur »
+    /// and would satisfy that search on its own — so what is asserted there is narrower and is
+    /// the half that matters here: a control that named its failure draws no advice, and the
+    /// suppression comes from the reason rather than from the elevation.
     /// </para>
     /// </summary>
-    [Fact]
-    public void The_three_renderings_print_why_a_control_could_not_be_read()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_three_renderings_print_why_a_control_could_not_be_read(bool elevated)
     {
         const string Reason = "Le gestionnaire de services a répondu 0x5b4 sans jamais ouvrir.";
 
-        foreach (var rendering in Renderings(Unverifiable(Reason)))
+        foreach (var rendering in Renderings(Unverifiable(Reason, elevated)))
         {
             Assert.Contains("WIN-SVC-001", rendering, StringComparison.Ordinal);
             Assert.Contains(Reason, rendering, StringComparison.Ordinal);
 
-            foreach (var advice in new[]
-                     {
-                         "accès refusé", "élévation", ElevationAnswersIt, "administrateur",
-                     })
+            foreach (var advice in
+                     new[] { "accès refusé", ElevationAnswersIt })
+            {
+                Assert.DoesNotContain(advice, rendering, StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (elevated)
+            {
+                foreach (var advice in new[] { "élévation", "administrateur" })
+                {
+                    Assert.DoesNotContain(advice, rendering, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The counterweight, without which the test above would be satisfied by three renderings
+    /// that stopped giving any advice at all. A control that explained nothing may be one a
+    /// right was missing for, and on a scan that has not tried elevation the three still offer
+    /// it.
+    /// </summary>
+    [Fact]
+    public void A_control_that_explained_nothing_still_says_what_might_answer_it()
+    {
+        foreach (var rendering in Renderings(Unverifiable(null, elevated: false)))
+        {
+            Assert.Contains("WIN-SVC-001", rendering, StringComparison.Ordinal);
+            Assert.Contains(ElevationAnswersIt, rendering, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// The mutation that survived every rendering: <c>Any</c> to <c>All</c> on the test that
+    /// decides whether the remedy is printed.
+    ///
+    /// <para>
+    /// It survived because no test ever rendered a section holding more than one
+    /// <c>Unknown</c>, and on a section of one the two are the same predicate. On a mixed
+    /// section they are opposites, and <c>All</c> is the wrong one: the control that named its
+    /// failure silences the remedy owed to the control beside it that named nothing — the one
+    /// case where elevation may be the whole answer. The scan is not elevated, so the remedy
+    /// is genuinely available and its absence can only be the bug.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void One_control_that_explained_itself_does_not_silence_the_one_that_did_not()
+    {
+        var mixed = Unverifiable(null, elevated: false) with
+        {
+            Verdicts =
+            [
+                new Verdict("WIN-SVC-001", "Service de pare-feu actif", Severity.High, "réseau",
+                    VerdictStatus.Unknown, null, null),
+                new Verdict("WIN-WMI-002", "Abonnements WMI permanents", Severity.High, "réseau",
+                    VerdictStatus.Unknown,
+                    "Le dépôt WMI a cessé de répondre (0x8004100e).", null),
+            ],
+            Score = new ScoreCard(null, [new DomainScore("réseau", 0, 0, 2, 0, null)], 2),
+        };
+
+        foreach (var rendering in Renderings(mixed))
+        {
+            // The premise, asserted rather than assumed: a section of one would make this
+            // test pass against the mutant it exists to kill.
+            Assert.Contains("WIN-SVC-001", rendering, StringComparison.Ordinal);
+            Assert.Contains("WIN-WMI-002", rendering, StringComparison.Ordinal);
+
+            Assert.Contains(ElevationAnswersIt, rendering, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// Nobody is told to become an administrator they already are.
+    ///
+    /// <para>
+    /// Two committed goldens printed the advice over captures recording
+    /// <c>"isElevated": true</c>, and a test asserted it did. The information was there all
+    /// along — <see cref="ReportView.Elevated"/> already decides the non-elevated banner in
+    /// two of the three renderings — and the sentence ignored it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_elevated_scan_is_never_sent_to_elevate()
+    {
+        foreach (var rendering in Renderings(Unverifiable(null, elevated: true)))
+        {
+            Assert.Contains("WIN-SVC-001", rendering, StringComparison.Ordinal);
+
+            foreach (var advice in new[] { ElevationAnswersIt, "un scan élevé" })
             {
                 Assert.DoesNotContain(advice, rendering, StringComparison.OrdinalIgnoreCase);
             }
@@ -440,19 +532,60 @@ public sealed class ReportTests
     }
 
     /// <summary>
-    /// The counterweight, without which the test above would be satisfied by three renderings
-    /// that stopped giving any advice at all. A read that was refused and had nothing to
-    /// explain — every registry denial, which carries no diagnostic — is the case elevation
-    /// does answer, and the three still say so.
+    /// A control that gave no reason was not necessarily refused, and no rendering says it
+    /// was.
+    ///
+    /// <para>
+    /// The producer, not a hand-built verdict: <c>CheckReader</c> reading a WMI class that
+    /// holds no instance — BitLocker on an edition without volume encryption — answers
+    /// <c>Denied: true</c> with a null diagnostic, and that silence means « rien à évaluer ».
+    /// The first draft of the sentence read « Sans raison indiquée, la lecture a été refusée »
+    /// and turned every one of those into an accusation of a refusal that never happened. The
+    /// remedy may still be offered — a missing right produces the same silence — but the cause
+    /// may not be asserted.
+    /// </para>
     /// </summary>
     [Fact]
-    public void A_control_that_was_refused_still_says_what_answers_it()
+    public void A_control_with_nothing_to_evaluate_is_not_called_a_refusal()
     {
-        foreach (var rendering in Renderings(Unverifiable(null)))
+        var absent = CheckReader.Read(
+            new CheckSpec(
+                CheckKind.Wmi,
+                @"root\CIMV2\Security\MicrosoftVolumeEncryption:Win32_EncryptableVolume",
+                "ProtectionStatus", CheckOperator.Equals, "1", "0"),
+            new ProviderSet(new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+                wmi: new AbsentClassWmi()));
+
+        // The premise: this is the shape that reaches the renderings as a reasonless Unknown.
+        Assert.True(absent.Denied);
+        Assert.Null(absent.Found);
+
+        foreach (var rendering in Renderings(Unverifiable(absent.Found, elevated: false)))
         {
-            Assert.Contains("WIN-SVC-001", rendering, StringComparison.Ordinal);
+            // The remedy is still offered — a missing right leaves the same silence, and
+            // withdrawing it would be the opposite mistake.
             Assert.Contains(ElevationAnswersIt, rendering, StringComparison.Ordinal);
+
+            foreach (var claim in new[] { "a été refusée", "a été refusé", "accès refusé" })
+            {
+                Assert.DoesNotContain(claim, rendering, StringComparison.OrdinalIgnoreCase);
+            }
         }
+
+        // On the sentence itself as well as on the renderings that carry it: a rewrite that
+        // puts the claim back is the defect, wherever the words end up being printed.
+        foreach (var claim in new[] { "refus", "denied" })
+        {
+            Assert.DoesNotContain(claim, ReportLabels.UnexplainedAdvice,
+                StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>A namespace whose class holds nothing — an absence, not a denial.</summary>
+    private sealed class AbsentClassWmi : IWmiProvider
+    {
+        public WmiRead Query(string ns, string className, IReadOnlyList<string> properties) =>
+            WmiRead.NotFound;
     }
 
     private static IEnumerable<string> Renderings(ScanResult result) =>
@@ -463,11 +596,14 @@ public sealed class ReportTests
     ];
 
     /// <summary>
-    /// An elevated scan with one control it could not conclude, carrying
-    /// <paramref name="reason"/> where the read put its diagnostic — null being the refusal
-    /// that has nothing to explain.
+    /// A scan with one control it could not conclude, carrying <paramref name="reason"/> where
+    /// the read put its diagnostic — null being the read that explained nothing.
     /// </summary>
-    private static ScanResult Unverifiable(string? reason) => Minimal() with
+    /// <param name="elevated">
+    /// Whether the scan already ran as administrator. A parameter rather than a constant
+    /// because the advice now turns on it, and the two cases are opposite assertions.
+    /// </param>
+    private static ScanResult Unverifiable(string? reason, bool elevated) => Minimal() with
     {
         Collectors =
         [
@@ -475,7 +611,7 @@ public sealed class ReportTests
                 new Dictionary<string, string?>
                 {
                     ["machine.name"] = "POSTE-01",
-                    ["scan.elevated"] = "True",
+                    ["scan.elevated"] = elevated ? "True" : "False",
                 },
                 []),
         ],

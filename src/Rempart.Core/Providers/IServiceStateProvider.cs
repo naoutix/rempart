@@ -66,8 +66,10 @@ public sealed record ServiceRead(
     /// console, the HTML and the Markdown listed the rule and nothing else under a heading
     /// reading « accès refusé », so a service control manager that would not open was
     /// announced as a missing privilege — as the WMI diagnostic had been before it. The three
-    /// heads now print the reason where there is one, and only claim a refusal where there is
-    /// not.
+    /// heads now print the reason where there is one, and claim no cause at all where there
+    /// is none — a control that explained nothing may equally be a class holding no instance,
+    /// so what they offer there is the remedy for a missing right, not a verdict on what
+    /// happened, and only on a scan that has not already tried it.
     /// </para>
     /// </summary>
     public static ServiceRead Failed(string reason) =>
