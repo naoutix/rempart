@@ -27,21 +27,21 @@ public sealed class RunningProcessesCollector : IFindingCollector
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
         var read = providers.Processes.Enumerate();
+        var findings = new List<Finding>();
 
         if (read.Status != ReadStatus.Found)
         {
             // No machine runs zero processes, so an empty inventory here can only mean
             // the scan could not look — which must be said, not shown as a clean table.
-            return
-            [
-                Finding.Refused(
-                    "process", "processus courants",
-                    [read.Diagnostic ?? "Énumération des processus refusée. Relancer en "
-                        + "administrateur : un exécutable non signé en cours resterait invisible."]),
-            ];
+            //
+            // Added rather than returned, for the reason the driver collector states: a
+            // truncated WMI walk still holds the processes it managed to enumerate, and the
+            // dropped binary this collector looks for may well be among them.
+            findings.Add(Finding.Refused(
+                "process", "processus courants",
+                [read.Diagnostic ?? "Énumération des processus refusée. Relancer en "
+                    + "administrateur : un exécutable non signé en cours resterait invisible."]));
         }
-
-        var findings = new List<Finding>();
 
         var byExecutable = read.Processes
             .GroupBy(p => p.Path, StringComparer.OrdinalIgnoreCase);

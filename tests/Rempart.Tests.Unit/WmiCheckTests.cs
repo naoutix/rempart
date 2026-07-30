@@ -50,6 +50,30 @@ public sealed class WmiCheckTests
         Assert.Equal(VerdictStatus.Unknown, Evaluate(new FakeWmiProvider(WmiRead.NotFound)).Status);
     }
 
+    /// <summary>
+    /// The one consumer of a truncated enumeration that must <em>not</em> keep what it read,
+    /// and the reason is the shape of the question it asks.
+    ///
+    /// <para>
+    /// A <c>wmi</c> check passes only if every instance passes — one unencrypted volume
+    /// exposes what it holds. « Every » cannot be established from a list that stopped
+    /// early, so a walk that broke after two conforming volumes must not answer
+    /// <c>Pass</c>: the third one is exactly what the walk did not reach. <c>Unknown</c>
+    /// leaves the check out of the score rather than counting it zero, which is the
+    /// invariant, and the diagnostic travels so the report says which class went quiet.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_truncated_enumeration_is_unverifiable_rather_than_judged_on_what_it_got()
+    {
+        var verdict = Evaluate(new FakeWmiProvider(WmiRead.Partial(
+            [new WmiInstance(new Dictionary<string, string> { ["ProtectionStatus"] = "1" })],
+            "L'énumération WMI de Win32_EncryptableVolume s'est interrompue sur 0x80041004.")));
+
+        Assert.Equal(VerdictStatus.Unknown, verdict.Status);
+        Assert.Contains("0x80041004", verdict.Observed!, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Without_a_provider_the_check_stays_unverifiable()
     {

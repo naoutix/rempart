@@ -119,6 +119,14 @@ public static class CheckReader
 
         // No instances: nothing to judge. BitLocker missing on a Home edition is not a
         // non-compliance, there is simply nothing to evaluate.
+        //
+        // And the one consumer of a truncated enumeration that must not keep what it read,
+        // which is a decision rather than an oversight: the question this method asks is
+        // « do *all* the instances conform », and « all » cannot be established from a walk
+        // that stopped early. Two conforming volumes out of an unknown number would answer
+        // Pass, and the volume the walk never reached is precisely the one that would have
+        // said otherwise. Unknown leaves the check out of the score instead — never Fail,
+        // never Pass — and the diagnostic travels with it so the report names the class.
         if (read.Status != ReadStatus.Found || read.Instances.Count == 0)
         {
             // The reason for an internal failure travels with the verdict: without it,

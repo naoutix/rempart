@@ -33,6 +33,31 @@ public sealed record WmiRead(
 
     public static WmiRead Failed(string reason) =>
         new(ReadStatus.AccessDenied, [], reason);
+
+    /// <summary>
+    /// What was read, and the walk that did not reach the end. Same shape as
+    /// <see cref="ListeningPortRead.Partial"/> and <see cref="ScheduledTaskRead.Partial"/>,
+    /// for the same reason: what arrived stays in the inventory and the gap is named beside
+    /// it.
+    ///
+    /// <para>
+    /// A WMI enumeration is not one call. <c>IEnumWbemClassObject::Next</c> is asked for one
+    /// object at a time and can fail on the tenth after nine successes — a third-party
+    /// provider faulting, a repository going bad underneath, a call cancelled. Handing the
+    /// nine over as <see cref="Found"/> presented a truncated list as the machine's whole
+    /// inventory; dropping them would lose nine drivers because the tenth did not come.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="ReadStatus.AccessDenied"/>, like every other failed read of this record:
+    /// the enum has no fourth member, and what separates a genuine refusal from a failure is
+    /// <see cref="Diagnostic"/> — null for the first, written for the second. The reason is
+    /// composed by the caller, which is the only place that knows which class stopped
+    /// answering and on which code.
+    /// </para>
+    /// </summary>
+    public static WmiRead Partial(IReadOnlyList<WmiInstance> instances, string reason) =>
+        new(ReadStatus.AccessDenied, instances, reason);
 }
 
 /// <summary>

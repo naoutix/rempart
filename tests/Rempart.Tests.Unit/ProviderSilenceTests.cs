@@ -49,6 +49,28 @@ public class ProviderSilenceTests
             ListeningPortRead.Partial(ports, "Table(s) sans réponse : TCP/IPv6, UDP/IPv6.");
     }
 
+    private const string Truncated =
+        "L'énumération WMI de Win32_SystemDriver s'est interrompue sur 0x80041004.";
+
+    /// <summary>
+    /// The same state one surface over: the WMI walk behind these two answers one object per
+    /// call and can break on the tenth. Built through the constructor rather than a
+    /// <c>Partial</c> factory, because <c>LiveDriverProvider</c> forwards whichever status
+    /// the WMI read carried instead of choosing one.
+    /// </summary>
+    private sealed class PartiallyReadDrivers(params LoadedDriver[] drivers) : IDriverProvider
+    {
+        public DriverRead Enumerate() =>
+            new(ReadStatus.AccessDenied, drivers, Truncated);
+    }
+
+    private sealed class PartiallyReadProcesses(params RunningProcess[] processes)
+        : IProcessProvider
+    {
+        public ProcessRead Enumerate() =>
+            new(ReadStatus.AccessDenied, processes, Truncated);
+    }
+
     private static ProviderSet Providers(
         IDriverProvider? drivers = null,
         IProcessProvider? processes = null,
@@ -74,6 +96,38 @@ public class ProviderSilenceTests
             .Collect(Providers(processes: new DeniedProcesses()));
 
         Assert.NotEmpty(findings);
+    }
+
+    /// <summary>
+    /// A driver enumeration that broke halfway, which is what a WMI walk interrupted by
+    /// <c>IEnumWbemClassObject::Next</c> now answers.
+    ///
+    /// <para>
+    /// These two collectors opened on « <c>Status != Found</c> → return the finding », the
+    /// shape the ports collector was corrected out of one issue ago. It is right for a total
+    /// failure and wrong for a partial one: a walk that stops after the vulnerable driver
+    /// would report a hole in the audit and drop the driver, on the surface a BYOVD attack
+    /// lands on. Both surfaces here, because the shape is what is being fixed.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_partial_enumeration_names_the_gap_without_dropping_what_it_saw()
+    {
+        var drivers = new LoadedDriversCollector(DriverBlocklist.Empty).Collect(Providers(
+            drivers: new PartiallyReadDrivers(
+                new LoadedDriver("pilote", @"C:\Windows\System32\drivers\x.sys"))));
+
+        Assert.Equal(2, drivers.Count);
+        Assert.Contains(drivers, f => f.Source == "pilotes chargés");
+        Assert.Contains(drivers, f => f.Source == "pilote");
+
+        var processes = new RunningProcessesCollector().Collect(Providers(
+            processes: new PartiallyReadProcesses(
+                new RunningProcess(1234, 4, "p.exe", @"C:\Temp\p.exe", ""))));
+
+        Assert.Equal(2, processes.Count);
+        Assert.Contains(processes, f => f.Source == "processus courants");
+        Assert.Contains(processes, f => f.Source == "p.exe");
     }
 
     [Fact]
@@ -294,6 +348,49 @@ public class ProviderSilenceTests
 
         Assert.NotNull(read);
         Assert.Empty(read);
+    }
+
+    /// <summary>
+    /// The fileless persistence surface, on the same truncated walk.
+    ///
+    /// <para>
+    /// <c>root\subscription</c> is where a permanent WMI subscription hides, and it is read
+    /// through three enumerations that can each break in mid-walk. The two consumer queries
+    /// returned as soon as the read was refused, and the filter query returned in silence on
+    /// anything other than <c>Found</c>; either way a consumer already handed over was
+    /// dropped along with the walk that carried it — the one finding this collector exists to
+    /// produce, lost to the failure that came after it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_truncated_subscription_walk_keeps_the_consumer_it_already_saw()
+    {
+        var findings = new WmiSubscriptionsCollector().Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            wmi: new FakeWmiProvider(WmiRead.Partial(
+                [
+                    new WmiInstance(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["Name"] = "Mise à jour",
+                        ["CommandLineTemplate"] = @"C:\Temp\x.exe",
+                    }),
+                ],
+                Truncated))));
+
+        // The fake answers the same read to the three queries this collector makes, so each
+        // one contributes its instance; what matters is that none of them contributes zero.
+        Assert.Contains(findings, f => f.Reasons.Any(
+            reason => reason.Contains("0x80041004", StringComparison.Ordinal)));
+
+        // The two consumer walks: a payload already enumerated stays accused.
+        Assert.Equal(2, findings.Count(f => f.Severity == FindingSeverity.Suspicious));
+
+        // And the filter walk, which reported nothing at all on a failed status — no refusal
+        // finding, which is right (the two above already name the namespace), but no filters
+        // either, which lost what it had. Asserted on its own because it is the one branch of
+        // the three that stays silent about the failure, so nothing else here would notice it
+        // going back to returning early.
+        Assert.Contains(findings, f => f.Source.StartsWith("__EventFilter", StringComparison.Ordinal));
     }
 
     [Fact]

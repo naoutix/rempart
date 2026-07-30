@@ -54,11 +54,15 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
         {
             // Report the failure: an unreadable namespace is not an empty namespace,
             // and it is exactly where what this collector looks for would hide.
+            //
+            // Added rather than returned, since a WMI walk can break after handing over
+            // objects: a consumer already enumerated used to leave with the failure that
+            // followed it, which is the one finding this collector exists to produce. Only a
+            // total failure leaves this on its own, the loop below having nothing to walk.
             findings.Add(Finding.Refused(
                 "wmi-subscription", $"{Namespace}:{className}",
                 [read.Diagnostic ?? "Énumération refusée. Relancer en administrateur : "
                     + "un abonnement permanent resterait invisible."]));
-            return;
         }
 
         foreach (var instance in read.Instances)
@@ -92,11 +96,11 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
     {
         var read = providers.Wmi.Query(Namespace, "__EventFilter", ["Name", "Query"]);
 
-        if (read.Status != ReadStatus.Found)
-        {
-            return;
-        }
-
+        // No early return on a failed status, and no refusal finding either. The two consumer
+        // queries above already say that root\subscription would not answer — a third
+        // sentence about the same namespace is noise — but the filters this walk did hand
+        // over before breaking still belong in the report, and returning here dropped them.
+        // A total failure carries no instance, so this loop stays as silent as it was.
         foreach (var instance in read.Instances)
         {
             var query = instance.Find("Query") ?? string.Empty;

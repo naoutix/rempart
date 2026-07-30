@@ -30,18 +30,20 @@ public sealed class UnquotedServicePathCollector : IFindingCollector
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
         var read = providers.Wmi.Query(Namespace, "Win32_Service", ["Name", "PathName"]);
+        var findings = new List<Finding>();
 
         if (read.Status == ReadStatus.AccessDenied)
         {
-            return
-            [
-                Finding.Refused("unquoted-service-path", "Win32_Service",
-                    [read.Diagnostic ?? "Énumération des services refusée. Relancer en " +
-                        "administrateur : un chemin non quoté resterait invisible."]),
-            ];
+            // Added rather than returned: a WMI enumeration breaks one object at a time, so
+            // the services handed over before it broke are still worth judging. Answering
+            // with this finding alone dropped them, and an unquoted path sitting in the part
+            // that was read would have gone out with the failure that came after it. Only a
+            // total failure leaves the finding on its own, because Instances is then empty
+            // and the loop below has nothing to walk.
+            findings.Add(Finding.Refused("unquoted-service-path", "Win32_Service",
+                [read.Diagnostic ?? "Énumération des services refusée. Relancer en " +
+                    "administrateur : un chemin non quoté resterait invisible."]));
         }
-
-        var findings = new List<Finding>();
 
         foreach (var instance in read.Instances)
         {
