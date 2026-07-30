@@ -2,11 +2,13 @@ Rempart test — scan du 2026-01-01T00:00:00.0000000Z
 règles : 82:c3e6e3029b12
 données : catalogue au 2026-07-21, à jour
 
-[posture] non vérifiable — accès refusé
+[posture] non vérifiable
   WIN-CRED-001  LSA Protection (RunAsPPL) désactivée
   WIN-NET-005  Niveau d'authentification LAN Manager trop permissif
   WIN-NET-006  Énumération anonyme des comptes et partages autorisée
   WIN-VBS-002  Credential Guard inactif
+
+  Certains ne disent pas ce qui les a arrêtés : un scan élevé tranchera ceux qu'un droit manquant retenait.
 
 [score] par domaine
   accounts           100 %   conformes 6, échecs 0, non vérifiés 0
@@ -25,7 +27,7 @@ données : catalogue au 2026-07-21, à jour
 
   GLOBAL             100 %
 
-  Score partiel : 4 contrôle(s) non vérifiable(s) sans élévation.
+  Score partiel : 4 contrôle(s) non vérifiable(s).
   Les contrôles non vérifiés sont exclus du calcul, jamais comptés comme conformes.
 
   « rempart explain <ID> » détaille une règle et ce que coûte sa correction.

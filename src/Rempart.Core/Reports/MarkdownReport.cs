@@ -168,11 +168,25 @@ public static class MarkdownReport
 
         if (view.Unverifiable.Count > 0)
         {
-            md.Append($"### Non vérifiables — accès refusé ({view.Unverifiable.Count})\n\n");
-            md.Append("Ni conformes ni non conformes : exclus du score. Un scan élevé les tranche.\n\n");
+            // No « accès refusé » in the heading, for the reason the two sibling renderers
+            // dropped it: it labelled a failure as a permission, and elevating answers only
+            // one of the two. The reason belongs to the verdict and is printed there.
+            md.Append($"### Non vérifiables ({view.Unverifiable.Count})\n\n");
+            // Any, not All, and not elevated: see the console, which carries the argument for
+            // all three.
+            md.Append("Ni conformes ni non conformes : exclus du score."
+                      + (!view.Elevated && view.Unverifiable.Any(v => v.Observed is null)
+                          ? $" {ReportLabels.UnexplainedAdvice}"
+                          : string.Empty)
+                      + "\n\n");
             foreach (var verdict in view.Unverifiable)
             {
-                md.Append($"- {Cell(verdict.RuleId)} {Cell(verdict.Title)}\n");
+                // Cell on the reason as on everything else the machine chose: it is a
+                // provider diagnostic, and a pipe or a bracket in it would shift a row or
+                // form a link exactly as one in a service path would.
+                md.Append($"- {Cell(verdict.RuleId)} {Cell(verdict.Title)}"
+                          + (verdict.Observed is { } reason ? $" — {Cell(reason)}" : string.Empty)
+                          + "\n");
             }
 
             md.Append('\n');

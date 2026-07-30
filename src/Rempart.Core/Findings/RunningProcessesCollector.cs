@@ -37,10 +37,13 @@ public sealed class RunningProcessesCollector : IFindingCollector
             // Added rather than returned, for the reason the driver collector states: a
             // truncated WMI walk still holds the processes it managed to enumerate, and the
             // dropped binary this collector looks for may well be among them.
-            findings.Add(Finding.Refused(
-                "process", "processus courants",
-                [read.Diagnostic ?? "Énumération des processus refusée. Relancer en "
-                    + "administrateur : un exécutable non signé en cours resterait invisible."]));
+            //
+            // Win32_Process, so the WMI rule again and for the same documented reason as the
+            // drivers above — this is one of the four surfaces that earns it.
+            findings.Add(Finding.Unread(
+                "process", "processus courants", Finding.WmiGap(read.Diagnostic), read.Diagnostic,
+                "Énumération des processus refusée. Relancer en administrateur : un "
+                + "exécutable non signé en cours resterait invisible."));
         }
 
         var byExecutable = read.Processes

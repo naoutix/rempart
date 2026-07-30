@@ -40,9 +40,14 @@ public sealed class UnquotedServicePathCollector : IFindingCollector
             // that was read would have gone out with the failure that came after it. Only a
             // total failure leaves the finding on its own, because Instances is then empty
             // and the loop below has nothing to walk.
-            findings.Add(Finding.Refused("unquoted-service-path", "Win32_Service",
-                [read.Diagnostic ?? "Énumération des services refusée. Relancer en " +
-                    "administrateur : un chemin non quoté resterait invisible."]));
+            //
+            // IWmiProvider straight, with no wrapper in between, so the WMI rule applies at
+            // its plainest: no reason means one of the three denial HRESULTs, a reason means
+            // the code that was not.
+            findings.Add(Finding.Unread("unquoted-service-path", "Win32_Service",
+                Finding.WmiGap(read.Diagnostic), read.Diagnostic,
+                "Énumération des services refusée. Relancer en administrateur : un chemin "
+                + "non quoté resterait invisible."));
         }
 
         foreach (var instance in read.Instances)

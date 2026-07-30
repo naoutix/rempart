@@ -28,9 +28,20 @@ public sealed class BrowserExtensionsCollector : IFindingCollector
         // not be read is named beside it. Reporting only the extensions would let an
         // unreadable profile pass for one without extensions — the very place a
         // sideloaded extension would sit.
+        //
+        // Unreadable, and it IS a judgement made here — the field says nothing about which,
+        // a diagnostic being written for whatever went wrong, refusal included. What decides
+        // it is the surface. The profiles walked are the current user's own, under their
+        // LocalApplicationData and ApplicationData, and IBrowserExtensionProvider names the
+        // case it exists for: « the profile whose file could not be parsed », a corrupt Secure
+        // Preferences silently removing a whole profile from the inventory. Elevating does not
+        // re-parse broken JSON, and it does not pry a profile out of the running browser
+        // holding it open. The live read also catches UnauthorizedAccessException on those
+        // same paths, which the interface does not describe; that mismatch travels as
+        // spillover on the pull request rather than being settled quietly here.
         if (read.Diagnostic is { } diagnostic)
         {
-            findings.Add(Finding.Refused(
+            findings.Add(Finding.Unreadable(
                 "browser-extension", "profil de navigateur", [diagnostic]));
         }
 

@@ -51,11 +51,19 @@ public sealed class HostsFileCollector : IFindingCollector
         // protects a redirection already in place (REV-12).
         if (read.Status == ReadStatus.AccessDenied)
         {
-            findings.Add(Finding.Refused(
-                "hosts-entry", "hosts",
-                [read.Diagnostic ?? "Fichier hosts illisible. Une redirection posée là "
-                    + "court-circuiterait la résolution DNS sans apparaître ici."],
-                new Dictionary<string, string>(StringComparer.Ordinal)
+            // Refused. IHostsFileProvider frames its one speaking state as « the read was
+            // attempted and did not complete », and the denial is not a corner of it but the
+            // reason the state exists: the interface opens on « denying read access to hosts
+            // is precisely the technique that protects a redirection already in place », and
+            // the live read turns UnauthorizedAccessException into exactly this branch. A file
+            // held open reaches it too and says so below in its own words — the sentence
+            // printed is the read's, while the value chosen answers a different question, « is
+            // there anything the caller can do », and for this surface there is.
+            findings.Add(Finding.Unread(
+                "hosts-entry", "hosts", AuditGap.Refused, read.Diagnostic,
+                "Fichier hosts illisible : accès refusé. Relancer en administrateur, une "
+                + "redirection posée là court-circuiterait la résolution DNS sans apparaître ici.",
+                details: new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["type"] = "lecture",
                 }));

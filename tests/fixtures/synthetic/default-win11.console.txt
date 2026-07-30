@@ -102,7 +102,7 @@ données : catalogue au 2026-07-21, à jour
   LOW      WIN-PRIV-005  Contenu suggéré et publicités dans l'interface
            observé : absent (défaut Windows : 0)   attendu : 1
 
-[posture] non vérifiable — accès refusé
+[posture] non vérifiable
   WIN-ENC-001  Volume non protege par BitLocker
 
 [score] par domaine
@@ -122,7 +122,7 @@ données : catalogue au 2026-07-21, à jour
 
   GLOBAL              52 %
 
-  Score partiel : 1 contrôle(s) non vérifiable(s) sans élévation.
+  Score partiel : 1 contrôle(s) non vérifiable(s).
   Les contrôles non vérifiés sont exclus du calcul, jamais comptés comme conformes.
 
   « rempart explain <ID> » détaille une règle et ce que coûte sa correction.

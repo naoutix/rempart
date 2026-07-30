@@ -59,10 +59,16 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
             // objects: a consumer already enumerated used to leave with the failure that
             // followed it, which is the one finding this collector exists to produce. Only a
             // total failure leaves this on its own, the loop below having nothing to walk.
-            findings.Add(Finding.Refused(
+            //
+            // IWmiProvider straight again, and root\subscription is the namespace the rule was
+            // written for: an ordinary session is refused it outright, which must keep saying
+            // « relancer en administrateur », while a repository that has gone bad on it must
+            // stop saying so. The WMI channel tells the two apart; nothing else here does.
+            findings.Add(Finding.Unread(
                 "wmi-subscription", $"{Namespace}:{className}",
-                [read.Diagnostic ?? "Énumération refusée. Relancer en administrateur : "
-                    + "un abonnement permanent resterait invisible."]));
+                Finding.WmiGap(read.Diagnostic), read.Diagnostic,
+                "Énumération refusée. Relancer en administrateur : un abonnement permanent "
+                + "resterait invisible."));
         }
 
         foreach (var instance in read.Instances)

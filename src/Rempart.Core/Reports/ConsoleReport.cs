@@ -356,10 +356,38 @@ public static class ConsoleReport
         if (unknown.Count > 0)
         {
             text.AppendLine();
-            text.AppendLine("[posture] non vérifiable — accès refusé");
+
+            // No « accès refusé » in the heading any more. Every Unknown verdict passed under
+            // it whatever its cause, so a WMI repository that had stopped serving and a
+            // service control manager that would not open were both announced as missing
+            // privileges — the one remedy that cannot help. The cause belongs to the verdict,
+            // and that is where it is printed.
+            text.AppendLine("[posture] non vérifiable");
             foreach (var verdict in unknown)
             {
                 text.AppendLine($"  {verdict.RuleId}  {verdict.Title}");
+
+                // On an Unknown verdict, Observed carries what CheckReader put there: the
+                // provider's diagnostic, or null for a plain refusal that has nothing to
+                // explain. It reached the JSON report and stopped there.
+                if (verdict.Observed is { } reason)
+                {
+                    text.AppendLine($"      {reason}");
+                }
+            }
+
+            // Any, not All: a section holding one control that explained itself and one that
+            // did not still owes its reader the remedy for the second. All reads the same on
+            // every section the tests had — each carried a single Unknown — so the mutation
+            // survived all three renderings and the guard guarded nothing.
+            //
+            // And only where elevation is still available to try. The remedy is elevation, so
+            // on a scan that already had it the sentence is noise at best, which is what two
+            // committed goldens printed over captures recording isElevated: true.
+            if (!ReportView.ElevatedIn(result) && unknown.Any(v => v.Observed is null))
+            {
+                text.AppendLine();
+                text.AppendLine($"  {ReportLabels.UnexplainedAdvice}");
             }
         }
 
@@ -380,8 +408,11 @@ public static class ConsoleReport
         if (score.IsPartial)
         {
             text.AppendLine();
+            // « sans élévation » is gone from this line for the reason the section above
+            // dropped it from its heading: it is the answer to a refusal and to nothing else,
+            // and this counter does not know which of the two it is counting.
             text.AppendLine(
-                $"  Score partiel : {score.TotalUnknown} contrôle(s) non vérifiable(s) sans élévation.");
+                $"  Score partiel : {score.TotalUnknown} contrôle(s) non vérifiable(s).");
             text.AppendLine(
                 "  Les contrôles non vérifiés sont exclus du calcul, jamais comptés comme conformes.");
         }

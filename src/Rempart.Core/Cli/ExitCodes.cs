@@ -39,13 +39,21 @@ public enum ExitCode
     Regression = 4,
 
     /// <summary>
-    /// The scan ran to the end, and some rules still have no answer. Distinct from
+    /// The scan ran to the end, and something still has no answer. Distinct from
     /// <see cref="InsufficientPrivileges"/>, which says a <em>collector</em> was refused:
     /// here every collector read fine and controls came back <c>Unknown</c> anyway, so the
     /// score answers for less of the machine than it appears to. The fixture
     /// <c>restricted-access</c> is the case: 100 %, four controls unverifiable, and until
     /// this code existed it exited 0 — indistinguishable, for a scheduler, from a machine
     /// that was fully checked.
+    ///
+    /// <para>
+    /// It is also where <see cref="Findings.AuditGap.Unreadable"/> lands, and for the same
+    /// reason rather than by analogy: a surface that answered with a failure leaves the caller
+    /// nothing to do to the run. Elevating does not repair a WMI repository, and there is no
+    /// bug to file against the tool, so neither 3 nor 1 is honest — what is true is that the
+    /// scan finished and part of the machine has no answer.
+    /// </para>
     /// </summary>
     Partial = 5,
 }
@@ -121,14 +129,23 @@ public static class ExitCodes
     /// </para>
     ///
     /// <para>
-    /// The findings are read on the same two rungs as the collectors, and for the same
-    /// reason: they are where the other half of the tool says it could not look. A finding
-    /// collector answers with a list of findings and nothing else — it has no
-    /// <see cref="CollectorResult"/> to put a status in — so a refused surface reached the
-    /// report, the console and the HTML, then stopped dead at the one channel a scheduler
-    /// reads. Each <see cref="AuditGap"/> lands on the rung its answer belongs to, which is
-    /// what the whole precedence is ordered by: a collector that threw does not repair
-    /// itself by re-running elevated, a refused surface does.
+    /// The findings are read on all three rungs, and for the same reason: they are where the
+    /// other half of the tool says it could not look. A finding collector answers with a list
+    /// of findings and nothing else — it has no <see cref="CollectorResult"/> to put a status
+    /// in — so a refused surface reached the report, the console and the HTML, then stopped
+    /// dead at the one channel a scheduler reads. Each <see cref="AuditGap"/> lands on the
+    /// rung its answer belongs to, which is what the whole precedence is ordered by: a
+    /// collector that threw does not repair itself by re-running elevated, a refused surface
+    /// does, and a surface that answered with a failure repairs itself by neither.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="AuditGap.Unreadable"/> therefore joins the unevaluable rule on the weakest
+    /// rung rather than taking one of its own. That is deliberate and it is what makes the
+    /// change free of contract: the codes stay six and contiguous, and CI already accepts
+    /// <c>0</c>, <c>3</c> and <c>5</c> from a scan — see the two workflows, which check
+    /// <c>-notin @(0, 3, 5)</c>. A gap that used to answer 3 now answers 5, and no caller
+    /// that was green stops being green.
     /// </para>
     /// </summary>
     public static ExitCode ForScan(ScanResult scan) =>
@@ -138,6 +155,7 @@ public static class ExitCodes
           || scan.Findings.Any(f => f.Gap == AuditGap.Refused)
             ? ExitCode.InsufficientPrivileges
             : scan.Verdicts.Any(v => v.Status == VerdictStatus.Unknown)
+              || scan.Findings.Any(f => f.Gap == AuditGap.Unreadable)
                 ? ExitCode.Partial
                 : ExitCode.Success;
 

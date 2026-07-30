@@ -98,13 +98,31 @@ public sealed record ReportView(
             Groups: groups,
             FlaggedFindings: groups.Sum(g => g.Flagged.Count),
             TotalFindings: result.Findings.Count,
-            // Absent field means an inventory that could not be read: treat as
-            // non-elevated, so the report warns rather than reassures.
-            Elevated: string.Equals(Field(inventory, "scan.elevated"), "True",
-                StringComparison.OrdinalIgnoreCase),
+            Elevated: ElevatedIn(result),
             DegradedCollectors: [.. result.Collectors.Where(c => c.Status != CollectorStatus.Ok)],
             Result: result);
     }
+
+    /// <summary>
+    /// Was the scan elevated?
+    ///
+    /// <para>
+    /// Public and static because the console does not build a <see cref="ReportView"/> and
+    /// still has to answer the question the same way. Any remedy naming elevation is wrong on
+    /// a scan that already had it, and three renderings deciding that separately is the drift
+    /// this record exists to stop — the same argument as <see cref="ReportLabels"/>, applied
+    /// to a fact rather than to a word.
+    /// </para>
+    ///
+    /// <para>
+    /// An absent field means an inventory that could not be read: treated as non-elevated, so
+    /// the report warns rather than reassures.
+    /// </para>
+    /// </summary>
+    public static bool ElevatedIn(ScanResult result) =>
+        string.Equals(
+            Field(result.Collectors.FirstOrDefault(c => c.Name == "inventory"), "scan.elevated"),
+            "True", StringComparison.OrdinalIgnoreCase);
 
     private static string? Field(CollectorResult? collector, string name) =>
         collector is not null && collector.Fields.TryGetValue(name, out var value)
@@ -127,6 +145,46 @@ public sealed record ReportView(
 /// </summary>
 public static class ReportLabels
 {
+    /// <summary>
+    /// What is offered when a control did not say what stopped it, on a scan that has not
+    /// tried elevation yet.
+    ///
+    /// <para>
+    /// It used to be the heading of the whole « non vérifiable » section in all three
+    /// renderings, which put every unevaluable control under it: a WMI repository that had
+    /// stopped serving, a service control manager that would not open, a capture replayed for
+    /// a surface it never held. None of those is repaired by elevating, and the report was
+    /// sending its reader to do exactly that. It is now printed only beside the controls that
+    /// gave no reason.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>And it does not say those controls were refused</b>, because they need not have
+    /// been. <c>CheckReader.ReadWmi</c> answers with no diagnostic when a class holds no
+    /// instance — BitLocker on an edition without volume encryption — and its
+    /// <c>values.Count == 0</c> branch does the same; there the silence means « rien à
+    /// évaluer », not « on m'a refusé ». The sentence therefore offers a remedy for the
+    /// subset a missing right explains, and asserts nothing about which controls those are.
+    /// The first draft of it read « Sans raison indiquée, la lecture a été refusée », which
+    /// stated a cause the report has no way of knowing.
+    /// </para>
+    ///
+    /// <para>
+    /// Printed only when <see cref="ReportView.Elevated"/> is false. Two committed goldens
+    /// carried the older sentence over captures recording <c>isElevated: true</c>, telling a
+    /// reader who was already administrator to go and become one.
+    /// </para>
+    ///
+    /// <para>
+    /// One constant for the three, like every other word they share: the console, the HTML
+    /// and the Markdown disagreeing on what a gap means is the failure mode
+    /// <see cref="ReportView"/> exists to prevent.
+    /// </para>
+    /// </summary>
+    public const string UnexplainedAdvice =
+        "Certains ne disent pas ce qui les a arrêtés : un scan élevé tranchera ceux qu'un "
+        + "droit manquant retenait.";
+
     public static string Of(Severity severity) => severity switch
     {
         Severity.Critical => "critique",
