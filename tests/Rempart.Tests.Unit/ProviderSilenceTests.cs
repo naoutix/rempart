@@ -130,6 +130,40 @@ public class ProviderSilenceTests
         Assert.Contains(processes, f => f.Source == "p.exe");
     }
 
+    /// <summary>
+    /// The one aggregate any of these collectors computes, held against the read that makes
+    /// it wrong.
+    ///
+    /// <para>
+    /// <c>RunningProcessesCollector</c> groups by binary and prints « instances » in the
+    /// finding's details, so a walk truncated at seven <c>svchost.exe</c> puts « 7 » in the
+    /// report where twelve are running — a plausible, false count, which is the exact
+    /// objection #143 raised against keeping a truncated netapi32 walk. Keeping the WMI prefix
+    /// is nonetheless the right trade, and this test is what the argument rests on rather than
+    /// a sentence in a commit: the figure is per binary, not a total anything reasons over,
+    /// and it never travels alone. The same status that produced it forces the gap finding
+    /// beside it, so a reader who sees the count also sees that the walk did not finish.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_truncated_walk_never_prints_its_instance_count_without_the_gap_beside_it()
+    {
+        var findings = new RunningProcessesCollector().Collect(Providers(
+            processes: new PartiallyReadProcesses(
+                new RunningProcess(10, 4, "svchost.exe", @"C:\W\svchost.exe", ""),
+                new RunningProcess(20, 4, "svchost.exe", @"C:\W\svchost.exe", ""),
+                new RunningProcess(30, 4, "svchost.exe", @"C:\W\svchost.exe", ""))));
+
+        var counted = findings.Single(f => f.Source == "svchost.exe");
+        Assert.Equal("3", counted.Details["instances"]);
+
+        // The half that makes the count tolerable, asserted rather than argued: the same read
+        // that shortened it also says so, at the same altitude, in the same report.
+        var gap = findings.Single(f => f.Source == "processus courants");
+        Assert.Equal(AuditGap.Unreadable, gap.Gap);
+        Assert.Contains(Truncated, gap.Reasons);
+    }
+
     [Fact]
     public void A_machine_that_genuinely_has_nothing_to_report_stays_silent()
     {
