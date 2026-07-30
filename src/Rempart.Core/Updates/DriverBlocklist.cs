@@ -28,6 +28,18 @@ public sealed record DriverBlocklistFile(
 /// data — either silent or misleading. The mechanism is here; the material comes from
 /// a verifiable source or from nowhere.
 /// </para>
+///
+/// <para>
+/// <b>A hole in the file is refused, never dereferenced.</b> A <c>record</c> imposes
+/// nothing on deserialisation: <c>"drivers":[null]</c> is well-formed JSON that arrives
+/// here as an entry whose every field is null, and the fingerprint index below used to
+/// walk straight into it. The <see cref="NullReferenceException"/> that came out is
+/// caught by neither <see cref="UpdateStore"/> nor <see cref="UpdatePlanner"/>, which
+/// filter on <see cref="JsonException"/> — so a dataset with a hole in it ended the scan
+/// instead of taking the documented "update refused, embedded baseline kept" path. It has
+/// to be signed to get this far, which makes it robustness rather than an open door; the
+/// fallback exists precisely for a file that is authentic and unreadable all the same.
+/// </para>
 /// </summary>
 public sealed class DriverBlocklist
 {
@@ -36,6 +48,15 @@ public sealed class DriverBlocklist
     public string AsOfUtc { get; }
 
     public int Count => bySha256.Count;
+
+    /// <summary>
+    /// The drivers actually loaded, for guards that check the <em>shape</em> of what got in
+    /// rather than what it matches. Nothing on the scan path reads this —
+    /// <see cref="Match(string?)"/> is the whole interface a collector needs — but a guard
+    /// that cannot see the entries cannot tell a list refused from a list loaded with a hole
+    /// in it, and telling those apart is the point.
+    /// </summary>
+    public IReadOnlyCollection<BlockedDriver> Drivers => bySha256.Values;
 
     private DriverBlocklist(string asOfUtc, IEnumerable<BlockedDriver> drivers)
     {
@@ -80,6 +101,27 @@ public sealed class DriverBlocklist
         // key that is present but empty remains a legitimate empty list.
         var drivers = file.Drivers
             ?? throw new JsonException("Liste de blocage sans clé « drivers » : fichier probablement d'un autre type.");
+
+        // Refused as a whole rather than entry by entry: this is a security list, and an
+        // entry quietly discarded is a driver the scan will then call benign. All three
+        // fields count — Name and Category are not decoration, they travel into a finding's
+        // reasons and details, where a null becomes a null in the report.
+        //
+        // Holes only. A fingerprint that is present but blank is still dropped by the index
+        // in the constructor, exactly as before: that is a value, not a missing field, and
+        // it is not what this guard was written for.
+        for (var index = 0; index < drivers.Count; index++)
+        {
+            var driver = drivers[index];
+
+            if (driver is null || driver.Sha256 is null
+                || driver.Name is null || driver.Category is null)
+            {
+                throw new JsonException(
+                    $"Entrée n° {index + 1} de la liste de blocage trouée : empreinte, nom et "
+                    + "catégorie sont obligatoires. Rien n'est chargé.");
+            }
+        }
 
         return new DriverBlocklist(file.AsOfUtc ?? "", drivers);
     }

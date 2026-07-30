@@ -259,6 +259,65 @@ public class UpdatePlannerTests
     }
 
     /// <summary>
+    /// Two entries under one identifier. Every field is present — this is not a hole, it
+    /// is an ambiguity, and it used to reach the store intact.
+    /// </summary>
+    private const string DuplicatedCatalogue = """
+        {
+          "asOfUtc": "2026-08-01T00:00:00Z",
+          "source": "test",
+          "entries": [
+            {
+              "id": "BLOAT-TEST-001",
+              "match": "PackageName",
+              "value": "Éditeur.Exemple",
+              "category": "media",
+              "risk": "Unwanted",
+              "impact": "Une application d'exemple, désinstallable sans dépendance connue.",
+              "impactSource": "Upstream"
+            },
+            {
+              "id": "BLOAT-TEST-001",
+              "match": "Name",
+              "value": "Autre logiciel",
+              "category": "media",
+              "risk": "Unwanted",
+              "impact": "Une seconde entrée, sous le même identifiant que la première.",
+              "impactSource": "Upstream"
+            }
+          ]
+        }
+        """;
+
+    /// <summary>
+    /// A catalogue carrying one identifier twice is turned away here, before anything is
+    /// written.
+    ///
+    /// <para>
+    /// This is the half that makes refusing in the reader the right place. The planner
+    /// calls <c>Parse</c> and never <c>Merge</c>, so a duplicate caught only in the merge
+    /// let the preview answer "ready to apply", <c>update --apply</c> write the file, and
+    /// every scan after that die — never the command that made the decision.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_catalogue_with_a_duplicate_identifier_is_not_ready_to_apply()
+    {
+        using var publisher = new TestPublisher();
+        var (manifest, read, verifier) = Publish(
+            publisher, "bloatware.json", DuplicatedCatalogue, DatasetKind.Bloatware);
+
+        // The sample really does carry the identifier twice, or the refusal below would be
+        // about something else entirely.
+        Assert.Equal(2, DuplicatedCatalogue.Split("BLOAT-TEST-001").Length - 1);
+
+        var preview = UpdatePlanner.Prepare(manifest, verifier, read, Current());
+
+        Assert.False(preview.ReadyToApply);
+        Assert.Contains("en double", Assert.Single(preview.Datasets).Problem);
+    }
+
+    /// <summary>
     /// The preview exists so that a decision can be made before writing (D14). "Verified,
     /// and I will not say what it holds" is not a preview, so the count travels like the
     /// driver one.
