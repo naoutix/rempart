@@ -79,6 +79,31 @@ the layer next door — none of them a line of the review itself.
 - **A flag can no longer promise a collector it does not add.** `--analyze-store` could become
   an inert flag, and the collector could be made to run on every scan, without a test noticing.
 
+### What the neighbours' own review then found
+
+A third round, on the six fixes above. Five were refuted by their review — one of them at the
+root — and repaired before merging.
+
+- **A failure that elevation cannot repair now has a word of its own.** Every unverifiable
+  control was titled "accès refusé" and never printed the reason the provider had already
+  written; `AuditGap` had no value for it, and the exit code said `3`, "re-run elevated". There
+  is now a third value, the three renderings print the reason where there is one, and the code
+  is `5` — which CI already accepted, so no contract moved. Which of the two a gap is, is
+  **stated by the collector** and no longer inferred: inferring it from the presence of a
+  reason turned a refused startup folder — the ordinary non-elevated case — into "elevation
+  will not help".
+- **An elevated scan is no longer told to elevate.** Two committed references carried the
+  advice on captures whose `isElevated` was already true.
+- **A WMI enumeration that times out keeps what it read**, and a provider that fails to load is
+  no longer reported as an absence.
+- **A security-policy read that established nothing** no longer claims it was denied, and a
+  partial read is no longer indistinguishable from a complete one.
+- **A scan can no longer lose its driver blocklist and bloatware catalogue in silence**: the
+  parameter that carried them was optional, and dropping it at the call site compiled.
+- **Five guards that would have stopped guarding** — four compatibility assertions written on
+  the presence of a JSON key rather than its value, and two reflection sweeps that only saw
+  `const` fields.
+
 ### Build and release
 
 - The release tag is bound to a step's `env:` and validated before use, instead of being

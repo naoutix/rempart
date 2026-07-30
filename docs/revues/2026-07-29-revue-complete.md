@@ -188,13 +188,33 @@ d'un échec de lecture de service un `Fail` critique contre la machine, là où 
 n'en faisait qu'un refus. Un échec traduit en refus était le défaut ; un échec traduit en
 verdict est pire.
 
-Ce second tour a produit six trouvailles de plus, ouvertes et non corrigées : #159 à #164.
-Elles ne sont pas de la même nature que les précédentes, et c'est la raison de s'arrêter
-là. La plus grosse — **#159** — dit que le canal de statut posé par cette revue n'a toujours
-pas de mot pour « un échec que l'élévation ne répare pas » : le rapport titre les deux
-« accès refusé », `AuditGap` n'a que `Refused` et `Broken`, et le code de sortie rend `3`.
-Le corriger demande de traverser trois rendus, leurs goldens, une énumération et le code de
-sortie. Ce n'est plus la correction d'un audit, c'est la moitié suivante du travail.
+Ce second tour a produit six trouvailles de plus, #159 à #164, **corrigées à leur tour**
+par #166 à #171. La plus grosse — #159 — disait que le canal de statut posé par cette revue
+n'avait pas de mot pour « un échec que l'élévation ne répare pas » : le rapport titrait les
+deux « accès refusé », `AuditGap` n'avait que `Refused` et `Broken`, et le code de sortie
+rendait `3`. `AuditGap.Unreadable` existe désormais, les trois rendus impriment la raison
+quand il y en a une, et la valeur sort en `5` — un code que la CI acceptait déjà, donc sans
+rupture de contrat.
+
+## Le troisième tour, et ce qu'il a appris
+
+**Cinq des six correctifs ont été réfutés par leur relecture**, et l'un l'était à la racine.
+#166 déduisait « l'élévation aide-t-elle ? » de la présence d'une raison, alors que cinq
+canaux écrivent une raison pour un refus authentique : un dossier de démarrage refusé sur un
+scan non élevé — le cas le plus courant — ressortait en « l'élévation n'y changera rien », et
+le rapport cessait de conseiller l'élévation là où elle est la réponse. Le correctif inversait
+l'invariant qu'il devait servir.
+
+La correction retenue est que **le collecteur le dise au lieu de le deviner** : `AuditGap` est
+un paramètre obligatoire de `Finding.Unread`, donc le compilateur force le choix aux treize
+sites, et chacun cite ce que son fournisseur documente. Une seule inférence subsiste, `WmiGap`,
+bornée au canal où `Classify` garantit le contrat — la règle citée une fois plutôt que recopiée
+treize.
+
+Ce que ces trois tours établissent, au-delà des correctifs : **la suite de tests ne voit pas
+cette classe de défaut**. Les cinq réfutations ont toutes été trouvées par une mutation, dont
+deux que l'auteur du correctif n'avait pas prévue, et aucune n'aurait rougi autrement. Une
+garde ajoutée sans qu'on ait vu son rouge est une garde dont on ne sait rien.
 
 ---
 
