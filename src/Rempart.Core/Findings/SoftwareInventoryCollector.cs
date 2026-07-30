@@ -21,6 +21,14 @@ namespace Rempart.Core.Findings;
 /// whole suite green. Saying « rien à confronter » now costs a written
 /// <see cref="BloatwareCatalog.Empty"/>, which is a sentence a reader can disagree with.
 /// </para>
+///
+/// <para>
+/// One demanded parameter is not the whole of it, so <c>FindingCollectorRegistrationTests</c>
+/// holds two more things: that no collector grows a second, shorter constructor beside this
+/// one — which carries no default and so slips past any check for one — and that the catalog
+/// handed to <c>ScanEngine.DefaultFindingCollectors</c> actually arrives here, which no test
+/// asserted while every one of them passed <see cref="BloatwareCatalog.Empty"/>.
+/// </para>
 /// </summary>
 public sealed class SoftwareInventoryCollector(BloatwareCatalog catalog) : IFindingCollector
 {

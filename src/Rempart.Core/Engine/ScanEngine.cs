@@ -116,11 +116,6 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new BrowserExtensionsCollector(),
     ];
 
-    public ScanEngine(IReadOnlyList<ICollector> collectors)
-        : this(collectors, [])
-    {
-    }
-
     public static ScanEngine Default(string? externalRules = null) =>
         new(DefaultCollectors, RuleCatalog.Load(externalRules));
 

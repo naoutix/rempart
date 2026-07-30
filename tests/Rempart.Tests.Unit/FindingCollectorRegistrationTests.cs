@@ -1,6 +1,8 @@
 using System.Reflection;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
+using Rempart.Core.Json;
+using Rempart.Core.Providers;
 using Rempart.Core.Updates;
 
 namespace Rempart.Tests.Unit;
@@ -8,7 +10,9 @@ namespace Rempart.Tests.Unit;
 /// <summary>
 /// Holds <see cref="ScanEngine.DefaultFindingCollectors"/> against the collectors that
 /// actually exist — the implementations compiled into <c>Rempart.Core</c>, and the files
-/// that declare them.
+/// that declare them — and against the data those collectors judge with: that a run cannot
+/// be started without them, that no collector offers a way in that leaves the data out, and
+/// that the two lists handed to the registration reach the collectors holding them.
 ///
 /// <para>
 /// This is the collector half of D2, left open when the provider half was closed. A provider
@@ -146,12 +150,26 @@ public sealed class FindingCollectorRegistrationTests
     /// </para>
     ///
     /// <para>
-    /// Reflection over the signature rather than a guard reading <c>ScanCommand</c> as text:
-    /// what the compiler refuses outright needs no watching, and the call site lives in
-    /// <c>Rempart.Cli</c>, which no test assembly references. Every <c>Run</c> is checked
-    /// rather than the only one that exists, because an overload without the parameter would
-    /// put the shorter call back within reach — the reason #136 changed <c>ListValues</c>'
-    /// return type instead of adding an overload beside it.
+    /// Reflection over the signature, and what that holds is narrower than "the compiler
+    /// refuses it". The compiler refuses the <em>omission</em> — deleting the argument at the
+    /// <c>ScanCommand</c> call site stops compiling. It does not refuse a
+    /// <em>substitution</em>: writing
+    /// <c>DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty)</c> there
+    /// builds clean in Release, warnings as errors, and leaves the whole unit suite green —
+    /// measured, not assumed. Nothing here claims otherwise. A guard reading
+    /// <c>ScanCommand</c> as text is perfectly available — <c>ScanCommandStepTests</c> does
+    /// exactly that two files over, reading the source rather than calling it because no test
+    /// assembly references <c>Rempart.Cli</c> — but it could not tell the two cases apart: the
+    /// replay branch legitimately resolves <c>DriverBlocklist.Empty</c> alongside the embedded
+    /// catalog. A written <c>.Empty</c> is a sentence a reader can disagree with, which is the
+    /// trade-off <see cref="SoftwareInventoryCollector"/> states, and not a pattern a guard can
+    /// ban. What is closed here is the argument that was not written at all.
+    /// </para>
+    ///
+    /// <para>
+    /// Every <c>Run</c> is checked rather than the only one that exists, because an overload
+    /// without the parameter would put the shorter call back within reach — the reason #136
+    /// changed <c>ListValues</c>' return type instead of adding an overload beside it.
     /// </para>
     /// </summary>
     [Fact]
@@ -170,7 +188,7 @@ public sealed class FindingCollectorRegistrationTests
             .Where(run => run.GetParameters()
                     .FirstOrDefault(parameter => parameter.Name == "findingCollectors")
                 is null or { IsOptional: true })
-            .Select(Signature)
+            .Select(run => $"Run({Parameters(run)})")
             .ToList();
 
         Assert.True(lenient.Count == 0,
@@ -194,6 +212,19 @@ public sealed class FindingCollectorRegistrationTests
     /// </para>
     ///
     /// <para>
+    /// Two shapes, one door. A default on a parameter is the one this commit removed; a
+    /// <em>second public constructor</em> is the same thing with the argument list rewritten,
+    /// and reading only <c>IsOptional</c> misses it entirely — a constructor with no
+    /// parameters has no parameter to be optional. Measured on this repository rather than
+    /// reasoned about: adding
+    /// <c>public SoftwareInventoryCollector() : this(BloatwareCatalog.Empty) { }</c> beside
+    /// the demanding one and registering <c>new SoftwareInventoryCollector()</c> built in
+    /// Release with no diagnostic and left all 970 unit tests passing, dropping the catalogue
+    /// exactly as the default did. So the count of public constructors is held too: exactly
+    /// one way in, and no default on it.
+    /// </para>
+    ///
+    /// <para>
     /// Derived from the assembly, so the collector written next year is held to it without
     /// this file being edited. One that genuinely wants a default has to argue for it here,
     /// which is the point: from the outside, data deliberately omitted and data forgotten are
@@ -209,26 +240,159 @@ public sealed class FindingCollectorRegistrationTests
             "Aucune implémentation d'IFindingCollector trouvée dans Rempart.Core : le filtre "
             + "de cette garde ne voit plus rien, et une garde qui n'inspecte rien passe.");
 
-        var lenient = compiled
-            .SelectMany(type => type.GetConstructors()
+        var lenient = new List<string>();
+
+        foreach (var type in compiled)
+        {
+            var constructors = type.GetConstructors();
+
+            // A collector taking nothing at all is not the fault — most of them judge on the
+            // providers alone and have exactly one, parameterless, way in. The fault is a
+            // second one, which necessarily offers a shorter call than the longest.
+            if (constructors.Length > 1)
+            {
+                lenient.Add($"{type.Name} : {constructors.Length} constructeurs publics, "
+                    + string.Join(" et ", constructors
+                        .Select(constructor => $"{type.Name}({Parameters(constructor)})")
+                        .OrderBy(signature => signature, StringComparer.Ordinal)));
+            }
+
+            lenient.AddRange(constructors
                 .SelectMany(constructor => constructor.GetParameters())
                 .Where(parameter => parameter.IsOptional)
                 .Select(parameter =>
-                    $"{type.Name}({parameter.ParameterType.Name} {parameter.Name} = …)"))
-            .ToList();
+                    $"{type.Name}({parameter.ParameterType.Name} {parameter.Name} = …)"));
+        }
 
         Assert.True(lenient.Count == 0,
             $"Ces collecteurs se construisent sans la donnée qu'ils confrontent : {Join(lenient)}. "
             + "Omise, elle est remplacée par une liste vide et le collecteur ne reconnaît plus "
             + "rien : il rend les mêmes constats bénins qu'une machine saine, sans qu'aucune "
-            + "référence figée ni aucun compte de constats ne bouge.");
+            + "référence figée ni aucun compte de constats ne bouge. Un paramètre facultatif "
+            + "laisse omettre l'argument, un second constructeur laisse appeler sans : même "
+            + "porte, deux écritures.");
+    }
+
+    /// <summary>
+    /// The blocklist and the catalog handed to
+    /// <see cref="ScanEngine.DefaultFindingCollectors"/> reach the two collectors that judge
+    /// with them.
+    ///
+    /// <para>
+    /// The guards above hold the signatures; this one holds the wiring behind them, and
+    /// nothing did. Both parameters could be accepted and then dropped one line further in —
+    /// <c>new LoadedDriversCollector(DriverBlocklist.Empty)</c>,
+    /// <c>new SoftwareInventoryCollector(BloatwareCatalog.Empty)</c> inside the table itself.
+    /// Measured: that builds clean in Release, warnings as errors, C# not warning on an unused
+    /// parameter, and leaves all 970 unit tests passing while behaviour returns bit for bit to
+    /// the bug this branch closes. Worse than the omission it replaces, because
+    /// <c>ScanCommand</c> still reads <c>resolution.Blocklist, resolution.Catalog</c> and a
+    /// reviewer sees a correct call site. The cause was that all eight test uses of
+    /// <c>DefaultFindingCollectors</c> passed <c>Empty</c> for both, so no test in the
+    /// repository could tell the parameters from constants.
+    /// </para>
+    ///
+    /// <para>
+    /// Non-empty data on both, therefore, and the escalation asserted rather than the
+    /// construction: a driver whose fingerprint is on the blocklist comes back
+    /// <see cref="FindingSeverity.Suspicious"/> despite a valid signature, and software the
+    /// catalog names comes back <see cref="FindingSeverity.Notable"/>. Both are exactly the
+    /// verdicts that collapse to <see cref="FindingSeverity.Benign"/> when the lists do not
+    /// arrive, which is the defect being watched: the same count of findings, the same report
+    /// shape, one severity quietly lowered.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_blocklist_and_the_catalog_reach_the_collectors_that_judge_with_them()
+    {
+        const string Fingerprint =
+            "abc123def456abc123def456abc123def456abc123def456abc123def456abcd";
+        const string DriverPath = @"C:\Windows\System32\drivers\capcom.sys";
+
+        var collectors = ScanEngine.DefaultFindingCollectors(
+            DriverBlocklist.Parse(
+                $$"""
+                {"asOfUtc":"2026-09-01T00:00:00Z","source":"test","drivers":[
+                {"sha256":"{{Fingerprint}}","name":"capcom.sys","category":"vulnerable"}]}
+                """),
+            BloatwareCatalog.Parse(RempartJson.SerialiseCompact(
+                new BloatwareCatalogFile("2026-07-23T00:00:00Z", "test", [
+                    new BloatwareEntry("BLOAT-GAME", BloatwareMatch.Name, "candy crush",
+                        "game", BloatwareRisk.Unwanted,
+                        "Jeu préinstallé, désinstallable sans impact.")]))));
+
+        // Pulled out of the registration by type rather than rebuilt here: the claim is about
+        // the instances that table hands back, not about collectors this test constructs.
+        var drivers = Assert.Single(collectors.OfType<LoadedDriversCollector>());
+        var software = Assert.Single(collectors.OfType<SoftwareInventoryCollector>());
+
+        var driverFinding = Assert.Single(drivers.Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            signatures: new FakeSignatureProvider()
+                .With(DriverPath, SignatureStatus.Valid, sha256: Fingerprint),
+            drivers: new FakeDriverProvider(new LoadedDriver("capcom.sys", DriverPath)))));
+
+        Assert.Equal(FindingSeverity.Suspicious, driverFinding.Severity);
+        Assert.Equal("vulnerable", driverFinding.Details["loldrivers"]);
+
+        var softwareFinding = Assert.Single(software.Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            softwareInventory: new FakeSoftwareInventoryProvider(new InstalledSoftware(
+                "Candy Crush Saga", null, null, SoftwareSource.Appx,
+                Provisioned: true, SurvivesFeatureUpdate: true)))));
+
+        Assert.Equal(FindingSeverity.Notable, softwareFinding.Severity);
+        Assert.Equal("BLOAT-GAME", softwareFinding.Details["catalogue"]);
+    }
+
+    /// <summary>
+    /// No engine is built without a rule catalog, for the same reason no run is started
+    /// without finding collectors.
+    ///
+    /// <para>
+    /// <c>ScanEngine(IReadOnlyList&lt;ICollector&gt; collectors)</c> substituted an empty rule
+    /// catalog thirty lines above the parameter this branch made required — the shorter
+    /// overload #136's reasoning rules out, quoted twice in this work and then not applied
+    /// here. Taken, it evaluates no rule at all: no verdict,
+    /// <see cref="ScanResult.Score"/> <c>null</c>, and <c>ExitCodes.ForScan</c> answering
+    /// <c>Success</c>, because the <c>Unknown</c> rung never fires on an empty verdict list. A
+    /// scheduler then cannot tell a machine judged by nothing from a clean one — the same
+    /// silence as an empty blocklist, one constructor over and with the exit code on it.
+    /// </para>
+    ///
+    /// <para>
+    /// It had no caller when it was deleted, all seven construction sites passing both
+    /// arguments, so this guard is what keeps it from coming back rather than what removed it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_scan_engine_is_built_without_a_rule_catalog()
+    {
+        var constructors = typeof(ScanEngine).GetConstructors();
+
+        Assert.True(constructors.Length > 0,
+            "Aucun constructeur public de ScanEngine : cette garde ne regarde plus rien, et "
+            + "une garde qui n'inspecte rien passe.");
+
+        var lenient = constructors
+            .Where(constructor => constructor.GetParameters()
+                    .FirstOrDefault(parameter => parameter.Name == "rules")
+                is null or { IsOptional: true })
+            .Select(constructor => $"ScanEngine({Parameters(constructor)})")
+            .ToList();
+
+        Assert.True(lenient.Count == 0,
+            $"Ces constructeurs de ScanEngine se passent de catalogue de règles : "
+            + $"{Join(lenient)}. Le moteur n'évalue alors aucune règle : aucun verdict, un "
+            + "score nul, et ExitCodes.ForScan rend Succès faute d'Unknown à voir. Un "
+            + "ordonnanceur ne distingue plus une machine jugée par rien d'une machine saine.");
     }
 
     /// <summary>Parameters as written, so the failure names the offending overload.</summary>
-    private static string Signature(MethodInfo method) =>
-        $"Run({string.Join(", ", method.GetParameters().Select(parameter =>
+    private static string Parameters(MethodBase method) =>
+        string.Join(", ", method.GetParameters().Select(parameter =>
             $"{parameter.ParameterType.Name} {parameter.Name}"
-            + (parameter.IsOptional ? " = …" : string.Empty)))})";
+            + (parameter.IsOptional ? " = …" : string.Empty)));
 
     /// <summary>
     /// What the product actually builds, by type name.
