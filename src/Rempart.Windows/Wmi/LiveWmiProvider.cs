@@ -266,8 +266,21 @@ public sealed unsafe partial class LiveWmiProvider(TimeSpan? timeout = null) : I
     /// kept them — and the disagreement is the one #153's commit declared rather than settled.
     /// Every exit is now handed <c>instances</c>, save the one reached before anything can
     /// have walked. Checking that off exit by exit is the coverage-by-enumeration this file
-    /// has already been caught at, so what a test holds is the property: whatever the answers
-    /// scripted for <c>Next</c>, the read carries as many objects as the walk was handed.
+    /// has already been caught at, so what a test holds is the property: however the walk
+    /// ends — the enumeration finishing, the budget running out, <c>WBEM_S_TIMEDOUT</c>, a
+    /// negative HRESULT — the read carries every object the walk was handed.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>On one premise, and it is worth writing down because the loop rests on it.</b>
+    /// <c>Next</c> is asked for exactly one object at a time — see <see cref="WbemNext"/> —
+    /// so a code other than <c>WBEM_S_NO_ERROR</c> arrives with nothing in the slot. The two
+    /// tests below return before reading <c>returned</c>, so an object handed over
+    /// <em>beside</em> a deadline or a failure would be dropped, and its COM pointer never
+    /// released: <c>Marshal.Release</c> only runs inside the read. Scripting that pair proves
+    /// it — the walk is handed one object and the read carries none — which is why the
+    /// sentence above says « however the walk ends » and not « whatever <c>Next</c> answers ».
+    /// A caller that ever asks for more than one object has to move those tests past the slot.
     /// </para>
     ///
     /// <para>
@@ -401,8 +414,15 @@ public sealed unsafe partial class LiveWmiProvider(TimeSpan? timeout = null) : I
     /// — it came with <see cref="WmiRead.Failed"/>, which #143 chose to say « this is a
     /// failure, not a refusal and not an absence ». The one place #143 does argue for
     /// distrusting a truncated walk is its netapi32 half, where the walk yields a
-    /// <em>count</em> of accounts that is plausible and false; no consumer of this read
-    /// derives an aggregate, and the one that needs « all of them »,
+    /// <em>count</em> of accounts that is plausible and false. One consumer of this read does
+    /// derive a count — <c>RunningProcessesCollector</c> groups processes by binary and puts
+    /// « instances » in the finding's details — so a truncated walk can print « 7 instances de
+    /// svchost.exe » where twelve run. It is tolerated, and for reasons that have to be stated
+    /// rather than assumed: the count is per binary, not a total the report reasons over; the
+    /// same status forces a <c>Finding.Unread</c> onto that same collector, so the figure
+    /// never travels without the sentence saying the walk did not finish; and
+    /// <see cref="Interrupted"/> has been reaching it that way since #153, so this exit adds
+    /// no path that was not already open. The consumer that needs « all of them »,
     /// <c>CheckReader.ReadWmi</c>, keeps nothing on any status but <c>Found</c> whatever this
     /// method hands it. What is left of the case for dropping — a provider that stopped
     /// mid-inventory gives no ground to trust the prefix it delivered — does not survive its
