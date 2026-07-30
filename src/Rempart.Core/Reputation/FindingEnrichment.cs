@@ -33,6 +33,24 @@ public interface IReputationSource
 /// healthy files would exhaust the API quota without learning anything. This is a
 /// complement to the findings, not a second analysis pass.
 /// </para>
+///
+/// <para>
+/// This runs on a finished scan, one step before it is serialised, which is what makes
+/// <see cref="LookedUp"/> necessary: nothing used to stand between a throwing source and
+/// the top of the process but the <c>catch</c> filters of whichever source happened to be
+/// plugged in, and those filters named the failures foreseen. The guard sits here rather
+/// than only in <see cref="VirusTotalReputation"/>, so the invariant holds for whichever
+/// <see cref="IReputationSource"/> is plugged in — a failed lookup is a line in the
+/// report, never an audit thrown away for an enrichment the run could do without.
+/// </para>
+///
+/// <para>
+/// What it cannot reach is the step before it: <c>ScanCommand</c> builds the source one
+/// line above this call, so a source that throws from its constructor still costs the
+/// report. <see cref="VirusTotalReputation"/> no longer does — it took the user's key
+/// straight into an HTTP header, which validates it — but the guarantee below stops at
+/// <see cref="IReputationSource.Lookup"/>.
+/// </para>
 /// </summary>
 public static class FindingEnrichment
 {
@@ -49,7 +67,7 @@ public static class FindingEnrichment
             return finding;
         }
 
-        var result = source.Lookup(sha256);
+        var result = LookedUp(source, sha256);
 
         var details = finding.Details.ToDictionary(
             entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
@@ -74,5 +92,31 @@ public static class FindingEnrichment
         }
 
         return finding with { Details = details };
+    }
+
+    /// <summary>
+    /// The lookup, and whatever it throws turned into the reading it should have been.
+    /// Untyped on purpose: any list of exception types here would be one more list to keep
+    /// right against a third-party service, and the ones that reach a real run are exactly
+    /// those a list left out.
+    ///
+    /// <para>
+    /// The wording is its own, never « inconnu de VirusTotal »: a lookup that failed and a
+    /// hash the service has never seen are two different facts, and the second is a
+    /// verdict. Returning no <see cref="HashReputation"/> is what keeps the finding at the
+    /// severity the scan established — a failure teaches nothing, so it lowers and raises
+    /// nothing.
+    /// </para>
+    /// </summary>
+    private static ReputationResult LookedUp(IReputationSource source, string sha256)
+    {
+        try
+        {
+            return source.Lookup(sha256);
+        }
+        catch (Exception ex)
+        {
+            return new(null, $"réputation indisponible : {ex.Message}");
+        }
     }
 }
