@@ -57,6 +57,15 @@ public static class CheckReader
     /// A fact missing from the dictionary is not a non-compliance: the API could not
     /// establish it. Returning "not verifiable" rather than a verdict avoids blaming a
     /// machine for what the tool could not read.
+    ///
+    /// <para>
+    /// And the reason travels, as it does for a service and for WMI below. Policy facts come
+    /// from four independent netapi32 surfaces filling one dictionary, so what a rule needs is
+    /// why <em>its</em> fact is absent, not why some other one is: a lockout policy nobody
+    /// could read must not describe the password policy that answered. Null where the read
+    /// recorded nothing — every capture written before that channel existed — and the verdict
+    /// is then exactly what it was: <c>Unknown</c>, out of the score, with nothing to explain.
+    /// </para>
     /// </summary>
     private static CheckReading ReadPolicy(CheckSpec check, ISecurityPolicyProvider policy)
     {
@@ -64,7 +73,7 @@ public static class CheckReader
 
         if (facts.Denied || facts.Find(check.Path) is not { } value)
         {
-            return new CheckReading(null, null, Denied: true);
+            return new CheckReading(facts.WhyMissing(check.Path), null, Denied: true);
         }
 
         return new CheckReading(value, value, Denied: false);

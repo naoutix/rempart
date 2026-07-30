@@ -168,9 +168,12 @@ public sealed class RecordingSecurityPolicyProvider(
 
 public sealed class SnapshotSecurityPolicyProvider(MachineSnapshot snapshot) : ISecurityPolicyProvider
 {
-    // Absent from an old capture: treated as a denial, hence "not verifiable".
-    // A fixture predating this batch stays replayable, it simply yields fewer verdicts.
-    public PolicyFacts Read() => snapshot.Policy ?? PolicyFacts.AccessDenied;
+    // Absent from an old capture: still "not verifiable", and now with the reason. A fixture
+    // predating this batch stays replayable and simply yields fewer verdicts — but the
+    // verdicts it loses used to read « accès refusé », which said the machine had locked the
+    // scan out when what happened is that the capture never held the block (#160).
+    public PolicyFacts Read() => snapshot.Policy ?? PolicyFacts.Unread(
+        "La capture rejouée ne porte aucun bloc de politique de sécurité.");
 }
 
 public sealed class RecordingSignatureProvider(

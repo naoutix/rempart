@@ -132,7 +132,13 @@ public sealed class ProviderStatusChannelTests
         "IScheduledTaskProvider.Enumerate → statut + diagnostic",
 
         // PolicyFacts.Denied, second canal maison. Un troisième devrait sauter aux yeux.
-        "ISecurityPolicyProvider.Read → booléen dédié",
+        // Le booléen ne portait qu'une seule réponse, et il la déduisait : « zéro fait établi »
+        // était rendu comme un refus quel que soit le code de netapi32, et une lecture
+        // PARTIELLE — quatre surfaces indépendantes remplissent le même dictionnaire —
+        // n'avait aucune trace. Gaps nomme, à côté de chaque fait absent, l'appel qui a
+        // échoué et son code ; le booléen ne dit plus « refusé » que là où netapi32 l'a dit
+        // (#160).
+        "ISecurityPolicyProvider.Read → booléen dédié + manques nommés",
 
         // Arrivée ici en « statut seul », avec la même raison que les trois lectures du
         // registre — l'appelant a nommé le service, donc « refusé » se suffit. C'était vrai
@@ -199,6 +205,14 @@ public sealed class ProviderStatusChannelTests
     /// their own way to say « je n'ai pas pu lire », so nothing but a list can find them.
     /// A third invention should be visible as an invention.
     /// </para>
+    ///
+    /// <para>
+    /// <c>Gaps</c> is read after the boolean and not before it, which is what makes the line
+    /// above move rather than stay: a read carrying both says both, and the label that only
+    /// mentioned the boolean would have gone on describing it correctly while describing the
+    /// read incompletely. A channel added to a type this classifier already recognises is
+    /// exactly the change it must not sleep through.
+    /// </para>
     /// </summary>
     private static string Channel(Type returnType)
     {
@@ -223,7 +237,9 @@ public sealed class ProviderStatusChannelTests
         if (returnType.GetProperty("Denied") is not null
             || returnType.GetProperty("Readable") is not null)
         {
-            return "booléen dédié";
+            return returnType.GetProperty("Gaps") is not null
+                ? "booléen dédié + manques nommés"
+                : "booléen dédié";
         }
 
         return "aucun";

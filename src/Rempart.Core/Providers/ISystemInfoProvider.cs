@@ -276,7 +276,13 @@ internal sealed class UnavailablePolicy : ISecurityPolicyProvider
 {
     public static readonly UnavailablePolicy Instance = new();
 
-    public PolicyFacts Read() => PolicyFacts.AccessDenied;
+    // Named, not denied: a scan wired without a policy provider asked netapi32 nothing at
+    // all, and answering « accès refusé » put the six shipped type: policy controls under
+    // « relancer en administrateur » — the one advice that cannot help with a provider nobody
+    // supplied. The shape the five neighbours above already had, and the one this interface
+    // could not have until PolicyFacts carried its gaps (#160).
+    public PolicyFacts Read() => PolicyFacts.Unread(
+        "Aucun fournisseur de politique de sécurité n'a été fourni à ce scan.");
 }
 
 /// <summary>Answers "access denied" to every question: no conclusion can be drawn from it.</summary>
