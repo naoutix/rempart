@@ -30,6 +30,32 @@ public sealed record CatalogResolution(
 /// since then is rejected, not loaded. <b>D12</b>: the embedded baseline is a floor —
 /// an update may fix or add a check, never remove one.
 /// </para>
+///
+/// <para>
+/// <b>A store that cannot be read is a refused update, never a lost scan.</b> Both reads
+/// in <see cref="Resolve(string, IReadOnlyList{Rule}, ManifestVerifier)"/> were bare. One
+/// process holding <c>rempart-data\manifest.json</c> without sharing reads was enough for
+/// the <c>IOException</c> to leave here, cross <c>CliHost</c> and reach the catch-all in
+/// <c>Program</c>: no report, no integrity note, no score — a whole audit lost to a file
+/// that happened to be open. The store is the one folder the stick seal excludes by
+/// design, so nothing else was watching it. Same ending as REV-06, reached through the
+/// file system rather than through the JSON.
+/// </para>
+///
+/// <para>
+/// That ending had a second door a few lines further down, and this one did not even need
+/// the file system: two rule datasets of a single signed manifest declaring the same
+/// identifier reached the merge, whose dictionary raised <c>ArgumentException</c> out of
+/// here. Signed content, hashes checked, and no report. It is a refused update now, in the
+/// wording every dataset this version cannot read already gets.
+/// </para>
+///
+/// <para>
+/// The refusal keeps its own wording throughout. "I could not read the store" is not
+/// "there is no update" — silence is reserved for the store that is genuinely absent —
+/// and it is not "this file no longer matches its fingerprint" either, which would accuse
+/// a file on the strength of a read that never took place.
+/// </para>
 /// </summary>
 public static class UpdateStore
 {
@@ -86,7 +112,31 @@ public static class UpdateStore
     /// The update layers on top, never removing any.
     /// </param>
     public static CatalogResolution Resolve(
-        string storeDirectory, IReadOnlyList<Rule> baseRules, ManifestVerifier verifier)
+        string storeDirectory, IReadOnlyList<Rule> baseRules, ManifestVerifier verifier) =>
+        Resolve(storeDirectory, baseRules, verifier, File.ReadAllBytes);
+
+    /// <summary>
+    /// The same resolution with the file read handed in — the seam the guard is tested
+    /// through. <see cref="UpdatePlanner"/> already hands its dataset read in the same way
+    /// (ADR-001, D5), for a neighbouring reason rather than this one: there, to stay
+    /// independent of where the bytes come from, a local file or the network.
+    ///
+    /// <para>
+    /// Internal because it exists for the test suite: producing a read that fails needs a
+    /// file the operating system refuses, and <see cref="FileShare"/> is only enforced on
+    /// Windows, so the unit suite — which runs on Linux — could otherwise only watch the
+    /// happy path. The real read against a real lock is covered too, over in the Windows
+    /// suite; this seam is what makes the refusal provable on both.
+    /// </para>
+    /// </summary>
+    /// <param name="readFile">How a store file becomes bytes. It is only ever called
+    /// through <see cref="TryRead"/> — but that every read of the store goes through
+    /// <em>it</em> is not something this signature can enforce: a second read written
+    /// straight onto <see cref="File"/> would compile, and would not be guarded. What
+    /// holds that is a guard over this file's own source, in <c>UpdateStoreTests</c>.</param>
+    internal static CatalogResolution Resolve(
+        string storeDirectory, IReadOnlyList<Rule> baseRules, ManifestVerifier verifier,
+        Func<string, byte[]> readFile)
     {
         var manifestPath = Path.Combine(storeDirectory, ManifestFileName);
 
@@ -97,7 +147,18 @@ public static class UpdateStore
             return new CatalogResolution(baseRules, DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, null);
         }
 
-        var verdict = verifier.Verify(File.ReadAllText(manifestPath));
+        var (manifestBytes, unreadable) = TryRead(readFile, manifestPath);
+
+        if (manifestBytes is null)
+        {
+            // Present and unopenable. Not "no update", which is the only silent case, and
+            // not "refused (Malformed)" either: nothing was read, so nothing is judged.
+            return Refused(baseRules,
+                $"Mise à jour présente mais son manifeste est illisible ({ManifestFileName}) : " +
+                $"{unreadable} Socle embarqué conservé.");
+        }
+
+        var verdict = verifier.Verify(Decode(manifestBytes));
 
         if (!verdict.IsTrusted || verdict.Payload is null)
         {
@@ -120,13 +181,32 @@ public static class UpdateStore
         }
 
         var incoming = new List<Rule>();
+        var incomingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var blocklist = DriverBlocklist.Empty;
         var catalog = BloatwareCatalog.Embedded;
 
         foreach (var entry in verdict.Payload.Datasets)
         {
             var path = TryWithin(storeDirectory, entry.Name);
-            var bytes = path is not null && File.Exists(path) ? File.ReadAllBytes(path) : null;
+            byte[]? bytes = null;
+
+            if (path is not null && File.Exists(path))
+            {
+                var (read, why) = TryRead(readFile, path);
+
+                if (read is null)
+                {
+                    // Its own wording, and separating it is the point: the reading below
+                    // is a verdict on content, and no content was obtained. Sending an
+                    // unreadable file down that branch would accuse it of being "altéré"
+                    // on the strength of a read that never happened.
+                    return Refused(baseRules,
+                        $"Mise à jour présente mais un jeu de données ({entry.Name}) est " +
+                        $"illisible : {why} Socle embarqué conservé.");
+                }
+
+                bytes = read;
+            }
 
             if (bytes is null || !ManifestVerifier.FileMatches(entry, bytes))
             {
@@ -145,7 +225,27 @@ public static class UpdateStore
                 switch (entry.Kind)
                 {
                     case DatasetKind.Rules:
-                        incoming.AddRange(RuleLoader.Load(text, entry.Name));
+                        // Uniqueness across datasets, checked here because nowhere else
+                        // sees more than one of them: RuleLoader's own check spans a
+                        // single file, and a manifest may sign several rule datasets.
+                        // Two of them declaring the same identifier used to reach Merge,
+                        // whose dictionary threw ArgumentException straight out of
+                        // Resolve — a correctly signed store ending the scan, which is
+                        // the very failure this file was fixed to stop having.
+                        // RuleCatalog.Load runs the same check across the external
+                        // directory; the comparer is the one Merge indexes with.
+                        foreach (var rule in RuleLoader.Load(text, entry.Name))
+                        {
+                            if (!incomingIds.Add(rule.Id))
+                            {
+                                throw new RuleFormatException(
+                                    $"identifiant « {rule.Id} » déjà défini par un autre jeu " +
+                                    "de données du même manifeste.");
+                            }
+
+                            incoming.Add(rule);
+                        }
+
                         break;
 
                     case DatasetKind.Drivers:
@@ -182,6 +282,67 @@ public static class UpdateStore
             $"{merged.Count} contrôles ({baseRules.Count} au socle){driverNote}{bloatNote}.");
     }
 
+    /// <summary>
+    /// One store file, or the reason it could not be read. The single door every read of
+    /// the store goes through, so that "unreadable" has one answer instead of one per
+    /// call site.
+    ///
+    /// <para>
+    /// <b>The <c>catch</c> has no filter, deliberately.</b> A list of exception types is a
+    /// list to keep up to date, and two of this repository's have been caught short: REV-08
+    /// lost a whole scan to a <c>NotSupportedException</c> nobody had listed and dropped its
+    /// filter for that reason, and <c>HttpTransport.Get</c>, one file over, still lets an
+    /// <c>InvalidOperationException</c> past <c>HttpRequestException or TaskCanceledException
+    /// or UriFormatException</c> when the URL is relative. The obvious list here would be
+    /// <c>IOException or UnauthorizedAccessException</c> — the same one
+    /// <c>SealCommand.SealNote</c> writes, over a read whose failure modes nobody has
+    /// exhibited outside it.
+    /// </para>
+    ///
+    /// <para>
+    /// What makes an unfiltered <c>catch</c> safe is the <em>size</em> of what it covers,
+    /// not the types it names: the only statement inside is the read. Verification,
+    /// parsing and merging stay outside, where an unexpected exception still surfaces as
+    /// one — a catch wrapped around the whole of <see cref="Resolve(string,
+    /// IReadOnlyList{Rule}, ManifestVerifier)"/> would hand back a silently truncated
+    /// catalog, which is the failure this tool exists to not have.
+    /// </para>
+    ///
+    /// <para>
+    /// The cost, said rather than left to be found: an <c>OutOfMemoryException</c> raised
+    /// by an absurd manifest is reported as "manifeste illisible : …" and the scan carries
+    /// on. A baseline-only report is a usable answer; an ended scan is not.
+    /// </para>
+    /// </summary>
+    private static (byte[]? Bytes, string? Failure) TryRead(
+        Func<string, byte[]> readFile, string path)
+    {
+        try
+        {
+            return (readFile(path), null);
+        }
+        catch (Exception ex)
+        {
+            return (null, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// The manifest's bytes as text, reading exactly as <see cref="File.ReadAllText(string)"/>
+    /// did before the read moved behind <c>readFile</c>: UTF-8, and a byte-order mark
+    /// consumed rather than left in front of the JSON. A manifest saved with one by an
+    /// editor resolved yesterday and has to resolve today: the guard is the change, the
+    /// reading is not.
+    /// </summary>
+    private static string Decode(byte[] bytes)
+    {
+        using var reader = new StreamReader(
+            new MemoryStream(bytes), System.Text.Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true);
+
+        return reader.ReadToEnd();
+    }
+
     private static CatalogResolution Refused(IReadOnlyList<Rule> baseRules, string note) =>
         new(baseRules, DriverBlocklist.Empty, BloatwareCatalog.Embedded, RuleCatalog.EmbeddedAsOfUtc, note);
 
@@ -193,6 +354,13 @@ public static class UpdateStore
     /// when the update does not mention it: the floor holds. Baseline order is
     /// preserved so a report's list of failures stays stable from one version to
     /// the next.
+    ///
+    /// <para>
+    /// <paramref name="incoming"/> is indexed by identifier, so its own identifiers have
+    /// to be unique before it gets here — the loop in <c>Resolve</c> holds that across
+    /// datasets. Leaving the dictionary to discover it meant an <c>ArgumentException</c>
+    /// out of a signed store, ending the scan.
+    /// </para>
     /// </summary>
     private static IReadOnlyList<Rule> Merge(
         IReadOnlyList<Rule> baseRules, IReadOnlyList<Rule> incoming)
