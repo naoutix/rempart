@@ -85,6 +85,33 @@ internal static class CliHost
     /// command that returns in a second into one that appears hung — the same reasoning that
     /// keeps <c>--probe-dns</c> off by default, for a local cost rather than a network one.
     /// </para>
+    ///
+    /// <para>
+    /// This ternary is the whole of the link between the flag and the collector it adds, and
+    /// no compiler holds it: dropping the collector from the true branch breaks nothing
+    /// visible. The flag stays accepted, stays declared in <c>CommandSurface</c>, stays in the
+    /// help, and does nothing — measured, with every test green. Held shut by
+    /// <c>FieldCollectorRegistrationTests.Every_opt_in_collector_is_added_by_the_flag_it_names</c>,
+    /// which reads this method as text because the Linux job does not compile this project.
+    /// </para>
+    ///
+    /// <para>
+    /// Four things about the line below are held, each of them because a looser pattern lets the
+    /// matching one-token mutation through, measured green over the whole suite: the flag test
+    /// is not negated, the true branch starts from
+    /// <c>.. ScanEngine.DefaultCollectors</c> instead of replacing it, that
+    /// branch appends exactly the collectors the guard declares opt-in, and no collector is
+    /// constructed anywhere else in the method. Negating the test, or appending the collector
+    /// to the false branch as well, runs the servicing stack on every scan — the cost the
+    /// paragraph above exists to avoid; replacing the default table makes
+    /// <c>--analyze-store</c> drop the <c>[inventory]</c> block instead of adding one.
+    /// </para>
+    ///
+    /// <para>
+    /// The guard recognises the shape written here and no other, so rewriting this ternary into
+    /// an <c>if</c> means updating the guard along with it. That is the price of reading source
+    /// rather than types, and it is paid loudly.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<ICollector> CollectorsFor(string[] args) =>
         HasFlag(args, "--analyze-store")
