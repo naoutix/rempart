@@ -161,17 +161,40 @@ production.
 ## Ce que la correction a fait apparaître
 
 Chaque correctif a été relu de façon adverse, avec pour consigne de le **réfuter**. Aucun n'a
-été cassé, mais cinq voisins du même motif ont été trouvés en chemin. Ils n'appartiennent à
-aucune ligne ci-dessus, et ne sont pas corrigés — chacun porte son issue :
+été cassé, mais six voisins du même motif ont été trouvés en chemin. Ils n'appartiennent à
+aucune ligne ci-dessus. **Tous ont été corrigés depuis**, une PR par issue :
 
-| Fichier | Voisin resté ouvert | Issue |
-|---|---|---|
-| `Windows/LiveServiceStateProvider.cs:56,67,78` | Tout code Win32 autre que « service inexistant » devient `AccessDenied` — la forme exacte que REV-04 condamne, une interface plus loin. Le champ qui l'aurait distingué existe et n'est jamais écrit | #147 |
-| `Reputation/FindingEnrichment.cs:52` | Le jumeau structurel de REV-08 : `--virustotal` enrichit un scan déjà terminé, et deux filtres de `catch` tenus à la main décident s'il le détruit | #148 |
-| `Updates/DriverBlocklist.cs:48`, `Updates/BloatwareCatalog.cs:227` | Un élément `null` dans le tableau JSON lève `NullReferenceException` — REV-06 un cran plus bas, dans les lecteurs que son correctif croyait couvrir | #149 |
-| `Updates/UpdateStore.cs:100,129` | `File.ReadAllText` et `ReadAllBytes` sans `try` sur un fichier de `rempart-data/`, que le sceau exclut : même origine, même conséquence que REV-06 | #150 |
-| `Engine/ScanEngine.cs:60`, `Cli/CliHost.cs:89` | La moitié « collecteurs de champs » de REV-09 : deux tables écrites à la main que rien ne confronte au disque. Mesuré : désenregistrer `--analyze-store` laisse la suite verte | #151 |
-| `Wmi/LiveWmiProvider.cs`, `Drain` | Un HRESULT négatif rendu par `IEnumWbemClassObject::Next` termine la boucle en silence : une énumération tronquée se présente en `Found` | #152 |
+| Fichier | Voisin | Issue | Corrigé par |
+|---|---|---|---|
+| `Windows/LiveServiceStateProvider.cs:56,67,78` | Tout code Win32 autre que « service inexistant » devient `AccessDenied` — la forme exacte que REV-04 condamne, une interface plus loin. Le champ qui l'aurait distingué existe et n'est jamais écrit | #147 | #154 |
+| `Reputation/FindingEnrichment.cs:52` | Le jumeau structurel de REV-08 : `--virustotal` enrichit un scan déjà terminé, et deux filtres de `catch` tenus à la main décident s'il le détruit | #148 | #157 |
+| `Updates/DriverBlocklist.cs:48`, `Updates/BloatwareCatalog.cs:227` | Un élément `null` dans le tableau JSON lève `NullReferenceException` — REV-06 un cran plus bas, dans les lecteurs que son correctif croyait couvrir | #149 | #155 |
+| `Updates/UpdateStore.cs:100,129` | `File.ReadAllText` et `ReadAllBytes` sans `try` sur un fichier de `rempart-data/`, que le sceau exclut : même origine, même conséquence que REV-06 | #150 | #156 |
+| `Engine/ScanEngine.cs:60`, `Cli/CliHost.cs:89` | La moitié « collecteurs de champs » de REV-09 : deux tables écrites à la main que rien ne confronte au disque. Mesuré : désenregistrer `--analyze-store` laisse la suite verte | #151 | #158 |
+| `Wmi/LiveWmiProvider.cs`, `Drain` | Un HRESULT négatif rendu par `IEnumWbemClassObject::Next` termine la boucle en silence : une énumération tronquée se présente en `Found` | #152 | #153 |
+
+---
+
+## Le second tour, et pourquoi il s'arrête là
+
+Les six correctifs ci-dessus ont été relus de la même manière. **Trois ont été réfutés** —
+la garde de #158 ne mordait sur aucune des deux mutations qu'elle prétendait tenir, #157
+laissait la construction de sa source hors de toute garde, et #156 laissait le même défaut
+trois lignes sous celle qu'il venait de poser. Les trois ont été réparés, et les mutations
+rejouées à la main sur la branche fusionnée.
+
+Un correctif a introduit sa propre régression, attrapée par sa relecture : #154 faisait
+d'un échec de lecture de service un `Fail` critique contre la machine, là où l'ancien code
+n'en faisait qu'un refus. Un échec traduit en refus était le défaut ; un échec traduit en
+verdict est pire.
+
+Ce second tour a produit six trouvailles de plus, ouvertes et non corrigées : #159 à #164.
+Elles ne sont pas de la même nature que les précédentes, et c'est la raison de s'arrêter
+là. La plus grosse — **#159** — dit que le canal de statut posé par cette revue n'a toujours
+pas de mot pour « un échec que l'élévation ne répare pas » : le rapport titre les deux
+« accès refusé », `AuditGap` n'a que `Refused` et `Broken`, et le code de sortie rend `3`.
+Le corriger demande de traverser trois rendus, leurs goldens, une énumération et le code de
+sortie. Ce n'est plus la correction d'un audit, c'est la moitié suivante du travail.
 
 ---
 
