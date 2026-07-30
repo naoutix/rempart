@@ -230,6 +230,13 @@ public static class ReportLabels
         "listening-port" => "ports en écoute",
         "logon-extensibility" => "points d'extension à l'ouverture de session",
         "lsa-package" => "paquets LSA",
+
+        // Not a surface either: the update store, when this version broke down over one
+        // rather than deciding anything about it. Its own family and not the one above,
+        // because nobody asked for the store — it is read because it is there, and a
+        // reader sent looking for the flag they typed would find none.
+        "mise-à-jour" => "mise à jour des données",
+
         "process" => "processus courants",
         "proxy" => "proxy et PAC",
         "scheduled-task" => "tâches planifiées",

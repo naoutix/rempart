@@ -1,3 +1,5 @@
+using Rempart.Core.Engine;
+using Rempart.Core.Findings;
 using Rempart.Core.Rules;
 
 namespace Rempart.Core.Updates;
@@ -17,7 +19,45 @@ public sealed record CatalogResolution(
     /// to say. An applied update is visible; a refused one too — never in silence
     /// (ADR-002, D17).
     /// </summary>
-    string? UpdateNote);
+    string? UpdateNote,
+
+    /// <summary>
+    /// This version breaking down over the store rather than refusing it, or <c>null</c>
+    /// when nothing broke.
+    ///
+    /// <para>
+    /// Every refusal below is a decision taken on purpose: the signature is not one we
+    /// pinned, a hash no longer matches, a file would not open, a dataset kind is newer
+    /// than this build. Each is said in <see cref="UpdateNote"/>, and the scan is worth
+    /// exactly what that note says. An exception nobody foresaw coming out of the
+    /// resolution is not a decision — it is a defect of this version, met on data that
+    /// was signed — and a note in the report header is the one channel a scheduler never
+    /// reads. So it also travels as an <see cref="AuditGap.Broken"/> finding, which
+    /// <see cref="Cli.ExitCodes.ForScan"/> already turns into a non-zero code. Filed as a
+    /// refusal instead, it would be indistinguishable — from the exit code alone — from a
+    /// signature we simply do not trust.
+    /// </para>
+    /// </summary>
+    Finding? Breakdown = null)
+{
+    /// <summary>
+    /// The resolution as a finished scan carries it: the note in the header, the
+    /// breakdown — when there was one — among the findings, where the exit code reads.
+    ///
+    /// <para>
+    /// Here rather than spelled out in <c>ScanCommand</c>, because <c>Rempart.Cli</c>
+    /// targets <c>net10.0-windows</c> and no test project references it: written there,
+    /// "a store this version broke down on reaches the exit code" would be a claim no run
+    /// could check. The scan is handed back with its findings untouched when there is
+    /// nothing to add, so a resolution that went well costs the list nothing.
+    /// </para>
+    /// </summary>
+    public ScanResult AppliedTo(ScanResult scan) => scan with
+    {
+        UpdateNote = UpdateNote,
+        Findings = Breakdown is null ? scan.Findings : [.. scan.Findings, Breakdown],
+    };
+}
 
 /// <summary>
 /// The updated-data store: what <c>rempart update --apply</c> writes, and what every
@@ -65,10 +105,33 @@ public sealed record CatalogResolution(
 /// <c>ArgumentException</c> came out of <c>Resolve</c> with the store's signature and
 /// hashes about to be checked — the bold sentence above, not holding.
 /// </para>
+///
+/// <para>
+/// That outer level is the one place here that catches rather than decides, and it says so
+/// twice: the note, and a <see cref="CatalogResolution.Breakdown"/> finding that carries it
+/// to the exit code. "The update was refused" and "this version broke over the store" read
+/// as the same kind of sentence and must not arrive as the same number.
+/// </para>
 /// </summary>
 public static class UpdateStore
 {
     public const string ManifestFileName = "manifest.json";
+
+    /// <summary>
+    /// The finding family a store this version broke down over is filed under. Its own
+    /// family rather than <c>OptionalStep.Kind</c>: nobody asked for the store, it is read
+    /// because it is there, so "étapes demandées et non effectuées" would send the reader
+    /// looking for a flag they never typed.
+    /// </summary>
+    public const string BreakdownKind = "mise-à-jour";
+
+    /// <summary>
+    /// What <see cref="Finding.Source"/> holds for that finding — what the reader has to
+    /// go and look at, in their words, the way a missed step names its flag. Not the
+    /// store's path: a <see cref="Finding"/> travels into the JSON report, and the folder
+    /// is on the header line already.
+    /// </summary>
+    public const string BreakdownSource = "magasin de mise à jour";
 
     /// <summary>
     /// Copies a verified manifest and its datasets into the store.
@@ -157,9 +220,20 @@ public static class UpdateStore
             // doing, a store never costs the scan. The wording is the one every dataset
             // this version cannot read already gets, rather than a new one for the same
             // fact — and it never says "altéré", because nothing was judged.
+            //
+            // It carries a breakdown as well as a note, and that is the whole difference
+            // between here and the refusals below: those decided something, this caught
+            // something. Reported as a refused update alone, a defect of this version
+            // would reach the caller who has nothing but the number as exactly what a
+            // manifest signed by an unknown key reaches them as: exit 0, nothing to do.
             return Refused(baseRules,
                 "Mise à jour présente mais illisible par cette version : " +
-                $"{ex.Message} Socle embarqué conservé.");
+                $"{ex.Message} Socle embarqué conservé.")
+                with
+                {
+                    Breakdown = Finding.Broken(BreakdownKind, BreakdownSource,
+                        $"Magasin de mise à jour non exploité par cette version : {ex.Message}"),
+                };
         }
     }
 
@@ -350,13 +424,16 @@ public static class UpdateStore
     /// </para>
     ///
     /// <para>
-    /// The cost, said rather than left to be found: a defect in this file's own
-    /// verification or merging now reads as "mise à jour illisible par cette version"
-    /// rather than ending the run, so a bug here looks like bad data until someone reads
-    /// the message it carries. Measured against what it replaces — a signed manifest whose
-    /// dataset name held a null character ended the scan out of <c>Path.GetFullPath</c>,
-    /// before a byte was read. A baseline-only report that says why is a usable answer; an
-    /// ended scan is not.
+    /// What that outer guard costs, and what it was not allowed to cost: a defect in this
+    /// file's own verification or merging now reads as "mise à jour illisible par cette
+    /// version" rather than ending the run, so on the page it looks like bad data until
+    /// someone reads the message. It does not look like bad data to the caller, which is
+    /// the half that had to be paid for — the resolution carries a
+    /// <see cref="CatalogResolution.Breakdown"/> finding alongside the note, so the scan
+    /// still exits non-zero where a refused update exits 0. Measured against what it
+    /// replaces: a signed manifest whose dataset name held a null character ended the scan
+    /// out of <c>Path.GetFullPath</c>, before a byte was read. A baseline-only report that
+    /// says why, and still says it failed, is a usable answer; an ended scan is not.
     /// </para>
     /// </summary>
     private static (byte[]? Bytes, string? Failure) TryRead(

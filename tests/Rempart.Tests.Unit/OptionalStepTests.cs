@@ -162,14 +162,15 @@ public sealed class OptionalStepTests
 /// <c>ScanCommand</c> against the door, read as source.
 ///
 /// <para>
-/// This is the layer nothing held: <c>grep -rln ScanCommand tests/</c> returned nothing
-/// before this file. Two of #162's five lines are in it, and a third — the seal note — is
-/// called from it and nowhere else. <c>Rempart.Cli</c> targets
-/// <c>net10.0-windows</c> and the Linux job does not compile it, so a test referencing
-/// <c>ScanCommand</c> would never run in CI — the source is read instead, the technique
-/// <c>CommandSurfaceTests</c> and <c>FieldCollectorRegistrationTests</c> already use, for
-/// that same reason. <see cref="Path"/> is legitimate here: these are paths on the machine
-/// running the test.
+/// This is the layer nothing held. Before this file, every mention of <c>ScanCommand</c>
+/// anywhere under <c>tests/</c> was prose: two doc comments in <c>VirusTotalTests</c>
+/// describing where an exception would end up. No test read the command and none exercised
+/// it. Two of #162's five lines are in it, and a third — the seal note — is called from it
+/// and nowhere else. <c>Rempart.Cli</c> targets <c>net10.0-windows</c> and neither test
+/// project references it, so a test naming <c>ScanCommand</c> would not even compile — the
+/// source is read instead, the technique <c>CommandSurfaceTests</c> and
+/// <c>FieldCollectorRegistrationTests</c> already use, for that same reason.
+/// <see cref="Path"/> is legitimate here: these are paths on the machine running the test.
 /// </para>
 ///
 /// <para>
@@ -182,15 +183,33 @@ public sealed class OptionalStepTests
 /// </para>
 ///
 /// <para>
-/// A guard that reads source can be green because it matches the right thing or green
-/// because it stopped looking, and the two are indistinguishable from the pass. So what the
-/// reading <em>refuses</em> is pinned below against bodies written in this file — the real
+/// <b>The second claim is read as a refusal, not as a recognition</b>, and that is the
+/// correction this file needed. It first looked for one spelling — <c>using var x = new
+/// T(</c> — and reported the matches that fell outside the door. Measured on the delivered
+/// tree: dropping the single word <c>using</c> in front of the PAC fetcher left all seven
+/// tests green, and so did writing the same construction as a <c>using</c> statement, which
+/// leaks nothing, warns nothing under <c>-warnaserror</c>, and takes <c>Dispose</c> out of
+/// the door as well. A guard can be green because it matched the right thing or green
+/// because it stopped looking, and those two were indistinguishable from the pass. So
+/// nothing is recognised any more: <em>no</em> <c>new</c> at all once the scan is finished,
+/// and <em>no</em> <c>using</c> anywhere in the method, outside the door. Four further
+/// spellings the old grammar walked past — a factory call, a qualified type, a generic
+/// type, no <c>using</c> at all — are pinned below beside the two measured ones.
+/// </para>
+///
+/// <para>
+/// What the readings <em>refuse</em> is pinned against bodies written in this file: the real
 /// body is well-formed, so no assertion on it can exercise a refusal.
 /// </para>
 /// </summary>
 public sealed class ScanCommandStepTests
 {
+    private const string Command = "src/Rempart.Cli/Commands/ScanCommand.cs";
     private const string Door = "OptionalStep.Ran(";
+    private const string Run = "public static int Run(string[] args)";
+
+    private const string Writer =
+        "private static bool WriteReportBundle(string[] args, ScanResult result)";
 
     /// <summary>
     /// An assignment to the scan being built, and what it is assigned. The declaration is
@@ -202,12 +221,18 @@ public sealed class ScanCommandStepTests
         RegexOptions.Compiled);
 
     /// <summary>
-    /// Something the command opens and must close. Anything else it builds — the engine,
-    /// a resolution — is a value, not a resource reaching out to a machine or a network.
+    /// Anything the command opens and has to close again — the <c>using</c> keyword itself,
+    /// declaration or statement, whatever produced the value. A factory call is as capable
+    /// of throwing as a constructor, and <c>Dispose</c> runs wherever the scope ends.
     /// </summary>
-    private static readonly Regex Opened = new(
-        @"using\s+var\s+(?<name>\w+)\s*=\s*new\s+(?<type>\w+)\s*\(",
-        RegexOptions.Compiled);
+    private static readonly Regex Opens = new(@"\busing\b", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Anything the command constructs. Deliberately blind to the type: qualified, generic
+    /// or target-typed, a constructor that throws beside a finished scan costs the same
+    /// report, and every list of spellings this file tried to keep was one token short.
+    /// </summary>
+    private static readonly Regex Builds = new(@"\bnew\b", RegexOptions.Compiled);
 
     /// <summary>
     /// The finished scan is only ever changed behind the door.
@@ -221,7 +246,7 @@ public sealed class ScanCommandStepTests
     [Fact]
     public void Every_change_to_the_finished_scan_goes_through_the_door()
     {
-        var (declarations, assignments) = ScanAssignments(RunBody());
+        var (declarations, assignments) = ScanAssignments(MethodBody(Run));
 
         Assert.True(declarations == 1,
             $"{declarations} déclarations de « result » dans ScanCommand.Run, attendu une "
@@ -247,19 +272,71 @@ public sealed class ScanCommandStepTests
     /// Everything the command opens is opened inside the door — the half #157 left open and
     /// #162 reports, where the guarantee of the enrichment stops at its own call and the
     /// source is built one line above it.
+    ///
+    /// <para>
+    /// The whole method and not only the part after the scan, because a <c>using</c>
+    /// declared before it closes after it: the source would be built harmlessly, and its
+    /// <c>Dispose</c> would still run with a complete audit standing behind it.
+    /// </para>
     /// </summary>
     [Fact]
     public void Every_source_the_command_opens_is_opened_inside_the_door()
     {
-        var body = RunBody();
-        var opened = Opened.Matches(body);
+        var body = MethodBody(Run);
+        var opened = Opens.Matches(body);
 
         Assert.True(opened.Count > 0,
-            "Aucune source ouverte dans ScanCommand.Run : la garde ne lit plus rien.");
+            "Aucun « using » dans ScanCommand.Run : la garde ne lit plus rien, et une garde "
+            + "qui n'inspecte rien passe.");
 
         var outside = opened
             .Where(match => !Inside(body, match.Index))
-            .Select(match => $"{match.Groups["name"].Value} = new {match.Groups["type"].Value}()")
+            .Select(match => LineAt(body, match.Index))
+            .ToList();
+
+        Assert.True(outside.Count == 0,
+            $"Ouvertes hors de la porte : {Join(outside)}. Ce qui s'ouvre là lève au "
+            + "constructeur ou en se refermant sans que rien ne l'attrape, et "
+            + "l'enrichissement en dessous n'y peut rien — sa garantie commence à son "
+            + "propre appel.");
+    }
+
+    /// <summary>
+    /// Once the scan is finished, nothing at all is constructed outside the door.
+    ///
+    /// <para>
+    /// Read as a refusal because every recognition tried here was answered by one token.
+    /// Before the finished scan exists the command is still building it, and a constructor
+    /// that throws there costs nothing that exists yet; after it, everything that throws
+    /// costs a complete audit one statement from being written out, which is the whole of
+    /// #162. So the rule is stated on the position rather than on the shape: past that
+    /// point, whatever is built is built behind the door.
+    /// </para>
+    ///
+    /// <para>
+    /// The price is that a harmless value built there — a list for the console, a
+    /// formatter — is refused too, and has to move above the scan or inside the door. Paid
+    /// deliberately: a rule with an exemption is a rule with a way through, and this file
+    /// has already been answered twice by one token.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Nothing_is_built_beside_the_finished_scan_outside_the_door()
+    {
+        var body = MethodBody(Run);
+        var finished = FinishedAt(body);
+
+        var built = Builds.Matches(body)
+            .Where(match => match.Index > finished)
+            .ToList();
+
+        Assert.True(built.Count > 0,
+            "Plus rien n'est construit après le scan terminé dans ScanCommand.Run : la "
+            + "garde ne lit plus rien. Les trois sources sont-elles parties ailleurs ?");
+
+        var outside = built
+            .Where(match => !Inside(body, match.Index))
+            .Select(match => LineAt(body, match.Index))
             .ToList();
 
         Assert.True(outside.Count == 0,
@@ -269,8 +346,65 @@ public sealed class ScanCommandStepTests
     }
 
     /// <summary>
-    /// The grammar of both guards, pinned against bodies written here. Each case is a
-    /// mutation that leaves the real file's shape almost intact.
+    /// The report bundle is written under a guard as wide as what the guard covers.
+    ///
+    /// <para>
+    /// This is the same reproach the seal note was just fixed on, twenty lines below the
+    /// door and left standing: <c>ReportBundle.Build</c> renders the HTML, renders the
+    /// Markdown and serialises the JSON, none of which is a write, under a <c>catch</c>
+    /// filtered on <c>IOException or UnauthorizedAccessException</c> — and the folder was
+    /// named outside the <c>try</c> altogether. What those three throw crossed the filter,
+    /// reached the catch-all of <c>Program</c>, and the stick's deliverable was lost with
+    /// an English sentence instead of the French one naming the folder.
+    /// </para>
+    ///
+    /// <para>
+    /// Read as source, and the reading is worth exactly what it says: that the guard is
+    /// placed and shaped as claimed. That the sentence it prints is the right one is not
+    /// something any run of this suite can see, because no test project compiles
+    /// <c>Rempart.Cli</c>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_report_bundle_is_written_under_a_guard_as_wide_as_its_body()
+    {
+        var body = MethodBody(Writer);
+        var guard = body.IndexOf("try", StringComparison.Ordinal);
+        var caught = body.IndexOf("catch", StringComparison.Ordinal);
+
+        Assert.True(guard >= 0 && caught > guard,
+            "WriteReportBundle n'a plus la forme « try … catch » que cette garde sait "
+            + "lire : elle ne lit plus rien.");
+
+        string[] steps =
+        [
+            "ReportBundle.FolderName(", "FreeFolder(", "Directory.CreateDirectory(",
+            "ReportBundle.Build(", "File.WriteAllText(",
+        ];
+
+        foreach (var step in steps)
+        {
+            var at = body.IndexOf(step, StringComparison.Ordinal);
+
+            Assert.True(at > guard && at < caught,
+                $"« {step} » est hors du try de WriteReportBundle. Ce qu'il lève traverse "
+                + "jusqu'au catch de Program, et le livrable du bâton est perdu avec une "
+                + "phrase anglaise à la place de celle qui nomme le dossier.");
+        }
+
+        var opens = body.IndexOf('{', caught);
+
+        Assert.True(opens > caught, "Le catch de WriteReportBundle n'ouvre aucun bloc.");
+
+        Assert.True(!Regex.IsMatch(body[caught..opens], @"\bwhen\b"),
+            $"Le catch de WriteReportBundle filtre : « {body[caught..opens].Trim()} ». Son "
+            + "corps rend deux rapports et sérialise le troisième ; un filtre est plus "
+            + "étroit que ce qu'il couvre dès qu'on nomme la paire évidente.");
+    }
+
+    /// <summary>
+    /// The grammar of the assignment guard, pinned against bodies written here. Each case is
+    /// a mutation that leaves the real file's shape almost intact.
     /// </summary>
     [Theory]
     [InlineData("le scan est modifié sans passer par la porte",
@@ -304,33 +438,60 @@ public sealed class ScanCommandStepTests
     }
 
     /// <summary>
-    /// The shape #162 reports, and the one the assignment guard alone accepts: the source
-    /// built outside, used inside. Refused by the second guard, which is why there are two.
+    /// The shape #162 reports — the source outside, used inside — in every spelling that
+    /// walked past the recognising version of this guard, plus the one it did catch.
+    ///
+    /// <para>
+    /// The first two are the measured ones: dropping <c>using</c>, and the <c>using</c>
+    /// statement. Both left the whole class green on the delivered tree, and the second
+    /// compiles without a warning under <c>-warnaserror</c>, which makes it the shape
+    /// anyone adding a fifth step or sharing one source between two of them would write.
+    /// The rest are read straight off the old pattern: it required the keyword, then
+    /// <c>new</c>, then an unqualified non-generic type name.
+    /// </para>
+    ///
+    /// <para>
+    /// Every case satisfies the assignment guard — the scan really is changed through the
+    /// door — which is the point of having two.
+    /// </para>
     /// </summary>
-    [Fact]
-    public void A_source_built_outside_the_door_and_used_inside_it_is_refused()
+    [Theory]
+    [InlineData("sans le mot using", "var fetcher = new LivePacFetcher();")]
+    [InlineData("using instruction", "using (var fetcher = new LivePacFetcher())\n{\n}")]
+    [InlineData("using var et new, la seule forme attrapée avant",
+        "using var fetcher = new LivePacFetcher();")]
+    [InlineData("fabrique au lieu du constructeur", "using var fetcher = Factory.Create();")]
+    [InlineData("type qualifié", "using var fetcher = new Pac.LivePacFetcher();")]
+    [InlineData("type générique", "using var fetcher = new Fetcher<Pac>();")]
+    public void A_source_opened_outside_the_door_is_refused(string spelling, string outside)
     {
-        const string Body = """
+        var body = Code($$"""
             var result = Engine.Run();
-            using var reputation = new VirusTotalReputation(key);
-            result = OptionalStep.Ran(result, "--virustotal-key", scan => scan with
+            {{outside}}
+            result = OptionalStep.Ran(result, "--fetch-pac", scan => scan with
             {
-                Findings = [.. FindingEnrichment.WithReputation(scan.Findings, reputation)],
+                Findings = [.. PacEnrichment.WithRouting(scan.Findings, fetcher)],
             });
-            """;
+            """);
 
-        var (_, assignments) = ScanAssignments(Body);
+        var (_, assignments) = ScanAssignments(body);
 
         Assert.True(
             assignments.All(value => value.StartsWith(Door, StringComparison.Ordinal)),
-            "La garde d'affectation doit accepter cette forme : c'est bien par la porte que "
-            + "le scan est modifié. Sinon la seconde garde ne prouve rien de plus.");
+            $"« {spelling} » : la garde d'affectation doit accepter cette forme, c'est bien "
+            + "par la porte que le scan est modifié. Sinon la seconde ne prouve rien de plus.");
 
-        var opened = Opened.Matches(Body).Single();
+        var finished = FinishedAt(body);
 
-        Assert.False(Inside(Body, opened.Index),
-            "La construction hors de la porte doit être vue comme telle ; sinon la garde "
-            + "passe sur exactement le défaut que #162 rapporte.");
+        var refused =
+            Opens.Matches(body).Any(match => !Inside(body, match.Index))
+            || Builds.Matches(body)
+                .Any(match => match.Index > finished && !Inside(body, match.Index));
+
+        Assert.True(refused,
+            $"La forme « {spelling} » a été lue comme conforme. C'est exactement le défaut "
+            + "que #162 rapporte, vert : une garde qui accepte la mutation qu'elle prétend "
+            + "refuser est pire que pas de garde.");
     }
 
     /// <summary>
@@ -339,29 +500,36 @@ public sealed class ScanCommandStepTests
     /// just as green on the real file the day the real file stopped conforming.
     /// </summary>
     [Fact]
-    public void A_source_built_inside_the_door_is_read_as_inside()
+    public void A_source_opened_inside_the_door_is_read_as_inside()
     {
-        const string Body = """
+        var body = Code("""
             var result = Engine.Run();
             result = OptionalStep.Ran(result, "--fetch-pac", scan =>
             {
                 using var fetcher = new LivePacFetcher();
                 return scan with { Findings = [.. PacEnrichment.WithRouting(scan.Findings, fetcher)] };
             });
-            """;
+            """);
 
-        var opened = Opened.Matches(Body).Single();
+        var finished = FinishedAt(body);
 
-        Assert.True(Inside(Body, opened.Index),
-            "Une source construite dans la porte doit être lue comme telle, sinon la garde "
+        Assert.True(Opens.Matches(body).All(match => Inside(body, match.Index)),
+            "Une source ouverte dans la porte doit être lue comme telle, sinon la garde "
             + "refuse la forme même qu'elle exige.");
+
+        Assert.True(
+            Builds.Matches(body)
+                .Where(match => match.Index > finished)
+                .All(match => Inside(body, match.Index)),
+            "Une construction faite dans la porte doit être lue comme telle, sinon le vert "
+            + "du fichier réel ne prouve rien.");
     }
 
     /// <summary>
     /// Whether an offset falls inside one of the door's argument lists, by counting
     /// parentheses from each call. Brace and bracket depth are irrelevant — only the call's
-    /// own parentheses close it — and a string literal holding an unbalanced one would be
-    /// miscounted, which is why <see cref="Door"/> is the only call scanned.
+    /// own parentheses close it — and the string bodies are blanked before this runs, so an
+    /// unbalanced one written in a message cannot be miscounted.
     /// </summary>
     private static bool Inside(string body, int offset)
     {
@@ -390,6 +558,38 @@ public sealed class ScanCommandStepTests
     }
 
     /// <summary>
+    /// Where the finished scan starts existing: the end of the statement that declares it.
+    /// </summary>
+    private static int FinishedAt(string body)
+    {
+        var declared = Regex.Match(body, @"\bvar\s+result\b");
+
+        Assert.True(declared.Success,
+            "« var result » est introuvable : le scan n'est plus déclaré sous ce nom, et "
+            + "cette garde ne sait plus dire où il commence à exister.");
+
+        var depth = 0;
+
+        for (var i = declared.Index; i < body.Length; i++)
+        {
+            depth += body[i] switch
+            {
+                '(' or '{' or '[' => 1,
+                ')' or '}' or ']' => -1,
+                _ => 0,
+            };
+
+            if (depth == 0 && body[i] == ';')
+            {
+                return i;
+            }
+        }
+
+        Assert.Fail("La déclaration du scan ne se referme pas : délimiteurs déséquilibrés.");
+        return 0;
+    }
+
+    /// <summary>
     /// How many times the scan is declared, and what every later assignment hands it.
     /// </summary>
     private static (int Declarations, List<string> Assignments) ScanAssignments(string body)
@@ -413,30 +613,29 @@ public sealed class ScanCommandStepTests
     }
 
     /// <summary>
-    /// The body of <c>ScanCommand.Run</c>, braces matched from its signature.
+    /// The body of one method of <c>ScanCommand</c>, braces matched from its signature, with
+    /// comments and string bodies already blanked.
     ///
     /// <para>
-    /// Sliced rather than read whole, so that a <c>using var</c> legitimately opened by
-    /// another method of the file — writing the report bundle, say — is not held to a rule
-    /// about the scan. Both ends are checked: a method renamed or reshaped fails here,
-    /// loudly, rather than yielding a slice that matches nothing and a green test.
+    /// Sliced rather than read whole, so that a <c>using</c> legitimately opened by another
+    /// method of the file is not held to a rule about the scan. Both ends are checked: a
+    /// method renamed or reshaped fails here, loudly, rather than yielding a slice that
+    /// matches nothing and a green test.
     /// </para>
     /// </summary>
-    private static string RunBody()
+    private static string MethodBody(string signature)
     {
-        const string Signature = "public static int Run(string[] args)";
-
-        var source = RepositoryFiles.Read("src/Rempart.Cli/Commands/ScanCommand.cs");
-        var start = source.IndexOf(Signature, StringComparison.Ordinal);
+        var source = Code(RepositoryFiles.Read(Command));
+        var start = source.IndexOf(signature, StringComparison.Ordinal);
 
         Assert.True(start >= 0,
-            $"« {Signature} » est introuvable dans src/Rempart.Cli/Commands/ScanCommand.cs : "
-            + "la commande a été renommée ou déplacée, et cette garde ne lit plus rien.");
+            $"« {signature} » est introuvable dans {Command} : la méthode a été renommée ou "
+            + "déplacée, et cette garde ne lit plus rien.");
 
         var open = source.IndexOf('{', start);
 
         Assert.True(open > start,
-            $"« {Signature} » n'ouvre aucun bloc : la commande n'a plus la forme que cette "
+            $"« {signature} » n'ouvre aucun bloc : la méthode n'a plus la forme que cette "
             + "garde sait découper.");
 
         var depth = 0;
@@ -451,8 +650,165 @@ public sealed class ScanCommandStepTests
             }
         }
 
-        Assert.Fail($"« {Signature} » ne se referme pas : accolades déséquilibrées.");
+        Assert.Fail($"« {signature} » ne se referme pas : accolades déséquilibrées.");
         return string.Empty;
+    }
+
+    /// <summary>
+    /// The same text with its comments and string bodies replaced by spaces, every offset
+    /// left where it was.
+    ///
+    /// <para>
+    /// A guard that reads source has to read the code and not the prose around it. The word
+    /// "using" appears in a comment of the very method read here, so a refusal stated on
+    /// that keyword would be answered — or worse, triggered — by an English sentence.
+    /// Parentheses and braces written inside a message would be counted as the code's, and
+    /// <c>OptionalStep.Ran(</c> quoted in a comment would open a door that does not exist.
+    /// Interpolation holes are kept: they are code.
+    /// </para>
+    /// </summary>
+    private static string Code(string source)
+    {
+        Assert.True(!source.Contains("\"\"\"", StringComparison.Ordinal),
+            "Une chaîne brute est apparue dans ce fichier. Ce blanchiment ne sait pas les "
+            + "lire, et une garde qui lit mal est une garde qui passe : la lui apprendre "
+            + "ici avant de l'écrire là-bas.");
+
+        var text = source.ToCharArray();
+
+        for (var i = 0; i < text.Length;)
+        {
+            var next = i + 1 < text.Length ? text[i + 1] : '\0';
+
+            if (text[i] == '/' && next == '/')
+            {
+                while (i < text.Length && text[i] != '\n')
+                {
+                    text[i++] = ' ';
+                }
+            }
+            else if (text[i] == '/' && next == '*')
+            {
+                var closes = source.IndexOf("*/", i, StringComparison.Ordinal);
+                var stop = closes < 0 ? text.Length : closes + 2;
+
+                for (; i < stop; i++)
+                {
+                    if (text[i] != '\n')
+                    {
+                        text[i] = ' ';
+                    }
+                }
+            }
+            else if (text[i] == '\'')
+            {
+                var end = i + 1;
+
+                while (end < text.Length && text[end] != '\'')
+                {
+                    end += text[end] == '\\' ? 2 : 1;
+                }
+
+                for (var blank = i + 1; blank < Math.Min(end, text.Length); blank++)
+                {
+                    text[blank] = ' ';
+                }
+
+                i = Math.Min(end + 1, text.Length);
+            }
+            else if (text[i] == '"')
+            {
+                i = BlankQuoted(text, i);
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return new string(text);
+    }
+
+    /// <summary>
+    /// Blanks one string literal from its opening quote, and answers where it ends. The
+    /// prefix decides how: <c>@</c> makes a doubled quote an escaped one rather than the
+    /// end, <c>$</c> makes what sits between braces code and not text.
+    /// </summary>
+    private static int BlankQuoted(char[] text, int quote)
+    {
+        var prefix = quote;
+
+        while (prefix > 0 && (text[prefix - 1] == '$' || text[prefix - 1] == '@'))
+        {
+            prefix--;
+        }
+
+        var verbatim = new string(text, prefix, quote - prefix).Contains('@');
+        var interpolated = new string(text, prefix, quote - prefix).Contains('$');
+        var hole = 0;
+
+        for (var i = quote + 1; i < text.Length;)
+        {
+            var next = i + 1 < text.Length ? text[i + 1] : '\0';
+
+            if (hole > 0)
+            {
+                hole += text[i] switch { '{' => 1, '}' => -1, _ => 0 };
+                i++;
+            }
+            else if (interpolated && text[i] == '{' && next == '{')
+            {
+                text[i] = ' ';
+                text[i + 1] = ' ';
+                i += 2;
+            }
+            else if (interpolated && text[i] == '{')
+            {
+                hole = 1;
+                i++;
+            }
+            else if (!verbatim && text[i] == '\\')
+            {
+                text[i] = ' ';
+
+                if (i + 1 < text.Length)
+                {
+                    text[i + 1] = ' ';
+                }
+
+                i += 2;
+            }
+            else if (text[i] == '"' && verbatim && next == '"')
+            {
+                text[i] = ' ';
+                text[i + 1] = ' ';
+                i += 2;
+            }
+            else if (text[i] == '"')
+            {
+                return i + 1;
+            }
+            else
+            {
+                if (text[i] != '\n')
+                {
+                    text[i] = ' ';
+                }
+
+                i++;
+            }
+        }
+
+        return text.Length;
+    }
+
+    /// <summary>The line an offset falls on, trimmed — what a refusal has to name.</summary>
+    private static string LineAt(string body, int offset)
+    {
+        var start = body.LastIndexOf('\n', Math.Min(offset, body.Length - 1)) + 1;
+        var end = body.IndexOf('\n', offset);
+
+        return body[start..(end < 0 ? body.Length : end)].Trim();
     }
 
     private static string Join(IEnumerable<string> lines)
