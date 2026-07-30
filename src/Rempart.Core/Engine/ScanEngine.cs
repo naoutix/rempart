@@ -57,6 +57,23 @@ public sealed record ScanResult(
 /// </summary>
 public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyList<Rule> rules)
 {
+    /// <summary>
+    /// Field collectors: they describe values known in advance, where the finding collectors
+    /// below enumerate what is present. This table is the only place a scan learns of one,
+    /// bar the opt-in wiring of <c>CliHost.CollectorsFor</c>.
+    ///
+    /// <para>
+    /// Nothing in the compiler relates it to the classes in <c>Collectors/</c>, and the
+    /// omission it lets through is the addition rather than the removal: a collector written
+    /// and never registered contributes no key under <c>collectors[]</c>, so every golden
+    /// reference stays identical to the byte. Reproduced on this repository — a new field
+    /// collector left out of this line failed nothing in the whole suite, while emptying the
+    /// line fails a dozen renderings, which is coverage of the collector and not of the table.
+    /// Reflection would do away with the table but is excluded by ADR-001 (Native AOT), so
+    /// <c>FieldCollectorRegistrationTests</c> confronts it with the assembly, with
+    /// <c>Collectors/</c>, and with the flag behind which the one absent collector sits.
+    /// </para>
+    /// </summary>
     public static IReadOnlyList<ICollector> DefaultCollectors => [new InventoryCollector()];
 
     /// <summary>
