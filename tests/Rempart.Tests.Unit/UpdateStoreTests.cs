@@ -523,6 +523,55 @@ public sealed class UpdateStoreTests : IDisposable
         Assert.Contains("appliquée", resolution.UpdateNote);
     }
 
+    /// <summary>
+    /// The second level, in the sense REV-08 gave the word: whatever <c>Resolve</c> ends up
+    /// doing, a store never costs the scan.
+    ///
+    /// <para>
+    /// <c>TryRead</c> guards the reads and nothing else, which was argued in this file as
+    /// safe because verification, parsing and merging "stay outside, where an unexpected
+    /// exception still surfaces as one". It does surface — through <c>CliHost</c>, into
+    /// <c>Program</c>, as a lost audit. Measured: a dataset name that cannot be turned into
+    /// a path — one null character is enough — reaches <c>Path.GetFullPath</c> before any
+    /// read, and <c>ArgumentException : Null character in path</c> came out of
+    /// <c>Resolve</c>. Signed content, hashes about to be checked, and no report.
+    /// </para>
+    ///
+    /// <para>
+    /// The objection that outer guard was refused on does not hold against this one: it
+    /// hands back <see cref="CatalogResolution.Rules"/> untouched — the baseline, plus
+    /// whatever <c>--rules</c> added, whole — and a note, which is the documented shape of a
+    /// refused update rather than a truncated catalogue or a silence.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_dataset_name_that_is_not_a_path_refuses_the_update()
+    {
+        using var publisher = new TestPublisher();
+
+        var bytes = Encoding.UTF8.GetBytes(BaseRule);
+
+        var (manifestPath, verifier) = SignManifest(publisher,
+            [new ManifestEntry("\0.yaml", "2.0.0",
+                Convert.ToHexStringLower(SHA256.HashData(bytes)), bytes.Length,
+                DatasetKind.Rules)]);
+
+        // Copied rather than applied: Apply resolves the name too, and what a scan meets is
+        // the state of the store, however it got there.
+        Directory.CreateDirectory(Store);
+        File.Copy(manifestPath, Path.Combine(Store, UpdateStore.ManifestFileName), overwrite: true);
+
+        var resolution = UpdateStore.Resolve(Store, BaseCatalog(), verifier);
+
+        Assert.NotNull(resolution.UpdateNote);
+        Assert.Contains("Socle embarqué conservé", resolution.UpdateNote, StringComparison.Ordinal);
+        Assert.Contains("Null character in path", resolution.UpdateNote, StringComparison.Ordinal);
+
+        // Not accused of anything it was never read for, and the baseline is whole.
+        Assert.DoesNotContain("altéré", resolution.UpdateNote, StringComparison.Ordinal);
+        Assert.Equal(BaseCatalog().Count, resolution.Rules.Count);
+    }
+
     private static string EnsureDir(string path)
     {
         Directory.CreateDirectory(path);

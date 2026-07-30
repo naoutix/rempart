@@ -220,6 +220,12 @@ public static class ReportLabels
         "com-hijack" => "détournement COM",
         "dns-resolver" => "résolveurs DNS",
         "driver" => "pilotes chargés",
+
+        // Not a surface of the machine but a step of the run — what OptionalStep files a
+        // requested enrichment under when it could not be carried out. Named as a sentence
+        // because that is the whole content: nothing was found, something was not done.
+        "étape" => "étapes demandées et non effectuées",
+
         "hosts" => "fichier hosts",
         "listening-port" => "ports en écoute",
         "logon-extensibility" => "points d'extension à l'ouverture de session",

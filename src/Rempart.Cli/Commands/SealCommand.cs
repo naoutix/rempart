@@ -135,6 +135,28 @@ internal static class SealCommand
     /// other caller: it is a one-line wrapper over <see cref="CheckSeal"/>, and splitting
     /// the two would put half of the seal's reasoning in a file about host paths.
     /// </para>
+    ///
+    /// <para>
+    /// The <c>catch</c> is untyped, where it used to name <c>IOException or
+    /// UnauthorizedAccessException</c> — the obvious pair, over a body that is not a read.
+    /// <see cref="CheckSeal"/> enumerates the stick, hashes every file, deserialises the
+    /// seal and compares the two: <c>Directory.EnumerateFiles</c> on a folder that changes
+    /// under it, two sealable names differing only in case reaching the same dictionary,
+    /// a verifier meeting an envelope it does not expect. Whatever comes out of that, the
+    /// scan is finished and one statement from being serialised — REV-08's ending, over a
+    /// seal.
+    /// </para>
+    ///
+    /// <para>
+    /// Widening the <c>catch</c> made the old wording false, so it changed with it: « seal
+    /// unreadable » claims the seal could not be read, which is one specific failure among
+    /// several and no longer the only one caught. « Not verified » is true of all of them,
+    /// and says the one thing that matters — this is not « intact », and it is not « the
+    /// stick changed » either. <c>ScanCommand</c> guards this call a second time, so a
+    /// throw here costs a line rather than the report; what the wording buys is that the
+    /// line lands in the header where a reader looks for the seal, instead of among the
+    /// findings.
+    /// </para>
     /// </summary>
     public static string? SealNote(string root)
     {
@@ -150,11 +172,11 @@ internal static class SealCommand
             CheckSeal(root, sealPath, out var explanation);
             return explanation;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex)
         {
-            // Unreadable is not intact. Saying so beats staying silent, which would read
+            // Unverified is not intact. Saying so beats staying silent, which would read
             // as "nothing to report".
-            return $"Sceau d'intégrité illisible : {ex.Message}";
+            return $"Sceau d'intégrité non vérifié : {ex.Message}";
         }
     }
 

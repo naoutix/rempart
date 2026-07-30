@@ -160,4 +160,108 @@ public class RemoteUpdateTests
         Assert.False(fetch!.Preview.Trusted);
         Assert.Equal(ManifestStatus.UnknownKey, fetch.Preview.Status);
     }
+
+    /// <summary>
+    /// A transport that throws is a transport failure like any other, whatever it throws.
+    ///
+    /// <para>
+    /// <see cref="IUpdateTransport"/> promises bytes or a reason, and its own
+    /// implementation is the only place that promise can be kept — which is why the guard
+    /// is here as well as there. This is the level REV-08 called "the only one where the
+    /// invariant does not depend on the implementation chosen": whichever transport is
+    /// plugged in, a download that fails becomes a sentence <c>update</c> prints, never an
+    /// audit tool stopping on an English stack message.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_transport_that_throws_is_a_transport_error_not_a_lost_run()
+    {
+        var (fetch, error) = RemoteUpdate.Prepare(
+            "https://exemple.test/rempart", new ThrowingTransport(
+                new InvalidOperationException("An invalid request URI was provided.")),
+            new ManifestVerifier(new Dictionary<string, string>()), []);
+
+        Assert.Null(fetch);
+        Assert.Contains("injoignable", error);
+        Assert.Contains("An invalid request URI was provided.", error);
+    }
+
+    /// <summary>
+    /// The same for a dataset, where the manifest already came back: the preview stands and
+    /// names the dataset it could not check, rather than the command disappearing whole.
+    /// </summary>
+    [Fact]
+    public void A_transport_that_throws_on_a_dataset_leaves_the_preview_standing()
+    {
+        using var publisher = new TestPublisher();
+        var (manifest, _, verifier) = Publish(publisher, "regles.yaml", Rule);
+
+        var (fetch, error) = RemoteUpdate.Prepare(
+            "https://h", new ThrowingTransport(
+                new NotSupportedException("The 'file' scheme is not supported."),
+                except: ("https://h/manifest.json", manifest)),
+            verifier, []);
+
+        Assert.Null(error);
+        Assert.True(fetch!.Preview.Trusted);
+        Assert.False(fetch.Preview.ReadyToApply);
+        Assert.NotNull(Assert.Single(fetch.Preview.Datasets).Problem);
+    }
+}
+
+/// <summary>
+/// A transport that fails the way a live one does: by throwing. <c>HttpTransport</c> filtered
+/// its <c>catch</c> on three types, and neither the <c>InvalidOperationException</c> of a
+/// relative URL nor the <c>NotSupportedException</c> of a <c>file://</c> one was among them.
+/// </summary>
+internal sealed class ThrowingTransport(Exception failure, (string Url, byte[] Bytes)? except = null)
+    : IUpdateTransport
+{
+    public byte[]? Get(string url, out string? error)
+    {
+        if (except is { } served && string.Equals(served.Url, url, StringComparison.Ordinal))
+        {
+            error = null;
+            return served.Bytes;
+        }
+
+        throw failure;
+    }
+}
+
+/// <summary>
+/// The transport that really goes out, held to the contract it declares: bytes, or
+/// <c>null</c> and a reason. Nothing below touches the network — every URL here is settled
+/// before a packet leaves.
+/// </summary>
+public sealed class HttpTransportTests
+{
+    /// <summary>
+    /// The URL comes from <c>--url</c>, so it is whatever was typed. Four spellings a
+    /// person actually types, and each used to leave <c>Get</c> as an exception: past
+    /// <c>UpdateCommand</c>, past <c>Program</c>, and out as « Erreur : An invalid request
+    /// URI was provided… » — an English sentence from <c>HttpClient</c> where the command
+    /// had a French one ready.
+    ///
+    /// <para>
+    /// The <c>file://</c> case throws the same exception REV-08 lost a whole scan to, one
+    /// file over, and it was still not in this list.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("exemple.test/rempart")]
+    [InlineData("")]
+    [InlineData("file:///C:/rempart/manifest.json")]
+    [InlineData("ftp://exemple.test/rempart")]
+    public void An_unusable_url_is_an_error_not_an_exception(string url)
+    {
+        using var transport = new HttpTransport(TimeSpan.FromSeconds(2));
+
+        var bytes = transport.Get(url, out var error);
+
+        Assert.Null(bytes);
+        Assert.False(string.IsNullOrWhiteSpace(error),
+            $"URL « {url} » : aucune raison rendue. Un appelant qui reçoit null sans raison "
+            + "n'a rien à afficher.");
+    }
 }

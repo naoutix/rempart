@@ -56,6 +56,15 @@ public sealed record CatalogResolution(
 /// and it is not "this file no longer matches its fingerprint" either, which would accuse
 /// a file on the strength of a read that never took place.
 /// </para>
+///
+/// <para>
+/// The invariant is held at two levels now, as REV-08 held its own. <see cref="TryRead"/>
+/// answers for the reads, precisely; the guard around the whole resolution answers for the
+/// rest of it, whatever that comes to be. It had to: a dataset name that cannot be turned
+/// into a path reaches <c>Path.GetFullPath</c> before any read, and the
+/// <c>ArgumentException</c> came out of <c>Resolve</c> with the store's signature and
+/// hashes about to be checked — the bold sentence above, not holding.
+/// </para>
 /// </summary>
 public static class UpdateStore
 {
@@ -135,6 +144,29 @@ public static class UpdateStore
     /// straight onto <see cref="File"/> would compile, and would not be guarded. What
     /// holds that is a guard over this file's own source, in <c>UpdateStoreTests</c>.</param>
     internal static CatalogResolution Resolve(
+        string storeDirectory, IReadOnlyList<Rule> baseRules, ManifestVerifier verifier,
+        Func<string, byte[]> readFile)
+    {
+        try
+        {
+            return FromStore(storeDirectory, baseRules, verifier, readFile);
+        }
+        catch (Exception ex)
+        {
+            // The second level, in REV-08's sense: whatever the resolution below ends up
+            // doing, a store never costs the scan. The wording is the one every dataset
+            // this version cannot read already gets, rather than a new one for the same
+            // fact — and it never says "altéré", because nothing was judged.
+            return Refused(baseRules,
+                "Mise à jour présente mais illisible par cette version : " +
+                $"{ex.Message} Socle embarqué conservé.");
+        }
+    }
+
+    /// <summary>
+    /// The resolution itself, which may throw — the level the guard above answers for.
+    /// </summary>
+    private static CatalogResolution FromStore(
         string storeDirectory, IReadOnlyList<Rule> baseRules, ManifestVerifier verifier,
         Func<string, byte[]> readFile)
     {
@@ -289,29 +321,42 @@ public static class UpdateStore
     ///
     /// <para>
     /// <b>The <c>catch</c> has no filter, deliberately.</b> A list of exception types is a
-    /// list to keep up to date, and two of this repository's have been caught short: REV-08
-    /// lost a whole scan to a <c>NotSupportedException</c> nobody had listed and dropped its
-    /// filter for that reason, and <c>HttpTransport.Get</c>, one file over, still lets an
-    /// <c>InvalidOperationException</c> past <c>HttpRequestException or TaskCanceledException
-    /// or UriFormatException</c> when the URL is relative. The obvious list here would be
-    /// <c>IOException or UnauthorizedAccessException</c> — the same one
-    /// <c>SealCommand.SealNote</c> writes, over a read whose failure modes nobody has
-    /// exhibited outside it.
+    /// list to keep up to date, and three of this repository's have been caught short:
+    /// REV-08 lost a whole scan to a <c>NotSupportedException</c> nobody had listed,
+    /// <c>HttpTransport.Get</c> let an <c>InvalidOperationException</c> past
+    /// <c>HttpRequestException or TaskCanceledException or UriFormatException</c> on a
+    /// relative URL, and <c>SealCommand.SealNote</c> wrote the obvious
+    /// <c>IOException or UnauthorizedAccessException</c> over a body that enumerates,
+    /// hashes and deserialises. All three lost their filter in the end.
     /// </para>
     ///
     /// <para>
     /// What makes an unfiltered <c>catch</c> safe is the <em>size</em> of what it covers,
-    /// not the types it names: the only statement inside is the read. Verification,
-    /// parsing and merging stay outside, where an unexpected exception still surfaces as
-    /// one — a catch wrapped around the whole of <see cref="Resolve(string,
-    /// IReadOnlyList{Rule}, ManifestVerifier)"/> would hand back a silently truncated
-    /// catalog, which is the failure this tool exists to not have.
+    /// not the types it names: the only statement inside this one is the read, so nothing
+    /// that verification or parsing does can be reported as a file that would not open.
+    /// That is why the read keeps its own guard even though
+    /// <see cref="Resolve(string, IReadOnlyList{Rule}, ManifestVerifier, Func{string, byte[]})"/>
+    /// now has one around the whole of the resolution — the two say different things, and
+    /// the narrow one says the more precise.
     /// </para>
     ///
     /// <para>
-    /// The cost, said rather than left to be found: an <c>OutOfMemoryException</c> raised
-    /// by an absurd manifest is reported as "manifeste illisible : …" and the scan carries
-    /// on. A baseline-only report is a usable answer; an ended scan is not.
+    /// That outer guard was argued against here, on the grounds that it "would hand back a
+    /// silently truncated catalogue". It does not, and the argument was wrong twice over:
+    /// it hands back <see cref="CatalogResolution.Rules"/> exactly as it received them —
+    /// the baseline, whole — with a note, which is the documented shape of a refused update
+    /// and the opposite of silent. What the sentence was reaching for is the real cost,
+    /// stated plainly below.
+    /// </para>
+    ///
+    /// <para>
+    /// The cost, said rather than left to be found: a defect in this file's own
+    /// verification or merging now reads as "mise à jour illisible par cette version"
+    /// rather than ending the run, so a bug here looks like bad data until someone reads
+    /// the message it carries. Measured against what it replaces — a signed manifest whose
+    /// dataset name held a null character ended the scan out of <c>Path.GetFullPath</c>,
+    /// before a byte was read. A baseline-only report that says why is a usable answer; an
+    /// ended scan is not.
     /// </para>
     /// </summary>
     private static (byte[]? Bytes, string? Failure) TryRead(

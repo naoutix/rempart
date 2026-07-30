@@ -39,6 +39,15 @@ public sealed record RemoteFetch(
 /// the bytes differs. This is what the injected read delegate made possible from the
 /// start.
 /// </para>
+///
+/// <para>
+/// <see cref="IUpdateTransport"/> promises bytes or a reason, and its implementation is
+/// the only place that promise can be kept — so it is also checked here, which is the one
+/// level where it does not depend on the transport plugged in (REV-08). <c>HttpTransport</c>
+/// broke it three ways at once, all of them out of a URL somebody typed; a future transport
+/// will break it some fourth way. Below, a download that fails is a sentence, never an
+/// audit tool that stops.
+/// </para>
 /// </summary>
 public static class RemoteUpdate
 {
@@ -49,7 +58,7 @@ public static class RemoteUpdate
         IReadOnlyList<Rule> currentRules)
     {
         var manifestUrl = Join(baseUrl, UpdateStore.ManifestFileName);
-        var manifestBytes = transport.Get(manifestUrl, out var error);
+        var (manifestBytes, error) = Fetched(transport, manifestUrl);
 
         if (manifestBytes is null)
         {
@@ -65,7 +74,7 @@ public static class RemoteUpdate
 
         byte[]? Read(string name)
         {
-            var bytes = transport.Get(Join(baseUrl, name), out _);
+            var (bytes, _) = Fetched(transport, Join(baseUrl, name));
             if (bytes is not null)
             {
                 cache[name] = bytes;
@@ -78,6 +87,31 @@ public static class RemoteUpdate
             Encoding.UTF8.GetString(manifestBytes), verifier, Read, currentRules);
 
         return (new RemoteFetch(preview, manifestBytes, cache), null);
+    }
+
+    /// <summary>
+    /// The transport's answer, and whatever it throws turned into the reason it should have
+    /// been. Untyped on purpose: a list of exception types is a list to keep up to date, and
+    /// the transport this repository ships was caught short by three at once — a relative
+    /// URL, a <c>file://</c> one, an <c>ftp://</c> one.
+    ///
+    /// <para>
+    /// A dataset that cannot be downloaded is already an ordinary outcome here — the
+    /// preview marks it unverified and <c>ReadyToApply</c> goes false — so the guard adds no
+    /// silence: what changes is that the reason is reported instead of the process ending.
+    /// </para>
+    /// </summary>
+    private static (byte[]? Bytes, string? Error) Fetched(IUpdateTransport transport, string url)
+    {
+        try
+        {
+            var bytes = transport.Get(url, out var error);
+            return (bytes, error);
+        }
+        catch (Exception ex)
+        {
+            return (null, ex.Message);
+        }
     }
 
     /// <summary>

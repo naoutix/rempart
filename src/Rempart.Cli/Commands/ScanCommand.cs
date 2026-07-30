@@ -65,17 +65,31 @@ internal static class ScanCommand
             {
                 UpdateNote = resolution.UpdateNote,
 
-                // Only on a live scan. A replay reproduces a past scan: hashing the stick
-                // this binary happens to sit on would make a fixture depend on local state,
-                // exactly why the update store is not consulted on replay either.
-                IntegrityNote = snapshotPath is null ? SealCommand.SealNote(AppContext.BaseDirectory) : null,
-
                 // Extra rules change what the score means, so where they came from is said
                 // outright rather than left to be inferred from a fingerprint that moved.
                 RulesNote = RulesDirectory(args) is { } directory
                     ? $"Règles supplémentaires chargées depuis {directory}."
                     : null,
             };
+
+        // Everything from here on runs on a finished scan, and every one of these steps used
+        // to be able to end it: what they throw had nothing in front of it but the catch-all
+        // in Program, one statement before the report was written out. OptionalStep is the
+        // door they all go through now — building the source, using it and closing it all
+        // happen inside, and a step that fails becomes a line of the report instead. Held
+        // shut by ScanCommandStepTests, which reads this method as text because the Linux
+        // job does not compile this project.
+
+        // Only on a live scan. A replay reproduces a past scan: hashing the stick this
+        // binary happens to sit on would make a fixture depend on local state, exactly why
+        // the update store is not consulted on replay either.
+        if (snapshotPath is null)
+        {
+            result = OptionalStep.Ran(result, "sceau d'intégrité", scan => scan with
+            {
+                IntegrityNote = SealCommand.SealNote(AppContext.BaseDirectory),
+            });
+        }
 
         // VirusTotal enrichment — the scan's only network call, never on by default
         // (ADR-001, D9) and never on replay: that is a past snapshot, not the current
@@ -90,11 +104,14 @@ internal static class ScanCommand
 
             Console.Error.WriteLine($"Consultation VirusTotal de {flagged} constat(s) signalé(s)…");
 
-            using var reputation = new VirusTotalReputation(virusTotalKey);
-            result = result with
+            result = OptionalStep.Ran(result, "--virustotal-key", scan =>
             {
-                Findings = [.. FindingEnrichment.WithReputation(result.Findings, reputation)],
-            };
+                using var reputation = new VirusTotalReputation(virusTotalKey);
+                return scan with
+                {
+                    Findings = [.. FindingEnrichment.WithReputation(scan.Findings, reputation)],
+                };
+            });
         }
 
         // PAC script retrieval — the scan's second possible network call, explicit opt-in
@@ -107,11 +124,14 @@ internal static class ScanCommand
 
             Console.Error.WriteLine($"Récupération de {withPac} script(s) PAC signalé(s)…");
 
-            using var fetcher = new LivePacFetcher();
-            result = result with
+            result = OptionalStep.Ran(result, "--fetch-pac", scan =>
             {
-                Findings = [.. PacEnrichment.WithRouting(result.Findings, fetcher)],
-            };
+                using var fetcher = new LivePacFetcher();
+                return scan with
+                {
+                    Findings = [.. PacEnrichment.WithRouting(scan.Findings, fetcher)],
+                };
+            });
         }
 
         // Active DoH/DoT probe — the other opt-in network call, never by default nor on
@@ -121,13 +141,16 @@ internal static class ScanCommand
         {
             Console.Error.WriteLine("Sonde des résolveurs DNS chiffrés (DoH/DoT)…");
 
-            using var probe = new LiveDnsProbe();
-            var (report, probeFindings) = DnsProbeAnalysis.Analyse(probe.Probe());
-            result = result with
+            result = OptionalStep.Ran(result, "--probe-dns", scan =>
             {
-                Findings = [.. result.Findings, .. probeFindings],
-                DnsProbe = report,
-            };
+                using var probe = new LiveDnsProbe();
+                var (report, probeFindings) = DnsProbeAnalysis.Analyse(probe.Probe());
+                return scan with
+                {
+                    Findings = [.. scan.Findings, .. probeFindings],
+                    DnsProbe = report,
+                };
+            });
         }
 
         if (asJson)
