@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
@@ -118,6 +119,30 @@ public class BloatwareCatalogTests
     [Fact]
     public void An_unreadable_catalog_throws_rather_than_loading_partially() =>
         Assert.ThrowsAny<Exception>(() => BloatwareCatalog.Parse("pas du json"));
+
+    /// <summary>
+    /// A duplicate identifier is refused by the reader, and refused as a
+    /// <see cref="JsonException"/> — the type both callers filter on. It used to load, and
+    /// the crash came out of <c>Merge</c>'s <c>ToDictionary</c> as an
+    /// <see cref="ArgumentException"/> nobody catches.
+    /// </summary>
+    [Fact]
+    public void Parse_refuses_a_catalogue_where_two_entries_share_an_id() =>
+        Assert.Throws<JsonException>(() => Catalog(
+            Entry("B1", BloatwareMatch.Name, "mcafee"),
+            Entry("B1", BloatwareMatch.Name, "norton")));
+
+    /// <summary>
+    /// Case does not make two identifiers, because it does not make two keys either:
+    /// <c>Merge</c> indexes with <see cref="StringComparer.OrdinalIgnoreCase"/>, so a guard
+    /// comparing them exactly would let "B1"/"b1" straight back into the exception it was
+    /// written to prevent.
+    /// </summary>
+    [Fact]
+    public void Parse_refuses_two_identifiers_that_differ_only_in_case() =>
+        Assert.Throws<JsonException>(() => Catalog(
+            Entry("B1", BloatwareMatch.Name, "mcafee"),
+            Entry("b1", BloatwareMatch.Name, "norton")));
 
     [Fact]
     public void Merge_lets_an_incoming_entry_override_the_base_by_id()

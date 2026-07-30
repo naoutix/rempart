@@ -66,6 +66,25 @@ public sealed record BloatwareCatalogFile(string AsOfUtc, string? Source, List<B
 /// <see cref="BloatwareRisk"/>, which the collector maps. Invent nothing: an entry
 /// without an impact note or identifier throws at load time, as does an unreadable file.
 /// </para>
+///
+/// <para>
+/// "Throws at load time" means <see cref="JsonException"/>, and that is the whole point.
+/// A <c>record</c> imposes nothing on deserialisation, so <c>"entries":[null]</c> used to
+/// reach <c>entry.Id</c> and raise a <see cref="NullReferenceException"/> that neither
+/// <see cref="UpdateStore"/> nor <see cref="UpdatePlanner"/> catches — a refusal that
+/// escapes its callers' filters is not a refusal, it is the end of the scan. Same reading
+/// as <see cref="DriverBlocklist"/>, one file over.
+/// </para>
+///
+/// <para>
+/// The rule binds every refusal this file makes, not just the hole. Two entries sharing an
+/// <see cref="BloatwareEntry.Id"/> passed the reader intact and blew up one line later in
+/// <see cref="Merge"/>, on the <c>ToDictionary</c> that indexes the incoming catalogue —
+/// an <see cref="ArgumentException"/>, through the same unfiltered gap. It is refused here
+/// instead, where the refusal is a <see cref="JsonException"/> and where
+/// <see cref="UpdatePlanner"/> also sees it, so the file is turned away before
+/// <c>update --apply</c> writes it rather than at every scan that follows.
+/// </para>
 /// </summary>
 public sealed class BloatwareCatalog
 {
@@ -178,6 +197,12 @@ public sealed class BloatwareCatalog
     /// </summary>
     public static BloatwareCatalog Merge(BloatwareCatalog @base, BloatwareCatalog incoming)
     {
+        // Indexing by id cannot throw here: the constructor is private, so every catalogue
+        // comes from Parse, Empty or the embedded baseline (itself parsed), and Parse
+        // refuses a duplicate id under this very comparer. It did not always, and this line
+        // is where a signed catalogue carrying "B1" twice used to raise an
+        // ArgumentException — past the reader that had just accepted it, and past both
+        // callers' catch filters.
         var overrides = incoming.entries.ToDictionary(e => e.Id, e => e, StringComparer.OrdinalIgnoreCase);
         var result = new List<BloatwareEntry>(@base.entries.Count);
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -218,18 +243,52 @@ public sealed class BloatwareCatalog
         var entries = file.Entries
             ?? throw new JsonException("Catalogue bloatware sans clé « entries » : fichier probablement d'un autre type.");
 
-        // An entry without an id, without a match value/identifier, or without an impact
-        // note has no audit value: throw rather than load a truncated catalog (id, value
-        // and impact note are all mandatory — an empty Value would make a Name/Publisher
-        // pattern match every piece of software).
+        // The identifiers already seen, compared the way Merge indexes them.
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var entry in entries)
         {
+            // A hole, in either of the two shapes it comes in: the element itself written
+            // null, or a field the record declares and the JSON never supplied. Checked
+            // before anything reads the entry, because reading it was the bug — and
+            // Category is in the list although the test below does not ask it to be
+            // non-empty: it is copied into a finding's details as a value, where a null
+            // becomes a null in the report.
+            if (entry is null || entry.Id is null || entry.Value is null
+                || entry.Category is null || entry.Impact is null)
+            {
+                throw new JsonException(
+                    "Entrée de catalogue trouée : identifiant, valeur, catégorie et note "
+                    + "d'impact sont obligatoires, et l'entrée elle-même ne peut être nulle. "
+                    + "Rien n'est chargé.");
+            }
+
+            // An entry without an id, without a match value/identifier, or without an impact
+            // note has no audit value: throw rather than load a truncated catalog (id, value
+            // and impact note are all mandatory — an empty Value would make a Name/Publisher
+            // pattern match every piece of software).
             if (string.IsNullOrWhiteSpace(entry.Id)
                 || string.IsNullOrWhiteSpace(entry.Value)
                 || string.IsNullOrWhiteSpace(entry.Impact))
             {
                 throw new JsonException(
                     $"Entrée de catalogue invalide ({entry.Id}) : identifiant, valeur et note d'impact obligatoires.");
+            }
+
+            // Two entries under one identifier. Not a hole — every field is there — but the
+            // id is the key Merge indexes the catalogue by, so the file loaded and the merge
+            // threw. Refused rather than deduplicated, and that is where this reader parts
+            // company with the fingerprint index in DriverBlocklist: there the key *is* the
+            // driver, so a repeated fingerprint is the same driver twice and keeping the
+            // first loses no coverage. Here the id is an arbitrary label; two entries
+            // sharing it recognise two different pieces of software, and keeping one
+            // quietly makes the other benign.
+            if (!seen.Add(entry.Id))
+            {
+                throw new JsonException(
+                    $"Catalogue bloatware avec l'identifiant « {entry.Id} » en double : "
+                    + "chaque entrée doit porter un identifiant distinct, la casse ne "
+                    + "distinguant pas deux identifiants. Rien n'est chargé.");
             }
         }
 

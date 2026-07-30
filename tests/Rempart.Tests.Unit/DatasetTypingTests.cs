@@ -85,6 +85,66 @@ public sealed class DatasetTypingTests : IDisposable
     }
 
     /// <summary>
+    /// A correctly signed blocklist with a hole in it takes the documented fallback —
+    /// "update refused, embedded baseline kept" — instead of ending the scan.
+    ///
+    /// <para>
+    /// This is the end the refusal has to reach, and the reason it is a
+    /// <c>JsonException</c> and not something else: the <c>catch</c> here filters on that
+    /// type, so the <c>NullReferenceException</c> the reader used to raise on
+    /// <c>"drivers":[null]</c> went straight past it and out of the scan altogether.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_signed_blocklist_with_a_null_entry_is_refused_and_the_floor_holds()
+    {
+        using var publisher = new TestPublisher();
+        var verifier = PublishAndApply(publisher, "loldrivers.json",
+            """{"asOfUtc":"2026-09-01T00:00:00Z","source":"test","drivers":[null]}""",
+            kind: null);
+
+        var resolution = UpdateStore.Resolve(Store, RuleCatalog.Load(), verifier);
+
+        Assert.Equal(RuleCatalog.Load().Count, resolution.Rules.Count); // baseline intact
+        Assert.Equal(0, resolution.Blocklist.Count);
+        Assert.Contains("illisible par cette version", resolution.UpdateNote);
+        Assert.Contains("Socle embarqué conservé", resolution.UpdateNote);
+    }
+
+    /// <summary>
+    /// Same journey, the other way a catalogue can be unusable: two entries carrying the
+    /// same identifier. Not a hole — every field is there — but
+    /// <see cref="BloatwareCatalog.Merge"/> indexes the incoming entries by id, and a
+    /// duplicate key made <c>ToDictionary</c> raise an <see cref="ArgumentException"/>
+    /// that the store's <c>catch</c> does not filter, one line after the reader had
+    /// accepted the file. The refusal now happens in the reader, so it is the same
+    /// <c>JsonException</c> as any other unreadable dataset and reaches the same note.
+    /// </summary>
+    [Fact]
+    public void A_signed_catalogue_with_two_entries_of_one_id_is_refused_and_the_floor_holds()
+    {
+        using var publisher = new TestPublisher();
+        var catalogue = RempartJson.SerialiseCompact(new BloatwareCatalogFile(
+            "2026-09-01T00:00:00Z", "test",
+            [
+                new BloatwareEntry("B1", BloatwareMatch.Name, "mcafee", "oem",
+                    BloatwareRisk.Unwanted, "Impact non vide."),
+                new BloatwareEntry("B1", BloatwareMatch.Name, "norton", "oem",
+                    BloatwareRisk.Unwanted, "Impact non vide."),
+            ]));
+
+        var verifier = PublishAndApply(
+            publisher, "bloatware.json", catalogue, kind: DatasetKind.Bloatware);
+
+        var resolution = UpdateStore.Resolve(Store, RuleCatalog.Load(), verifier);
+
+        Assert.Equal(RuleCatalog.Load().Count, resolution.Rules.Count); // baseline intact
+        Assert.Equal(BloatwareCatalog.Embedded.Count, resolution.Catalog.Count);
+        Assert.Contains("illisible par cette version", resolution.UpdateNote);
+        Assert.Contains("Socle embarqué conservé", resolution.UpdateNote);
+    }
+
+    /// <summary>
     /// The kind is inferred from the extension: a <c>.json</c> is a driver blocklist, a
     /// <c>.yaml</c> is rules. The publisher has nothing to declare in the common case.
     /// </summary>

@@ -275,7 +275,7 @@ public class ManifestTests
                 $"{label} : {thrown?.GetType().Name} a échappé à la vérification — {thrown?.Message}");
 
             var hole = verdict!.IsTrusted
-                ? FirstNull(JsonSerializer.SerializeToNode(
+                ? JsonHoles.FirstNull(JsonSerializer.SerializeToNode(
                     verdict.Payload!, RempartJsonContext.Default.ManifestPayload))
                 : null;
 
@@ -335,7 +335,7 @@ public class ManifestTests
         var envelope = JsonNode.Parse(
             Wrap(payload, new ManifestSignature(publisher.KeyId, publisher.Sign(payload))))!;
 
-        foreach (var (label, punctured) in Holes(envelope))
+        foreach (var (label, punctured) in JsonHoles.Holes(envelope))
         {
             yield return ($"enveloppe, {label}", punctured.ToJsonString());
         }
@@ -344,113 +344,12 @@ public class ManifestTests
         // verification would stop at the signature and never reach the payload at all.
         var inner = JsonNode.Parse(Encoding.UTF8.GetString(payload))!;
 
-        foreach (var (label, punctured) in Holes(inner))
+        foreach (var (label, punctured) in JsonHoles.Holes(inner))
         {
             var bytes = Encoding.UTF8.GetBytes(punctured.ToJsonString());
 
             yield return ($"charge utile, {label}",
                 Wrap(bytes, new ManifestSignature(publisher.KeyId, publisher.Sign(bytes))));
         }
-    }
-
-    /// <summary>
-    /// Every way one field can go missing from a JSON tree: each property and each array
-    /// element in turn, set to null then removed. Both forms matter — a record field left
-    /// out of the JSON and one written as <c>null</c> land on the same null reference.
-    /// </summary>
-    private static IEnumerable<(string Label, JsonNode Node)> Holes(JsonNode tree)
-    {
-        foreach (var path in Paths(tree))
-        {
-            var label = string.Join("/", path);
-
-            yield return ($"{label} nul", Punch(tree, path, remove: false));
-            yield return ($"{label} absent", Punch(tree, path, remove: true));
-        }
-    }
-
-    /// <summary>Every property and element position in a tree, as a path of names and indices.</summary>
-    private static List<List<object>> Paths(JsonNode? node, List<object>? prefix = null)
-    {
-        prefix ??= [];
-        var paths = new List<List<object>>();
-
-        switch (node)
-        {
-            case JsonObject properties:
-                foreach (var (name, value) in properties)
-                {
-                    var here = new List<object>(prefix) { name };
-                    paths.Add(here);
-                    paths.AddRange(Paths(value, here));
-                }
-
-                break;
-
-            case JsonArray elements:
-                for (var index = 0; index < elements.Count; index++)
-                {
-                    var here = new List<object>(prefix) { index };
-                    paths.Add(here);
-                    paths.AddRange(Paths(elements[index], here));
-                }
-
-                break;
-        }
-
-        return paths;
-    }
-
-    /// <summary>Copies a tree with the node at <paramref name="path"/> nulled or removed.</summary>
-    private static JsonNode Punch(JsonNode tree, IReadOnlyList<object> path, bool remove)
-    {
-        var copy = JsonNode.Parse(tree.ToJsonString())!;
-        var parent = copy;
-
-        for (var step = 0; step < path.Count - 1; step++)
-        {
-            parent = path[step] is string name ? parent[name]! : parent[(int)path[step]]!;
-        }
-
-        if (path[^1] is string property)
-        {
-            if (remove)
-            {
-                parent.AsObject().Remove(property);
-            }
-            else
-            {
-                parent.AsObject()[property] = null;
-            }
-        }
-        else if (remove)
-        {
-            parent.AsArray().RemoveAt((int)path[^1]);
-        }
-        else
-        {
-            parent.AsArray()[(int)path[^1]] = null;
-        }
-
-        return copy;
-    }
-
-    /// <summary>Path of the first JSON null in a tree, or <c>null</c> when it has no hole.</summary>
-    private static string? FirstNull(JsonNode? tree, string prefix = "")
-    {
-        return tree switch
-        {
-            null => prefix.Length == 0 ? "la charge utile" : prefix,
-
-            JsonObject properties => properties
-                .Select(property => FirstNull(property.Value, $"{prefix}/{property.Key}"))
-                .FirstOrDefault(found => found is not null),
-
-            JsonArray elements => elements
-                .Select((element, index) => FirstNull(element, $"{prefix}/{index}"))
-                .FirstOrDefault(found => found is not null),
-
-            _ => null,
-        };
     }
 }
