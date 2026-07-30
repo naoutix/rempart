@@ -146,6 +146,26 @@ public static class Anonymiser
             entry => entry.Key,
             entry => entry.Value with { Diagnostic = ScrubDiagnostic(entry.Value.Diagnostic) });
 
+        // The policy read's own failure reasons, the seventh of these and the first keyed by
+        // what is missing rather than standing on its own. A netapi32 entry point and its
+        // code name nobody today, and that is a property of the sentences currently written
+        // rather than of the field: it is free text produced by a Windows-side provider, the
+        // shape that has already carried an account name out of a capture twice, and the one
+        // this file keeps having to come back to one surface at a time.
+        //
+        // Values only. The keys are fact names — « accounts.localAdminCount » designates
+        // nobody, exists identically everywhere, and is what a `type: policy` rule looks the
+        // reason up by; hashing it would cost the capture the explanation rather than protect
+        // anyone. Same reasoning as the service map above.
+        if (snapshot.Policy is { Gaps: { } policyGaps })
+        {
+            snapshot.Policy = snapshot.Policy with
+            {
+                Gaps = policyGaps.ToDictionary(
+                    entry => entry.Key, entry => ScrubProfile(entry.Value), StringComparer.Ordinal),
+            };
+        }
+
         snapshot.Directories = snapshot.Directories.ToDictionary(
             entry => ScrubProfile(entry.Key),
             entry => entry.Value.Select(ScrubProfile).ToList());

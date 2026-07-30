@@ -5,6 +5,32 @@ using Rempart.Core.Providers;
 namespace Rempart.Windows;
 
 /// <summary>
+/// Why one surface of the policy read established nothing: the sentence a report prints,
+/// and whether the operating system actually said « refusé ».
+///
+/// <para>
+/// The two are separate because they are separately wrong to guess. The sentence is what
+/// reaches a verdict, and it prints the code as itself so that a broken <c>netapi32</c>
+/// reads as a broken <c>netapi32</c>; the flag decides whether the read as a whole may call
+/// itself a denial, and only <c>ERROR_ACCESS_DENIED</c> sets it. Every other code is a
+/// failure, and « relancer en administrateur » is the one piece of advice that cannot help
+/// with one — the invariant CONTRIBUTING records, which cost this project two milestones of
+/// a mute WMI that read as missing privileges.
+/// </para>
+/// </summary>
+internal readonly record struct PolicyGap(string Reason, bool Refused)
+{
+    /// <summary><c>ERROR_ACCESS_DENIED</c>, from <c>winerror.h</c>.</summary>
+    private const int ErrorAccessDenied = 5;
+
+    /// <summary>Names the call that stopped, and prints its code as itself.</summary>
+    internal static PolicyGap Of(string call, int status) =>
+        status == ErrorAccessDenied
+            ? new PolicyGap($"{call} : accès refusé (5)", Refused: true)
+            : new PolicyGap($"{call} : échec {status}", Refused: false);
+}
+
+/// <summary>
 /// Local account policy, via <c>netapi32</c>.
 ///
 /// Same API family as <c>NetGetJoinInformation</c>, already proven: the WMI/AOT
@@ -126,25 +152,152 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         return (sizeof(UserInfo1), (int)((byte*)&probe.Flags - (byte*)&probe));
     }
 
-    public PolicyFacts Read()
+    /// <summary>
+    /// One surface of the read: it fills in the facts it can establish and answers with what
+    /// stopped it, or <see langword="null"/> when nothing did.
+    /// </summary>
+    internal delegate PolicyGap? PolicySurface(Dictionary<string, string> facts);
+
+    /// <summary>
+    /// The four surfaces of this read, each declaring what it establishes.
+    ///
+    /// <para>
+    /// A table rather than four calls in a row, and that is the correction rather than its
+    /// decoration: the composition below — not the surface — records what a missing fact is
+    /// missing for, so a fifth surface added here inherits the channel instead of having to
+    /// remember it, and one added anywhere else does not run at all. Exactly the argument
+    /// <see cref="Enumerate"/> was written on one issue earlier: a discipline every call site
+    /// has to repeat is a discipline the next call site drops.
+    /// </para>
+    /// </summary>
+    private static readonly (string[] Facts, PolicySurface Read)[] Surfaces =
+    [
+        ([
+            PolicyFactNames.PasswordMinLength,
+            PolicyFactNames.PasswordHistoryLength,
+            PolicyFactNames.PasswordMaxAgeDays,
+        ], ReadPasswordPolicy),
+
+        ([
+            PolicyFactNames.LockoutThreshold,
+            PolicyFactNames.LockoutDurationMinutes,
+        ], ReadLockoutPolicy),
+
+        ([
+            PolicyFactNames.AccountsWithoutPassword,
+            PolicyFactNames.AccountsPasswordNeverExpires,
+            PolicyFactNames.GuestEnabled,
+        ], ReadAccounts),
+
+        ([PolicyFactNames.LocalAdminCount], ReadAdminGroup),
+    ];
+
+    /// <summary>
+    /// What each surface claims, kept in the table's own grouping.
+    ///
+    /// <para>
+    /// The grouping is the part a test cannot invent: three of the four surfaces owe more
+    /// than one fact — eight of the nine shipped — and one <c>NetUserModalsGet</c> answers
+    /// for all of a group or for none of it. A composition that named only the first fact of
+    /// a failed surface would be exactly the silence this file exists to close, and it is
+    /// invisible to any test built from one-fact surfaces of its own making.
+    /// </para>
+    /// </summary>
+    internal static IReadOnlyList<IReadOnlyList<string>> SurfaceFacts() =>
+        [.. Surfaces.Select(surface => (IReadOnlyList<string>)surface.Facts)];
+
+    /// <summary>
+    /// Every fact name a surface claims, so a test can hold the table against
+    /// <see cref="PolicyFactNames"/>: a fact declared there and claimed by nobody has no
+    /// surface, therefore no gap, therefore no way of saying why it is missing.
+    /// </summary>
+    internal static IReadOnlyList<string> DeclaredFacts() =>
+        [.. SurfaceFacts().SelectMany(facts => facts)];
+
+    public PolicyFacts Read() => Compose(Surfaces);
+
+    /// <summary>
+    /// What a surface that answered without failing and without establishing its fact has to
+    /// say. There is no code to print and none is borrowed: the alternative is to attribute
+    /// the silence to the last call made, which may not be the one that gave up.
+    /// </summary>
+    private const string Unestablished =
+        "Lecture terminée sans code d'erreur, et le fait n'a pas été établi.";
+
+    /// <summary>
+    /// Runs every surface into one dictionary and records, beside it, why each fact that is
+    /// missing is missing.
+    ///
+    /// <para>
+    /// The line this replaces was <c>facts.Count == 0 ? PolicyFacts.AccessDenied : new
+    /// PolicyFacts(facts)</c>, and it was wrong twice over. A denial was deduced from a count
+    /// and never from a code, so an unreachable <c>netapi32</c> reported missing privileges —
+    /// the invariant CONTRIBUTING records. And a partial read was indistinguishable from a
+    /// complete one: one surface answering made the count non-zero, and the surfaces that had
+    /// refused left no trace at all.
+    /// </para>
+    /// </summary>
+    internal static PolicyFacts Compose(
+        IReadOnlyList<(string[] Facts, PolicySurface Read)> surfaces)
     {
         var facts = new Dictionary<string, string>(StringComparer.Ordinal);
+        var gaps = new Dictionary<string, string>(StringComparer.Ordinal);
+        var failed = 0;
+        var refused = 0;
 
-        ReadPasswordPolicy(facts);
-        ReadLockoutPolicy(facts);
-        ReadAccounts(facts);
-        ReadAdminGroup(facts);
+        foreach (var (names, read) in surfaces)
+        {
+            var gap = read(facts);
 
-        // No fact established: the API denied everything. Reporting this prevents a
-        // rule from drawing conclusions from an empty dictionary.
-        return facts.Count == 0 ? PolicyFacts.AccessDenied : new PolicyFacts(facts);
+            if (gap is { } failure)
+            {
+                failed++;
+                refused += failure.Refused ? 1 : 0;
+            }
+
+            // Driven by what is absent once the surface is done, rather than by what it
+            // returned. A surface that answers « no error » and establishes nothing all the
+            // same is then named too — the shape ReadAdminGroup has whenever the group name
+            // does not resolve, which it had been taking in silence.
+            foreach (var name in names)
+            {
+                if (!facts.ContainsKey(name))
+                {
+                    gaps[name] = gap?.Reason ?? Unestablished;
+                }
+            }
+        }
+
+        // A refusal is claimed only where the operating system said so, and only where
+        // nothing at all was read: one surface refusing out of four leaves the three that
+        // answered perfectly usable, and calling the whole read refused would throw them away
+        // to describe the fourth.
+        var denied = facts.Count == 0 && failed > 0 && refused == failed;
+
+        // Null and not an empty map when nothing is missing, so that a capture of a machine
+        // that answered everything is what such a capture has always been.
+        return new PolicyFacts(facts, denied, gaps.Count == 0 ? null : gaps);
     }
 
-    private static unsafe void ReadPasswordPolicy(Dictionary<string, string> facts)
+    /// <summary>
+    /// What a netapi32 call that established nothing has to say for itself: its code, or the
+    /// absence of a buffer under a code that claimed success — which is not a code at all,
+    /// and saying « échec 0 » of it would be nonsense.
+    /// </summary>
+    private static PolicyGap Missing(string call, int status, IntPtr buffer) =>
+        status == NerrSuccess && buffer == IntPtr.Zero
+            ? new PolicyGap($"{call} : aucun tampon rendu", Refused: false)
+            : PolicyGap.Of(call, status);
+
+    private const string PasswordPolicyCall = "NetUserModalsGet(niveau 0)";
+
+    private static unsafe PolicyGap? ReadPasswordPolicy(Dictionary<string, string> facts)
     {
-        if (NetUserModalsGet(null, 0, out var buffer) != 0 || buffer == IntPtr.Zero)
+        var status = NetUserModalsGet(null, 0, out var buffer);
+
+        if (status != NerrSuccess || buffer == IntPtr.Zero)
         {
-            return;
+            return Missing(PasswordPolicyCall, status, buffer);
         }
 
         try
@@ -165,13 +318,19 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         {
             NetApiBufferFree(buffer);
         }
+
+        return null;
     }
 
-    private static unsafe void ReadLockoutPolicy(Dictionary<string, string> facts)
+    private const string LockoutPolicyCall = "NetUserModalsGet(niveau 3)";
+
+    private static unsafe PolicyGap? ReadLockoutPolicy(Dictionary<string, string> facts)
     {
-        if (NetUserModalsGet(null, 3, out var buffer) != 0 || buffer == IntPtr.Zero)
+        var status = NetUserModalsGet(null, 3, out var buffer);
+
+        if (status != NerrSuccess || buffer == IntPtr.Zero)
         {
-            return;
+            return Missing(LockoutPolicyCall, status, buffer);
         }
 
         try
@@ -185,6 +344,8 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         {
             NetApiBufferFree(buffer);
         }
+
+        return null;
     }
 
     /// <summary>
@@ -215,13 +376,20 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
     /// </para>
     /// </summary>
     /// <returns>
-    /// Whether the enumeration completed. A caller that gets <see langword="false"/> has
-    /// seen only part of the machine and must establish nothing: a count drawn from a
-    /// truncated walk is a plausible number that is wrong, which is worse than an absent
-    /// fact.
+    /// <see langword="null"/> when the enumeration completed, otherwise what stopped it. A
+    /// caller that gets a gap has seen only part of the machine and must establish nothing: a
+    /// count drawn from a truncated walk is a plausible number that is wrong, which is worse
+    /// than an absent fact.
+    ///
+    /// <para>
+    /// The reason and not a bare « non ». This walk is the only place that sees the status
+    /// netapi32 stopped on, so a boolean return threw the code away before any caller could
+    /// name it — and an unnamed failure is what the empty dictionary above then reported as a
+    /// denial (#160).
+    /// </para>
     /// </returns>
-    internal static bool Enumerate(
-        NetEnumeration step, Action<IntPtr, int> consume, Action<IntPtr> free)
+    internal static PolicyGap? Enumerate(
+        string call, NetEnumeration step, Action<IntPtr, int> consume, Action<IntPtr> free)
     {
         nint resume = 0;
 
@@ -237,14 +405,14 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
                 if (buffer == IntPtr.Zero
                     || (status != NerrSuccess && status != ErrorMoreData))
                 {
-                    return false;
+                    return Missing(call, status, buffer);
                 }
 
                 consume(buffer, read);
 
                 if (status == NerrSuccess)
                 {
-                    return true;
+                    return null;
                 }
             }
             finally
@@ -259,27 +427,35 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         // Still asking after MaxBatches: the enumeration is not converging, and the caller
         // gets nothing rather than a partial count. A resumption without a ceiling is the
         // netapi32 spelling of an enumeration that never gives the scan back.
-        return false;
+        //
+        // Not a refusal, and there is no code to print: netapi32 never failed, it simply
+        // never finished. Elevation does nothing about that, so the sentence says what
+        // happened instead of borrowing a word that would send someone to try.
+        return new PolicyGap(
+            $"{call} : {MaxBatches} appels sans fin d'énumération", Refused: false);
     }
 
     /// <summary>The same walk, freeing through netapi32 rather than through a test double.</summary>
-    private static bool Enumerate(NetEnumeration step, Action<IntPtr, int> consume) =>
-        Enumerate(step, consume, buffer => NetApiBufferFree(buffer));
+    private static PolicyGap? Enumerate(
+        string call, NetEnumeration step, Action<IntPtr, int> consume) =>
+        Enumerate(call, step, consume, buffer => NetApiBufferFree(buffer));
 
-    private static unsafe void ReadAccounts(Dictionary<string, string> facts)
+    private static unsafe PolicyGap? ReadAccounts(Dictionary<string, string> facts)
     {
         var withoutPassword = 0;
         var neverExpires = 0;
         var guestEnabled = false;
 
-        if (!Enumerate(Batch, Count))
+        if (Enumerate("NetUserEnum", Batch, Count) is { } gap)
         {
-            return;
+            return gap;
         }
 
         facts[PolicyFactNames.AccountsWithoutPassword] = withoutPassword.ToString();
         facts[PolicyFactNames.AccountsPasswordNeverExpires] = neverExpires.ToString();
         facts[PolicyFactNames.GuestEnabled] = guestEnabled ? "true" : "false";
+
+        return null;
 
         // Level 1: name and flags in a single pass.
         static int Batch(ref nint resume, out IntPtr buffer, out int read)
@@ -337,22 +513,31 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
     /// language: it is resolved from its well-known SID so the rule also holds on a
     /// French-language machine.
     /// </summary>
-    private static void ReadAdminGroup(Dictionary<string, string> facts)
+    private static PolicyGap? ReadAdminGroup(Dictionary<string, string> facts)
     {
         var groupName = ResolveAdministratorsGroupName();
         if (groupName is null)
         {
-            return;
+            // No netapi32 code to print: the call was never made. The step that failed is
+            // named rather than the enumeration's, which would be a lie, and the group is
+            // not — the machine's own word for it is the one string here that would need
+            // scrubbing out of a capture, and it buys nothing.
+            return new PolicyGap(
+                "SecurityIdentifier.Translate : le nom du groupe Administrateurs n'a pas été "
+                + "résolu depuis son SID bien connu",
+                Refused: false);
         }
 
         var members = 0;
 
-        if (!Enumerate(Batch, (_, read) => members += read))
+        if (Enumerate("NetLocalGroupGetMembers", Batch, (_, read) => members += read) is { } gap)
         {
-            return;
+            return gap;
         }
 
         facts[PolicyFactNames.LocalAdminCount] = members.ToString();
+
+        return null;
 
         int Batch(ref nint resume, out IntPtr buffer, out int read) =>
             NetLocalGroupGetMembers(null, groupName, 0, out buffer,

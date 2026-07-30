@@ -498,6 +498,23 @@ public sealed class AnonymiserTests
             // path: it is a scheduler path, scrubbed by the rule that applies to a task.
             ScheduledTasks = ScheduledTaskRead.Partial([],
                 [new TaskFolderGap($@"\{marker}", "GetTasks : accès refusé (0x80070005)")]),
+
+            // The seventh sibling, and the first keyed by what is missing rather than
+            // free-standing: a policy read that established part of its facts names, beside
+            // each fact it did not establish, the netapi32 call that failed. The keys are
+            // fact names and stay readable — a rule looks a fact up by name — but the reasons
+            // are the machine's side of the story, the same shape as the service diagnostic
+            // above.
+            Policy = new PolicyFacts(
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [PolicyFactNames.PasswordMinLength] = "14",
+                },
+                Gaps: new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [PolicyFactNames.LocalAdminCount] =
+                        $@"NetLocalGroupGetMembers : échec 5 sur C:\Users\{marker}\sam",
+                }),
         };
 
         var serialised = RempartJson.Serialise(Anonymiser.Apply(snapshot));

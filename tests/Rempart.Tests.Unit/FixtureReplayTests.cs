@@ -294,6 +294,101 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
             "ne prouverait plus grand-chose.");
     }
 
+    /// <summary>
+    /// A capture taken before the policy read could say why a fact is missing replays exactly
+    /// as it did then.
+    ///
+    /// <para>
+    /// <c>PolicyFacts.Gaps</c> was added beside the values, never in their place, and its
+    /// absence has to mean what such a capture already meant: nothing recorded about a
+    /// missing fact, so nothing to explain. Held against a versioned fixture on disk rather
+    /// than an object built here — the compatibility being claimed is with the bytes, and an
+    /// object built in this file would carry whatever today's defaults are.
+    /// </para>
+    ///
+    /// <para>
+    /// Asserted on the <em>value</em> of the field and never on the presence of its JSON key:
+    /// the serialiser writes every field, so this fixture will carry <c>"gaps": null</c> the
+    /// next time it is regenerated, and a test watching for the key's absence would go red
+    /// for a reason having nothing to do with compatibility (issue #163).
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_capture_written_before_the_policy_gap_channel_replays_unchanged()
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(
+            Path.Combine(FixtureDirectory, "synthetic", "default-win11.capture.json")));
+
+        var policy = snapshot.Policy;
+        Assert.NotNull(policy);
+
+        // What the capture holds is still what it holds, and the two channels that predate
+        // this one still answer what they answered.
+        Assert.Equal("10", policy.Find(PolicyFactNames.LockoutThreshold));
+        Assert.False(policy.Denied);
+
+        // And the new one is empty, not merely absent from the file: a capture that recorded
+        // no gap must not acquire one by being read back.
+        Assert.Null(policy.Gaps);
+        Assert.Null(policy.WhyMissing(PolicyFactNames.LockoutThreshold));
+
+        // A fact such a capture never held reads as it always did: not verifiable, with
+        // nothing to explain — which is the whole of the compatibility being claimed.
+        var verdict = RuleEvaluator.Evaluate(
+            new Rule("TEST-POL", "Un fait", Severity.High, "accounts", "Parce que.", [],
+                new CheckSpec(CheckKind.Policy, "un.fait.qu-aucune.capture.ne.porte",
+                    null, CheckOperator.AtLeast, "1", null), null),
+            SnapshotProviders.Replaying(snapshot));
+
+        Assert.Equal(VerdictStatus.Unknown, verdict.Status);
+        Assert.Null(verdict.Observed);
+    }
+
+    /// <summary>
+    /// The other half of the test above, and the one it cannot stand without: a read that
+    /// <em>did</em> record a gap survives the four steps a field added to the snapshot has to
+    /// survive — recorded by the scan, serialised into the capture, replayed out of it, and,
+    /// next door in <c>AnonymiserTests</c>, scrubbed.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> and not against the object, which is the whole of
+    /// what is being proved: a field the recorder sets but the source-generated serialiser
+    /// does not carry passes every in-memory assertion and still reaches the replay as a read
+    /// that lost nothing — the shape <c>StatusChannelTests</c> pins for the scheduler.
+    /// Declaring <c>Gaps</c> <c>[JsonIgnore]</c> left 954 + 140 green: the compatibility test
+    /// above asserts <c>null</c> on a capture written before the field, which holds whether
+    /// the field is written or not, and the anonymisation sweep asserts the <em>absence</em>
+    /// of a planted marker, which a field never written satisfies for free. Both are
+    /// assertions about nothing being there, and only this one distinguishes « nettoyé » from
+    /// « jamais écrit » (second review of #160).
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_partial_policy_read_is_recorded_serialised_and_replayed_with_its_gaps()
+    {
+        const string reason = "NetLocalGroupGetMembers : échec 1722";
+
+        var snapshot = new MachineSnapshot();
+
+        new RecordingSecurityPolicyProvider(
+            new FakePolicyProvider((PolicyFactNames.PasswordMinLength, "14"))
+                .WithGap(PolicyFactNames.LocalAdminCount, reason),
+            snapshot).Read();
+
+        var replayed = new SnapshotSecurityPolicyProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read();
+
+        // What was read stays read, and what was not is explained beside it. Both halves
+        // travel or the channel is decoration.
+        Assert.Equal("14", replayed.Find(PolicyFactNames.PasswordMinLength));
+        Assert.Equal(reason, replayed.WhyMissing(PolicyFactNames.LocalAdminCount));
+        Assert.Null(replayed.WhyMissing(PolicyFactNames.PasswordMinLength));
+
+        // And a partial read is not a refusal: three surfaces answering are not thrown away
+        // to describe the fourth.
+        Assert.False(replayed.Denied);
+    }
+
     [Fact]
     public void Versioned_fixtures_are_anonymised()
     {
