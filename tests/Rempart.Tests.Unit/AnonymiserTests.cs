@@ -483,6 +483,17 @@ public sealed class AnonymiserTests
                     $@"interrompue sur 0x80041004 : C:\Users\{marker}\p.exe"),
             },
 
+            // The sixth sibling, one interface further on and a batch later. A service read
+            // that failed names the advapi32 call and its Win32 code, and the code's own
+            // sentence is whatever the operating system says in its own words — free text
+            // written by a Windows-side provider, which is the shape that has already
+            // carried an account name out of a capture twice.
+            Services =
+            {
+                ["mpssvc"] = ServiceRead.Failed(
+                    $@"OpenService : erreur Win32 123 sur C:\Users\{marker}\svc.exe"),
+            },
+
             // The folder a partial task walk names is not free text and is not a profile
             // path: it is a scheduler path, scrubbed by the rule that applies to a task.
             ScheduledTasks = ScheduledTaskRead.Partial([],

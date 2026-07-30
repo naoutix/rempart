@@ -587,6 +587,144 @@ public sealed class StatusChannelTests
         }
     }
 
+    private const string ServiceFailure =
+        "OpenSCManager : erreur Win32 1722 (Le serveur RPC n'est pas disponible.)";
+
+    /// <summary>
+    /// The service control manager, seventh read to take this channel, through the four
+    /// steps a field added to the snapshot has to survive: recorded by the scan, serialised
+    /// into the capture, replayed out of it, and — next door in <c>AnonymiserTests</c> —
+    /// scrubbed.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object, for the reason the
+    /// scheduler test gives: the capture is a <em>file</em>, and a field the recorder sets
+    /// but the source-generated serialiser drops would pass every in-memory assertion and
+    /// still replay as the bare refusal it used to be. Nothing in the recording path had to
+    /// change for this — <c>RecordingServiceStateProvider</c> stores the read whole — which
+    /// is exactly the claim an assertion is worth making.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_failed_service_read_is_recorded_serialised_and_replayed_with_its_reason()
+    {
+        var snapshot = new MachineSnapshot();
+        var recording = new RecordingServiceStateProvider(
+            new FixedServiceStateProvider(ServiceRead.Failed(ServiceFailure)), snapshot);
+
+        Assert.Equal(ReadStatus.AccessDenied, recording.Read("mpssvc").Status);
+
+        var replayed = new SnapshotServiceStateProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read("mpssvc");
+
+        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+        Assert.Equal(ServiceFailure, replayed.Diagnostic);
+        Assert.Null(replayed.Info);
+
+        // And the refusal beside it, which must stay bare: a diagnostic invented for it
+        // would say « ce n'est pas un refus » about a read that is one.
+        var refused = new MachineSnapshot();
+        new RecordingServiceStateProvider(
+            new FixedServiceStateProvider(ServiceRead.AccessDenied), refused).Read("mpssvc");
+
+        Assert.Null(new SnapshotServiceStateProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(refused)))
+            .Read("mpssvc").Diagnostic);
+    }
+
+    /// <summary>
+    /// The compatibility half: no versioned capture records a failure under <c>services</c>,
+    /// and every entry has to replay as exactly what it recorded. A diagnostic that is not
+    /// there means « no failure was noted », which is all any older capture could ever have
+    /// meant.
+    ///
+    /// <para>
+    /// The premise is asserted on the <em>value</em> and not on the presence of the key, and
+    /// the difference is the whole reliability of this test.
+    /// <see cref="RempartJsonContext"/> is declared
+    /// <c>DefaultIgnoreCondition = JsonIgnoreCondition.Never</c>, so the next run of
+    /// <c>scripts/regenerate-fixtures.ps1</c> — prescribed by its own header after any change
+    /// to the rule catalogue — writes <c>"diagnostic": null</c> on all six entries of all
+    /// four captures, exactly as the <c>wmi</c> blocks beside them already carry it. A
+    /// premise reading <c>TryGetProperty</c> would then fail on four files that had not
+    /// changed meaning, in the middle of an unrelated pull request, and accuse them of
+    /// having lost their evidential value.
+    /// </para>
+    ///
+    /// <para>
+    /// What it cannot prove is stated rather than implied: no versioned capture holds a
+    /// <em>refused</em> service, so the branch where the distinction bites is covered by the
+    /// round trip above and not by a file. The fixtures do carry the two shapes that decide
+    /// every shipped <c>type: service</c> rule — a service read, and one that is not
+    /// installed.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_service_captured_before_the_diagnostic_replays_as_the_bare_read_it_recorded()
+    {
+        foreach (var name in new[]
+                 {
+                     "default-win11", "hardened-win11", "restricted-access", "compromised-win11",
+                 })
+        {
+            var json = File.ReadAllText(Path.Combine(
+                FixtureReplayTests.FixtureDirectory, "synthetic", $"{name}.capture.json"));
+
+            using (var document = JsonDocument.Parse(json))
+            {
+                // The premise, asserted rather than assumed: the day one of these records a
+                // failure, it stops being evidence about captures that could not.
+                Assert.DoesNotContain(
+                    document.RootElement.GetProperty("services").EnumerateObject(),
+                    entry => entry.Value.TryGetProperty("diagnostic", out var reason)
+                        && reason.ValueKind is not JsonValueKind.Null);
+            }
+
+            var services = new SnapshotServiceStateProvider(
+                RempartJson.DeserialiseSnapshot(json));
+
+            var running = services.Read("mpssvc");
+            Assert.Equal(ReadStatus.Found, running.Status);
+            Assert.Equal(ServiceState.Running, running.Info!.State);
+            Assert.Null(running.Diagnostic);
+
+            var absent = services.Read("TlntSvr");
+            Assert.Equal(ReadStatus.NotFound, absent.Status);
+            Assert.Null(absent.Info);
+            Assert.Null(absent.Diagnostic);
+        }
+    }
+
+    /// <summary>
+    /// The absent key itself, spelled out rather than borrowed from a fixture — because the
+    /// four fixtures will stop carrying it. They lack a <c>diagnostic</c> under
+    /// <c>services</c> today only because they predate the field; regenerated, they will
+    /// write it null, and the shape a capture taken before this batch really has would be
+    /// exercised by no file in the repository. Absent has to keep meaning « no failure was
+    /// noted », not « unknown » and not a refusal.
+    /// </summary>
+    [Fact]
+    public void A_service_entry_without_the_key_at_all_replays_as_a_read_that_noted_nothing()
+    {
+        const string beforeTheField = """
+            {"services":{"mpssvc":{"status":"Found","info":{
+              "name":"mpssvc","state":"Running","startMode":"Automatic"}}}}
+            """;
+
+        var read = new SnapshotServiceStateProvider(
+            RempartJson.DeserialiseSnapshot(beforeTheField)).Read("mpssvc");
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Equal(ServiceState.Running, read.Info!.State);
+        Assert.Null(read.Diagnostic);
+    }
+
+    /// <summary>Answers the same read to every service: the machine-side half above.</summary>
+    private sealed class FixedServiceStateProvider(ServiceRead answer) : IServiceStateProvider
+    {
+        public ServiceRead Read(string serviceName) => answer;
+    }
+
     private const string RunKey = @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
     /// <summary>

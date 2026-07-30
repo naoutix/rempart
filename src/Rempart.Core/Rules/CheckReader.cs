@@ -74,6 +74,15 @@ public static class CheckReader
     /// A missing service is not an access denial: there is nothing to read, and the
     /// comparison will run against "absent". Distinguishing the two avoids concluding
     /// non-compliance where the scan simply could not look.
+    ///
+    /// <para>
+    /// And a failure is not a denial either, which is the distinction that had no channel:
+    /// the provider answered <c>AccessDenied</c> on any Win32 code it did not recognise, so
+    /// an unreachable service control manager put every <c>type: service</c> rule under
+    /// « accès refusé » at once. The verdict is deliberately unchanged — <c>Unknown</c>,
+    /// out of the score, never <c>Fail</c> — because what the scan could not establish says
+    /// nothing about the machine. What travels now is the reason.
+    /// </para>
     /// </summary>
     private static CheckReading ReadService(CheckSpec check, IServiceStateProvider services)
     {
@@ -81,7 +90,10 @@ public static class CheckReader
 
         if (read.Status == ReadStatus.AccessDenied)
         {
-            return new CheckReading(null, null, Denied: true);
+            // The reason for an internal failure travels with the verdict, exactly as it
+            // does for WMI below: without it, an SCM that would not open looks like missing
+            // privileges. Null for a genuine refusal, where there is nothing to explain.
+            return new CheckReading(read.Diagnostic, null, Denied: true);
         }
 
         if (read.Info is not { } info)
