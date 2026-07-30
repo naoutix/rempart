@@ -57,6 +57,28 @@ by the mechanism that replaced a hand-maintained list rather than by file.
   carried 120 of 123. All four hand-written copies of that count are now held against the
   catalogue itself.
 
+### The neighbours the fixes uncovered
+
+Every fix above was adversarially reviewed, and six defects of the same shape were found in
+the layer next door — none of them a line of the review itself.
+
+- **A service read that failed stopped asking for an elevation that cannot help.** Every Win32
+  code other than "service does not exist" mapped to a denial, which is the invariant
+  CONTRIBUTING records, broken one interface over from where WMI had just been fixed. The
+  reason now reaches the JSON report; the three human renderings still title it "accès refusé"
+  either way (#159).
+- **A WMI enumeration that broke in mid-walk** kept what it had read instead of handing a
+  truncated inventory over as complete.
+- **A dataset with a null element, and one with a duplicated identifier,** are refused rather
+  than throwing out of the loader. A fifty-byte write into `rempart-data/` — a folder the seal
+  deliberately excludes — could otherwise end every later scan.
+- **An unreadable update store refuses the update** instead of ending the scan, and says so
+  rather than reading as "no update available".
+- **A failing `--virustotal` lookup no longer costs the report**, including when the key itself
+  cannot be installed in a request header.
+- **A flag can no longer promise a collector it does not add.** `--analyze-store` could become
+  an inert flag, and the collector could be made to run on every scan, without a test noticing.
+
 ### Build and release
 
 - The release tag is bound to a step's `env:` and validated before use, instead of being
