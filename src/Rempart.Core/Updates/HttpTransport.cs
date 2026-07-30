@@ -17,6 +17,28 @@ namespace Rempart.Core.Updates;
 /// a manifest redirected to forged content will fail signature verification anyway.
 /// The signature is what protects, not the channel.
 /// </para>
+///
+/// <para>
+/// The <c>catch</c> in <see cref="Get"/> is deliberately untyped. It used to name
+/// <c>HttpRequestException or TaskCanceledException or UriFormatException</c>, and the URL
+/// it reads comes from <c>--url</c>, which is to say from whatever was typed: <c>rempart
+/// update --url exemple.test/rempart</c> — no scheme, so a relative URI — leaves
+/// <c>HttpClient</c> as an <c>InvalidOperationException</c>, and <c>file://</c> or
+/// <c>ftp://</c> as the very <c>NotSupportedException</c> REV-08 lost a whole scan to one
+/// file over. None of the three was listed. Each of them walked past
+/// <see cref="RemoteUpdate"/> and <c>UpdateCommand</c> to the catch-all in <c>Program</c>,
+/// and came out as « Erreur : An invalid request URI was provided… » — a sentence from
+/// <c>HttpClient</c>, in English, where this method had a reason to hand back and the
+/// command a French sentence to print.
+/// </para>
+///
+/// <para>
+/// What makes an unfiltered <c>catch</c> safe here is the size of what it covers rather
+/// than the types it names, the same reasoning <see cref="UpdateStore"/> records: the
+/// <c>try</c> holds the request and the reading of its body, and nothing else. No
+/// verification and no parsing happen inside it, so no failure of <em>those</em> can be
+/// mistaken for a transport that did not answer.
+/// </para>
 /// </summary>
 public sealed class HttpTransport : IUpdateTransport, IDisposable
 {
@@ -52,10 +74,11 @@ public sealed class HttpTransport : IUpdateTransport, IDisposable
             error = null;
             return response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or UriFormatException)
+        catch (Exception ex)
         {
-            // Unreachable, timed out, malformed URL: a transport failure, never a
-            // trust verdict. The raw message is enough to orient the user.
+            // Unreachable, timed out, malformed URL, a scheme HttpClient will not speak:
+            // a transport failure, never a trust verdict. The raw message is enough to
+            // orient the user.
             error = ex.Message;
             return null;
         }

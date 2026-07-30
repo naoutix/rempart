@@ -220,10 +220,23 @@ public static class ReportLabels
         "com-hijack" => "détournement COM",
         "dns-resolver" => "résolveurs DNS",
         "driver" => "pilotes chargés",
+
+        // Not a surface of the machine but a step of the run — what OptionalStep files a
+        // requested enrichment under when it could not be carried out. Named as a sentence
+        // because that is the whole content: nothing was found, something was not done.
+        "étape" => "étapes demandées et non effectuées",
+
         "hosts" => "fichier hosts",
         "listening-port" => "ports en écoute",
         "logon-extensibility" => "points d'extension à l'ouverture de session",
         "lsa-package" => "paquets LSA",
+
+        // Not a surface either: the update store, when this version broke down over one
+        // rather than deciding anything about it. Its own family and not the one above,
+        // because nobody asked for the store — it is read because it is there, and a
+        // reader sent looking for the flag they typed would find none.
+        "mise-à-jour" => "mise à jour des données",
+
         "process" => "processus courants",
         "proxy" => "proxy et PAC",
         "scheduled-task" => "tâches planifiées",

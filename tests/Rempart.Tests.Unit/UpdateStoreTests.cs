@@ -2,8 +2,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Rempart.Core.Cli;
+using Rempart.Core.Engine;
+using Rempart.Core.Findings;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
+using Rempart.Core.Reports;
 using Rempart.Core.Rules;
 using Rempart.Core.Updates;
 
@@ -522,6 +526,202 @@ public sealed class UpdateStoreTests : IDisposable
 
         Assert.Contains("appliquée", resolution.UpdateNote);
     }
+
+    /// <summary>
+    /// The second level, in the sense REV-08 gave the word: whatever <c>Resolve</c> ends up
+    /// doing, a store never costs the scan.
+    ///
+    /// <para>
+    /// <c>TryRead</c> guards the reads and nothing else, which was argued in this file as
+    /// safe because verification, parsing and merging "stay outside, where an unexpected
+    /// exception still surfaces as one". It does surface — through <c>CliHost</c>, into
+    /// <c>Program</c>, as a lost audit. Measured: a dataset name that cannot be turned into
+    /// a path — one null character is enough — reaches <c>Path.GetFullPath</c> before any
+    /// read, and <c>ArgumentException : Null character in path</c> came out of
+    /// <c>Resolve</c>. Signed content, hashes about to be checked, and no report.
+    /// </para>
+    ///
+    /// <para>
+    /// The objection that outer guard was refused on does not hold against this one: it
+    /// hands back <see cref="CatalogResolution.Rules"/> untouched — the baseline, plus
+    /// whatever <c>--rules</c> added, whole — and a note, which is the documented shape of a
+    /// refused update rather than a truncated catalogue or a silence.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_dataset_name_that_is_not_a_path_refuses_the_update()
+    {
+        const string Prefix = "Mise à jour présente mais illisible par cette version : ";
+        const string Suffix = " Socle embarqué conservé.";
+
+        var note = BrokenStore().UpdateNote;
+
+        Assert.NotNull(note);
+        Assert.StartsWith(Prefix, note, StringComparison.Ordinal);
+        Assert.EndsWith(Suffix, note, StringComparison.Ordinal);
+
+        // What is between the two is the failure's own words. Asserted for length rather
+        // than spelled out: the sentence that used to be pinned here — "Null character in
+        // path" — belongs to System.Private.CoreLib, and would be the first assertion in
+        // this repository to depend on the culture the runner happens to have.
+        Assert.NotEmpty(note[Prefix.Length..^Suffix.Length].Trim());
+
+        // Not accused of anything it was never read for, and the baseline is whole.
+        Assert.DoesNotContain("altéré", note, StringComparison.Ordinal);
+        Assert.Equal(BaseCatalog().Count, BrokenStore().Rules.Count);
+    }
+
+    /// <summary>
+    /// The half a note in the report header cannot reach: the caller who reads the exit
+    /// code and nothing else.
+    ///
+    /// <para>
+    /// <c>ExitCodes.ForScan</c> reads the collectors, the findings and the verdicts, and a
+    /// <see cref="CatalogResolution"/> used to have a channel to none of them. So the guard
+    /// added above turned the measured case — a signed manifest whose dataset name holds a
+    /// null character — from an ended run into a silent success: full report, note in the
+    /// header, <c>0</c>. Every other branch of the resolution says "refused", and this one
+    /// arriving as the same number would tell a scheduler that a defect of this version and
+    /// a signature we do not trust call for the same thing, which is nothing.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="AuditGap.Broken"/> and not <see cref="AuditGap.Refused"/>: re-running
+    /// elevated does not repair a version that threw. Not a verdict about the machine
+    /// either — nothing was observed, so the severity stays
+    /// <see cref="FindingSeverity.Notable"/> and the score, which reads verdicts, never
+    /// sees it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_store_this_version_breaks_down_over_reaches_the_exit_code()
+    {
+        var clean = Finished();
+
+        Assert.Equal(ExitCode.Success, ExitCodes.ForScan(clean));
+
+        var carried = BrokenStore().AppliedTo(clean);
+
+        Assert.True(carried.Findings.Count == 1,
+            $"Le scan porte {carried.Findings.Count} constat(s) au lieu d'un. Un magasin "
+            + "sur lequel cette version casse n'atteint le code de sortie que par un "
+            + "constat : l'en-tête n'est pas un canal que l'ordonnanceur lit.");
+
+        var line = carried.Findings[0];
+
+        Assert.True(line.Gap == AuditGap.Broken,
+            $"Le magasin sur lequel cette version casse porte {line.Gap?.ToString() ?? "aucune lacune"}. "
+            + "Broken est ce que lit ExitCodes, et relancer en élévation ne le répare pas.");
+
+        Assert.True(line.Severity == FindingSeverity.Notable,
+            $"Sévérité {line.Severity} : rien n'a été observé, donc rien n'est reproché à "
+            + "la machine.");
+
+        Assert.Equal(UpdateStore.BreakdownKind, line.Kind);
+        Assert.Equal(UpdateStore.BreakdownSource, line.Source);
+        Assert.NotEmpty(line.Reasons.Single());
+
+        Assert.True(ReportLabels.Family(line.Kind) != line.Kind,
+            $"La famille « {line.Kind} » n'a pas de libellé dans ReportLabels.Family, donc "
+            + "le rapport titre la section avec l'identifiant.");
+
+        Assert.True(ExitCodes.ForScan(carried) == ExitCode.Failure,
+            $"Le magasin sur lequel cette version casse rend {ExitCodes.ForScan(carried)}. "
+            + "L'ordonnanceur ne lit que ce nombre, et il vaut 0 pour une mise à jour "
+            + "refusée : les deux arriveraient identiques.");
+
+        Assert.Equal(BrokenStore().UpdateNote, carried.UpdateNote);
+    }
+
+    /// <summary>
+    /// The other side of the same line, and the one that must not move with it: a refused
+    /// update is not a failed run.
+    ///
+    /// <para>
+    /// Each of these decided something — the key is not one we pinned, the bytes no longer
+    /// match their fingerprint, the file would not open. The baseline holds, the report says
+    /// so, and the scan is worth exactly what it says: nothing to fix, exit <c>0</c>. Making
+    /// the breakdown above reach the exit code is only worth anything if these do not follow
+    /// it there.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_update_never_becomes_a_failed_run()
+    {
+        using var publisher = new TestPublisher();
+        using var stranger = new TestPublisher();
+
+        var (manifestPath, verifier) = Publish(publisher, "regles.yaml", BaseRule);
+        UpdateStore.Apply(manifestPath, Store, ["regles.yaml"]);
+
+        var strangerVerifier = new ManifestVerifier(
+            new Dictionary<string, string> { [stranger.KeyId] = stranger.PublicKey });
+
+        var datasetPath = Path.Combine(Store, "regles.yaml");
+
+        (string Refusal, CatalogResolution Resolution)[] refusals =
+        [
+            ("signature d'une clé inconnue",
+                UpdateStore.Resolve(Store, BaseCatalog(), strangerVerifier)),
+            ("fichier que le système refuse d'ouvrir",
+                UpdateStore.Resolve(Store, BaseCatalog(), verifier,
+                    path => string.Equals(path, datasetPath, StringComparison.OrdinalIgnoreCase)
+                        ? throw new IOException("le fichier est ouvert en exclusif")
+                        : File.ReadAllBytes(path))),
+            ("empreinte qui ne correspond plus",
+                UpdateStore.Resolve(Store, BaseCatalog(), verifier,
+                    path => string.Equals(path, datasetPath, StringComparison.OrdinalIgnoreCase)
+                        ? Encoding.UTF8.GetBytes(RuleText("WIN-STORE-999"))
+                        : File.ReadAllBytes(path))),
+        ];
+
+        foreach (var (refusal, resolution) in refusals)
+        {
+            Assert.True(resolution.UpdateNote is not null,
+                $"{refusal} : aucune note, alors que seul un magasin absent est muet.");
+
+            Assert.True(resolution.Breakdown is null,
+                $"{refusal} : un refus délibéré est présenté comme une panne de cette "
+                + $"version — « {resolution.Breakdown?.Reasons[0]} ». Un refus n'est pas un "
+                + "échec, et l'appelant qui ne lit que le code de sortie ne pourrait plus "
+                + "les distinguer.");
+
+            var carried = resolution.AppliedTo(Finished());
+
+            Assert.True(ExitCodes.ForScan(carried) == ExitCode.Success,
+                $"{refusal} : le scan rend {ExitCodes.ForScan(carried)} alors que rien n'a "
+                + "échoué — le socle a été évalué en entier.");
+        }
+    }
+
+    /// <summary>
+    /// The store whose resolution this version cannot carry out: a signed manifest naming a
+    /// dataset that cannot be turned into a path. One null character is enough, and it is
+    /// met by <c>Path.GetFullPath</c> before a byte of the store is read.
+    /// </summary>
+    private CatalogResolution BrokenStore()
+    {
+        using var publisher = new TestPublisher();
+
+        var bytes = Encoding.UTF8.GetBytes(BaseRule);
+
+        var (manifestPath, verifier) = SignManifest(publisher,
+            [new ManifestEntry("\0.yaml", "2.0.0",
+                Convert.ToHexStringLower(SHA256.HashData(bytes)), bytes.Length,
+                DatasetKind.Rules)]);
+
+        // Copied rather than applied: Apply resolves the name too, and what a scan meets is
+        // the state of the store, however it got there.
+        Directory.CreateDirectory(Store);
+        File.Copy(manifestPath, Path.Combine(Store, UpdateStore.ManifestFileName), overwrite: true);
+
+        return UpdateStore.Resolve(Store, BaseCatalog(), verifier);
+    }
+
+    /// <summary>A scan that went perfectly, so that the exit code below is the store's.</summary>
+    private static ScanResult Finished() =>
+        new("1.0.0", "2026-07-30T00:00:00Z", [], [], [], null, "abc",
+            DataFreshness.At("2026-07-01T00:00:00Z", "2026-07-30T00:00:00Z"));
 
     private static string EnsureDir(string path)
     {
