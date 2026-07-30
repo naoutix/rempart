@@ -12,11 +12,26 @@ namespace Rempart.Core.Findings;
 /// collector: it can only aggravate a finding, never invent one. Unrecognised software
 /// stays benign. Mirrors <see cref="LoadedDriversCollector"/> with the driver list.
 /// </para>
+///
+/// <para>
+/// The catalog is demanded, as the blocklist is next door. It used to default to
+/// <see cref="BloatwareCatalog.Empty"/>, and an empty catalog recognises nothing: every
+/// entry stays benign, so a collector built without it answers exactly like one facing a
+/// clean machine. Dropping the argument from the registration in <c>ScanEngine</c> left the
+/// whole suite green. Saying « rien à confronter » now costs a written
+/// <see cref="BloatwareCatalog.Empty"/>, which is a sentence a reader can disagree with.
+/// </para>
+///
+/// <para>
+/// One demanded parameter is not the whole of it, so <c>FindingCollectorRegistrationTests</c>
+/// holds two more things: that no collector grows a second, shorter constructor beside this
+/// one — which carries no default and so slips past any check for one — and that the catalog
+/// handed to <c>ScanEngine.DefaultFindingCollectors</c> actually arrives here, which no test
+/// asserted while every one of them passed <see cref="BloatwareCatalog.Empty"/>.
+/// </para>
 /// </summary>
-public sealed class SoftwareInventoryCollector(BloatwareCatalog? catalog = null) : IFindingCollector
+public sealed class SoftwareInventoryCollector(BloatwareCatalog catalog) : IFindingCollector
 {
-    private readonly BloatwareCatalog catalog = catalog ?? BloatwareCatalog.Empty;
-
     public string Name => "software";
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
@@ -48,7 +63,7 @@ public sealed class SoftwareInventoryCollector(BloatwareCatalog? catalog = null)
             // The catalog can only aggravate: recognised software rises to Notable
             // (unwanted) or Suspicious (security risk). The risk is mapped here, in
             // code — the data carries no hardcoded severity.
-            if (this.catalog.Match(software) is { } hit)
+            if (catalog.Match(software) is { } hit)
             {
                 severity = hit.Risk == BloatwareRisk.SecurityRelevant
                     ? FindingSeverity.Suspicious

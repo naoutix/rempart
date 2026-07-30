@@ -32,8 +32,16 @@ internal static class CaptureCommand
         // scan does, otherwise it would only test half the path. The update store is
         // resolved here too, so a capture prefetches the keys of rules added by an update
         // and stays replayable.
-        var engine = new ScanEngine(CollectorsFor(args), ResolveLiveCatalog(args).Rules);
-        engine.Run(providers, ToolVersion(), snapshot.CapturedAtUtc);
+        //
+        // Its blocklist and its catalog go along with its rules. The snapshot is the same
+        // either way — a capture records reads, and neither list changes what is read, only
+        // how what came back is judged — but the engine now demands them, and a command that
+        // resolved the store and then kept one of its three lists would read as an oversight
+        // rather than a decision.
+        var resolution = ResolveLiveCatalog(args);
+        var engine = new ScanEngine(CollectorsFor(args), resolution.Rules);
+        engine.Run(providers, ToolVersion(), snapshot.CapturedAtUtc,
+            ScanEngine.DefaultFindingCollectors(resolution.Blocklist, resolution.Catalog));
 
         // Then every key the rules could read in another context, so the snapshot stays
         // replayable elsewhere than on the machine that produced it.

@@ -1,10 +1,12 @@
 using Rempart.Core.Diff;
 using Rempart.Core.Engine;
+using Rempart.Core.Findings;
 using Rempart.Core.Rules;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Reports;
 using Rempart.Core.Snapshots;
+using Rempart.Core.Updates;
 using Xunit.Abstractions;
 
 namespace Rempart.Tests.Unit;
@@ -24,6 +26,30 @@ namespace Rempart.Tests.Unit;
 /// </summary>
 public sealed class FixtureReplayTests(ITestOutputHelper output)
 {
+    /// <summary>
+    /// The finding collectors <em>these tests</em> run: every one the tool ships, judging on
+    /// signature alone — no driver blocklist, no bloatware catalog.
+    ///
+    /// <para>
+    /// What <see cref="ScanEngine.Run"/> used to supply on its own, now spelled out because
+    /// it demands it (#164). The references frozen in <c>tests/fixtures</c> were produced
+    /// against these two empty lists, so naming them keeps every one of them identical to the
+    /// byte.
+    /// </para>
+    ///
+    /// <para>
+    /// Not what <c>rempart scan --from</c> passes, and the difference is worth stating rather
+    /// than leaving to be discovered: the command's replay branch pairs the empty blocklist
+    /// with <c>BloatwareCatalog.Embedded</c>, so the console and JSON references frozen here
+    /// are not byte-for-byte what the command prints for the same capture. Both agree on the
+    /// point that matters for a replay — neither consults this machine's update store, so no
+    /// fixture is judged against data the machine replaying it happens to hold. This predates
+    /// #164; it is the test harness that judges on signature alone, not the product.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<IFindingCollector> SignatureOnly =>
+        ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty);
+
     /// <summary>
     /// States what was actually replayed.
     ///
@@ -234,7 +260,7 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
                 new SnapshotServiceStateProvider(snapshot),
                 new SnapshotSecurityPolicyProvider(snapshot),
                 new SnapshotWmiProvider(snapshot)),
-            "test", snapshot.CapturedAtUtc);
+            "test", snapshot.CapturedAtUtc, SignatureOnly);
 
         var failing = result.Verdicts
             .Where(v => v.Status is VerdictStatus.Fail or VerdictStatus.Unknown)
@@ -259,7 +285,7 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
                 new SnapshotServiceStateProvider(snapshot),
                 new SnapshotSecurityPolicyProvider(snapshot),
                 new SnapshotWmiProvider(snapshot)),
-            "test", snapshot.CapturedAtUtc);
+            "test", snapshot.CapturedAtUtc, SignatureOnly);
 
         var notApplicable = result.Verdicts.Count(v => v.Status == VerdictStatus.NotApplicable);
 
@@ -486,7 +512,8 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
         var snapshot = RempartJson.DeserialiseSnapshot(
             File.ReadAllText(Path.Combine(FixtureDirectory, $"{fixture}.capture.json")));
 
-        return ScanEngine.Default().Run(ReplayProviders(snapshot), "test", snapshot.CapturedAtUtc);
+        return ScanEngine.Default().Run(
+            ReplayProviders(snapshot), "test", snapshot.CapturedAtUtc, SignatureOnly);
     }
 
     /// <summary>
@@ -510,7 +537,8 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
 
         // Full engine, rules included: what we want frozen is the verdict rendered
         // on a given machine, not just the collected fields.
-        var result = ScanEngine.Default().Run(providers, "test", snapshot.CapturedAtUtc);
+        var result = ScanEngine.Default().Run(
+            providers, "test", snapshot.CapturedAtUtc, SignatureOnly);
 
         // Volatile fields are removed: a reference cannot freeze an uptime.
         var comparable = result with

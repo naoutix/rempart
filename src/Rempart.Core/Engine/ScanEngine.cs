@@ -80,7 +80,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     /// Finding collectors, supplied with the driver blocklist and the bloatware catalog in
     /// effect. Separate from field collectors: they enumerate what is present instead of
     /// describing values known in advance. Both lists come from the update store (D12); when
-    /// unavailable they are empty and the collectors judge on signature alone.
+    /// it has nothing to hand over, the caller passes them empty and the collectors judge on
+    /// signature alone.
     ///
     /// <para>
     /// Every implementation of <see cref="IFindingCollector"/> belongs here, and this table is
@@ -115,11 +116,6 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         new BrowserExtensionsCollector(),
     ];
 
-    public ScanEngine(IReadOnlyList<ICollector> collectors)
-        : this(collectors, [])
-    {
-    }
-
     public static ScanEngine Default(string? externalRules = null) =>
         new(DefaultCollectors, RuleCatalog.Load(externalRules));
 
@@ -145,9 +141,32 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
         }
     }
 
+    /// <summary>
+    /// Runs the field collectors, evaluates the rules, then runs the finding collectors.
+    ///
+    /// <para>
+    /// <paramref name="findingCollectors"/> is demanded, not defaulted. It fell back to
+    /// <c>DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty)</c>, which
+    /// put the driver blocklist and the bloatware catalog one deleted argument away from
+    /// being lost: still sixteen collectors, still a whole report, and « aucun pilote bloqué,
+    /// aucun bloatware » about a machine carrying both. Nothing observable separated that run
+    /// from a correct one — no missing key, no count moved, every golden reference identical
+    /// to the byte — so the compiler holds the link instead, the reasoning #136 settled on
+    /// when it changed <c>ListValues</c>' return type rather than adding an overload beside
+    /// it. It sits ahead of <paramref name="dataAsOfUtc"/> so that no optional parameter
+    /// precedes it, and so that a call that used to omit it stops compiling rather than
+    /// binding its date here.
+    /// </para>
+    ///
+    /// <para>
+    /// Empty lists remain a legitimate answer — a replay passes the empty blocklist with the
+    /// embedded catalog, and a test judging on signature alone passes both empty. What
+    /// changed is that the caller has to say so.
+    /// </para>
+    /// </summary>
     public ScanResult Run(
-        ProviderSet providers, string toolVersion, string startedAtUtc, string? dataAsOfUtc = null,
-        IReadOnlyList<IFindingCollector>? findingCollectors = null)
+        ProviderSet providers, string toolVersion, string startedAtUtc,
+        IReadOnlyList<IFindingCollector> findingCollectors, string? dataAsOfUtc = null)
     {
         var results = new List<CollectorResult>(collectors.Count);
 
@@ -176,8 +195,7 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
             .ToList();
 
         var findings = new List<Finding>();
-        foreach (var collector in findingCollectors
-            ?? DefaultFindingCollectors(Updates.DriverBlocklist.Empty, Updates.BloatwareCatalog.Empty))
+        foreach (var collector in findingCollectors)
         {
             try
             {

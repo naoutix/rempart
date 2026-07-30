@@ -170,13 +170,13 @@ internal sealed class FakeSoftwareInventoryProvider(params InstalledSoftware[] s
 public class SoftwareInventoryCollectorTests
 {
     private static Finding Collect(InstalledSoftware software) =>
-        Assert.Single(new SoftwareInventoryCollector().Collect(new ProviderSet(
+        Assert.Single(new SoftwareInventoryCollector(BloatwareCatalog.Empty).Collect(new ProviderSet(
             new FakeRegistryProvider(), new FakeSystemInfoProvider(),
             softwareInventory: new FakeSoftwareInventoryProvider(software))));
 
     [Fact]
     public void No_software_yields_nothing() =>
-        Assert.Empty(new SoftwareInventoryCollector().Collect(new ProviderSet(
+        Assert.Empty(new SoftwareInventoryCollector(BloatwareCatalog.Empty).Collect(new ProviderSet(
             new FakeRegistryProvider(), new FakeSystemInfoProvider(),
             softwareInventory: new FakeSoftwareInventoryProvider())));
 

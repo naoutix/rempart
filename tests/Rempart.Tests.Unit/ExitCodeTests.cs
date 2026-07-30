@@ -523,7 +523,8 @@ public sealed class ExitCodeTests
                 firewall: new DenyingFirewall(),
                 hostsFile: new DenyingHostsFile(),
                 browserExtensions: new AnsweringBrowserExtensions()),
-            "test", "2026-07-24T09:15:00Z");
+            "test", "2026-07-24T09:15:00Z",
+            ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
     /// <summary>The bare refusal of the WMI channel: <c>AccessDenied</c> and no reason.</summary>
     private sealed class DenyingWmi : IWmiProvider
@@ -616,7 +617,8 @@ public sealed class ExitCodeTests
                 scheduledTasks: new AnsweringScheduledTasks(),
                 firewall: new AnsweringFirewall(),
                 hostsFile: new AnsweringHostsFile()),
-            "test", "2026-07-24T09:15:00Z");
+            "test", "2026-07-24T09:15:00Z",
+            ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
     private sealed class AnsweringFileSystem : IFileSystemProvider
     {
@@ -704,7 +706,7 @@ public sealed class ExitCodeTests
         IReadOnlyList<IFindingCollector>? findingCollectors = null) =>
         new ScanEngine([], []).Run(
             new ProviderSet(new RefusingRegistry(), new FakeSystemInfoProvider()),
-            "test", "2026-07-24T09:15:00Z", findingCollectors: findingCollectors);
+            "test", "2026-07-24T09:15:00Z", findingCollectors ?? DefaultFindingCollectors);
 
     /// <summary>Refuses every read, so nothing a collector reports can be about the machine.</summary>
     private sealed class RefusingRegistry : IRegistryProvider
