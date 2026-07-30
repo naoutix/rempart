@@ -132,6 +132,20 @@ public static class Anonymiser
                 ],
             });
 
+        // The service control manager's failure reason, by the rule its siblings follow and
+        // an issue after the WMI one above. A read that failed names the advapi32 call and
+        // its Win32 code, and the code's own sentence is composed by Windows in whatever
+        // words the machine uses — free text written by a Windows-side provider, which is
+        // the shape that has already carried an account name out of a capture twice.
+        //
+        // Only the diagnostic. The key is a service name and the info block repeats it:
+        // « wuauserv » designates nobody, exists identically everywhere, and is the one
+        // thing a `type: service` rule reads — hashing it would cost the fixture the check
+        // rather than protect anyone.
+        snapshot.Services = snapshot.Services.ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value with { Diagnostic = ScrubDiagnostic(entry.Value.Diagnostic) });
+
         snapshot.Directories = snapshot.Directories.ToDictionary(
             entry => ScrubProfile(entry.Key),
             entry => entry.Value.Select(ScrubProfile).ToList());

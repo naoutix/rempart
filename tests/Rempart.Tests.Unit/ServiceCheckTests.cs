@@ -25,6 +25,13 @@ internal sealed class FakeServiceProvider : IServiceStateProvider
         return this;
     }
 
+    /// <summary>A read that failed for a reason that is not a refusal, and says so.</summary>
+    public FakeServiceProvider WithFailure(string name, string reason)
+    {
+        services[name] = ServiceRead.Failed(reason);
+        return this;
+    }
+
     public ServiceRead Read(string serviceName) =>
         services.TryGetValue(serviceName, out var read) ? read : ServiceRead.NotInstalled;
 }
@@ -69,6 +76,30 @@ public sealed class ServiceCheckTests
         Assert.Equal("absent", verdict.Observed);
     }
 
+    /// <summary>
+    /// The premise the Win32 mapping rests on, pinned here because it is invisible from
+    /// there. <c>NotInstalled</c> is the one read of this provider that does <em>not</em>
+    /// come back <c>Unknown</c>: it is observed as « absent » and compared, so against
+    /// WIN-SVC-002's <c>state equals running</c> it is a <c>Fail</c> at critical severity.
+    ///
+    /// <para>
+    /// That is correct for a service that is genuinely absent, and it is why
+    /// <c>LiveServiceStateProvider</c> may read <c>ERROR_SERVICE_DOES_NOT_EXIST</c> as
+    /// absence from <c>OpenService</c> alone. Should this ever be routed to <c>Unknown</c>
+    /// instead, that guard would be protecting nothing and this test says so first.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_absent_service_is_a_verdict_and_not_an_unverifiable_check()
+    {
+        var services = new FakeServiceProvider().WithoutService("mpssvc");
+
+        var verdict = Evaluate(StateRule("running"), services);
+
+        Assert.Equal(VerdictStatus.Fail, verdict.Status);
+        Assert.Equal("absent", verdict.Observed);
+    }
+
     [Fact]
     public void Access_denied_yields_unknown_rather_than_a_verdict()
     {
@@ -80,6 +111,31 @@ public sealed class ServiceCheckTests
 
         Assert.Equal(VerdictStatus.Unknown, verdict.Status);
         Assert.Null(verdict.Observed);
+    }
+
+    /// <summary>
+    /// The other half of that distinction, and the one nothing carried: a read that
+    /// <em>failed</em>.
+    ///
+    /// <para>
+    /// The verdict is deliberately the same — <c>Unknown</c>, out of the score, never
+    /// <c>Fail</c>: what the scan could not establish says nothing about the machine. What
+    /// changes is that the reason travels with it, exactly as <c>ReadWmi</c> carries the
+    /// one WMI writes. Without it an unreachable service control manager is
+    /// indistinguishable from missing privileges, and the report advises an elevation that
+    /// fixes nothing on every <c>type: service</c> rule at once.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_failed_read_stays_unverifiable_and_says_what_failed()
+    {
+        var services = new FakeServiceProvider().WithFailure("mpssvc",
+            "OpenSCManager : erreur Win32 1722 (Le serveur RPC n'est pas disponible.)");
+
+        var verdict = Evaluate(StateRule("running"), services);
+
+        Assert.Equal(VerdictStatus.Unknown, verdict.Status);
+        Assert.Contains("1722", verdict.Observed ?? "", StringComparison.Ordinal);
     }
 
     [Theory]

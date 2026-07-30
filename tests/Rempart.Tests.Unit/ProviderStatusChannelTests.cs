@@ -134,7 +134,15 @@ public sealed class ProviderStatusChannelTests
         // PolicyFacts.Denied, second canal maison. Un troisième devrait sauter aux yeux.
         "ISecurityPolicyProvider.Read → booléen dédié",
 
-        "IServiceStateProvider.Read → statut seul",
+        // Arrivée ici en « statut seul », avec la même raison que les trois lectures du
+        // registre — l'appelant a nommé le service, donc « refusé » se suffit. C'était vrai
+        // du refus et faux de la PANNE : la lecture rendait AccessDenied pour tout code
+        // Win32 autre que « ce service n'existe pas », et pour un SCM qui ne s'ouvre pas ou
+        // une requête qui ne répond pas. Un point RPC mort conseillait donc « relancer en
+        // administrateur » sur toutes les règles `type: service` à la fois (#147, fermée).
+        // Le statut ne peut pas les séparer — ReadStatus n'a pas de membre pour l'échec —
+        // c'est le diagnostic qui le fait : nul pour un refus, écrit pour une panne.
+        "IServiceStateProvider.Read → statut + diagnostic",
 
         // SignatureStatus.Unknown tient le rôle du diagnostic : SignatureLadder le rend
         // « non vérifiable », jamais « non signé ». La distinction était perdue une couche
