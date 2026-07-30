@@ -129,7 +129,13 @@ public sealed class ProviderStatusChannelTests
         // deux exceptions de refus, tout le reste remonte.
         "IRegistryProvider.ReadValue → statut seul",
 
-        "IScheduledTaskProvider.Enumerate → statut + diagnostic",
+        // Des manques nommés sur une lecture qui porte déjà un statut, depuis #135. La
+        // lecture de `Gaps` posée en #160 ne pouvait pas les voir : elle était écrite dans la
+        // branche des booléens maison, donc inatteignable dès qu'un `Status` était présent.
+        // Cette ligne annonçait « statut + diagnostic » pour un type qui nomme aussi les
+        // dossiers que le parcours a abandonnés — un canal entier tu depuis son arrivée, par
+        // la garde même qui existe pour ne pas le rater (#163).
+        "IScheduledTaskProvider.Enumerate → statut + diagnostic + manques nommés",
 
         // PolicyFacts.Denied, second canal maison. Un troisième devrait sauter aux yeux.
         // Le booléen ne portait qu'une seule réponse, et il la déduisait : « zéro fait établi »
@@ -207,11 +213,16 @@ public sealed class ProviderStatusChannelTests
     /// </para>
     ///
     /// <para>
-    /// <c>Gaps</c> is read after the boolean and not before it, which is what makes the line
-    /// above move rather than stay: a read carrying both says both, and the label that only
-    /// mentioned the boolean would have gone on describing it correctly while describing the
-    /// read incompletely. A channel added to a type this classifier already recognises is
-    /// exactly the change it must not sleep through.
+    /// <c>Gaps</c> is read on its own and appended to whatever the rest gave, rather than
+    /// inside one of the branches. Written inside the bespoke-boolean branch, which is how it
+    /// arrived in #160, it was unreachable for every read carrying a <c>Status</c> — and
+    /// <see cref="ScheduledTaskRead"/> has carried <c>Status</c>, <c>Diagnostic</c> and
+    /// <c>Gaps</c> since #135, so this table said « statut + diagnostic » about it and a whole
+    /// failure channel was already unnamed on the day the reading was written. A channel added
+    /// to a type this classifier already recognises is exactly the change it must not sleep
+    /// through, and it slept through that one; the combinations are pinned below so that
+    /// folding the reading back into a branch is a red rather than a tidier-looking method
+    /// (issue #163).
     /// </para>
     /// </summary>
     private static string Channel(Type returnType)
@@ -223,25 +234,75 @@ public sealed class ProviderStatusChannelTests
 
         var status = returnType.GetProperty("Status") is not null;
         var diagnostic = returnType.GetProperty("Diagnostic") is not null;
+        var bespoke = returnType.GetProperty("Denied") is not null
+            || returnType.GetProperty("Readable") is not null;
 
-        if (status && diagnostic)
+        var carried =
+            status && diagnostic ? "statut + diagnostic"
+            : status ? "statut seul"
+            : bespoke ? "booléen dédié"
+            : null;
+
+        var gaps = returnType.GetProperty("Gaps") is not null ? "manques nommés" : null;
+
+        return (carried, gaps) switch
         {
-            return "statut + diagnostic";
-        }
-
-        if (status)
-        {
-            return "statut seul";
-        }
-
-        if (returnType.GetProperty("Denied") is not null
-            || returnType.GetProperty("Readable") is not null)
-        {
-            return returnType.GetProperty("Gaps") is not null
-                ? "booléen dédié + manques nommés"
-                : "booléen dédié";
-        }
-
-        return "aucun";
+            (null, null) => "aucun",
+            (null, not null) => gaps,
+            (not null, null) => carried,
+            _ => $"{carried} + {gaps}",
+        };
     }
+
+    /// <summary>
+    /// The reading the table above rests on, pinned combination by combination — the same
+    /// reason <c>StatusChannelTests.Carries</c> is pinned: a classifier that cannot itself be
+    /// wrong is a classifier nobody checks, and this one was wrong.
+    ///
+    /// <para>
+    /// The three rows carrying gaps are what this exists for. Only the last of them was
+    /// reachable before, the other two being shadowed by an earlier branch, so adding a
+    /// <c>Gaps</c> to <see cref="WmiRead"/> — a whole failure channel on a read the audit
+    /// depends on — left the entire unit suite green. Measured, on this branch, before the
+    /// reading was moved out of the branch: 954 passing, nothing red.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_combination_of_channels_a_read_can_carry_is_named()
+    {
+        Assert.Equal("statut, sans donnée", Channel(typeof(ReadStatus)));
+        Assert.Equal("aucun", Channel(typeof(NoChannel)));
+        Assert.Equal("statut seul", Channel(typeof(StatusOnly)));
+        Assert.Equal("statut + diagnostic", Channel(typeof(StatusAndDiagnostic)));
+        Assert.Equal("booléen dédié", Channel(typeof(BespokeBoolean)));
+
+        // Gaps beside each of the three, and alone. The first two are the combinations the
+        // reading could not reach, and the first is ScheduledTaskRead's own shape.
+        Assert.Equal(
+            "statut + diagnostic + manques nommés", Channel(typeof(StatusDiagnosticAndGaps)));
+        Assert.Equal("statut seul + manques nommés", Channel(typeof(StatusAndGaps)));
+        Assert.Equal("booléen dédié + manques nommés", Channel(typeof(BespokeBooleanAndGaps)));
+        Assert.Equal("manques nommés", Channel(typeof(GapsOnly)));
+    }
+
+    // The shapes a provider read can have, one per combination of channels, standing in for
+    // the real records so that a combination nothing carries yet is still pinned.
+    private sealed record NoChannel(IReadOnlyList<string> Items);
+
+    private sealed record StatusOnly(ReadStatus Status);
+
+    private sealed record StatusAndDiagnostic(ReadStatus Status, string? Diagnostic);
+
+    private sealed record BespokeBoolean(bool Denied);
+
+    private sealed record StatusAndGaps(
+        ReadStatus Status, IReadOnlyDictionary<string, string>? Gaps);
+
+    private sealed record StatusDiagnosticAndGaps(
+        ReadStatus Status, string? Diagnostic, IReadOnlyDictionary<string, string>? Gaps);
+
+    private sealed record BespokeBooleanAndGaps(
+        bool Readable, IReadOnlyDictionary<string, string>? Gaps);
+
+    private sealed record GapsOnly(IReadOnlyDictionary<string, string>? Gaps);
 }
