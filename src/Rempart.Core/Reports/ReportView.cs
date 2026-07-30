@@ -127,6 +127,29 @@ public sealed record ReportView(
 /// </summary>
 public static class ReportLabels
 {
+    /// <summary>
+    /// What answers a control that was genuinely refused — and only that one.
+    ///
+    /// <para>
+    /// It used to be the heading of the whole « non vérifiable » section in all three
+    /// renderings, which put every unevaluable control under it: a WMI repository that had
+    /// stopped serving, a service control manager that would not open, a capture replayed for
+    /// a surface it never held. None of those is repaired by elevating, and the report was
+    /// sending its reader to do exactly that. It is now printed only where no reason was
+    /// given, since the absence of a reason is precisely what a plain refusal looks like on
+    /// the wire — every provider writes a diagnostic for a failure and leaves it null for a
+    /// denial.
+    /// </para>
+    ///
+    /// <para>
+    /// One constant for the three, like every other word they share: the console, the HTML
+    /// and the Markdown disagreeing on what a gap means is the failure mode
+    /// <see cref="ReportView"/> exists to prevent.
+    /// </para>
+    /// </summary>
+    public const string RefusalAdvice =
+        "Sans raison indiquée, la lecture a été refusée : un scan élevé les tranche.";
+
     public static string Of(Severity severity) => severity switch
     {
         Severity.Critical => "critique",

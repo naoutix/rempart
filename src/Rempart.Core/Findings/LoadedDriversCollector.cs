@@ -42,10 +42,10 @@ public sealed class LoadedDriversCollector(DriverBlocklist blocklist) : IFinding
             // partway, so answering with this finding alone dropped the drivers it did
             // return — including, on a bad day, the vulnerable one. Only a total failure
             // leaves it on its own, the loop below having nothing to walk.
-            findings.Add(Finding.Refused(
-                "driver", "pilotes chargés",
-                [read.Diagnostic ?? "Énumération des pilotes refusée. Relancer en "
-                    + "administrateur : un pilote vulnérable chargé resterait invisible."]));
+            findings.Add(Finding.Unread(
+                "driver", "pilotes chargés", read.Diagnostic,
+                "Énumération des pilotes refusée. Relancer en administrateur : un pilote "
+                + "vulnérable chargé resterait invisible."));
         }
 
         foreach (var driver in read.Drivers)

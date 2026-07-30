@@ -394,6 +394,99 @@ public sealed class ReportTests
             html, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The sentence the three renderings share when a control was genuinely refused. Written
+    /// once here because the point of the two tests below is that the three agree.
+    /// </summary>
+    private const string ElevationAnswersIt = "un scan élevé les tranche";
+
+    /// <summary>
+    /// A control that came back unverifiable because the read <em>failed</em> is not a control
+    /// nobody had the rights for, and the three renderings stopped saying it was.
+    ///
+    /// <para>
+    /// The reason existed before this: <c>CheckReader</c> puts the provider diagnostic in
+    /// <c>Verdict.Observed</c>, and it reached the JSON and stopped there. Console, HTML and
+    /// Markdown each printed the rule identifier and the title under a heading that read
+    /// « non vérifiable — accès refusé », so a WMI repository that had stopped serving, a
+    /// service control manager that would not open and a firewall nobody could read all
+    /// arrived as missing privileges — the one remedy that cannot help.
+    /// </para>
+    ///
+    /// <para>
+    /// The scan is elevated on purpose. The advice would then be doubly wrong, and asserting
+    /// its absence on a non-elevated scan would prove nothing: the banner that legitimately
+    /// tells a non-elevated run to re-run as administrator would satisfy the search.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_three_renderings_print_why_a_control_could_not_be_read()
+    {
+        const string Reason = "Le gestionnaire de services a répondu 0x5b4 sans jamais ouvrir.";
+
+        foreach (var rendering in Renderings(Unverifiable(Reason)))
+        {
+            Assert.Contains("WIN-SVC-001", rendering, StringComparison.Ordinal);
+            Assert.Contains(Reason, rendering, StringComparison.Ordinal);
+
+            foreach (var advice in new[]
+                     {
+                         "accès refusé", "élévation", ElevationAnswersIt, "administrateur",
+                     })
+            {
+                Assert.DoesNotContain(advice, rendering, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The counterweight, without which the test above would be satisfied by three renderings
+    /// that stopped giving any advice at all. A read that was refused and had nothing to
+    /// explain — every registry denial, which carries no diagnostic — is the case elevation
+    /// does answer, and the three still say so.
+    /// </summary>
+    [Fact]
+    public void A_control_that_was_refused_still_says_what_answers_it()
+    {
+        foreach (var rendering in Renderings(Unverifiable(null)))
+        {
+            Assert.Contains("WIN-SVC-001", rendering, StringComparison.Ordinal);
+            Assert.Contains(ElevationAnswersIt, rendering, StringComparison.Ordinal);
+        }
+    }
+
+    private static IEnumerable<string> Renderings(ScanResult result) =>
+    [
+        ConsoleReport.HumanReadable(result),
+        HtmlReport.Render(result),
+        MarkdownReport.Render(result),
+    ];
+
+    /// <summary>
+    /// An elevated scan with one control it could not conclude, carrying
+    /// <paramref name="reason"/> where the read put its diagnostic — null being the refusal
+    /// that has nothing to explain.
+    /// </summary>
+    private static ScanResult Unverifiable(string? reason) => Minimal() with
+    {
+        Collectors =
+        [
+            new CollectorResult("inventory", CollectorStatus.Ok,
+                new Dictionary<string, string?>
+                {
+                    ["machine.name"] = "POSTE-01",
+                    ["scan.elevated"] = "True",
+                },
+                []),
+        ],
+        Verdicts =
+        [
+            new Verdict("WIN-SVC-001", "Service de pare-feu actif", Severity.High, "réseau",
+                VerdictStatus.Unknown, reason, null),
+        ],
+        Score = new ScoreCard(null, [new DomainScore("réseau", 0, 0, 1, 0, null)], 1),
+    };
+
     [Fact]
     public void Rendering_twice_gives_the_same_bytes()
     {
@@ -546,8 +639,13 @@ public sealed class ReportTests
         [
             new Verdict(Payload, Payload, Severity.High, Payload, VerdictStatus.Fail,
                 Payload, Payload),
+            // Observed carries the payload here too: on an Unknown verdict that field holds
+            // the diagnostic the read handed back — machine text, and the renderings print
+            // it. Left null, the whole "unverifiable" section escaped nothing because it
+            // interpolated nothing, and the guards below would have covered the new
+            // interpolation by not reaching it.
             new Verdict($"U-{Payload}", Payload, Severity.Low, Payload, VerdictStatus.Unknown,
-                null, null),
+                Payload, null),
         ],
         Findings =
         [

@@ -28,9 +28,14 @@ public sealed class BrowserExtensionsCollector : IFindingCollector
         // not be read is named beside it. Reporting only the extensions would let an
         // unreadable profile pass for one without extensions — the very place a
         // sideloaded extension would sit.
+        //
+        // Unreadable rather than Refused, and that is not a judgement made here: the field is
+        // written for a failure and left null for a plain refusal, so reaching this branch is
+        // already the answer. A profile whose Secure Preferences will not decode was not
+        // denied to anyone, and elevating changes nothing about a file that will not parse.
         if (read.Diagnostic is { } diagnostic)
         {
-            findings.Add(Finding.Refused(
+            findings.Add(Finding.Unreadable(
                 "browser-extension", "profil de navigateur", [diagnostic]));
         }
 

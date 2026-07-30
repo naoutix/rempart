@@ -3551,7 +3551,7 @@
         "Pilotes charg\u00E9s absents de l\u0027instantan\u00E9."
       ],
       "details": {},
-      "gap": "Refused"
+      "gap": "Unreadable"
     },
     {
       "kind": "process",
@@ -3562,7 +3562,7 @@
         "Processus courants absents de l\u0027instantan\u00E9."
       ],
       "details": {},
-      "gap": "Refused"
+      "gap": "Unreadable"
     },
     {
       "kind": "logon-extension",
@@ -3623,7 +3623,7 @@
         "Points d\u0027\u00E9coute absents de l\u0027instantan\u00E9."
       ],
       "details": {},
-      "gap": "Refused"
+      "gap": "Unreadable"
     }
   ],
   "score": {

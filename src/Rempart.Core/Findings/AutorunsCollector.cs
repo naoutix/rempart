@@ -56,7 +56,7 @@ public sealed class AutorunsCollector : IFindingCollector
             // enumeration finally answers something other than an empty listing (REV-11).
             if (read.Status == ReadStatus.AccessDenied)
             {
-                findings.Add(Unreadable(key,
+                findings.Add(RefusedKey(key,
                     "Clé de démarrage automatique illisible : accès refusé. Une entrée "
                     + "déposée là s'exécuterait au démarrage sans apparaître ici."));
             }
@@ -80,7 +80,7 @@ public sealed class AutorunsCollector : IFindingCollector
             // below cannot fire either: the report loses the surface and the reason at once.
             if (providers.Registry.ListValues(key).Status == ReadStatus.AccessDenied)
             {
-                findings.Add(Unreadable(key,
+                findings.Add(RefusedKey(key,
                     "Emplacement des dossiers de démarrage illisible : accès refusé. Leur "
                     + "contenu n'a donc pas été énuméré, et un programme déposé là "
                     + "s'exécuterait à l'ouverture de session sans apparaître ici."));
@@ -103,10 +103,10 @@ public sealed class AutorunsCollector : IFindingCollector
                 // not cost the files of the user folder that answered. Same shape as the
                 // partial port read, one level up — see DirectoryRead on why the shape is
                 // here rather than in the read.
-                findings.Add(Unreadable(folder,
-                    read.Diagnostic ?? "Contenu du dossier de démarrage illisible. Un "
-                    + "programme déposé là s'exécuterait à l'ouverture de session sans "
-                    + "apparaître ici."));
+                findings.Add(Finding.Unread("autorun", folder, read.Diagnostic,
+                    "Contenu du dossier de démarrage illisible : accès refusé. Relancer en "
+                    + "administrateur, un programme déposé là s'exécuterait à l'ouverture de "
+                    + "session sans apparaître ici."));
             }
 
             foreach (var file in read.Files)
@@ -138,12 +138,19 @@ public sealed class AutorunsCollector : IFindingCollector
     private static readonly string[] ShellFolderValues = ["Common Startup", "Startup"];
 
     /// <summary>
-    /// A surface the scan could not read. Reported rather than skipped, and asked of
+    /// A registry location the scan was refused. Reported rather than skipped, and asked of
     /// <see cref="Finding.Refused"/> rather than spelled out here: the severity and the
     /// missing target were already its answer, and what the shared door adds is the marker
     /// that carries « on m'a refusé » as far as the exit code.
+    ///
+    /// <para>
+    /// A refusal and nothing else, which is all the registry can say: <c>RegistryValueList</c>
+    /// has no diagnostic field, so a denial there is a denial and elevation is the answer.
+    /// The startup <em>folders</em> are read through <c>IFileSystemProvider</c>, which does
+    /// carry one, and they go through <see cref="Finding.Unread"/> instead.
+    /// </para>
     /// </summary>
-    private static Finding Unreadable(string source, string reason) =>
+    private static Finding RefusedKey(string source, string reason) =>
         Finding.Refused("autorun", source, [reason]);
 
     /// <summary>

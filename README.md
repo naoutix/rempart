@@ -185,17 +185,25 @@ and `rempart help` prints the same six lines because it derives them from that s
 | `2` | A replayed snapshot lacks data the rules need |
 | `3` | A **surface** was denied — re-run elevated |
 | `4` | `diff` found a control that used to pass and no longer does |
-| `5` | The scan finished, but some **rules** have no answer — the score covers less of the machine than it appears to |
+| `5` | The scan finished and part of it has no answer — a **rule** came back `Unknown`, or a **surface** answered with a failure. Elevation is not the remedy either way |
+
+`3` and `5` are told apart by what you can do about them, which is the only thing that
+makes one number useful: `3` is a door you have the key to, `5` is a door with no lock.
+A WMI repository that has stopped serving, a service control manager that will not
+open, a replay of a capture taken before a surface was collected — none of those is a
+permission, and calling them `3` sent the caller to re-run elevated forever.
 
 **Non-zero is the normal outcome, not the edge case.** All four versioned fixtures
-exit non-zero. `compromised-win11` exits `5`: `WIN-ENC-001` (BitLocker) is
-unverifiable even from an elevated console when the machine has no volume-encryption
-WMI class. The three others exit `3` — `restricted-access` was captured without
-elevation, and all three predate the collection of drivers, processes and listening
-ports, so their replay reports three surfaces it never looked at rather than passing
-for a full audit. Treat anything but `0` as failure and you will alert on healthy
-machines; treat `3` or `5` as success and you will hide that part of the audit never
-ran. CI accepts `0`, `3` and `5` from a scan, and nothing else.
+exit non-zero. Three exit `5`: `compromised-win11` because `WIN-ENC-001` (BitLocker)
+is unverifiable even from an elevated console when the machine has no
+volume-encryption WMI class, and `default-win11` and `hardened-win11` because they
+predate the collection of drivers, processes and listening ports — their replay
+reports three surfaces it never looked at, and re-running a *replay* elevated cannot
+change that; re-capturing can. `restricted-access` exits `3`: it was captured without
+elevation and the registry denied its LSA package lists outright. Treat anything but
+`0` as failure and you will alert on healthy machines; treat `3` or `5` as success and
+you will hide that part of the audit never ran. CI accepts `0`, `3` and `5` from a
+scan, and nothing else.
 
 ## What it is not
 

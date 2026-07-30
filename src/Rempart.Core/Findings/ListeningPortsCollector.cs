@@ -39,10 +39,10 @@ public sealed class ListeningPortsCollector : IFindingCollector
             // Added rather than returned: a partial read keeps the endpoints it did get.
             // Only the total failure leaves this finding on its own, because Ports is then
             // empty and the loop below has nothing to iterate.
-            findings.Add(Finding.Refused(
-                "listening-port", "ports en écoute",
-                [read.Diagnostic ?? "Lecture des points d'écoute refusée. Un service exposé "
-                    + "au réseau resterait invisible."]));
+            findings.Add(Finding.Unread(
+                "listening-port", "ports en écoute", read.Diagnostic,
+                "Lecture des points d'écoute refusée. Relancer en administrateur : un "
+                + "service exposé au réseau resterait invisible."));
         }
 
         // PID → path of the owning binary. Ports only carry a PID; the process table is
@@ -58,18 +58,20 @@ public sealed class ListeningPortsCollector : IFindingCollector
 
         var firewall = providers.Firewall.Read();
 
-        if (firewall.Diagnostic is { } refused)
+        if (firewall.Diagnostic is { } failure)
         {
-            // Said out loud, exactly as the listening table above is. A refused firewall
+            // Said out loud, exactly as the listening table above is. A failed firewall
             // read removes the cross-check from every port below it, and an audit that
             // quietly loses its reachability question reads like one that asked it and got
             // a reassuring answer.
             //
-            // Only a *refused* read speaks. A capture predating the firewall collection
-            // replays as FirewallState.Unread, which carries no diagnostic: nobody looked,
-            // so there is nothing to report, and announcing it on every older capture would
-            // be the crying wolf this repository keeps refusing.
-            findings.Add(Finding.Refused("listening-port", "pare-feu", [refused]));
+            // Only a read that *failed* speaks, and it is Unreadable rather than Refused for
+            // the reason FirewallState gives the field: the diagnostic is written for a
+            // failure and left null both for a state that was read and for one nobody looked
+            // at. A capture predating the firewall collection replays as FirewallState.Unread
+            // and lands here with nothing — announcing it on every older capture would be the
+            // crying wolf this repository keeps refusing.
+            findings.Add(Finding.Unreadable("listening-port", "pare-feu", [failure]));
         }
 
         // The same binary often holds several ports: its signature is judged once.

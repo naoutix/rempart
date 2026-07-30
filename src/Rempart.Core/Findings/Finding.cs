@@ -31,9 +31,11 @@ public enum FindingSeverity
 /// </para>
 ///
 /// <para>
-/// Two values because they call for two actions. That is the same ordering the exit-code
-/// precedence follows, and the reason both cannot be one flag: telling someone to re-run
-/// elevated when the tool itself threw sends them to do the one thing that cannot help.
+/// Three values because they call for three actions, and each one names <em>who</em> has
+/// something to do about it: the caller's rights, the tool's code, the machine itself. That
+/// is the same ordering the exit-code precedence follows, and the reason they cannot be one
+/// flag: telling someone to re-run elevated when the tool threw — or when the WMI repository
+/// is the thing that stopped answering — sends them to do the one thing that cannot help.
 /// </para>
 /// </summary>
 public enum AuditGap
@@ -49,6 +51,36 @@ public enum AuditGap
     /// and the scan carries on so that the rest of the report still exists.
     /// </summary>
     Broken,
+
+    /// <summary>
+    /// The surface was asked, and what came back was a failure.
+    ///
+    /// <para>
+    /// Not <see cref="Refused"/>: nothing was denied, so no amount of rights changes this
+    /// answer — a WMI repository that no longer serves, a service control manager that will
+    /// not open, a capture replayed for a surface it never recorded. Re-running elevated is
+    /// precisely the advice that wastes the reader's time here, and it is the advice the two
+    /// values before this one left as the only thing the report could say.
+    /// </para>
+    ///
+    /// <para>
+    /// Not <see cref="Broken"/> either: no code of ours threw, and there is no bug to file
+    /// against the tool. The distinction is where the defect sits, and it decides what the
+    /// reader does next — repair the machine surface, or re-capture. That is why this one
+    /// lands on <c>Partial</c> rather than on the failure rung: the scan ran to the end and
+    /// the caller has no lever on the number it got.
+    /// </para>
+    ///
+    /// <para>
+    /// Which of the two a read is comes from the read itself and is never a collector's
+    /// judgement: every status-carrying read in <c>Providers</c> writes a diagnostic for a
+    /// failure and leaves it null for a genuine refusal. <see cref="Finding.Unread"/> is
+    /// where that one rule is applied, so a collector cannot get the classification wrong by
+    /// copying its neighbour — which is how all twelve of them came to say « accès refusé »
+    /// over failures in the first place.
+    /// </para>
+    /// </summary>
+    Unreadable,
 }
 
 /// <summary>
@@ -121,6 +153,60 @@ public sealed record Finding(
         IReadOnlyDictionary<string, string>? details = null) =>
         new(kind, source, NoTarget, FindingSeverity.Notable, reasons,
             details ?? new Dictionary<string, string>(), AuditGap.Refused);
+
+    /// <summary>
+    /// A surface that answered with a failure. Same shape and same severity as
+    /// <see cref="Refused"/> — nothing was observed, so nothing is being accused — and a
+    /// different <see cref="AuditGap"/>, which is the whole of the difference: this one does
+    /// not repair itself by re-running elevated.
+    ///
+    /// <para>
+    /// For the two callers whose branch is only entered when a diagnostic exists. Every other
+    /// site has both cases to answer for and goes through <see cref="Unread"/> instead, which
+    /// picks between the two rather than leaving the choice to the collector.
+    /// </para>
+    /// </summary>
+    public static Finding Unreadable(
+        string kind, string source, IReadOnlyList<string> reasons,
+        IReadOnlyDictionary<string, string>? details = null) =>
+        new(kind, source, NoTarget, FindingSeverity.Notable, reasons,
+            details ?? new Dictionary<string, string>(), AuditGap.Unreadable);
+
+    /// <summary>
+    /// A surface that did not answer, classified rather than assumed.
+    ///
+    /// <para>
+    /// The one door for « je n'ai pas pu regarder », and the reason it exists is that the
+    /// twelve collectors that say it were each deciding for themselves — all of them the same
+    /// way, all of them wrong for half their inputs. They wrote
+    /// <c>Finding.Refused(…, [read.Diagnostic ?? "…relancer en administrateur…"])</c>: the
+    /// very expression that proves a failure was in hand chose the value that says a
+    /// permission was missing. Here the decision is made from that same expression, once.
+    /// </para>
+    ///
+    /// <para>
+    /// <paramref name="diagnostic"/> is the rule, and it is the rule the providers already
+    /// hold: <c>WmiRead</c>, <c>ServiceRead</c>, <c>FirewallState</c> and the five
+    /// status-carrying reads all document it identically — null for a genuine refusal,
+    /// written for a failure, because <c>ReadStatus</c> has no member for the second.
+    /// Nothing here re-derives that; it is read where it was decided.
+    /// </para>
+    /// </summary>
+    /// <param name="refusal">
+    /// What to say when there is no diagnostic — the bare refusal, which may legitimately
+    /// advise elevation because that case is the one elevation answers.
+    /// </param>
+    /// <param name="alongside">
+    /// Further reasons kept beside the first, for the reads that name the individual holes as
+    /// well as the whole — the scheduler lists the folders it was refused.
+    /// </param>
+    public static Finding Unread(
+        string kind, string source, string? diagnostic, string refusal,
+        IReadOnlyList<string>? alongside = null,
+        IReadOnlyDictionary<string, string>? details = null) =>
+        diagnostic is null
+            ? Refused(kind, source, [refusal, .. alongside ?? []], details)
+            : Unreadable(kind, source, [diagnostic, .. alongside ?? []], details);
 
     /// <summary>
     /// A collector that threw. Distinct from <see cref="Refused"/> down to the exit code:

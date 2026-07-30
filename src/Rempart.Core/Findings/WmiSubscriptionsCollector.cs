@@ -59,10 +59,10 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
             // objects: a consumer already enumerated used to leave with the failure that
             // followed it, which is the one finding this collector exists to produce. Only a
             // total failure leaves this on its own, the loop below having nothing to walk.
-            findings.Add(Finding.Refused(
-                "wmi-subscription", $"{Namespace}:{className}",
-                [read.Diagnostic ?? "Énumération refusée. Relancer en administrateur : "
-                    + "un abonnement permanent resterait invisible."]));
+            findings.Add(Finding.Unread(
+                "wmi-subscription", $"{Namespace}:{className}", read.Diagnostic,
+                "Énumération refusée. Relancer en administrateur : un abonnement permanent "
+                + "resterait invisible."));
         }
 
         foreach (var instance in read.Instances)
