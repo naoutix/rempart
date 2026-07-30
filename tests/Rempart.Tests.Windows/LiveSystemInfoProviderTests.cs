@@ -1,8 +1,10 @@
 using Rempart.Core.Collectors;
 using Rempart.Core.Engine;
+using Rempart.Core.Findings;
 using Rempart.Core.Providers;
 using Rempart.Core.Rules;
 using Rempart.Core.Snapshots;
+using Rempart.Core.Updates;
 using Rempart.Windows;
 
 namespace Rempart.Tests.Windows;
@@ -70,10 +72,19 @@ public sealed class EndToEndTests
     private static ProviderSet Live() =>
         new(new LiveRegistryProvider(), new LiveSystemInfoProvider());
 
+    /// <summary>
+    /// Every finding collector the tool ships, judging on signature alone. Written out
+    /// because <see cref="ScanEngine.Run"/> demands it (#164), and empty rather than
+    /// resolved from the update store: these tests weigh the rules and the verdicts, and the
+    /// runner's store is local state a test must not depend on.
+    /// </summary>
+    private static IReadOnlyList<IFindingCollector> SignatureOnly =>
+        ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty);
+
     [Fact]
     public void A_real_scan_produces_verdicts_and_a_score()
     {
-        var result = ScanEngine.Default().Run(Live(), "test", "2026-01-01T00:00:00Z");
+        var result = ScanEngine.Default().Run(Live(), "test", "2026-01-01T00:00:00Z", SignatureOnly);
 
         Assert.NotEmpty(result.Verdicts);
         Assert.NotNull(result.Score);
@@ -87,7 +98,7 @@ public sealed class EndToEndTests
     [Fact]
     public void The_inventory_collector_fills_the_fields_rules_depend_on()
     {
-        var result = ScanEngine.Default().Run(Live(), "test", "2026-01-01T00:00:00Z");
+        var result = ScanEngine.Default().Run(Live(), "test", "2026-01-01T00:00:00Z", SignatureOnly);
         var inventory = Assert.Single(result.Collectors);
 
         Assert.NotEqual(CollectorStatus.Failed, inventory.Status);
@@ -107,12 +118,12 @@ public sealed class EndToEndTests
             new RecordingSystemInfoProvider(new LiveSystemInfoProvider(), snapshot));
 
         var engine = ScanEngine.Default();
-        var live = engine.Run(recording, "test", "2026-01-01T00:00:00Z");
+        var live = engine.Run(recording, "test", "2026-01-01T00:00:00Z", SignatureOnly);
 
         var replayed = engine.Run(
             new ProviderSet(new SnapshotRegistryProvider(snapshot),
                 new SnapshotSystemInfoProvider(snapshot)),
-            "test", "2026-01-01T00:00:00Z");
+            "test", "2026-01-01T00:00:00Z", SignatureOnly);
 
         Assert.Equal(
             live.Verdicts.Select(v => (v.RuleId, v.Status, v.Observed)),

@@ -184,7 +184,7 @@ public class BrowserExtensionEngineIntegrationTests
                     "0.1", [], ["<all_urls>"], Enabled: true, FromStore: false)));
 
         var result = new ScanEngine(ScanEngine.DefaultCollectors, [])
-            .Run(providers, "test", "2026-01-01T00:00:00.0000000Z", null,
+            .Run(providers, "test", "2026-01-01T00:00:00.0000000Z",
                 ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
         var finding = Assert.Single(result.Findings, f => f.Kind == "browser-extension");

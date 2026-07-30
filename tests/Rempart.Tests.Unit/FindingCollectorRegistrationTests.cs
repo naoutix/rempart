@@ -1,3 +1,4 @@
+using System.Reflection;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Updates;
@@ -129,6 +130,107 @@ public sealed class FindingCollectorRegistrationTests
     }
 
     /// <summary>
+    /// A scan cannot be run without being told which finding collectors to run — and
+    /// therefore without the driver blocklist and the bloatware catalog they judge with.
+    ///
+    /// <para>
+    /// The two guards above say which collectors exist; this one says a run has to be handed
+    /// them. <c>ScanEngine.Run</c> took the list as an optional parameter falling back to
+    /// <c>DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty)</c>, so
+    /// dropping the argument at the call site compiled — in Release, warnings as errors, no
+    /// diagnostic at all — the sixteen collectors still ran, and they ran against an empty
+    /// blocklist and an empty catalog. The omission #151 closed made a collector vanish; this
+    /// one leaves every collector in place and takes away what they judge with, which no
+    /// golden reference and no count of findings can see: the report says « aucun pilote
+    /// bloqué » of a machine carrying one.
+    /// </para>
+    ///
+    /// <para>
+    /// Reflection over the signature rather than a guard reading <c>ScanCommand</c> as text:
+    /// what the compiler refuses outright needs no watching, and the call site lives in
+    /// <c>Rempart.Cli</c>, which no test assembly references. Every <c>Run</c> is checked
+    /// rather than the only one that exists, because an overload without the parameter would
+    /// put the shorter call back within reach — the reason #136 changed <c>ListValues</c>'
+    /// return type instead of adding an overload beside it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_scan_runs_without_being_told_which_finding_collectors_to_run()
+    {
+        var runs = typeof(ScanEngine)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+            .Where(method => method.Name == "Run")
+            .ToList();
+
+        Assert.True(runs.Count > 0,
+            "Aucune méthode publique ScanEngine.Run : cette garde ne regarde plus rien, et "
+            + "une garde qui n'inspecte rien passe.");
+
+        var lenient = runs
+            .Where(run => run.GetParameters()
+                    .FirstOrDefault(parameter => parameter.Name == "findingCollectors")
+                is null or { IsOptional: true })
+            .Select(Signature)
+            .ToList();
+
+        Assert.True(lenient.Count == 0,
+            $"Ces surcharges de ScanEngine.Run se lancent sans collecteurs de constats : "
+            + $"{Join(lenient)}. Le scan tourne alors avec une liste de pilotes vulnérables "
+            + "et un catalogue bloatware vides, et le rapport dit « aucun pilote bloqué, "
+            + "aucun bloatware » d'une machine qui en porte.");
+    }
+
+    /// <summary>
+    /// No finding collector lets the data it judges with be left out.
+    ///
+    /// <para>
+    /// The same silence one constructor down, and the reason the guard above does not close
+    /// it on its own: <see cref="SoftwareInventoryCollector"/> took
+    /// <c>BloatwareCatalog? catalog = null</c> and substituted the empty catalog, so dropping
+    /// <c>catalog</c> from the registration line itself compiled and left the whole suite
+    /// green — measured on this repository, 968 unit tests and 132 Windows tests, no failure.
+    /// Its neighbour <see cref="LoadedDriversCollector"/> has always demanded its blocklist,
+    /// and nothing said why the two differed.
+    /// </para>
+    ///
+    /// <para>
+    /// Derived from the assembly, so the collector written next year is held to it without
+    /// this file being edited. One that genuinely wants a default has to argue for it here,
+    /// which is the point: from the outside, data deliberately omitted and data forgotten are
+    /// the same missing argument.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_finding_collector_defaults_away_the_data_it_judges_with()
+    {
+        var compiled = CompiledTypes();
+
+        Assert.True(compiled.Count > 0,
+            "Aucune implémentation d'IFindingCollector trouvée dans Rempart.Core : le filtre "
+            + "de cette garde ne voit plus rien, et une garde qui n'inspecte rien passe.");
+
+        var lenient = compiled
+            .SelectMany(type => type.GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Where(parameter => parameter.IsOptional)
+                .Select(parameter =>
+                    $"{type.Name}({parameter.ParameterType.Name} {parameter.Name} = …)"))
+            .ToList();
+
+        Assert.True(lenient.Count == 0,
+            $"Ces collecteurs se construisent sans la donnée qu'ils confrontent : {Join(lenient)}. "
+            + "Omise, elle est remplacée par une liste vide et le collecteur ne reconnaît plus "
+            + "rien : il rend les mêmes constats bénins qu'une machine saine, sans qu'aucune "
+            + "référence figée ni aucun compte de constats ne bouge.");
+    }
+
+    /// <summary>Parameters as written, so the failure names the offending overload.</summary>
+    private static string Signature(MethodInfo method) =>
+        $"Run({string.Join(", ", method.GetParameters().Select(parameter =>
+            $"{parameter.ParameterType.Name} {parameter.Name}"
+            + (parameter.IsOptional ? " = …" : string.Empty)))})";
+
+    /// <summary>
     /// What the product actually builds, by type name.
     ///
     /// <para>
@@ -141,9 +243,10 @@ public sealed class FindingCollectorRegistrationTests
     /// </para>
     ///
     /// <para>
-    /// The empty blocklist and the empty catalog are what a replay evaluates and what
-    /// <c>ScanEngine.Run</c> falls back to (D12): nothing here depends on their contents,
-    /// only on which types come back.
+    /// The empty blocklist and the empty catalog are what a scan with no update to apply
+    /// evaluates (D12): nothing here depends on their contents, only on which types come
+    /// back. They are named rather than left out — no caller can leave them out any more,
+    /// which is what the two guards above hold.
     /// </para>
     /// </summary>
     private static HashSet<string> Registered()
@@ -175,11 +278,16 @@ public sealed class FindingCollectorRegistrationTests
     /// </para>
     /// </summary>
     private static HashSet<string> Compiled() =>
-        typeof(IFindingCollector).Assembly.GetTypes()
+        CompiledTypes().Select(type => type.Name).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The same collectors as types. One filter for both readings of the assembly: two
+    /// copies would let a guard keep seeing what the other has stopped seeing.
+    /// </summary>
+    private static List<Type> CompiledTypes() =>
+        [.. typeof(IFindingCollector).Assembly.GetTypes()
             .Where(type => type is { IsClass: true, IsAbstract: false }
-                && typeof(IFindingCollector).IsAssignableFrom(type))
-            .Select(type => type.Name)
-            .ToHashSet(StringComparer.Ordinal);
+                && typeof(IFindingCollector).IsAssignableFrom(type))];
 
     private static string Join(IEnumerable<string> names)
     {

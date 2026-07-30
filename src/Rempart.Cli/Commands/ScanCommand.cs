@@ -63,8 +63,9 @@ internal static class ScanCommand
         // here for the reason this whole method is read as text: no test compiles Cli.
         var result = resolution.AppliedTo(
                 new ScanEngine(CollectorsFor(args), resolution.Rules)
-                    .Run(providers, ToolVersion(), origin, resolution.AsOfUtc,
-                        ScanEngine.DefaultFindingCollectors(resolution.Blocklist, resolution.Catalog)))
+                    .Run(providers, ToolVersion(), origin,
+                        ScanEngine.DefaultFindingCollectors(resolution.Blocklist, resolution.Catalog),
+                        resolution.AsOfUtc))
             with
             {
                 // Extra rules change what the score means, so where they came from is said

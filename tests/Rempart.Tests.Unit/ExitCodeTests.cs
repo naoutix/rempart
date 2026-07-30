@@ -704,7 +704,7 @@ public sealed class ExitCodeTests
         IReadOnlyList<IFindingCollector>? findingCollectors = null) =>
         new ScanEngine([], []).Run(
             new ProviderSet(new RefusingRegistry(), new FakeSystemInfoProvider()),
-            "test", "2026-07-24T09:15:00Z", findingCollectors: findingCollectors);
+            "test", "2026-07-24T09:15:00Z", findingCollectors ?? DefaultFindingCollectors);
 
     /// <summary>Refuses every read, so nothing a collector reports can be about the machine.</summary>
     private sealed class RefusingRegistry : IRegistryProvider

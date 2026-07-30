@@ -122,7 +122,7 @@ public class WifiEngineIntegrationTests
                 new WifiProfile("café-gratuit", "open", "none", AutoConnect: true)));
 
         var result = new ScanEngine(ScanEngine.DefaultCollectors, [])
-            .Run(providers, "test", "2026-01-01T00:00:00.0000000Z", null,
+            .Run(providers, "test", "2026-01-01T00:00:00.0000000Z",
                 ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
         var wifi = Assert.Single(result.Findings, f => f.Kind == "wifi-profile");

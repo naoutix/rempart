@@ -262,7 +262,7 @@ public class ProxyEngineIntegrationTests
                 ProxyScope.Disabled, PolicyImposed: false)));
 
         var result = new ScanEngine(ScanEngine.DefaultCollectors, [])
-            .Run(providers, "test", "2026-01-01T00:00:00.0000000Z", null,
+            .Run(providers, "test", "2026-01-01T00:00:00.0000000Z",
                 ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
         var proxy = Assert.Single(result.Findings, f => f.Kind == "proxy");
