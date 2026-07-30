@@ -522,6 +522,68 @@ public sealed class AnonymiserTests
         Assert.DoesNotContain(marker, serialised);
     }
 
+    /// <summary>
+    /// Cleaned, not erased — the half the sweep above cannot assert.
+    ///
+    /// <para>
+    /// <see cref="No_field_carries_a_planted_identifier_through_anonymisation"/> requires a
+    /// planted marker to survive nowhere, and a field the anonymiser <em>deletes</em>
+    /// satisfies that for free; so does one whose keys it hashes out of reach. Both were
+    /// measured on this branch: <c>Gaps = null</c> and <c>Hash(entry.Key)</c> each left the
+    /// whole suite green at 956 + 143. Both leave every capture under
+    /// <c>tests/fixtures</c> — anonymisation is on by default, and
+    /// <c>Versioned_fixtures_are_anonymised</c> holds all of them to it — replaying with no
+    /// reason beside any missing fact: exactly the silence #160 closes, re-opened at the one
+    /// step every versioned capture goes through (third review of #160).
+    /// </para>
+    ///
+    /// <para>
+    /// The same assertion-about-nothing trap as the compatibility guard next door, one field
+    /// over: two tests watching for a marker's absence and a <c>null</c>, and neither able to
+    /// tell « nettoyé » from « jamais écrit ». Read back out of the replay rather than off the
+    /// object, because the fact name is not decoration here — it is what a <c>type: policy</c>
+    /// check looks the reason up by, so a gap that arrives re-keyed is recorded and
+    /// unreachable.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_anonymised_policy_gap_keeps_its_reason_and_the_fact_it_answers_for()
+    {
+        const string marker = "identifiant-a-masquer";
+
+        var snapshot = new MachineSnapshot
+        {
+            Policy = new PolicyFacts(
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [PolicyFactNames.PasswordMinLength] = "14",
+                },
+                Gaps: new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [PolicyFactNames.LocalAdminCount] =
+                        $@"NetLocalGroupGetMembers : échec 5 sur C:\Users\{marker}\sam",
+                }),
+        };
+
+        var replayed = new SnapshotSecurityPolicyProvider(
+            RempartJson.DeserialiseSnapshot(
+                RempartJson.Serialise(Anonymiser.Apply(snapshot)))).Read();
+
+        var reason = replayed.WhyMissing(PolicyFactNames.LocalAdminCount);
+
+        Assert.NotNull(reason);
+        Assert.DoesNotContain(marker, reason);
+
+        // What the reason exists to say, and the part that names nobody: scrubbing it away
+        // would leave the fact « non vérifiable » with an explanation explaining nothing,
+        // which is the state before this channel rather than after it.
+        Assert.Contains("NetLocalGroupGetMembers : échec 5", reason, StringComparison.Ordinal);
+
+        // And the anonymiser does not cost the capture what the read did establish.
+        Assert.Equal("14", replayed.Find(PolicyFactNames.PasswordMinLength));
+        Assert.False(replayed.Denied);
+    }
+
     private static string? Text(MachineSnapshot snapshot, string valueName) =>
         Text(snapshot, @"HKLM\SOFTWARE\Test", valueName);
 

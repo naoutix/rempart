@@ -126,8 +126,10 @@ public static class PolicyFactNames
     ///
     /// <para>
     /// Written out and not reflected: reading fields at run time is the reflection Native AOT
-    /// does not have (ADR-001). A hand-kept list is a list that drifts, so a test holds it
-    /// against the constants above in both directions.
+    /// does not have (ADR-001). A hand-kept list is a list that drifts, so a test holds it in
+    /// both directions against the facts the surfaces establish, and a second one holds those
+    /// against the constants above. The chain rather than this list against the class it sits
+    /// in, because what a reason has to answer for is a fact some surface could have read.
     /// </para>
     /// </summary>
     public static readonly IReadOnlyList<string> All =
