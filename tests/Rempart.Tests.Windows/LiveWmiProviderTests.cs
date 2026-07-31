@@ -128,7 +128,27 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
             "Win32_EncryptableVolume",
             ["DriveLetter", "ProtectionStatus"]);
 
-        Assert.Contains(read.Status, new[] { ReadStatus.Found, ReadStatus.AccessDenied, ReadStatus.NotFound });
+        // What used to stand here was `Assert.Contains(read.Status, [Found, AccessDenied,
+        // NotFound])` — every member ReadStatus had at the time, so it asserted nothing
+        // beyond "the call returned". Adding `Failed` to that list would restore the
+        // vacuity; what the test is named after is asserted instead.
+        //
+        // « Cleanly refused » is not a status, it is the pairing the engine reads: a
+        // genuine denial carries no reason — that silence is what `Finding.WmiGap` keys
+        // on — and a failure that is not a denial carries one, so it can be reported as
+        // itself rather than as « relancer en administrateur ». Either way the rule turns
+        // into « non vérifiable », never into a non-compliance. A status added tomorrow
+        // leaves this assertion true rather than falsely red.
+        switch (read.Status)
+        {
+            case ReadStatus.AccessDenied:
+                Assert.Null(read.Diagnostic);
+                break;
+
+            case ReadStatus.Failed:
+                Assert.NotNull(read.Diagnostic);
+                break;
+        }
     }
 
     /// <summary>
