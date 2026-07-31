@@ -111,6 +111,46 @@ public sealed class BuildChainParityTests
     }
 
     /// <summary>
+    /// A command line the tool refused to honour never passes for a build that ran.
+    ///
+    /// <para>
+    /// <see cref="ExitCode.Usage"/> exists so that a caller can tell « je n'ai pas compris la
+    /// ligne » from « la machine a cassé », and the build chain is the first such caller. A
+    /// gate that let <c>6</c> through would turn the smoke tests green on a binary that
+    /// scanned nothing at all — the shape of DET-OPTION-INCONNUE moved one level up, where a
+    /// job passes while having audited nothing.
+    /// </para>
+    ///
+    /// <para>
+    /// Read off the gates rather than compared to a <c>0, 3, 5</c> retyped here. That triple
+    /// is what the workflows accept <em>today</em>; the invariant is about <c>6</c>, and it
+    /// has to survive the day a gate legitimately widens — which the class summary above says
+    /// is the only way a guard like this stays worth running.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_usage_error_is_never_a_code_the_build_chain_accepts()
+    {
+        var examined = 0;
+
+        foreach (var file in Files)
+        {
+            foreach (var gate in AcceptedCodes(file))
+            {
+                examined++;
+                Assert.True(!gate.Contains((int)ExitCode.Usage),
+                    $"{file} accepte le code {(int)ExitCode.Usage} "
+                    + $"({ExitCodes.Describe(ExitCode.Usage)}) parmi "
+                    + $"{Describe(gate)}. Une ligne de commande que l'outil a refusé "
+                    + "d'exécuter passerait alors pour un scan réussi : le job resterait vert "
+                    + "sans avoir audité quoi que ce soit.");
+            }
+        }
+
+        Assert.True(examined > 0, "Aucune garde de code de sortie n'a été lue : ce test ne vérifie rien.");
+    }
+
+    /// <summary>
     /// <c>verify.ps1</c> advertises itself as "replays locally what CI does" and ran not one
     /// of the four diagnostics the publish job runs against the published binary. Those are
     /// the checks that exist precisely because the Windows suite runs under JIT and the

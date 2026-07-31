@@ -18,7 +18,20 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 try
 {
     // No command word at all reads as a request for the help, the same as an unknown one.
-    return CommandTable.Dispatch(WordAt(args, 0) ?? "help")(args);
+    var command = WordAt(args, 0) ?? Usage.Fallback;
+
+    // Ahead of the dispatch, and that order is the correction rather than a detail: behind
+    // it, an option nobody declared would be reported after scan had read the machine and
+    // written a report — the defect entire, with a sentence added at the end. Held there by
+    // CommandSurfaceTests.The_usage_check_runs_before_the_dispatch, since nothing compiles
+    // this project on the Linux job.
+    if (Usage.Check(command, args) is { } usage)
+    {
+        Console.Error.WriteLine(usage.Message);
+        return (int)usage.Code;
+    }
+
+    return CommandTable.Dispatch(command)(args);
 }
 catch (Exception ex)
 {

@@ -1,6 +1,15 @@
 namespace Rempart.Core.Cli;
 
 /// <summary>
+/// The arguments past the command word, sorted into the two kinds this parser knows.
+/// Together they account for every one of those tokens: nothing is dropped, which is what a
+/// caller wanting to refuse what it does not recognise depends on.
+/// </summary>
+public sealed record ArgumentSplit(
+    IReadOnlyList<string> Options,
+    IReadOnlyList<string> Positional);
+
+/// <summary>
 /// The hand-written argument parser — sixty lines that decide which file gets read and
 /// which folder gets written to.
 ///
@@ -73,14 +82,40 @@ public static class CommandLine
     /// The hand-written parser has no notion of arity, so a bare scan of non-dash tokens
     /// would take the folder in <c>--report ./out</c> for a file to compare.
     /// </summary>
-    public static IReadOnlyList<string> Positional(string[] args, IReadOnlyList<string> valueTaking)
+    public static IReadOnlyList<string> Positional(string[] args, IReadOnlyList<string> valueTaking) =>
+        Split(args, valueTaking).Positional;
+
+    /// <summary>
+    /// Every token past the command word, each said to be an option or a bare argument.
+    ///
+    /// <para>
+    /// One walk answering both questions, rather than two walks that would have to agree.
+    /// A token this parser counts as neither is a token that reaches nothing and is never
+    /// reported — which is the whole of DET-OPTION-INCONNUE: <c>rempart scan --replay
+    /// capture.json</c> scanned the local machine because <c>--replay</c> fell between the
+    /// two. Deriving <see cref="Positional"/> and <see cref="CommandSurface.Unknown"/> from
+    /// this one loop is what makes the partition a fact instead of a claim.
+    /// </para>
+    ///
+    /// <para>
+    /// The line between a value and an option is the one <c>Positional</c> already drew and
+    /// is not moved here: a value-taking option swallows the next token only when it does
+    /// not itself start with a dash. So <c>--from --replay</c> leaves <c>--replay</c> on the
+    /// option side even though <see cref="OptionValue"/> would hand it back as a value. The
+    /// parser cannot tell the two apart, and this is the reading that lets somebody be told.
+    /// </para>
+    /// </summary>
+    public static ArgumentSplit Split(string[] args, IReadOnlyList<string> valueTaking)
     {
+        var options = new List<string>();
         var positional = new List<string>();
 
         for (var i = 1; i < args.Length; i++)
         {
             if (args[i].StartsWith('-'))
             {
+                options.Add(args[i]);
+
                 if (valueTaking.Contains(args[i]) && i + 1 < args.Length
                     && !args[i + 1].StartsWith('-'))
                 {
@@ -93,7 +128,7 @@ public static class CommandLine
             positional.Add(args[i]);
         }
 
-        return positional;
+        return new ArgumentSplit(options, positional);
     }
 
     /// <summary>
