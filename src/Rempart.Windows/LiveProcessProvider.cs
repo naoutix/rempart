@@ -63,9 +63,10 @@ public sealed class LiveProcessProvider(IWmiProvider wmi) : IProcessProvider
         // The processes the walk did collect travel with the failure, for the reason the
         // driver provider states: an enumeration that broke on its tenth object still holds
         // nine, and throwing them away hides whichever of them is worth reporting.
-        return new ProcessRead(read.Status, processes,
-            read.Diagnostic ?? "Énumération des processus refusée par WMI. Relancer en "
-            + "administrateur : un exécutable non signé en cours resterait invisible.");
+        //
+        // And the diagnostic travels as it came, null included — see LiveDriverProvider for
+        // why a substituted sentence here is a lost classification one layer up.
+        return new ProcessRead(read.Status, processes, read.Diagnostic);
     }
 
     private static int Number(string? value) =>

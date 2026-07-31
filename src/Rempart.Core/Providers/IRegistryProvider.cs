@@ -11,6 +11,33 @@ public enum ReadStatus
     Found,
     NotFound,
     AccessDenied,
+
+    /// <summary>
+    /// The read was attempted, did not complete, and <b>was not denied</b> — a file held open
+    /// by another process, a volume that went away mid-listing. Nothing about the caller's
+    /// rights changes this answer.
+    ///
+    /// <para>
+    /// Added because its absence is what made a documented contract untrue. With three values
+    /// a channel that wanted to speak had exactly one way to do it, so
+    /// <c>DirectoryRead.Failed</c> and <c>HostsFileRead.Failed</c> returned
+    /// <see cref="AccessDenied"/> for an <c>IOException</c> as much as for an ACL, while their
+    /// interfaces documented that state as « the listing was refused ». The collectors read the
+    /// documentation, answered <see cref="Findings.AuditGap.Refused"/>, and a startup folder
+    /// held open by another process told its reader to re-run as administrator — the invariant
+    /// CONTRIBUTING records, « never translate a failure into access denied », broken by the
+    /// vocabulary rather than by any one <c>catch</c>. Naming the fourth state is what lets the
+    /// documentation be true by construction instead of by discipline.
+    /// </para>
+    ///
+    /// <para>
+    /// Appended last, and only ever <em>produced</em> by the two reads above: every other
+    /// channel keeps spelling its failures <see cref="AccessDenied"/>, so no existing
+    /// <c>== AccessDenied</c> branch changes meaning. Statuses are serialised by name, so a
+    /// capture taken before this value simply never carries it and replays exactly as it did.
+    /// </para>
+    /// </summary>
+    Failed,
 }
 
 public sealed record RegistryValue(string Kind, string? Text, long? Number)

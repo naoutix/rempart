@@ -91,29 +91,41 @@ public sealed class AutorunsCollector : IFindingCollector
         {
             var read = providers.Files.ListFiles(folder);
 
-            // AccessDenied, and not "anything other than Found" as the four sibling
-            // collectors test: here a third state is a genuine answer. A startup folder that
-            // is not on disk (NotFound) runs nothing, and most machines have one missing —
-            // reporting it would put a Notable on nearly every scan, which is how a report
-            // stops being read. An empty folder that WAS listed is the same: an answer.
-            // Only a refusal is a hole in what the scan saw.
-            if (read.Status == ReadStatus.AccessDenied)
+            // The two speaking states named one by one, and not "anything other than Found"
+            // as the four sibling collectors test: here the remaining state is a genuine
+            // answer. A startup folder that is not on disk (NotFound) runs nothing, and most
+            // machines have one missing — reporting it would put a Notable on nearly every
+            // scan, which is how a report stops being read. An empty folder that WAS listed is
+            // the same: an answer. Only a folder the scan could not read is a hole in what it
+            // saw, and there are two ways for that to happen.
+            //
+            // Added, not returned: the loop continues so an unreadable machine folder does not
+            // cost the files of the user folder that answered. Same shape as the partial port
+            // read, one level up — see DirectoryRead on why the shape is here rather than in
+            // the read.
+            //
+            // Which of the two it is comes from the state, not from the diagnostic and no
+            // longer from a sentence of documentation either. This site used to quote
+            // « Failed — the listing was refused. The only one that speaks. » to justify
+            // AuditGap.Refused, and that sentence was false: the live read reached it through
+            // IOException as well, so a startup folder held open by another process was
+            // reported as one elevation would open. Elevation fixes the denial and does
+            // nothing for the other, which is exactly the distinction AuditGap exists to make.
+            if (read.Status is ReadStatus.AccessDenied)
             {
-                // Added, not returned: the loop continues so a refused machine folder does
-                // not cost the files of the user folder that answered. Same shape as the
-                // partial port read, one level up — see DirectoryRead on why the shape is
-                // here rather than in the read.
-                //
-                // Refused, and stated here rather than derived from the diagnostic, because
-                // IFileSystemProvider says what its one speaking state is: « Failed — the
-                // listing was refused. The only one that speaks. » It carries a reason and it
-                // is still a denial, so the rule that read the reason classified the commonest
-                // gap in the tool — a startup folder out of reach of a non-elevated scan — as
-                // one elevation could not fix. Elevation is exactly what fixes it.
                 findings.Add(Finding.Unread("autorun", folder, AuditGap.Refused, read.Diagnostic,
                     "Contenu du dossier de démarrage illisible : accès refusé. Relancer en "
                     + "administrateur, un programme déposé là s'exécuterait à l'ouverture de "
                     + "session sans apparaître ici."));
+            }
+            else if (read.Status is ReadStatus.Failed)
+            {
+                // No remedy offered, because there is none to offer: a sentence promising one
+                // under AuditGap.Unreadable contradicts the value beside it.
+                findings.Add(Finding.Unread("autorun", folder, AuditGap.Unreadable,
+                    read.Diagnostic,
+                    "Contenu du dossier de démarrage illisible : un programme déposé là "
+                    + "s'exécuterait à l'ouverture de session sans apparaître ici."));
             }
 
             foreach (var file in read.Files)

@@ -45,24 +45,35 @@ public sealed class HostsFileCollector : IFindingCollector
 
         var read = providers.HostsFile.ReadLines();
 
-        // Only a failed read speaks. A file holding nothing but comments is the default state
-        // of Windows, and a machine without one resolves the same way, so both stay silent.
-        // What was wrongly silent alongside them is the refusal — the very technique that
-        // protects a redirection already in place (REV-12).
-        if (read.Status == ReadStatus.AccessDenied)
+        // Only a read that did not complete speaks. A file holding nothing but comments is
+        // the default state of Windows, and a machine without one resolves the same way, so
+        // both stay silent. What was wrongly silent alongside them is the refusal — the very
+        // technique that protects a redirection already in place (REV-12).
+        //
+        // Two speaking states since #173, and the branch takes both. The denial is the reason
+        // IHostsFileProvider opens on this surface, and elevation is the answer to it.
+        if (read.Status is ReadStatus.AccessDenied)
         {
-            // Refused. IHostsFileProvider frames its one speaking state as « the read was
-            // attempted and did not complete », and the denial is not a corner of it but the
-            // reason the state exists: the interface opens on « denying read access to hosts
-            // is precisely the technique that protects a redirection already in place », and
-            // the live read turns UnauthorizedAccessException into exactly this branch. A file
-            // held open reaches it too and says so below in its own words — the sentence
-            // printed is the read's, while the value chosen answers a different question, « is
-            // there anything the caller can do », and for this surface there is.
             findings.Add(Finding.Unread(
                 "hosts-entry", "hosts", AuditGap.Refused, read.Diagnostic,
                 "Fichier hosts illisible : accès refusé. Relancer en administrateur, une "
                 + "redirection posée là court-circuiterait la résolution DNS sans apparaître ici.",
+                details: new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["type"] = "lecture",
+                }));
+        }
+        else if (read.Status is ReadStatus.Failed)
+        {
+            // The file held open with no sharing. This branch used to be the one above: both
+            // states arrived as AccessDenied, and the comment here conceded the point — the
+            // sentence printed was the read's own honest one while the value chosen said
+            // « relancer en administrateur » regardless. It answers a different question now,
+            // « is there anything the caller can do », and for this half there is not.
+            findings.Add(Finding.Unread(
+                "hosts-entry", "hosts", AuditGap.Unreadable, read.Diagnostic,
+                "Fichier hosts illisible : une redirection posée là court-circuiterait la "
+                + "résolution DNS sans apparaître ici.",
                 details: new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["type"] = "lecture",

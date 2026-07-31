@@ -39,11 +39,18 @@ public sealed class RunningProcessesCollector : IFindingCollector
             // dropped binary this collector looks for may well be among them.
             //
             // Win32_Process, so the WMI rule again and for the same documented reason as the
-            // drivers above — this is one of the four surfaces that earns it.
+            // drivers above — this is one of the four surfaces that earns it, and the same
+            // two fallbacks for the same reason: the status can be a refusal or an absence and
+            // one sentence cannot be honest about both.
+            var gap = Finding.WmiGap(read.Status, read.Diagnostic);
+
             findings.Add(Finding.Unread(
-                "process", "processus courants", Finding.WmiGap(read.Diagnostic), read.Diagnostic,
-                "Énumération des processus refusée. Relancer en administrateur : un "
-                + "exécutable non signé en cours resterait invisible."));
+                "process", "processus courants", gap, read.Diagnostic,
+                gap is AuditGap.Refused
+                    ? "Énumération des processus refusée. Relancer en administrateur : un "
+                      + "exécutable non signé en cours resterait invisible."
+                    : "Énumération des processus sans réponse : un exécutable non signé en "
+                      + "cours resterait invisible."));
         }
 
         var byExecutable = read.Processes

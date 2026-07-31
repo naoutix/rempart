@@ -363,18 +363,36 @@ public sealed class ExitCodeTests
     /// return <c>WmiRead.AccessDenied</c>, which carries no reason, and every other code
     /// returns a read that carries one. The four WMI-backed sites cite this; nothing else may.
     /// </para>
+    ///
+    /// <para>
+    /// The third read is the one the rule used to get wrong: <c>WmiRead.NotFound</c> is silent
+    /// too, and it means the opposite — no such namespace, no such class, which is what a
+    /// Windows edition lacking the feature answers. Two of the four sites narrow their branch
+    /// to <c>AccessDenied</c> before asking; the drivers and the processes open on « anything
+    /// but Found », so that silence reached the rule and came back « relancer en
+    /// administrateur » over a class the machine does not have.
+    /// </para>
     /// </summary>
     [Fact]
     public void On_the_wmi_channel_silence_is_the_refusal_and_a_reason_is_the_failure()
     {
-        Assert.Equal(AuditGap.Refused, Finding.WmiGap(WmiRead.AccessDenied.Diagnostic));
+        Assert.Equal(AuditGap.Refused,
+            Finding.WmiGap(WmiRead.AccessDenied.Status, WmiRead.AccessDenied.Diagnostic));
+
+        var failed = WmiRead.Failed("Le dépôt WMI a cessé de répondre.");
+        Assert.Equal(AuditGap.Unreadable, Finding.WmiGap(failed.Status, failed.Diagnostic));
+
         Assert.Equal(AuditGap.Unreadable,
-            Finding.WmiGap(WmiRead.Failed("Le dépôt WMI a cessé de répondre.").Diagnostic));
+            Finding.WmiGap(WmiRead.NotFound.Status, WmiRead.NotFound.Diagnostic));
 
         // The premise the rule rests on, asserted rather than trusted: the refusal really does
-        // travel without a reason on this channel, and it is the only one where that holds.
+        // travel without a reason on this channel, and it is the only one where that holds —
+        // so silence has to be read together with the status that carries it, the absent class
+        // being just as silent and not a refusal at all.
         Assert.Null(WmiRead.AccessDenied.Diagnostic);
         Assert.Equal(ReadStatus.AccessDenied, WmiRead.AccessDenied.Status);
+        Assert.Null(WmiRead.NotFound.Diagnostic);
+        Assert.Equal(ReadStatus.NotFound, WmiRead.NotFound.Status);
     }
 
     /// <summary>
@@ -398,10 +416,20 @@ public sealed class ExitCodeTests
     /// three denial HRESULTs come back without a reason and every other code comes back with
     /// one — so drivers, processes, service paths and subscriptions belong here. The listening
     /// tables and the browser profiles say it by having no refusal to say instead: iphlpapi
-    /// asks no privilege, and a profile is the current user's own file. The registry, the
-    /// startup folders, <c>hosts</c>, the scheduler and the firewall are wired to
-    /// <em>answer</em>, because on those channels the same shape is a denial — which is the
-    /// whole of the mirror guard below.
+    /// asks no privilege, and a profile is the current user's own file.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The startup folders and <c>hosts</c> joined that list in #173, and the manner of it
+    /// is the point.</b> They were exempt not because a failed listing is rare but because the
+    /// channel had no word for one: a single <c>Failed</c> factory returned
+    /// <see cref="ReadStatus.AccessDenied"/> for an <c>IOException</c> as much as for an ACL,
+    /// under an interface sentence reading « the listing was refused ». The guard could
+    /// therefore not state the case, and the exemption paragraph that stood here recorded the
+    /// hole in the vocabulary as though it were a property of the surfaces. Giving each read a
+    /// <c>Refused</c> distinct from <c>Failed</c> is what made the case expressible; wiring
+    /// them in here is what keeps it answered. The registry, the scheduler and the firewall
+    /// stay exempt on the old ground, which for them is still true.
     /// </para>
     /// </summary>
     [Fact]
@@ -410,9 +438,22 @@ public sealed class ExitCodeTests
         var scan = FailedEverywhere();
         var gaps = scan.Findings.Where(finding => finding.Gap is not null).ToList();
 
-        // The premise, asserted rather than assumed: a guard whose filter matches nothing
-        // reports success, and this one filters on the planted sentence.
-        Assert.NotEmpty(gaps);
+        // The premise, asserted rather than assumed. A guard that walks an empty list reports
+        // success, and an exact set says which surfaces are being spoken for — so a collector
+        // that stops reporting one, or starts reporting a new one nobody classified, lands
+        // here rather than passing quietly.
+        //
+        // The exact set mirrors the denial guard below, and it was missing here until #173:
+        // this half asserted only that the gaps it found were classified right, never that the
+        // surfaces spoke at all. Emptying a collector's failure branch therefore passed — the
+        // remaining findings were still correct — which is the DET-*-MUET silence this file
+        // exists to make impossible, left open in the guard against it.
+        Assert.Equal(
+            ["autorun", "browser-extension", "driver", "hosts-entry", "listening-port",
+             "process", "unquoted-service-path", "wmi-subscription"],
+            gaps.Select(finding => finding.Kind).Distinct(StringComparer.Ordinal)
+                .OrderBy(kind => kind, StringComparer.Ordinal).ToArray());
+
         Assert.All(gaps, finding => Assert.Contains(FailedDiagnostic, finding.Reasons));
 
         Assert.All(gaps, finding => Assert.True(finding.Gap != AuditGap.Refused,
@@ -444,14 +485,22 @@ public sealed class ExitCodeTests
     ///
     /// <para>
     /// So each provider here denies in the way its own channel spells a denial:
-    /// <c>DirectoryRead.Failed</c> for the startup folders — « the listing was refused, the
-    /// only one that speaks » — <c>HostsFileRead.Failed</c> for the ACL that protects a
-    /// redirection, <c>ScheduledTaskRead.Partial</c> carrying the <c>E_ACCESSDENIED</c> its
-    /// interface calls « the one HRESULT that means elevate and retry »,
-    /// <c>FirewallState.Failed</c> which the live read builds from a registry denial, and the
-    /// bare <c>AccessDenied</c> the WMI-backed reads use. The listening tables and the browser
-    /// profiles answer instead: they have no refusal to express, which is exactly why they are
-    /// the ones wired to fail in the guard above.
+    /// <c>DirectoryRead.Refused</c> for the startup folders, <c>HostsFileRead.Refused</c> for
+    /// the ACL that protects a redirection, <c>ScheduledTaskRead.Partial</c> carrying the
+    /// <c>E_ACCESSDENIED</c> its interface calls « the one HRESULT that means elevate and
+    /// retry », <c>FirewallState.Failed</c> which the live read builds from a registry denial,
+    /// and the bare <c>AccessDenied</c> the WMI-backed reads use. The listening tables and the
+    /// browser profiles answer instead: they have no refusal to express, which is exactly why
+    /// they are the ones wired to fail in the guard above.
+    /// </para>
+    ///
+    /// <para>
+    /// The first two named a factory called <c>Failed</c> until #173, which is how a guard
+    /// written to forbid the inversion came to spell a denial with the same call its mirror
+    /// spells a failure with. This pair is what makes the split honest rather than a blanket
+    /// reclassification: the same two collectors must answer <see cref="AuditGap.Refused"/>
+    /// here and <see cref="AuditGap.Unreadable"/> above, so a fix that merely flipped every
+    /// startup folder to <c>Unreadable</c> turns this guard red.
     /// </para>
     ///
     /// <para>
@@ -535,7 +584,7 @@ public sealed class ExitCodeTests
 
     private sealed class DenyingFileSystem : IFileSystemProvider
     {
-        public DirectoryRead ListFiles(string directory) => DirectoryRead.Failed(DeniedDiagnostic);
+        public DirectoryRead ListFiles(string directory) => DirectoryRead.Refused(DeniedDiagnostic);
     }
 
     /// <summary>
@@ -565,7 +614,7 @@ public sealed class ExitCodeTests
 
     private sealed class DenyingHostsFile : IHostsFileProvider
     {
-        public HostsFileRead ReadLines() => HostsFileRead.Failed(DeniedDiagnostic);
+        public HostsFileRead ReadLines() => HostsFileRead.Refused(DeniedDiagnostic);
     }
 
     private sealed class AnsweringListeningPorts : IListeningPortProvider
@@ -607,16 +656,23 @@ public sealed class ExitCodeTests
                 processes: new FailingProcesses(),
                 listeningPorts: new FailingListeningPorts(),
                 browserExtensions: new FailingBrowserExtensions(),
-                // Answering, not failing. On these four channels the same shape is a denial —
-                // DirectoryRead.Failed is documented « the listing was refused »,
-                // HostsFileRead.Failed is what an ACL produces, ScheduledTaskRead.Partial
-                // carries E_ACCESSDENIED, and FirewallState.Diagnostic is « the read was
-                // attempted and refused ». Wiring them to fail would ask this guard to certify
-                // the very inversion the mirror guard below exists to forbid.
-                files: new AnsweringFileSystem(),
+                // Failing, and these two are the reason #173 was opened. They used to be
+                // answering, exempted here because DirectoryRead.Failed was documented « the
+                // listing was refused » and HostsFileRead.Failed was what an ACL produced — a
+                // guard skipping the two channels whose vocabulary was the defect. Each now
+                // has a Refused state distinct from Failed, so « this listing failed » is
+                // expressible and this guard covers them.
+                files: new FailingFileSystem(),
+                hostsFile: new FailingHostsFile(),
+                // Still answering, and still for the old reason: on these two the same shape
+                // is a denial. ScheduledTaskRead.Partial carries E_ACCESSDENIED, and
+                // FirewallState.Diagnostic is « the read was attempted and refused » while the
+                // live read builds it from registry denials plus one parse failure travelling
+                // in the same sentence. Wiring them to fail would ask this guard to certify
+                // the very inversion the mirror guard below exists to forbid. Splitting them
+                // is the spillover recorded on the pull request, not something to fake here.
                 scheduledTasks: new AnsweringScheduledTasks(),
-                firewall: new AnsweringFirewall(),
-                hostsFile: new AnsweringHostsFile()),
+                firewall: new AnsweringFirewall()),
             "test", "2026-07-24T09:15:00Z",
             ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 

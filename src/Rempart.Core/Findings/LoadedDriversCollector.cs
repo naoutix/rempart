@@ -45,14 +45,28 @@ public sealed class LoadedDriversCollector(DriverBlocklist blocklist) : IFinding
             //
             // The WMI rule, cited rather than assumed: this surface is a Win32_SystemDriver
             // enumeration, and WmiRead is the one channel that promises an absent diagnostic
-            // means a denial — the three refusal HRESULTs come back with no reason, every
-            // other code comes back carrying one. So a namespace that refused is Refused, a
-            // repository that stopped serving is Unreadable, and a capture that never held
-            // this surface names itself and is Unreadable too.
+            // on an AccessDenied means a denial — the three refusal HRESULTs come back with no
+            // reason, every other code comes back carrying one. So a namespace that refused is
+            // Refused, a repository that stopped serving is Unreadable, and a capture that
+            // never held this surface names itself and is Unreadable too.
+            //
+            // LiveDriverProvider forwards that read's diagnostic untouched, null included,
+            // which is what makes the rule applicable here at all: it used to substitute a
+            // sentence of its own for the silence, and every refusal arrived classified as a
+            // failure.
+            var gap = Finding.WmiGap(read.Status, read.Diagnostic);
+
+            // Two fallbacks, picked by the value beside them. One sentence cannot serve both:
+            // advising elevation under Unreadable contradicts the marker in the same finding,
+            // and this branch is reachable with no diagnostic to print instead — an absent
+            // class comes back bare.
             findings.Add(Finding.Unread(
-                "driver", "pilotes chargés", Finding.WmiGap(read.Diagnostic), read.Diagnostic,
-                "Énumération des pilotes refusée. Relancer en administrateur : un pilote "
-                + "vulnérable chargé resterait invisible."));
+                "driver", "pilotes chargés", gap, read.Diagnostic,
+                gap is AuditGap.Refused
+                    ? "Énumération des pilotes refusée. Relancer en administrateur : un pilote "
+                      + "vulnérable chargé resterait invisible."
+                    : "Énumération des pilotes sans réponse : un pilote vulnérable chargé "
+                      + "resterait invisible."));
         }
 
         foreach (var driver in read.Drivers)

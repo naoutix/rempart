@@ -43,9 +43,11 @@ public sealed class UnquotedServicePathCollector : IFindingCollector
             //
             // IWmiProvider straight, with no wrapper in between, so the WMI rule applies at
             // its plainest: no reason means one of the three denial HRESULTs, a reason means
-            // the code that was not.
+            // the code that was not. The branch is already narrowed to AccessDenied, so the
+            // status handed over changes nothing here — it is passed because the rule is
+            // stated for all four sites and two of them do not narrow it.
             findings.Add(Finding.Unread("unquoted-service-path", "Win32_Service",
-                Finding.WmiGap(read.Diagnostic), read.Diagnostic,
+                Finding.WmiGap(read.Status, read.Diagnostic), read.Diagnostic,
                 "Énumération des services refusée. Relancer en administrateur : un chemin "
                 + "non quoté resterait invisible."));
         }

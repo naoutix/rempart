@@ -40,15 +40,22 @@ public sealed class LiveHostsFileProvider(string? systemRoot = null) : IHostsFil
         }
         catch (UnauthorizedAccessException)
         {
-            return HostsFileRead.Failed(
+            // An ACL, so a genuine denial, and now returned as one rather than through the
+            // factory that also served the branch below.
+            return HostsFileRead.Refused(
                 "Fichier hosts illisible : accès refusé. Une redirection posée là "
                 + "court-circuiterait la résolution DNS sans apparaître ici.");
         }
         catch (IOException ex)
         {
-            // Not a denial, and not printed as one — the invariant CONTRIBUTING records. A
-            // file held open with no sharing lands here, and it is as ordinary a way to keep
-            // a redirection unread as an ACL: what must be said is what happened.
+            // Not a denial, and no longer returned as one — the invariant CONTRIBUTING
+            // records. A file held open with no sharing lands here, and it is as ordinary a
+            // way to keep a redirection unread as an ACL: what must be said is what happened.
+            //
+            // These two catches were already separate, and already worded apart; what they
+            // shared was the state they returned, which is the only thing HostsFileCollector
+            // could branch on. Separating the wording without separating the state is what
+            // let the collector keep answering « relancer en administrateur » here.
             return HostsFileRead.Failed(
                 $"Fichier hosts illisible : {ex.Message} Une redirection posée là "
                 + "court-circuiterait la résolution DNS sans apparaître ici.");
