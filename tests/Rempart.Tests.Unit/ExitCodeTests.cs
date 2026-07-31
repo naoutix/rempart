@@ -448,11 +448,26 @@ public sealed class ExitCodeTests
         // surfaces spoke at all. Emptying a collector's failure branch therefore passed — the
         // remaining findings were still correct — which is the DET-*-MUET silence this file
         // exists to make impossible, left open in the guard against it.
+        //
+        // Kind AND Source, because a Kind is a family and a family is not a surface. Four of
+        // the ten couples below share a Kind with another: the two startup folders are one
+        // « autorun » each, the two consumer classes one « wmi-subscription » each. Projecting
+        // Kind alone therefore let a collector fall silent on the user's own startup folder —
+        // C:\Users\anon\…\Startup, where an attacker with no privilege drops — while the
+        // machine one kept « autorun » in the set, and the guard passed. Same hole below, on
+        // the denial side, and closed there too.
         Assert.Equal(
-            ["autorun", "browser-extension", "driver", "hosts-entry", "listening-port",
-             "process", "unquoted-service-path", "wmi-subscription"],
-            gaps.Select(finding => finding.Kind).Distinct(StringComparer.Ordinal)
-                .OrderBy(kind => kind, StringComparer.Ordinal).ToArray());
+            [@"autorun / C:\ProgramData\…\Startup",
+             @"autorun / C:\Users\anon\…\Startup",
+             "browser-extension / profil de navigateur",
+             "driver / pilotes chargés",
+             "hosts-entry / hosts",
+             "listening-port / ports en écoute",
+             "process / processus courants",
+             "unquoted-service-path / Win32_Service",
+             @"wmi-subscription / root\subscription:ActiveScriptEventConsumer",
+             @"wmi-subscription / root\subscription:CommandLineEventConsumer"],
+            Surfaces(gaps));
 
         Assert.All(gaps, finding => Assert.Contains(FailedDiagnostic, finding.Reasons));
 
@@ -518,12 +533,20 @@ public sealed class ExitCodeTests
         // The premise, asserted rather than assumed. A guard that walks an empty list reports
         // success, and an exact set says which surfaces are being spoken for — so a collector
         // that stops reporting one, or starts reporting a new one nobody classified, lands
-        // here rather than passing quietly.
+        // here rather than passing quietly. Kind and Source both, for the reason spelled out
+        // in the mirror above: this set held only Kinds, and a Kind is a family.
         Assert.Equal(
-            ["autorun", "driver", "hosts-entry", "listening-port", "process", "scheduled-task",
-             "unquoted-service-path", "wmi-subscription"],
-            gaps.Select(finding => finding.Kind).Distinct(StringComparer.Ordinal)
-                .OrderBy(kind => kind, StringComparer.Ordinal).ToArray());
+            [@"autorun / C:\ProgramData\…\Startup",
+             @"autorun / C:\Users\anon\…\Startup",
+             "driver / pilotes chargés",
+             "hosts-entry / hosts",
+             "listening-port / pare-feu",
+             "process / processus courants",
+             "scheduled-task / planificateur de tâches",
+             "unquoted-service-path / Win32_Service",
+             @"wmi-subscription / root\subscription:ActiveScriptEventConsumer",
+             @"wmi-subscription / root\subscription:CommandLineEventConsumer"],
+            Surfaces(gaps));
 
         Assert.All(gaps, finding => Assert.True(finding.Gap == AuditGap.Refused,
             $"Le constat « {finding.Kind} / {finding.Source} » vient d'une surface qui a "
@@ -533,6 +556,23 @@ public sealed class ExitCodeTests
         // And the number a scheduler reads says the same thing as the text.
         Assert.Equal(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(scan));
     }
+
+    /// <summary>
+    /// The surfaces a set of gaps speaks for, one line each, sorted — what the two guards
+    /// above compare against a written-out list.
+    ///
+    /// <para>
+    /// <c>Kind</c> and <c>Source</c> together, and that is the whole point of the helper: a
+    /// <c>Kind</c> names a family, and two of the families here cover two surfaces apiece. A
+    /// set of <c>Kind</c>s therefore cannot see one of a pair go silent, which is the DET-*-MUET
+    /// shape these guards exist against — asserted for the family and left open for the surface.
+    /// </para>
+    /// </summary>
+    private static string[] Surfaces(IEnumerable<Finding> gaps) =>
+        gaps.Select(finding => $"{finding.Kind} / {finding.Source}")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(surface => surface, StringComparer.Ordinal)
+            .ToArray();
 
     /// <summary>The sentence every failing provider below hands back, and nothing else does.</summary>
     private const string FailedDiagnostic =
@@ -676,11 +716,6 @@ public sealed class ExitCodeTests
             "test", "2026-07-24T09:15:00Z",
             ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
-    private sealed class AnsweringFileSystem : IFileSystemProvider
-    {
-        public DirectoryRead ListFiles(string directory) => DirectoryRead.Found([]);
-    }
-
     private sealed class AnsweringScheduledTasks : IScheduledTaskProvider
     {
         public ScheduledTaskRead Enumerate() => ScheduledTaskRead.Found([]);
@@ -690,11 +725,6 @@ public sealed class ExitCodeTests
     {
         public FirewallState Read() =>
             new([], PublicFirewallEnabled: true, PublicDefaultInboundAllow: false);
-    }
-
-    private sealed class AnsweringHostsFile : IHostsFileProvider
-    {
-        public HostsFileRead ReadLines() => HostsFileRead.Found([]);
     }
 
     private sealed class FailingWmi : IWmiProvider

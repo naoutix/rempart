@@ -2,14 +2,37 @@ using Rempart.Core.Providers;
 
 namespace Rempart.Windows;
 
-public sealed class LiveFileSystemProvider : IFileSystemProvider
+/// <summary>
+/// Lists a directory, and says which of the four states the attempt ended in.
+/// </summary>
+/// <param name="enumerate">
+/// How the files are read, <c>Directory.GetFiles</c> in production.
+///
+/// <para>
+/// A parameter for one reason, and it is the reason #173 stayed open through three rounds:
+/// the mapping below — <c>UnauthorizedAccessException</c> to a denial, <c>IOException</c> to a
+/// failure — is the whole contract this file carries, and nothing could reach it. A real
+/// folder can be staged as <em>refused</em> (<c>System Volume Information</c>) but not as
+/// <em>failing</em>: an <c>IOException</c> out of <c>Directory.GetFiles</c> wants a volume
+/// pulled mid-listing. So the branch that names the defect was the one branch no test could
+/// enter, and merging the two <c>catch</c> blocks back together left both suites green.
+/// <c>LiveHostsFileProvider</c> has taken its system root since REV-12 for exactly this, which
+/// is why the same defect on that channel had a guard and this one did not.
+/// </para>
+/// </param>
+public sealed class LiveFileSystemProvider(Func<string, string[]>? enumerate = null)
+    : IFileSystemProvider
 {
+    private readonly Func<string, string[]> files = enumerate ?? Directory.GetFiles;
+
     public DirectoryRead ListFiles(string directory)
     {
         try
         {
+            // Directory.Exists is left out of the seam deliberately: it does not throw, it
+            // answers false, so it decides Absent and never which catch is taken.
             return Directory.Exists(directory)
-                ? DirectoryRead.Found(Directory.GetFiles(directory))
+                ? DirectoryRead.Found(files(directory))
                 : DirectoryRead.Absent;
         }
         // Swallowed, but no longer silent (DET-FICHIERS-MUET): the other locations still need

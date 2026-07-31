@@ -237,6 +237,12 @@ public sealed class SnapshotFileSystemProvider(MachineSnapshot snapshot) : IFile
         // — and answering [] would let the collector report « aucun autorun » over it. Not
         // NotFound either: that would claim the folder was absent from the machine, which
         // the capture never said.
+        //
+        // Nor AccessDenied, which is what this call produced until #173 and which asked the
+        // reader of a replay to re-run elevated against a file that had already been written.
+        // A capture that never held the path is the machine's own state as far as the caller
+        // is concerned: « audit partiel », the answer AuditGap.Unreadable already names for
+        // « a capture replayed for a surface it never recorded ».
         () => DirectoryRead.Failed(
             $"Dossier « {directory} » absent de l'instantané : cette capture n'a rien "
             + "enregistré à ce chemin, son contenu n'est donc pas rejouable."));

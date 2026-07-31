@@ -13,7 +13,8 @@ namespace Rempart.Core.Providers;
 /// </para>
 ///
 /// <para>
-/// Three states, and the middle one is why this is not a boolean:
+/// Four states — two answers about the machine, two holes in what the scan saw — and no one
+/// of them folds into another:
 /// <list type="bullet">
 ///   <item><see cref="Found"/> — the directory was listed. <b>An empty list here is an
 ///   answer, not a silence</b>: an empty startup folder is the ordinary state of most

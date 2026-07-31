@@ -341,4 +341,35 @@ public class AutorunsTests
         Assert.DoesNotContain("administrateur", string.Join(" ", failed.Reasons),
             StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// A scan wired with no file provider at all, which is the third producer on this channel
+    /// and the one that moved without being named.
+    ///
+    /// <para>
+    /// <c>UnavailableFileSystem</c> calls <c>DirectoryRead.Failed</c>, and that call changed
+    /// meaning under it in #173: the factory kept its name and stopped returning
+    /// <see cref="ReadStatus.AccessDenied"/>. The new answer is the right one — no privilege
+    /// supplies a provider nobody wired, so « droits insuffisants » was advice that could not
+    /// work — but nothing asserted either answer, before or after, and the whole argument for
+    /// keeping the name was that the callers who moved would be looked at one by one. This
+    /// looks at the one that was not.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_scan_with_no_file_provider_is_unreadable_rather_than_denied()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithText(MachineShellFolders, "Common Startup", CommonStartup);
+
+        // No files argument: ProviderSet falls back to UnavailableFileSystem, which is the
+        // subject here and cannot be named from this assembly.
+        var finding = Assert.Single(new AutorunsCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), signatures: new FakeSignatureProvider())));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.NotEqual(AuditGap.Refused, finding.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+    }
 }

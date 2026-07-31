@@ -72,9 +72,16 @@ public sealed class ProviderSet(
     public ISignatureProvider Signatures { get; } = signatures ?? UnavailableSignatures.Instance;
 
     /// <summary>
-    /// Absent, every directory comes back « refusé » rather than empty: a startup folder
-    /// nobody enumerated is not a startup folder with nothing in it, and the report has to
-    /// say which of the two it is looking at.
+    /// Absent, every directory comes back as a read that did not complete rather than as an
+    /// empty one: a startup folder nobody enumerated is not a startup folder with nothing in
+    /// it, and the report has to say which of the two it is looking at.
+    ///
+    /// <para>
+    /// « Illisible » and no longer « refusé », which is what this said until #173 and what
+    /// <c>UnavailableFileSystem</c> then answered: nobody denied anything here, and a reader
+    /// sent to re-run elevated over a provider that was never wired gets advice that cannot
+    /// work. The same correction the policy provider had in #160, one channel later.
+    /// </para>
     /// </summary>
     public IFileSystemProvider Files { get; } = files ?? UnavailableFileSystem.Instance;
 
@@ -249,9 +256,15 @@ internal sealed class UnavailableFileSystem : IFileSystemProvider
 {
     public static readonly UnavailableFileSystem Instance = new();
 
-    // Denied, not empty: a scan wired without a file provider has looked at no startup
-    // folder at all, and answering [] made the autoruns collector conclude « aucun autorun »
-    // over a surface nobody had opened (DET-FICHIERS-MUET).
+    // Named, not empty: a scan wired without a file provider has looked at no startup folder
+    // at all, and answering [] made the autoruns collector conclude « aucun autorun » over a
+    // surface nobody had opened (DET-FICHIERS-MUET).
+    //
+    // A failure and not a denial, which is what this call changed to mean in #173 — the same
+    // factory, a different state. It said « accès refusé » before, so a scan with no file
+    // provider came back « droits insuffisants » and sent its reader to elevate; no privilege
+    // supplies a provider nobody wired. « Audit partiel » is the true answer and the one the
+    // sibling above already gave for a missing policy provider.
     public DirectoryRead ListFiles(string directory) => DirectoryRead.Failed(
         $"Aucun fournisseur de système de fichiers n'a été fourni à ce scan : le contenu de "
         + $"« {directory} » n'a pas été regardé.");

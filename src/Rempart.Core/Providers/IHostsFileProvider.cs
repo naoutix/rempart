@@ -12,8 +12,8 @@ namespace Rempart.Core.Providers;
 /// </para>
 ///
 /// <para>
-/// Three states, and the middle one is why this is not a boolean, exactly as for
-/// <see cref="DirectoryRead"/>:
+/// Four states — two answers about the machine, two holes in what the scan saw — and no one
+/// of them folds into another, exactly as for <see cref="DirectoryRead"/>:
 /// <list type="bullet">
 ///   <item><see cref="Found"/> — the file was read. <b>No entry is an answer, not a
 ///   silence</b>: a <c>hosts</c> file holding nothing but comments is the default state of

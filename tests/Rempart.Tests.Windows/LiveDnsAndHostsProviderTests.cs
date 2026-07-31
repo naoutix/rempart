@@ -217,6 +217,14 @@ public sealed class LiveHostsFileProviderTests
             // The state, not only the wording: this is what the collector reads.
             Assert.Equal(Core.Providers.ReadStatus.Failed, read.Status);
             Assert.NotEqual(Core.Providers.ReadStatus.AccessDenied, read.Status);
+
+            // The category of the failure, and not the framework's own sentence. This branch
+            // interpolated ex.Message until #173's review, and the diagnostic is recorded into
+            // a capture whose references are compared character for character — so the same
+            // held-open file gave a French install and an English one two different captures.
+            // The BCL names the file it could not open; a diagnostic that does is carrying it.
+            Assert.Contains("erreur d'entrée/sortie", read.Diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain(path, read.Diagnostic, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
