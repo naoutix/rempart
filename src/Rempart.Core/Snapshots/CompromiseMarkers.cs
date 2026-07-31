@@ -333,10 +333,15 @@ public static class CompromiseMarkers
     private static void PlantDns(MachineSnapshot snapshot) =>
         snapshot.Dns =
         [
-            new DnsInterface("Ethernet", StaticServers: [ControlServer], DhcpServers: []),
+            // Both on the IPv4 stack, which is what the versioned capture already holds: this
+            // factory wrote it before #191, and planting a v6 marker here would rewrite the one
+            // capture that proves a snapshot predating the stack field still replays.
+            new DnsInterface("Ethernet", StaticServers: [ControlServer], DhcpServers: [],
+                Stack: DnsStack.IPv4),
 
             // 192.0.2.0/24 is TEST-NET-1: a plausible gateway that cannot be anybody's.
-            new DnsInterface("Wi-Fi", StaticServers: [], DhcpServers: ["192.0.2.1"]),
+            new DnsInterface("Wi-Fi", StaticServers: [], DhcpServers: ["192.0.2.1"],
+                Stack: DnsStack.IPv4),
         ];
 
     /// <summary>

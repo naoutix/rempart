@@ -370,8 +370,10 @@ public sealed class RecordingDnsProvider(IDnsProvider inner, MachineSnapshot sna
         snapshot.DnsStatus, snapshot.Dns, snapshot.DnsDiagnostic,
         inner.Read,
         // The status is recorded alongside the list: a capture taken on a machine that refused
-        // Tcpip\Parameters\Interfaces must replay as « je n'ai pas pu regarder », not as a
-        // machine that resolves through nothing — which is what a refusal laid there is for.
+        // one of the two Parameters\Interfaces keys must replay as « je n'ai pas pu regarder »,
+        // not as a machine that resolves through nothing — which is what a refusal laid there
+        // is for. The interfaces carry the stack each was read on, so the capture says which
+        // half of the machine it saw.
         read =>
         {
             snapshot.Dns = [.. read.Interfaces];

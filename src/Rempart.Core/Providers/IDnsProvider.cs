@@ -1,7 +1,47 @@
 namespace Rempart.Core.Providers;
 
 /// <summary>
-/// The DNS resolution configuration of a network interface.
+/// One of the TCP/IP stacks Windows keeps a resolver list of its own for.
+///
+/// <para>
+/// Windows binds two stacks to the same adapter and gives each its own service key —
+/// <c>Tcpip</c> and <c>Tcpip6</c> — with its own <c>Parameters\Interfaces</c> subtree under it,
+/// keyed by the same adapter GUID. So the same network card carries two resolver lists, set by
+/// two different commands (<c>netsh interface ipv4</c> and <c>netsh interface ipv6</c>), and
+/// nothing in one of them says anything about the other.
+/// </para>
+///
+/// <para>
+/// <b>It exists so that the read cannot be written for one stack.</b> Until #191 the key was a
+/// single constant and the second stack appeared nowhere in the repository at all: a resolver
+/// laid on it was not collected, not judged, and not reported as uncollected. A constant per
+/// stack would have been the same defect one line longer — what stops it is that this enum is
+/// what <see cref="RegistryDnsProvider.Stacks"/> is indexed by and what the read loops over, so
+/// a stack that exists is a stack that is walked.
+/// </para>
+///
+/// <para>
+/// <see cref="IPv4"/> is first, and that is load-bearing rather than alphabetical: a capture
+/// taken before this field carries no <c>stack</c>, deserialises to the default member, and
+/// every interface such a capture holds was read from <c>Tcpip</c> — so the default has to be
+/// the stack those captures were read on. <c>DnsHostsTests</c> asserts it on the value.
+/// </para>
+/// </summary>
+public enum DnsStack
+{
+    /// <summary>The IPv4 stack, under <c>Tcpip</c> — the only one read before #191.</summary>
+    IPv4,
+
+    /// <summary>
+    /// The IPv6 stack, under <c>Tcpip6</c>. Not an exotic configuration: the machine this was
+    /// written on keeps ten adapters there and resolves names through a DHCPv6-supplied server,
+    /// nobody having configured anything for IPv6 on it.
+    /// </summary>
+    IPv6,
+}
+
+/// <summary>
+/// The DNS resolution configuration of a network interface, on one stack.
 ///
 /// <para>
 /// The distinction that matters: a resolver received from DHCP comes from the network
@@ -9,11 +49,19 @@ namespace Rempart.Core.Providers;
 /// implant. DNS hijacking operates exactly there, writing a server it controls over the
 /// network's one to silently redirect name resolution.
 /// </para>
+///
+/// <para>
+/// One record per (interface, stack) pair and not per interface: an adapter carries the same
+/// GUID under both stacks and a different resolver list on each, so folding the two would
+/// either lose one list or attribute an address to the stack it is not on — and the stack is
+/// what decides which command undoes it.
+/// </para>
 /// </summary>
 public sealed record DnsInterface(
     string Id,
     IReadOnlyList<string> StaticServers,
-    IReadOnlyList<string> DhcpServers);
+    IReadOnlyList<string> DhcpServers,
+    DnsStack Stack);
 
 /// <summary>
 /// The interfaces that resolve, plus whether they could be enumerated at all.
@@ -28,6 +76,14 @@ public sealed record DnsInterface(
 /// resolver, zero finding, and a report that reads like a machine with nothing to say. Denying
 /// the enumeration is a cheaper way to hide a hijacked resolver than removing it (#184).
 /// </para>
+///
+/// <para>
+/// One list for both stacks, each interface saying which one it came from
+/// (<see cref="DnsInterface.Stack"/>), and one status over the two: what the refusal names is
+/// the <em>keys</em> it was refused, so an ACL on <c>Tcpip6</c> alone is as legible as one on
+/// <c>Tcpip</c> alone, and what the other stack gave travels beside it — the same shape as the
+/// adapter next door, one level up (#191).
+/// </para>
 /// </summary>
 public sealed record DnsRead(
     ReadStatus Status,
@@ -36,9 +92,16 @@ public sealed record DnsRead(
     : IStatusCarryingRead<DnsRead, DnsInterface>
 {
     /// <summary>
-    /// The key Windows keeps its interfaces under is not there. An answer and not a hole: it
+    /// No stack keeps its interfaces where this read looks. An answer and not a hole: it
     /// is what a registry holding no TCP/IP stack says, and nothing resolves through an
     /// interface that was never configured.
+    ///
+    /// <para>
+    /// Every declared stack, and not one of them: a machine with <c>Tcpip6</c> unbound and
+    /// <c>Tcpip</c> answering has been read, so it is <see cref="Found"/> with what the one
+    /// stack gave. Absence <em>per stack</em> is silent for the reason emptiness is —
+    /// reporting it would put a gap on the ordinary machine.
+    /// </para>
     /// </summary>
     public static readonly DnsRead Absent = new(ReadStatus.NotFound, []);
 

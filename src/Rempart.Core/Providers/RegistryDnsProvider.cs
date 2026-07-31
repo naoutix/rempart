@@ -15,23 +15,82 @@ namespace Rempart.Core.Providers;
 /// </para>
 ///
 /// <para>
-/// Each interface has its own key under <c>Tcpip\Parameters\Interfaces</c>.
+/// Each interface has its own key under <c>Parameters\Interfaces</c>, once per stack.
 /// <c>NameServer</c> holds statically configured resolvers, <c>DhcpNameServer</c> those
 /// handed out by the network — the distinction the collector evaluates, since a static
 /// resolver on a machine that gets one by DHCP is a deliberate act.
 /// </para>
 ///
 /// <para>
-/// Three reads deep, and each one can be denied on its own: the enumeration of the interfaces,
-/// and the two values of each interface. All three are watched, because the cheapest place to
-/// hide a resolver is the one nobody looks at — an ACL on a single adapter key used to remove
-/// that adapter from the inventory without a word (#184).
+/// <b>Both stacks, and driven by <see cref="Stacks"/> rather than by a key written into the
+/// read.</b> Until #191 the key was a single constant naming <c>Tcpip</c>, which is the IPv4
+/// stack alone: a resolver typed on to <c>Tcpip6</c> — where an ordinary machine already
+/// resolves — was not collected, not judged, and not reported as uncollected. It is the loop
+/// and not a second
+/// constant that answers it: what the read walks is the declared table, so a stack that is
+/// named is a stack that is read, and <c>RegistryDnsProviderTests</c> exercises every member of
+/// <see cref="DnsStack"/> rather than the two that exist today.
+/// </para>
+///
+/// <para>
+/// Three reads deep <em>per stack</em>, and each one can be denied on its own: the enumeration
+/// of the interfaces, and the two values of each interface. All of them are watched, because
+/// the cheapest place to hide a resolver is the one nobody looks at — an ACL on a single
+/// adapter key used to remove that adapter from the inventory without a word (#184), and an
+/// ACL on the <c>Tcpip6</c> enumeration would have hidden a whole stack for free.
+/// </para>
+///
+/// <para>
+/// <b>What it does not read, measured on a real machine rather than assumed.</b> On the IPv6
+/// stack the resolvers a DHCPv6 server hands out are not under <c>DhcpNameServer</c>: Windows
+/// writes them to <c>Dhcpv6DNSServers</c>, a <c>REG_BINARY</c> holding the 16-byte addresses
+/// end to end, which this read does not decode. So a v6 interface that only <em>leases</em> its
+/// resolvers contributes nothing here. That is an inventory line missing, never a verdict: the
+/// collector judges statically configured resolvers, which is the hijack surface and which
+/// <em>is</em> under <c>NameServer</c> on both stacks. Windows' own <c>fec0:0:0:ffff::1-3</c>
+/// fallbacks are in neither place — they are built into the resolver — so they produce no
+/// finding either. <c>RegistryDnsProviderTests</c> pins the first of those two rather than
+/// leaving it to this paragraph.
 /// </para>
 /// </summary>
 public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvider
 {
     public const string InterfacesKey =
         @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces";
+
+    public const string InterfacesKeyIPv6 =
+        @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces";
+
+    /// <summary>
+    /// Where each stack keeps its interfaces — the whole of what this read walks.
+    ///
+    /// <para>
+    /// A table and not two constants read one after the other, because the difference is what
+    /// #191 is about: a constant is read wherever someone remembered to read it, and the second
+    /// one was never written at all. Declaring a stack here is what makes it read, and
+    /// <c>RegistryDnsProviderTests</c> holds the table against <see cref="DnsStack"/> both ways
+    /// — a member with no key here, or a key here for no member, fails before it ships.
+    /// </para>
+    ///
+    /// <para>
+    /// What that cannot decide is whether Windows keeps resolvers on a stack this enum does not
+    /// name; no fake registry can answer it, since the answer is a fact about Windows. The
+    /// live suite is where it is asked, against the real <c>Services</c> hive.
+    /// </para>
+    /// </summary>
+    public static readonly IReadOnlyList<(DnsStack Stack, string InterfacesKey)> Stacks =
+    [
+        (DnsStack.IPv4, InterfacesKey),
+        (DnsStack.IPv6, InterfacesKeyIPv6),
+    ];
+
+    /// <summary>
+    /// The interfaces key of one stack. For callers naming a stack — the tests do; the read
+    /// itself walks <see cref="Stacks"/>, so a stack left out of the table is unread rather
+    /// than a scan that throws.
+    /// </summary>
+    public static string InterfacesKeyOf(DnsStack stack) =>
+        Stacks.Single(declared => declared.Stack == stack).InterfacesKey;
 
     public DnsRead Read()
     {
@@ -41,56 +100,68 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
         // surface it lost, and a bare count of two would say nothing about where the hole is.
         var denied = new List<string>();
 
-        var listing = registry.ListSubKeys(InterfacesKey);
+        // Whether any stack got as far as being enumerated. Not a count of interfaces: a
+        // machine whose adapters resolve nothing has been read and answers zero.
+        var enumerated = false;
 
-        // The key itself. Refused here means no interface at all was seen, which used to be
-        // the same empty list a machine with no configured adapter returns — the defect of
-        // #184, on the surface a hijack is laid on.
-        if (listing.Status is ReadStatus.AccessDenied)
+        foreach (var (stack, interfacesKey) in Stacks)
         {
-            return DnsRead.Refused([], [InterfacesKey]);
-        }
+            var listing = registry.ListSubKeys(interfacesKey);
 
-        // The key is not on this machine. An answer, and one this read is allowed to give
-        // silently: nothing resolves through an interface that was never configured.
-        if (listing.Status is ReadStatus.NotFound)
-        {
-            return DnsRead.Absent;
-        }
-
-        foreach (var guid in listing.Names)
-        {
-            var keyPath = $@"{InterfacesKey}\{guid}";
-            var staticRead = registry.ReadValue(keyPath, "NameServer");
-            var dhcpRead = registry.ReadValue(keyPath, "DhcpNameServer");
-
-            // The refusal one level down, and the one that hides a hijack most cheaply: an ACL
-            // on a single interface key made both values read back as « rien », so the adapter
-            // dropped out of the inventory with its static resolver. An absent value is the
-            // ordinary case and stays silent; only a denial speaks.
-            if (staticRead.Status is ReadStatus.AccessDenied
-                || dhcpRead.Status is ReadStatus.AccessDenied)
+            // The key itself. Refused here means no interface of this stack was seen, which
+            // used to be the same empty list a machine with no configured adapter returns —
+            // the defect of #184, on the surface a hijack is laid on. Gathered and not
+            // returned: the other stack is still read, so refusing one buys nothing.
+            if (listing.Status is ReadStatus.AccessDenied)
             {
-                denied.Add(keyPath);
+                denied.Add(interfacesKey);
+                continue;
             }
 
-            var stat = Split(staticRead.Value?.Text);
-            var dhcp = Split(dhcpRead.Value?.Text);
-
-            // An interface with no resolver at all is not a finding and not an omission: a
-            // machine carries a dozen of these — tunnels, loopback, disconnected adapters —
-            // and listing them would bury the two that resolve anything.
-            if (stat.Count > 0 || dhcp.Count > 0)
+            // The key is not on this machine. An answer, and one this read is allowed to give
+            // silently: nothing resolves through an interface that was never configured.
+            if (listing.Status is ReadStatus.NotFound)
             {
-                interfaces.Add(new DnsInterface(guid, stat, dhcp));
+                continue;
+            }
+
+            enumerated = true;
+
+            foreach (var guid in listing.Names)
+            {
+                var keyPath = $@"{interfacesKey}\{guid}";
+                var staticRead = registry.ReadValue(keyPath, "NameServer");
+                var dhcpRead = registry.ReadValue(keyPath, "DhcpNameServer");
+
+                // The refusal one level down, and the one that hides a hijack most cheaply: an
+                // ACL on a single interface key made both values read back as « rien », so the
+                // adapter dropped out of the inventory with its static resolver. An absent
+                // value is the ordinary case and stays silent; only a denial speaks.
+                if (staticRead.Status is ReadStatus.AccessDenied
+                    || dhcpRead.Status is ReadStatus.AccessDenied)
+                {
+                    denied.Add(keyPath);
+                }
+
+                var stat = Split(staticRead.Value?.Text);
+                var dhcp = Split(dhcpRead.Value?.Text);
+
+                // An interface with no resolver at all is not a finding and not an omission: a
+                // machine carries a dozen of these — tunnels, loopback, disconnected adapters —
+                // and listing them would bury the two that resolve anything. Twice over now,
+                // since most adapters carry nothing on the v6 stack.
+                if (stat.Count > 0 || dhcp.Count > 0)
+                {
+                    interfaces.Add(new DnsInterface(guid, stat, dhcp, stack));
+                }
             }
         }
 
         // What the readable interfaces gave is kept beside the refusal: dropping them because
-        // one adapter was denied would trade one silence for another.
-        return denied.Count > 0
-            ? DnsRead.Refused(interfaces, denied)
-            : DnsRead.Found(interfaces);
+        // one adapter — or one whole stack — was denied would trade one silence for another.
+        return denied.Count > 0 ? DnsRead.Refused(interfaces, denied)
+            : enumerated ? DnsRead.Found(interfaces)
+            : DnsRead.Absent;
     }
 
     /// <summary>

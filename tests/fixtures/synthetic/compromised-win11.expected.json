@@ -3820,6 +3820,7 @@
       ],
       "details": {
         "origine": "statique",
+        "pile": "IPv4",
         "r\u00E9solveurs": "198.51.100.23"
       }
     },
@@ -3831,6 +3832,7 @@
       "reasons": [],
       "details": {
         "origine": "DHCP",
+        "pile": "IPv4",
         "r\u00E9solveurs": "192.0.2.1"
       }
     },

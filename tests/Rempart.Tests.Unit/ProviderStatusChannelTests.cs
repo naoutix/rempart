@@ -62,7 +62,9 @@ public sealed class ProviderStatusChannelTests
         // depuis REV-11. Le refus tombait dans la même liste vide que la réponse, donc une ACL
         // sur Tcpip\Parameters\Interfaces rendait zéro résolveur et zéro constat, sur la
         // surface même qui sert de vecteur de détournement (#184). Le canal sépare les deux, et
-        // zéro reste muet — c'est l'asymétrie, pas son abandon.
+        // zéro reste muet — c'est l'asymétrie, pas son abandon. Il porte les deux piles depuis
+        // #191 : Tcpip est l'IPv4, Tcpip6 n'était lu nulle part, et un refus sur l'une nomme sa
+        // clé sans coûter ce que l'autre a donné.
         "IDnsProvider.Read → statut + diagnostic",
 
         // DET-WMI-MUET même : zéro pilote sur une machine allumée est une panne.

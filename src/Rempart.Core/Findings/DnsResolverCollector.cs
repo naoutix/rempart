@@ -13,6 +13,19 @@ namespace Rempart.Core.Findings;
 /// local one (the loopback, a filter installed on purpose), stay benign — a common
 /// deliberate configuration on a hardened machine.
 /// </para>
+///
+/// <para>
+/// <b>The same judgement on both stacks, and it means the same thing on both — but not
+/// symmetrically (#191).</b> « Typed in by hand » is what is judged, and on the IPv6 stack that
+/// is the same value under the same name, so an unrecognised v6 resolver is a hijack lever for
+/// the reason a v4 one is; the well-known list has carried Cloudflare's and Google's v6
+/// addresses since it was written, and <see cref="IsLocal"/> already knew <c>::1</c>. The other
+/// half does not transfer: a DHCPv6 lease is not written where <see cref="RegistryDnsProvider"/>
+/// reads, so a v6 interface with none of its own shows up here with nothing rather than as
+/// benign inventory. Missing an inventory line, never a verdict — and the asymmetry is stated
+/// here rather than papered over by reporting v6 as « DHCP: aucun », which would be a claim the
+/// scan never read.
+/// </para>
 /// </summary>
 public sealed class DnsResolverCollector : IFindingCollector
 {
@@ -78,7 +91,7 @@ public sealed class DnsResolverCollector : IFindingCollector
             {
                 findings.Add(new Finding("dns-resolver", iface.Id,
                     string.Join(", ", iface.DhcpServers), FindingSeverity.Benign, [],
-                    Details("DHCP", iface.DhcpServers)));
+                    Details(iface, "DHCP", iface.DhcpServers)));
             }
         }
 
@@ -91,7 +104,7 @@ public sealed class DnsResolverCollector : IFindingCollector
             .Where(server => !WellKnownResolvers.Contains(server) && !IsLocal(server))
             .ToList();
 
-        var details = Details("statique", iface.StaticServers);
+        var details = Details(iface, "statique", iface.StaticServers);
 
         if (unrecognised.Count == 0)
         {
@@ -109,10 +122,28 @@ public sealed class DnsResolverCollector : IFindingCollector
     private static bool IsLocal(string server) =>
         server.StartsWith("127.", StringComparison.Ordinal) || server is "::1";
 
-    private static Dictionary<string, string> Details(string origin, IReadOnlyList<string> servers) =>
+    /// <summary>
+    /// What the reader needs beside the addresses, and the stack is one of the two.
+    ///
+    /// <para>
+    /// Since #191 an adapter appears here once per stack, under the same identifier — that is
+    /// how Windows keys the two subtrees — so without this line two findings about the same
+    /// card would differ only by the shape of the addresses they carry. It also names the
+    /// command that undoes the finding: a static resolver is removed with
+    /// <c>netsh interface ipv4</c> or <c>netsh interface ipv6</c>, never with the other.
+    /// </para>
+    ///
+    /// <para>
+    /// Written from the member name, so a stack added to <see cref="DnsStack"/> is labelled
+    /// rather than mapped to a default by a table nobody updated.
+    /// </para>
+    /// </summary>
+    private static Dictionary<string, string> Details(
+        DnsInterface iface, string origin, IReadOnlyList<string> servers) =>
         new(StringComparer.Ordinal)
         {
             ["origine"] = origin,
+            ["pile"] = iface.Stack.ToString(),
             ["résolveurs"] = string.Join(", ", servers),
         };
 }
