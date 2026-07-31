@@ -314,7 +314,7 @@ public class BloatwareCatalogTests
     /// across two documents, and a guard holding one of them leaves the other three free to
     /// drift the next time a piece of software is actually observed — which is precisely the
     /// movement the debt exists to measure. The four are found by what they say rather than by
-    /// where they sit, so a fifth copy written tomorrow is held too, and <see cref="Expected"/>
+    /// where they sit, so a fifth copy written tomorrow is held too, and <c>Expected</c>
     /// makes a copy deleted rather than corrected fail rather than pass quietly.
     /// </para>
     ///

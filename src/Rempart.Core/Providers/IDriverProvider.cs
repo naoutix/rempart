@@ -41,13 +41,19 @@ public sealed record DriverRead(
     string? Diagnostic = null)
     : IStatusCarryingRead<DriverRead, LoadedDriver>
 {
+    /// <summary>The enumeration was refused. Elevation is the answer.</summary>
     public static readonly DriverRead AccessDenied = new(ReadStatus.AccessDenied, []);
 
     public static DriverRead Found(IReadOnlyList<LoadedDriver> drivers) =>
         new(ReadStatus.Found, drivers);
 
+    /// <summary>
+    /// The enumeration was attempted, did not complete, and was not denied — a WMI repository
+    /// that stopped serving, a capture holding nothing on this surface. No privilege repairs
+    /// either, so the status says so as plainly as the name does.
+    /// </summary>
     public static DriverRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, [], reason);
+        new(ReadStatus.Failed, [], reason);
 
     // Explicit, so "Drivers" stays the only name a caller sees and nothing new appears in
     // any serialised shape. See IStatusCarryingRead.

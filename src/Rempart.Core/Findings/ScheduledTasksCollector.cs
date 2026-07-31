@@ -39,20 +39,38 @@ public sealed class ScheduledTasksCollector : IFindingCollector
             // The folders are listed one per line, uncapped: a list cut short would be this
             // very silence again, one folder further down.
             //
-            // Refused, on the interface's own words: IScheduledTaskProvider calls
-            // E_ACCESSDENIED « the one HRESULT that means elevate and retry », and a walk that
-            // meets it comes back through Partial, which always writes a sentence. Reading
-            // that sentence as proof of a failure took the commonest scheduler gap there is —
-            // a non-elevated scan refused on \Microsoft\Windows\… — and answered it by
-            // withdrawing the elevation advice. The folders listed alongside carry each
-            // HRESULT verbatim, so a walk that broke on something other than a denial still
-            // says which; that per-folder distinction exists only inside those sentences, and
-            // the pull request carries it as spillover.
+            // The gap is read off the status, and until #177 it could not be. Every state this
+            // read had for « I did not get everything » spelled itself AccessDenied — a walk
+            // denied on \Microsoft\Windows\… and a walk that never happened alike — so this
+            // site answered Refused for both, and a replay of a capture taken before scheduled
+            // tasks were collected told its reader to re-run elevated against a file already
+            // written. The channel now has two words and this branch uses them: AccessDenied
+            // means at least one folder said no and elevation answers it, anything else means
+            // nobody was refused anything.
+            var gap = read.Status == ReadStatus.AccessDenied
+                ? AuditGap.Refused
+                : AuditGap.Unreadable;
+
+            // Two fallbacks, picked by the value beside them, for the reason the driver
+            // collector states: a sentence promising elevation under Unreadable contradicts
+            // the marker in its own finding.
+            //
+            // The second is reachable, and only just: every factory on this read writes a
+            // diagnostic when it is neither Found nor the bare AccessDenied, so Finding.Unread
+            // always prints the read's own words. What does not go through a factory is a
+            // capture — it is deserialised field by field — so a file holding a status without
+            // a reason lands here. That is the one input, and
+            // ScheduledTasksTests.A_capture_holding_a_failure_without_a_reason_still_says_what_it_could_not_read
+            // is the test that reaches it. Written down because the branch shipped unreachable
+            // and looked covered.
             findings.Add(Finding.Unread(
-                "scheduled-task", "planificateur de tâches", AuditGap.Refused, read.Diagnostic,
-                "Énumération refusée. Relancer en administrateur : une tâche planifiée "
-                + "resterait invisible.",
-                alongside: [.. (read.Gaps ?? []).Select(gap => $"{gap.Folder} — {gap.Reason}")]));
+                "scheduled-task", "planificateur de tâches", gap, read.Diagnostic,
+                gap is AuditGap.Refused
+                    ? "Énumération refusée. Relancer en administrateur : une tâche planifiée "
+                      + "resterait invisible."
+                    : "Énumération des tâches planifiées sans réponse : une tâche planifiée "
+                      + "resterait invisible.",
+                alongside: [.. (read.Gaps ?? []).Select(lost => $"{lost.Folder} — {lost.Reason}")]));
         }
 
         // System tasks share a handful of executables. Verifying each signature only

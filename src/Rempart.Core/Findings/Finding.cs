@@ -75,10 +75,10 @@ public enum AuditGap
     ///
     /// <para>
     /// Which of the two a gap is, the collector says, and it says so because it is the only
-    /// thing that knows. There is no rule spanning the providers to read it off: a single
-    /// <see cref="Providers.ReadStatus.AccessDenied"/> spells a refusal on one channel and a
-    /// failure on the next, and the diagnostic beside it is no better a witness —
-    /// <c>WmiRead.Failed</c> carries a reason and is not a denial, <c>WmiRead.AccessDenied</c>
+    /// thing that knows. There used to be no rule spanning the providers to read it off: a
+    /// single <see cref="Providers.ReadStatus.AccessDenied"/> spelled a refusal on one channel
+    /// and a failure on the next, and the diagnostic beside it was no better a witness —
+    /// <c>WmiRead.Failed</c> carried a reason and was not a denial, <c>WmiRead.AccessDenied</c>
     /// is a genuine refusal and carries none. Deriving the answer from either one is how a
     /// startup folder denied to a non-elevated scan came back as « no amount of rights changes
     /// this », which is the opposite of true and the reason this paragraph replaced the rule
@@ -86,21 +86,39 @@ public enum AuditGap
     /// </para>
     ///
     /// <para>
-    /// Two channels have since stopped needing the judgement to be delicate.
-    /// <c>DirectoryRead</c> and <c>HostsFileRead</c> split their one speaking state into
-    /// <c>Refused</c> and <c>Failed</c>, so their collectors branch on
-    /// <see cref="Providers.ReadStatus"/> and read no prose at all (#173). That is the shape to
-    /// copy where it is affordable — it is the difference between a contract and a convention —
-    /// but it is not a rule spanning the providers either, and the paragraph above still holds
-    /// for every channel that has not made the split.
+    /// <b>The first half of that has stopped being true and the second has not.</b> #173 split
+    /// <c>DirectoryRead</c> and <c>HostsFileRead</c>; #177 finished the layer, and
+    /// <c>ReadFactoryNamingTests</c> holds every factory carrying a
+    /// <see cref="Providers.ReadStatus"/> to reaching
+    /// <see cref="Providers.ReadStatus.AccessDenied"/> only through a name that says « refused »
+    /// — or through a <see cref="Providers.StatusFoldAttribute"/> that delegates to one, which is
+    /// declared, pinned, and owes a named test per branch. So the status is a witness across the
+    /// providers in a way the diagnostic never was and still is not:
+    /// <c>ScheduledTaskRead.PartiallyRefused</c> writes a sentence for a denial,
+    /// <c>DirectoryRead.Refused</c> writes one for an ACL, and <c>WmiRead.AccessDenied</c>
+    /// refuses in silence.
     /// </para>
     ///
     /// <para>
-    /// A collector knows which provider it asked and what that provider documents, so the
-    /// judgement is made at the call site, once per surface, in the open. What is enforced
-    /// centrally is only that the judgement is <em>made</em>: <see cref="Finding.Unread"/>
-    /// takes the value as a required argument and every other door names one in its own name,
-    /// so no site can reach an <see cref="AuditGap"/> without having chosen it.
+    /// <b>A witness is not a rule, and two sites here deliberately read something else.</b>
+    /// <c>BrowserExtensionsCollector</c> branches on a diagnostic being present, because on that
+    /// channel its presence is the whole event — a profile was lost — and the status says only
+    /// how; <see cref="Finding.WmiGap"/> two hundred lines below branches on a diagnostic being
+    /// <em>absent</em>, for the one channel that documents silence as the refusal and needs the
+    /// distinction on replays of captures older than the split. Both are argued where they sit.
+    /// What changed is that a collector now <em>may</em> read the status; nothing claims they all
+    /// do, and the sentence that did was wrong about these two.
+    /// </para>
+    ///
+    /// <para>
+    /// What that does not settle is which gap a status <em>deserves</em>, which is why the
+    /// judgement stays at the call site. A surface can answer <see cref="Providers.ReadStatus.Found"/>
+    /// and still be a hole, a collector that threw is neither of the two, and only the caller
+    /// knows whether zero is an answer on its own surface. So the judgement is made once per
+    /// surface, in the open, and what is enforced centrally is that it is <em>made</em>:
+    /// <see cref="Finding.Unread"/> takes the value as a required argument and every other door
+    /// names one in its own name, so no site can reach an <see cref="AuditGap"/> without having
+    /// chosen it.
     /// </para>
     /// </summary>
     Unreadable,
@@ -207,10 +225,10 @@ public sealed record Finding(
     /// them document the opposite: <c>DirectoryRead.Refused</c> and
     /// <c>HostsFileRead.Refused</c> are written by an ACL denial and always carry a reason,
     /// <c>FirewallState.Diagnostic</c> is « the read was attempted and refused », and
-    /// <c>ScheduledTaskRead.Partial</c> carries a reason for the <c>E_ACCESSDENIED</c> its own
-    /// interface calls « the one HRESULT that means elevate and retry ». Under that rule a
-    /// startup folder denied to a non-elevated scan — the commonest gap there is — came back
-    /// telling its reader that no amount of rights would change the answer.
+    /// <c>ScheduledTaskRead.PartiallyRefused</c> carries a reason for the <c>E_ACCESSDENIED</c>
+    /// its own interface calls « the one HRESULT that means elevate and retry ». Under that
+    /// rule a startup folder denied to a non-elevated scan — the commonest gap there is — came
+    /// back telling its reader that no amount of rights would change the answer.
     /// </para>
     ///
     /// <para>
@@ -279,6 +297,29 @@ public sealed record Finding(
     /// before they get here and two do not, so the rule that read the reason on its own sent
     /// the reader to elevate over a class the machine does not have. Only
     /// <see cref="Providers.ReadStatus.AccessDenied"/> can be a refusal at all.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Since #177 the status alone would answer for a live read, and the reason is kept
+    /// anyway.</b> Every factory carrying a <see cref="Providers.ReadStatus"/> that builds a
+    /// failure now says <c>Failed</c>, so a live read reaching here with
+    /// <see cref="Providers.ReadStatus.AccessDenied"/> was denied whatever it wrote. A
+    /// <em>replayed</em> one need not have been, and the two cases are not symmetric. A capture
+    /// taken before that split recorded <c>AccessDenied</c> <em>with a reason beside it</em> for
+    /// a repository that had merely stopped serving; reading the reason is what keeps that
+    /// snapshot answering what it answered when it was written, and lands it on
+    /// <see cref="AuditGap.Unreadable"/>, which is right.
+    /// </para>
+    ///
+    /// <para>
+    /// The other half of that had to be closed at the source instead, because no rule here could
+    /// have told it apart: <c>SnapshotWmiProvider</c> answered a bare <c>AccessDenied</c> — no
+    /// reason, indistinguishable from a genuine denial — for a query the capture simply never
+    /// held, so a replay sent its reader to elevate against a file already written. It answers
+    /// <c>WmiRead.Failed</c> with a sentence now. Which is also the warning the paragraph above
+    /// already carried, one interface over: a channel that denies <em>and</em> explains itself —
+    /// <c>ScheduledTaskRead.PartiallyRefused</c>, <c>DirectoryRead.Refused</c> — must not be
+    /// classified through here.
     /// </para>
     /// </summary>
     public static AuditGap WmiGap(ReadStatus status, string? diagnostic) =>

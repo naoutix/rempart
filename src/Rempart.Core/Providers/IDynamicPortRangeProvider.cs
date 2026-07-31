@@ -115,8 +115,15 @@ public sealed record DynamicPortRangeRead(
     public static DynamicPortRangeRead Found(DynamicPortRange range) =>
         new(ReadStatus.Found, range);
 
+    /// <summary>
+    /// Nobody could ask the machine. <b>There is no refusal factory on this read at all</b>,
+    /// and there is nothing to refuse: <c>netsh int ipv4 show dynamicport</c> reads a value
+    /// any account may read, and the branches that reach here are a binary that is not there,
+    /// a table that would not parse, and a capture taken before the range was collected. None
+    /// of the three is repaired by elevating.
+    /// </summary>
     public static DynamicPortRangeRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, null, reason);
+        new(ReadStatus.Failed, null, reason);
 
     /// <summary>
     /// What the judgement uses, and whether it was read. Kept as one call so no caller can
@@ -149,7 +156,18 @@ public sealed record DynamicPortRangeRead(
     /// too many costs a line of diff noise, while covering one too few is the churn the
     /// marker exists to stop.
     /// </para>
+    ///
+    /// <para>
+    /// <see cref="StatusFoldAttribute"/>: it answers <see cref="ReadStatus.Found"/> when at least
+    /// one table did and <see cref="ReadStatus.Failed"/> when none did, so it states no cause of
+    /// its own and picks the factory that does. Its two branches are held by
+    /// <c>DynamicPortRangeTests.Tables_that_agree_produce_one_band_and_no_diagnostic</c> and
+    /// <c>…No_table_answering_is_a_failed_read_and_not_a_default</c>, which the guard checks
+    /// exist. No branch of it reaches a refusal, and there is no refusal on this channel to
+    /// reach.
+    /// </para>
     /// </summary>
+    [StatusFold]
     public static DynamicPortRangeRead Combine(IReadOnlyList<(string Label, DynamicPortRange? Range)> tables)
     {
         var read = tables.Where(table => table.Range is not null).ToList();

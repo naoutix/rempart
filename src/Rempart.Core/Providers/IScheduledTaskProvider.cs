@@ -68,7 +68,28 @@ public sealed record TaskFolderGap(
     /// The call that was abandoned and the code it failed with. Carries no path, so that
     /// <see cref="Folder"/> stays the only place one has to be cleaned.
     /// </summary>
-    string Reason)
+    string Reason,
+
+    /// <summary>
+    /// Whether this particular folder was <em>denied</em>, as opposed to abandoned for any
+    /// other reason.
+    ///
+    /// <para>
+    /// The same fact as the first six words of <see cref="Reason"/>, in the only form a caller
+    /// may branch on. It is added because <see cref="ScheduledTaskRead"/> now has two partial
+    /// states to pick between and the choice is made from the gaps: deriving it by reading the
+    /// sentence back would be the prose-parsing this repository keeps refusing, and #175 was
+    /// opened precisely because a collector had quoted a summary instead of reading a field.
+    /// </para>
+    ///
+    /// <para>
+    /// Appended last and defaulted, so a capture written before it replays unchanged: absent
+    /// means « no denial was recorded against this folder », which is all an older capture
+    /// could distinguish anyway — its <c>ScheduledTaskRead.Status</c> is recorded beside it
+    /// and is what the collector reads.
+    /// </para>
+    /// </summary>
+    bool Denied = false)
 {
     /// <summary><c>E_ACCESSDENIED</c>, the one HRESULT that means "elevate and retry".</summary>
     private const uint AccessDeniedHResult = 0x80070005;
@@ -85,9 +106,9 @@ public sealed record TaskFolderGap(
     /// </para>
     /// </summary>
     public static TaskFolderGap Of(string folder, string call, int hresult) =>
-        new(folder, (uint)hresult == AccessDeniedHResult
-            ? $"{call} : accès refusé (0x80070005)"
-            : $"{call} : échec 0x{(uint)hresult:X8}");
+        (uint)hresult == AccessDeniedHResult
+            ? new(folder, $"{call} : accès refusé (0x80070005)", Denied: true)
+            : new(folder, $"{call} : échec 0x{(uint)hresult:X8}");
 }
 
 public sealed record ScheduledTaskRead(
@@ -115,34 +136,96 @@ public sealed record ScheduledTaskRead(
     /// </summary>
     IReadOnlyList<TaskFolderGap>? Gaps = null)
 {
+    /// <summary>The whole enumeration was refused. Elevation is the answer.</summary>
     public static readonly ScheduledTaskRead AccessDenied = new(ReadStatus.AccessDenied, []);
 
     public static ScheduledTaskRead Found(IReadOnlyList<ScheduledTask> tasks) =>
         new(ReadStatus.Found, tasks);
 
+    /// <summary>
+    /// The enumeration was attempted, did not complete, and was not denied: a COM call that
+    /// answered with something other than <c>E_ACCESSDENIED</c>, a scan wired with no task
+    /// enumerator, a capture holding nothing on this surface.
+    ///
+    /// <para>
+    /// <b>This is the one channel of the twelve that produced a wrong verdict rather than
+    /// merely a wrong name.</b> It spelled itself <see cref="ReadStatus.AccessDenied"/>, and
+    /// <c>ScheduledTasksCollector</c> answered <see cref="Findings.AuditGap.Refused"/> for
+    /// anything that was not <see cref="ReadStatus.Found"/> — so replaying a capture taken
+    /// before scheduled tasks were collected told its reader to re-run as administrator, and
+    /// exited <c>3</c> saying so. No console however elevated re-reads a snapshot.
+    /// </para>
+    /// </summary>
     public static ScheduledTaskRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, [], reason);
+        new(ReadStatus.Failed, [], reason);
 
     /// <summary>
-    /// What was walked, and what the walk abandoned. Same shape as
-    /// <see cref="ListeningPortRead.Partial"/> and <see cref="BrowserExtensionRead.Partial"/>,
-    /// for the same reason: the tasks that were read stay in the inventory and the gap is
-    /// named beside them. Dropping several hundred tasks because one folder refused would
-    /// trade one silence for another, and keeping them while saying nothing is the silence
-    /// this replaces.
+    /// What was walked, and what the walk abandoned, when at least one folder was
+    /// <em>denied</em>. Same shape as <see cref="ListeningPortRead.Partial"/> and
+    /// <see cref="BrowserExtensionRead.Partial"/>, for the same reason: the tasks that were
+    /// read stay in the inventory and the gap is named beside them. Dropping several hundred
+    /// tasks because one folder refused would trade one silence for another, and keeping them
+    /// while saying nothing is the silence this replaces.
+    ///
+    /// <para>
+    /// A walk that met a denial <em>and</em> a plain failure comes through here, because
+    /// elevation answers a part of what it lost and no other state can say that. Which
+    /// folders those are is in <see cref="TaskFolderGap.Denied"/>, one per gap, and the
+    /// collector prints them all.
+    /// </para>
     /// </summary>
     /// <remarks>
     /// The sentence counts and names nothing: the folders live in
     /// <see cref="TaskFolderGap.Folder"/>, one per gap, which is where the anonymiser can
     /// reach them and where a report reads them from.
     /// </remarks>
-    public static ScheduledTaskRead Partial(
+    public static ScheduledTaskRead PartiallyRefused(
         IReadOnlyList<ScheduledTask> tasks, IReadOnlyList<TaskFolderGap> gaps) =>
-        new(ReadStatus.AccessDenied, tasks,
-            $"{gaps.Select(gap => gap.Folder).Distinct(StringComparer.Ordinal).Count()} "
-            + "dossier(s) de tâches lu(s) partiellement : une tâche planifiée qui s'y "
-            + "trouve n'apparaît pas dans cet inventaire.",
-            gaps);
+        new(ReadStatus.AccessDenied, tasks, Summarise(gaps), gaps);
+
+    /// <summary>
+    /// The same walk when nothing it gave up was denied — a folder that answered with a COM
+    /// error, a task that would not say where it lives, the depth cap. The tasks are kept
+    /// exactly as above; what changes is the one thing the report turns into an instruction.
+    ///
+    /// <para>
+    /// Split from <see cref="PartiallyRefused"/> rather than left as one <c>Partial</c>
+    /// carrying a refusal: the previous round recorded the per-folder distinction as spillover
+    /// because it lived only inside the sentences, and a single factory could not be named for
+    /// what it built. Two can.
+    /// </para>
+    /// </summary>
+    public static ScheduledTaskRead PartiallyFailed(
+        IReadOnlyList<ScheduledTask> tasks, IReadOnlyList<TaskFolderGap> gaps) =>
+        new(ReadStatus.Failed, tasks, Summarise(gaps), gaps);
+
+    /// <summary>
+    /// The walk's own account of what it lost, picking the state from the gaps rather than
+    /// from the caller — the HRESULTs are read in one place, <see cref="TaskFolderGap.Of"/>,
+    /// and this is where that reading is turned into the answer a collector branches on.
+    ///
+    /// <para>
+    /// <see cref="StatusFoldAttribute"/> because it answers <see cref="ReadStatus.AccessDenied"/>
+    /// on a denied gap and <see cref="ReadStatus.Failed"/> without one, and no single name states
+    /// both. Unmarked, that is indistinguishable from the defect of #177 — and it was: the guard
+    /// built this factory with an empty gap list, only ever saw <see cref="ReadStatus.Failed"/>,
+    /// and passed it. Its two branches are held by
+    /// <c>ScheduledTasksTests.A_partly_refused_walk_keeps_its_tasks_and_names_the_folder_it_lost</c>
+    /// and <c>…A_walk_that_lost_a_folder_without_being_refused_does_not_advise_elevation</c>,
+    /// which the guard checks exist.
+    /// </para>
+    /// </summary>
+    [StatusFold]
+    public static ScheduledTaskRead Partially(
+        IReadOnlyList<ScheduledTask> tasks, IReadOnlyList<TaskFolderGap> gaps) =>
+        gaps.Any(gap => gap.Denied)
+            ? PartiallyRefused(tasks, gaps)
+            : PartiallyFailed(tasks, gaps);
+
+    private static string Summarise(IReadOnlyList<TaskFolderGap> gaps) =>
+        $"{gaps.Select(gap => gap.Folder).Distinct(StringComparer.Ordinal).Count()} "
+        + "dossier(s) de tâches lu(s) partiellement : une tâche planifiée qui s'y "
+        + "trouve n'apparaît pas dans cet inventaire.";
 }
 
 /// <summary>

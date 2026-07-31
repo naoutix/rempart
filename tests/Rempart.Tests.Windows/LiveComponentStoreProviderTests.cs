@@ -44,9 +44,19 @@ public sealed class LiveComponentStoreProviderTests
         Assert.Contains("/English", LiveComponentStoreProvider.Arguments);
 
     /// <summary>
-    /// Whatever the privileges, the provider answers. Unelevated, the tool refuses with
-    /// code 740 before doing any work, and that must come back as a denial — never as an
-    /// exception, and never as a store of zero bytes.
+    /// Whatever the privileges, the provider answers — never an exception, never a store
+    /// of zero bytes. There are three answers, not two, and this test accepts all three
+    /// because which one a given machine gives is not ours to choose: the analysis
+    /// succeeds, or the tool refuses with code 740 before doing any work — a denial — or
+    /// the servicing stack does not answer within the budget, which is a failure.
+    ///
+    /// <para>
+    /// That third answer is why the set below names <see cref="ReadStatus.Failed"/>. Until
+    /// this batch the timeout was spelled <see cref="ReadStatus.NotFound"/>, so it slipped
+    /// through as an absence and this list did not have to mention it. A runner busy enough
+    /// to exceed the budget is the ordinary case, not the edge one — it is where this
+    /// distinction was found.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_run_without_elevation_degrades_instead_of_failing()
@@ -54,7 +64,8 @@ public sealed class LiveComponentStoreProviderTests
         var read = new LiveComponentStoreProvider(TimeSpan.FromMinutes(2)).Read();
 
         Assert.True(
-            read.Status is ReadStatus.Found or ReadStatus.AccessDenied or ReadStatus.NotFound,
+            read.Status is ReadStatus.Found or ReadStatus.AccessDenied
+                or ReadStatus.NotFound or ReadStatus.Failed,
             $"Statut inattendu : {read.Status}");
 
         if (read.Status == ReadStatus.Found)
@@ -70,5 +81,36 @@ public sealed class LiveComponentStoreProviderTests
             Assert.Null(read.ActualSizeBytes);
             Assert.Null(read.ReclaimableBytes);
         }
+    }
+
+    /// <summary>
+    /// A servicing stack that does not answer in time is a <b>failure</b>, not an absence.
+    ///
+    /// <para>
+    /// The test above accepts whichever answer the machine happens to give, so on a fast
+    /// machine it never reaches the timeout and the mapping goes unread — which is exactly
+    /// how the old spelling survived: the branch only fires on a loaded runner. Squeezing
+    /// the budget to nothing reaches it on any machine, and pins the distinction rather
+    /// than waiting for a busy one to reveal it.
+    /// </para>
+    ///
+    /// <para>
+    /// The distinction is not cosmetic. An absence is a legitimate answer about the
+    /// machine; a timeout is the tool admitting it did not look. Only the second one must
+    /// keep the reader from concluding anything about the store.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_store_that_does_not_answer_in_time_fails_rather_than_going_missing()
+    {
+        var read = new LiveComponentStoreProvider(TimeSpan.FromMilliseconds(1)).Read();
+
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotNull(read.Diagnostic);
+        Assert.Contains("n'a pas répondu", read.Diagnostic, StringComparison.Ordinal);
+
+        // Nothing is invented on the way out, exactly as in the denial branch.
+        Assert.Null(read.ActualSizeBytes);
+        Assert.Null(read.ReclaimableBytes);
     }
 }

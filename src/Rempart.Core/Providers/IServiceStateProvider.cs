@@ -39,12 +39,13 @@ public sealed record ServiceRead(
     /// </para>
     ///
     /// <para>
-    /// Null for a genuine refusal, written for a failure — that is the whole of what
-    /// separates them, because <see cref="ReadStatus"/> has no member for a failure. Giving
-    /// it one is the status-channel work, not this. Added <em>beside</em> the two existing
-    /// fields and defaulted to null, so a capture written before it replays exactly as it
-    /// did: absent means « no failure was recorded », which is what every older capture
-    /// meant.
+    /// Null for a genuine refusal, written for a failure. That used to be the <em>whole</em>
+    /// of what separated them, because <see cref="ReadStatus"/> had no member for a failure;
+    /// since #173 it has one and since #177 this read uses it, so the separation is now in the
+    /// field a caller branches on and this one only decides what gets printed. Added
+    /// <em>beside</em> the two existing fields and defaulted to null, so a capture written
+    /// before it replays exactly as it did: absent means « no failure was recorded », which is
+    /// what every older capture meant.
     /// </para>
     /// </summary>
     string? Diagnostic = null)
@@ -55,10 +56,14 @@ public sealed record ServiceRead(
     public static ServiceRead Found(ServiceInfo info) => new(ReadStatus.Found, info);
 
     /// <summary>
-    /// A read that failed, naming what failed. <see cref="ReadStatus.AccessDenied"/> like
-    /// every other failed read in this namespace — the enum has no fourth member — so the
-    /// verdict it produces is unchanged: <c>Unknown</c>, excluded from the score, never
-    /// <c>Fail</c>.
+    /// A read that failed, naming what failed. <see cref="ReadStatus.Failed"/> since #177 —
+    /// it said <see cref="ReadStatus.AccessDenied"/> while the enum had no fourth member, and
+    /// went on saying it for two issues after one was added. The verdict it produces is
+    /// deliberately unchanged: <c>Unknown</c>, excluded from the score, never <c>Fail</c>.
+    /// <c>CheckReader.ReadService</c> is what keeps that true, and it had to be widened in the
+    /// same commit — a check whose read fell through to « absent » would have been compared
+    /// against the rule and could have come back <c>Fail</c> for a service control manager
+    /// nobody managed to open.
     ///
     /// <para>
     /// What changes is that the reason reaches <c>Verdict.Observed</c>, and from there every
@@ -73,7 +78,7 @@ public sealed record ServiceRead(
     /// </para>
     /// </summary>
     public static ServiceRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, null, reason);
+        new(ReadStatus.Failed, null, reason);
 }
 
 /// <summary>

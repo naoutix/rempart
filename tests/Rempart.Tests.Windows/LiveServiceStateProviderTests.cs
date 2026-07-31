@@ -145,6 +145,16 @@ public sealed class LiveServiceStateProviderTests
     /// set by the registry functions that are called by the service control manager », so a
     /// 1060 from them is an unexplained code and has to surface as one.
     /// </para>
+    ///
+    /// <para>
+    /// It stops borrowing the refusal here too, since #177: <c>ServiceRead.Failed</c> carries
+    /// <see cref="ReadStatus.Failed"/>. Both « not an absence » and « not a refusal » are
+    /// asserted below, the first being the one the paragraph above is about — it is the arm
+    /// where a wrong reading becomes a critical <c>Fail</c> — and that the verdict is still
+    /// <c>Unknown</c> is held one project over, by
+    /// <c>ServiceCheckTests.A_failed_read_stays_unverifiable_and_says_what_failed</c>, which
+    /// runs on the Linux job where <c>CheckReader</c> is reachable.
+    /// </para>
     /// </summary>
     [Theory]
     [InlineData("OpenSCManager")]
@@ -154,7 +164,9 @@ public sealed class LiveServiceStateProviderTests
     {
         var read = LiveServiceStateProvider.Classify(api, 1060);
 
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.NotFound, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.Null(read.Info);
         Assert.Contains("1060", read.Diagnostic!, StringComparison.Ordinal);
         Assert.Contains(api, read.Diagnostic!, StringComparison.Ordinal);
@@ -178,7 +190,7 @@ public sealed class LiveServiceStateProviderTests
     {
         var read = LiveServiceStateProvider.Classify("QueryServiceStatusEx", 0);
 
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
         Assert.Null(read.Info);
         Assert.NotNull(read.Diagnostic);
         Assert.Contains("QueryServiceStatusEx", read.Diagnostic, StringComparison.Ordinal);

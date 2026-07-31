@@ -252,7 +252,7 @@ public class AutorunsTests
     /// The refusal does not cost the keys that answered. Four <c>Run</c> keys out of five
     /// still enumerate, and the entry they hold is judged as usual — dropping it because a
     /// neighbour refused would trade one silence for another, which is the rule
-    /// <c>ScheduledTaskRead.Partial</c> settled one issue ago.
+    /// <c>ScheduledTaskRead.Partially</c> settled one issue ago.
     /// </summary>
     [Fact]
     public void A_refused_run_key_does_not_cost_the_entries_of_the_keys_that_answered()

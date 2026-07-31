@@ -15,6 +15,23 @@
     <!-- Fails compilation on any Native AOT-incompatible usage, rather than
          discovering it at binary publish time. -->
     <IsAotCompatible>true</IsAotCompatible>
+
+    <!-- Not for the .xml files, which nothing ships: for CS1574. This repository argues in
+         doc comments and cross-references them heavily, and without the documentation pass
+         the compiler never looks at a <see cref>. Renaming ScheduledTaskRead.Partial left a
+         dangling one in IWmiProvider, a line above the paragraph the same commit rewrote,
+         and the build stayed at "0 Avertissement(s)". Turning this on found that one plus
+         three older ones across the two test projects; with TreatWarningsAsErrors above, a
+         cref cannot rot again.
+
+         The four suppressed are the ones this codebase disagrees with rather than obeys:
+         CS1591 wants a comment on every public member, CS1573 a <param> for every parameter
+         once any one of them has one, CS1587 forbids the per-parameter comments on record
+         positional declarations that this repository writes everywhere, and CS0419 fires on
+         a cref to a method name that has overloads. None of them can catch a reference that
+         points at nothing, which is the only thing being bought here. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1587;CS0419</NoWarn>
   </PropertyGroup>
 
 </Project>

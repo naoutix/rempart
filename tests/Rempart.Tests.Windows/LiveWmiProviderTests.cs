@@ -128,7 +128,27 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
             "Win32_EncryptableVolume",
             ["DriveLetter", "ProtectionStatus"]);
 
-        Assert.Contains(read.Status, new[] { ReadStatus.Found, ReadStatus.AccessDenied, ReadStatus.NotFound });
+        // What used to stand here was `Assert.Contains(read.Status, [Found, AccessDenied,
+        // NotFound])` — every member ReadStatus had at the time, so it asserted nothing
+        // beyond "the call returned". Adding `Failed` to that list would restore the
+        // vacuity; what the test is named after is asserted instead.
+        //
+        // « Cleanly refused » is not a status, it is the pairing the engine reads: a
+        // genuine denial carries no reason — that silence is what `Finding.WmiGap` keys
+        // on — and a failure that is not a denial carries one, so it can be reported as
+        // itself rather than as « relancer en administrateur ». Either way the rule turns
+        // into « non vérifiable », never into a non-compliance. A status added tomorrow
+        // leaves this assertion true rather than falsely red.
+        switch (read.Status)
+        {
+            case ReadStatus.AccessDenied:
+                Assert.Null(read.Diagnostic);
+                break;
+
+            case ReadStatus.Failed:
+                Assert.NotNull(read.Diagnostic);
+                break;
+        }
     }
 
     /// <summary>
@@ -308,9 +328,13 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         // call that was made handed over its object and every one of them must still be here.
         //
         // And the status on its value: NotFound would also be « pas Found » and would mean the
-        // machine has no processes, which is the reading the two collectors that branch on
-        // AccessDenied exactly would act on by staying silent.
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        // machine has no processes, which is the reading the two collectors that narrow their
+        // gap branch would act on by staying silent. Failed since #177, not AccessDenied — a
+        // deadline denied nothing — and those two collectors were widened to « AccessDenied or
+        // Failed » in the same commit, which is why this assertion is on the value and not on
+        // « pas Found »: narrowing them back turns this surface mute again.
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.Equal(enumeration.Calls, read.Instances.Count);
         Assert.NotEmpty(read.Instances);
     }
@@ -335,7 +359,8 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         var read = LiveWmiProvider.Drain(
             enumeration.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_SystemDriver");
 
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.NotNull(read.Diagnostic);
         Assert.Contains("Win32_SystemDriver", read.Diagnostic, StringComparison.Ordinal);
     }
@@ -373,12 +398,17 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         // On the value and not on « pas Found », because the two are not the same claim and
         // only one of them is true. NotFound also satisfies « pas Found », and it means « the
         // machine has none » — which is how UnquotedServicePathCollector and
-        // WmiSubscriptionsCollector read it: both open their gap finding on
-        // `Status == ReadStatus.AccessDenied`, so a deadline calling itself an absence goes
-        // out of those two surfaces as complete silence, no finding at all. The pair
-        // AccessDenied + a written diagnostic is what this repository means by « a failure,
-        // not a refusal »; the assertions below hold the second half.
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        // WmiSubscriptionsCollector read it: both open their gap finding on a narrow test of
+        // the status, so a deadline calling itself an absence goes out of those two surfaces
+        // as complete silence, no finding at all.
+        //
+        // Failed and not AccessDenied since #177. « A failure, not a refusal » used to be
+        // spelled AccessDenied + a written diagnostic — the pair, because the status alone
+        // could not say it — and it is now spelled by the status. The two collectors read
+        // `AccessDenied or Failed`, so this value reaches them; narrowing either back is what
+        // this assertion is against.
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
 
         Assert.NotNull(read.Diagnostic);
         Assert.Contains("Win32_SystemDriver", read.Diagnostic, StringComparison.Ordinal);
@@ -400,7 +430,8 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         var nothing = LiveWmiProvider.Drain(
             immediate.Next, ReadSlot, TimeSpan.FromSeconds(30), "Win32_Process");
 
-        Assert.Equal(ReadStatus.AccessDenied, nothing.Status);
+        Assert.Equal(ReadStatus.Failed, nothing.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, nothing.Status);
         Assert.NotNull(nothing.Diagnostic);
         Assert.DoesNotContain("instance(s)", nothing.Diagnostic, StringComparison.Ordinal);
     }
@@ -483,7 +514,7 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
     /// Both halves are asserted together, because it is their conjunction that is the fix.
     /// Not <c>Found</c> — the list is not the machine's inventory. And not empty either:
     /// dropping the three objects that did arrive would trade one silence for another, which
-    /// is what <c>ListeningPortRead.Partial</c> and <c>ScheduledTaskRead.Partial</c> exist to
+    /// is what <c>ListeningPortRead.Partial</c> and <c>ScheduledTaskRead.Partially</c> exist to
     /// prevent one interface over.
     /// </para>
     /// </summary>
@@ -829,7 +860,11 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         var drivers = new LiveDriverProvider(
             new OneAnswer(WmiRead.Failed("COM 0x80041014 : dépôt endommagé."))).Enumerate();
 
-        Assert.Equal(ReadStatus.AccessDenied, drivers.Status);
+        // The status travels too, and since #177 it is what separates the two halves of this
+        // test: a damaged repository projects to DriverRead's failure, a refused namespace to
+        // its denial. They were the same value here until this commit, and the pair of
+        // assertions below would have been one.
+        Assert.Equal(ReadStatus.Failed, drivers.Status);
         Assert.Empty(drivers.Drivers);
         Assert.Equal("COM 0x80041014 : dépôt endommagé.", drivers.Diagnostic);
 
