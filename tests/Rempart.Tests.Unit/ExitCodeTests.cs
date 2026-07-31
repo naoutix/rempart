@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Rempart.Core.Cli;
 using Rempart.Core.Collectors;
 using Rempart.Core.Diff;
@@ -15,7 +16,7 @@ namespace Rempart.Tests.Unit;
 /// The exit-code contract — the only thing a caller who reads nothing else gets.
 ///
 /// <para>
-/// These six codes were decided by two ternaries and a pair of <c>catch</c> blocks in
+/// The first six were decided by two ternaries and a pair of <c>catch</c> blocks in
 /// <c>Program.cs</c>, and nothing observed them. CI accepts <c>0</c>, <c>3</c> or <c>5</c>
 /// from a scan without telling them apart, so a build that returned 3 forever would stay
 /// green, and the day someone reordered the precedence a scheduled scan would silently
@@ -1001,12 +1002,106 @@ public sealed class ExitCodeTests
     /// <summary>
     /// Contiguous from zero, with no gap and no duplicate: a caller matching on the number
     /// has no hole to fall into, and a code reused for two meanings is caught here.
+    ///
+    /// <para>
+    /// The seventh, <c>6</c>, was added with the refusal of unknown options and had to be
+    /// written down here — which is the point of asserting the list rather than a ceiling. A
+    /// code is a contract with whoever reads nothing else, so it costs an edit to a test
+    /// somebody has to justify.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_codes_are_contiguous_from_zero()
     {
-        Assert.Equal([0, 1, 2, 3, 4, 5], ExitCodes.All.Select(code => (int)code));
+        Assert.Equal([0, 1, 2, 3, 4, 5, 6], ExitCodes.All.Select(code => (int)code));
         Assert.Equal(ExitCodes.All.Count, ExitCodes.All.Distinct().Count());
+    }
+
+    /// <summary>
+    /// The tables the documents print list the codes the tool returns — the same claim
+    /// <see cref="ExitCodes.HelpBlock"/> makes about the help, one file over.
+    ///
+    /// <para>
+    /// It is the same defect too, and it recurred immediately. The seventh code was added,
+    /// <c>rempart help</c> derived it, README was updated to say seven, and the « ### Exit
+    /// codes » section of ARCHITECTURE.md went on listing six — in the paragraph that calls
+    /// <c>ExitCodes.cs</c> « the single source » and congratulates itself that « the help
+    /// cannot list a code the tool does not return — which it did, for code 4, for months ».
+    /// A source is only single if the copies are held to it.
+    /// </para>
+    ///
+    /// <para>
+    /// Equality in both directions: a code the table omits is a caller who reads the document
+    /// and does not handle what they will receive, and a code the table invents is a branch
+    /// written against something the tool cannot answer. The row shape is the one both files
+    /// use — the number alone in the first cell, in backticks — and the count assertion is
+    /// what says out loud that the tables were found at all.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_document_that_tabulates_the_exit_codes_lists_the_ones_the_tool_returns()
+    {
+        var declared = ExitCodes.All.Select(code => (int)code).ToHashSet();
+
+        foreach (var document in new[] { "README.md", "docs/ARCHITECTURE.md" })
+        {
+            var tabulated = Regex
+                .Matches(RepositoryFiles.Read(document), @"(?m)^\|\s*`(\d+)`\s*\|")
+                .Select(match => int.Parse(match.Groups[1].Value))
+                .ToHashSet();
+
+            Assert.True(tabulated.Count > 0,
+                $"{document} ne tabule plus aucun code de sortie, ou plus sous la forme que "
+                + "cette garde lit : elle passerait au vert quelle que soit la table écrite.");
+
+            Assert.True(tabulated.SetEquals(declared),
+                $"La table des codes de sortie de {document} et ExitCodes.All ont divergé. "
+                + $"Rendus par l'outil et absents du document : {Join(declared.Except(tabulated))}. "
+                + $"Documentés et jamais rendus : {Join(tabulated.Except(declared))}. "
+                + "Un appelant qui lit ce document écrit son test sur un contrat que l'outil "
+                + "n'a plus.");
+        }
+    }
+
+    private static string Join(IEnumerable<int> codes)
+    {
+        var listed = codes.OrderBy(code => code).ToList();
+        return listed.Count == 0 ? "aucun" : string.Join(", ", listed);
+    }
+
+    /// <summary>
+    /// A line the tool could not understand is not a run that failed, and the one channel a
+    /// scheduler reads has to tell them apart.
+    ///
+    /// <para>
+    /// <c>1</c> says something was attempted and broke — the machine is the suspect, and
+    /// retrying is a reasonable thing to do about it. A misspelt option is neither: nothing
+    /// was attempted, and no number of retries will make the word exist. Reusing <c>1</c>
+    /// would have been free of contract and wrong for exactly the reason <c>3</c> and
+    /// <c>5</c> were separated.
+    /// </para>
+    ///
+    /// <para>
+    /// That the number also reddens CI rather than passing for a partial audit is not
+    /// asserted here. Writing <c>0, 3, 5</c> into this file would be a third copy of the
+    /// gate, drifting the day a workflow moves — the failure <c>BuildChainParityTests</c>
+    /// exists for. It reads the gate off the workflows and <c>verify.ps1</c> instead, in
+    /// <c>A_usage_error_is_never_a_code_the_build_chain_accepts</c>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_line_that_was_not_understood_is_not_a_run_that_failed()
+    {
+        var refusal = Usage.Check("scan", ["scan", "--replay", "capture.json"]);
+
+        Assert.True(refusal is not null,
+            "« rempart scan --replay capture.json » n'est plus refusée du tout : il n'y a pas "
+            + "de code de sortie à vérifier ici, parce que la ligne part scanner la machine "
+            + "locale comme avant.");
+
+        Assert.Equal(ExitCode.Usage, refusal!.Code);
+        Assert.NotEqual(ExitCode.Failure, refusal.Code);
+        Assert.Contains(ExitCode.Usage, ExitCodes.All);
     }
 
     /// <summary>

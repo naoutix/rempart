@@ -152,6 +152,7 @@ jobs:
         run: |
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
           & $exe scan
+          $code = $LASTEXITCODE
           # 0 = saw everything, 3 = a collector was refused, 5 = a control could not be
           # evaluated. All three are acceptable *here*: what this step proves is that the
           # published binary runs a scan end to end, not that the runner is well configured.
@@ -159,7 +160,39 @@ jobs:
           # unverifiable even from an elevated console when the WMI class is absent, so
           # elevating the runner would not turn this into a 0. Narrowing the set back to
           # {0, 3} after elevating would redden a correct build.
-          if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "rempart scan failed ($LASTEXITCODE)" }
+          if ($code -notin @(0, 3, 5)) { throw "rempart scan failed ($code)" }
+          # Tolerating 3 and 5 in the test above buys nothing if the step then exits on that
+          # same code: the runner would redden a build this step has just declared correct.
+          # It has never fired only because the runner's scan comes back 0 today.
+          exit 0
+
+      - name: A line the tool cannot honour scans nothing
+        shell: pwsh
+        run: |
+          # DET-OPTION-INCONNUE, on the binary. Usage.Check is a pure function of Core and
+          # every test of it passes with the call missing from Program.cs -- which this job
+          # is the only one to compile. Two single-token mutations there reopen the defect
+          # end to end with the whole suite green: dropping the `return` from the refusal
+          # branch printed « Rien n'a été exécuté » and then scanned the machine anyway,
+          # and handing the check the exempted command word rescanned it silently. No
+          # textual guard substitutes for running the thing. Both spellings of the same
+          # sentence: the option that does not exist -- the replay option is `--from` --
+          # and the capture path typed without it.
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe scan --replay nowhere.json
+          $code = $LASTEXITCODE
+          if ($code -ne 6) { throw "an unknown option was not refused ($code)" }
+
+          & $exe scan nowhere.json
+          $code = $LASTEXITCODE
+          if ($code -ne 6) { throw "a bare argument was not refused ($code)" }
+
+          # The refusal this step demands is the step's own last exit code, and the runner
+          # reads that trailing code as the step's verdict: on the first run both probes
+          # printed the right refusal, neither `throw` fired, and the step failed anyway.
+          # Every other probe in this job ends on a command that must return 0, which is why
+          # no step had ever met this. Say the success rather than inherit it.
+          exit 0
 
       - name: WMI responds from the AOT binary
         shell: pwsh

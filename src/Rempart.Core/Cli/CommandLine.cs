@@ -1,6 +1,24 @@
 namespace Rempart.Core.Cli;
 
 /// <summary>
+/// The arguments past the command word, sorted into the two kinds a caller can judge on its
+/// own: the options, and the bare arguments.
+///
+/// <para>
+/// A third kind is in neither list, deliberately — the token a value-taking option swallowed.
+/// <c>explain --rules d</c> yields <c>Options = ["--rules"]</c> and no positional at all:
+/// <c>"d"</c> is spoken for by the option that took it, and a caller judging it on its own
+/// would refuse a line that works. What is true, and what a caller refusing what it does not
+/// recognise depends on, is the rest: every token that is <em>not</em> the value of an option
+/// appears in exactly one of the two lists. A token in neither used to be a token that
+/// reached nothing and was never reported.
+/// </para>
+/// </summary>
+public sealed record ArgumentSplit(
+    IReadOnlyList<string> Options,
+    IReadOnlyList<string> Positional);
+
+/// <summary>
 /// The hand-written argument parser — sixty lines that decide which file gets read and
 /// which folder gets written to.
 ///
@@ -73,14 +91,44 @@ public static class CommandLine
     /// The hand-written parser has no notion of arity, so a bare scan of non-dash tokens
     /// would take the folder in <c>--report ./out</c> for a file to compare.
     /// </summary>
-    public static IReadOnlyList<string> Positional(string[] args, IReadOnlyList<string> valueTaking)
+    public static IReadOnlyList<string> Positional(string[] args, IReadOnlyList<string> valueTaking) =>
+        Split(args, valueTaking).Positional;
+
+    /// <summary>
+    /// Every token past the command word, each said to be an option or a bare argument.
+    ///
+    /// <para>
+    /// One walk answering both questions, rather than two walks that would have to agree.
+    /// A token this parser counts as neither is a token that reaches nothing and is never
+    /// reported — which is the whole of DET-OPTION-INCONNUE: <c>rempart scan --replay
+    /// capture.json</c> scanned the local machine because <c>--replay</c> fell between the
+    /// two, and <c>rempart scan capture.json</c> did the same because nobody asked what the
+    /// bare half held. <see cref="Positional"/> is this walk, and <see cref="Usage.Check"/>
+    /// reads both halves of it — the options against what the command declares, the bare
+    /// arguments against how many it declares. Sharing the loop is what stops the two from
+    /// drawing the value/argument line differently, which they would then be free to do
+    /// silently.
+    /// </para>
+    ///
+    /// <para>
+    /// The line between a value and an option is the one <c>Positional</c> already drew and
+    /// is not moved here: a value-taking option swallows the next token only when it does
+    /// not itself start with a dash. So <c>--from --replay</c> leaves <c>--replay</c> on the
+    /// option side even though <see cref="OptionValue"/> would hand it back as a value. The
+    /// parser cannot tell the two apart, and this is the reading that lets somebody be told.
+    /// </para>
+    /// </summary>
+    public static ArgumentSplit Split(string[] args, IReadOnlyList<string> valueTaking)
     {
+        var options = new List<string>();
         var positional = new List<string>();
 
         for (var i = 1; i < args.Length; i++)
         {
             if (args[i].StartsWith('-'))
             {
+                options.Add(args[i]);
+
                 if (valueTaking.Contains(args[i]) && i + 1 < args.Length
                     && !args[i + 1].StartsWith('-'))
                 {
@@ -93,7 +141,7 @@ public static class CommandLine
             positional.Add(args[i]);
         }
 
-        return positional;
+        return new ArgumentSplit(options, positional);
     }
 
     /// <summary>

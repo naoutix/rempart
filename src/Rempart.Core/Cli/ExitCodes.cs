@@ -56,6 +56,32 @@ public enum ExitCode
     /// </para>
     /// </summary>
     Partial = 5,
+
+    /// <summary>
+    /// The command line was not understood, and nothing was run.
+    ///
+    /// <para>
+    /// Its own code rather than <see cref="Failure"/>, and the distinction is the same one
+    /// the five above are ordered by — what the caller can do about it. <c>1</c> says a run
+    /// was attempted and broke: the machine is the suspect, and a scheduler that retries on
+    /// it is doing something reasonable. Here nothing was attempted, the machine is not the
+    /// suspect, and the remedy is to retype the line — a retry loop on <c>1</c> would run
+    /// forever against a word that will never exist. Both codes fall outside what the build
+    /// chain accepts from a scan, so a usage error reddens CI either way; what a new number
+    /// buys is that the caller can tell the two apart, which is the whole argument for
+    /// having more than two codes at all. That it really is outside is not asserted from a
+    /// number retyped here but read off the workflows and <c>verify.ps1</c> themselves, by
+    /// <c>BuildChainParityTests.A_usage_error_is_never_a_code_the_build_chain_accepts</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// It never competes with the precedence <see cref="ExitCodes.ForScan"/> arbitrates:
+    /// that function answers for a finished scan, and a line <see cref="Usage.Check"/>
+    /// refused never reaches one. Seventh and contiguous, which is what
+    /// <c>The_codes_are_contiguous_from_zero</c> holds.
+    /// </para>
+    /// </summary>
+    Usage = 6,
 }
 
 /// <summary>An exit code and the sentence printed on stderr alongside it.</summary>
@@ -76,6 +102,7 @@ public static class ExitCodes
         ExitCode.InsufficientPrivileges,
         ExitCode.Regression,
         ExitCode.Partial,
+        ExitCode.Usage,
     ];
 
     public static string Describe(ExitCode code) => code switch
@@ -86,6 +113,7 @@ public static class ExitCodes
         ExitCode.InsufficientPrivileges => "droits insuffisants",
         ExitCode.Regression => "régression",
         ExitCode.Partial => "audit partiel",
+        ExitCode.Usage => "erreur d'usage",
         _ => throw new ArgumentOutOfRangeException(nameof(code)),
     };
 
@@ -142,7 +170,7 @@ public static class ExitCodes
     /// <para>
     /// <see cref="AuditGap.Unreadable"/> therefore joins the unevaluable rule on the weakest
     /// rung rather than taking one of its own. That is deliberate and it is what makes the
-    /// change free of contract: the codes stay six and contiguous, and CI already accepts
+    /// change free of contract: it added no code at all, and CI already accepts
     /// <c>0</c>, <c>3</c> and <c>5</c> from a scan — see the two workflows, which check
     /// <c>-notin @(0, 3, 5)</c>. A gap that used to answer 3 now answers 5, and no caller
     /// that was green stops being green.

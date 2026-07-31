@@ -262,6 +262,21 @@ if (-not $SkipPublish) {
                 # memes controles non verifiables, et rend le meme code.
                 if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "le rejeu a echoue ($LASTEXITCODE)" }
 
+                # DET-OPTION-INCONNUE, sur le binaire. Usage.Check est une fonction pure de
+                # Core que toute la suite eprouve ; ce qui la relie a une ligne de commande
+                # tient en quatre jetons de Program.cs, que le job Linux ne compile pas. Deux
+                # mutations d'un seul jeton y rouvrent le defaut de bout en bout avec 1027
+                # tests verts : supprimer le « return » de la branche de refus, et passer au
+                # controle le mot de commande exempte. Aucune garde textuelle ne remplace le
+                # fait de lancer le binaire. Les deux formes de la meme phrase :
+                # « --replay » n'existe pas -- l'option de rejeu est « --from » --
+                & .\rempart.exe scan --replay t.capture.json | Out-Null
+                if ($LASTEXITCODE -ne 6) { throw "une option inconnue n'a pas ete refusee ($LASTEXITCODE)" }
+
+                # ... et le chemin de la capture tape sans son option.
+                & .\rempart.exe scan t.capture.json | Out-Null
+                if ($LASTEXITCODE -ne 6) { throw "un argument nu n'a pas ete refuse ($LASTEXITCODE)" }
+
                 # Les memes commandes que le job publish-aot passe au binaire publie, et
                 # pour la meme raison : la suite Windows tourne sous JIT, ou l'interop COM
                 # ne se comporte pas pareil. Un defaut d'interop a deja laisse WMI mort

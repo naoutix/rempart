@@ -172,7 +172,7 @@ rempart/
 ├── Directory.Packages.props    # every package version, declared centrally
 ├── src/
 │   ├── Rempart.Cli/            # net10.0-windows — the host, and only the host
-│   │   ├── Program.cs          # 29 lines: console encoding, dispatch, exception → exit code
+│   │   ├── Program.cs          # 40 non-empty lines: encoding, usage refusal, dispatch, exit code
 │   │   ├── CommandTable.cs     # command word → command class, written out by hand
 │   │   ├── CliHost.cs          # what two or more commands share, and only the host can answer
 │   │   └── Commands/           # one class per command: scan, report, diff, index, capture,
@@ -225,14 +225,17 @@ rempart/
 
 ## The executable is a host, and nothing more
 
-[ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) (French). `Program.cs` is
-**29 non-empty lines**: it sets the console to UTF-8, hands the first word to the
-dispatch table, and turns an escaped exception into an exit code. It used to be that
-plus sixteen commands in the same file, growing every milestone.
+[ADR-005](adr/ADR-005-decoupage-de-la-couche-cli.md) (French). `Program.cs` is **40
+non-empty lines**: it sets the console to UTF-8, refuses a command line the tool cannot
+honour, hands the first word to the dispatch table, and turns an escaped exception into
+an exit code. It used to be that plus sixteen commands in the same file, growing every
+milestone. The refusal is there rather than inside a command because it has to come
+*before* one: behind the dispatch it would report an undeclared option once `scan` had
+read the machine and written the report.
 
 ```mermaid
 flowchart TB
-    ARGS["args"] --> PROG["Program.cs — 29 lines<br/>UTF-8 · dispatch · exception → exit code"]
+    ARGS["args"] --> PROG["Program.cs — 40 non-empty lines<br/>UTF-8 · usage refusal · dispatch · exception → exit code"]
     PROG --> TABLE["CommandTable<br/>command word → command class"]
     TABLE --> CMDS["Commands/<br/>20 classes, one per command"]
     CMDS --> HOST["CliHost<br/>what two or more commands share:<br/>base directory, clock, console, hidden input"]
@@ -602,6 +605,13 @@ list a code the tool does not return — which it did, for code 4, for months.
 | `3` | droits insuffisants | A **surface** was denied — re-run elevated |
 | `4` | régression | `diff` found a control that used to pass |
 | `5` | audit partiel | A **rule** came back `Unknown`, or a **surface** answered with a failure — the score covers less than the machine, and nothing the caller does to the run changes that |
+| `6` | erreur d'usage | The command line named something the command does not declare — an option, a bare argument, or an option left without its value. **Nothing ran**, so the machine is not the suspect and a retry loop is the wrong answer: the remedy is to retype the line |
+
+`6` is not `1`, and the distance between them is the same one the five above are ordered
+by — what the caller can do about it. `1` says a run was attempted and broke, which is
+something a scheduler may reasonably retry; a word that will never exist is not. Both
+fall outside what the build chain accepts from a scan, so a usage error reddens CI
+either way; what the seventh number buys is that the caller can tell the two apart.
 
 `3` and `5` are deliberately distinct: the first says a surface was denied and hands
 the caller a key, the second that part of the audit has no answer the caller can go

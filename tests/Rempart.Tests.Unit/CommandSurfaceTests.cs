@@ -69,6 +69,21 @@ public sealed class CommandSurfaceTests
         RegexOptions.Compiled);
 
     /// <summary>
+    /// The fallback arm of the dispatch table — the class an unrecognised word runs.
+    /// </summary>
+    private static readonly Regex FallbackRow = new(
+        @"_\s*=>\s*(\w+)\.Run",
+        RegexOptions.Compiled);
+
+    /// <summary>
+    /// A shared helper of <c>CliHost</c>, as a command calls it: name only, since
+    /// <c>using static</c> is how the commands reach them.
+    /// </summary>
+    private static readonly Regex HostMember = new(
+        @"^ {4}public static [^\n(]*?(\w+)\s*\(",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+
+    /// <summary>
     /// The shape of a hand-written list of value-taking options, as <c>diff</c> and
     /// <c>index</c> used to open one.
     /// </summary>
@@ -233,6 +248,92 @@ public sealed class CommandSurfaceTests
             "Une commande lit une option qui n'est pas déclarée pour elle : "
             + $"{Join(misattributed)}. ValueTaking rendra donc une liste incomplète, et "
             + "Positional prendra la valeur de cette option pour un argument.");
+    }
+
+    /// <summary>
+    /// The options a command inherits from a shared helper are declared for that command too
+    /// — the half of the attribution the guard above cannot see.
+    ///
+    /// <para>
+    /// <c>--rules</c>, <c>--store</c> and <c>--analyze-store</c> are read inside
+    /// <c>CliHost</c> and in no command file at all. The per-command guard above therefore
+    /// walks straight past them, and the global one is satisfied by <em>any</em> command
+    /// declaring them anywhere — so which commands actually inherit them was, until here,
+    /// held by nothing.
+    /// </para>
+    ///
+    /// <para>
+    /// That gap used to cost a mis-parsed positional argument. Since unknown options are
+    /// refused it costs a command line that works: let a command start calling
+    /// <c>StoreDirectory(args)</c> without declaring <c>--store</c>, and
+    /// <c>rempart &lt;commande&gt; --store D:\donnees</c> exits 6 on a line the command reads
+    /// perfectly well. A refusal that turns on the tool's own users is worse than the silence
+    /// it closed, which is why closing this belongs in the same change as the refusal and not
+    /// after it.
+    /// </para>
+    ///
+    /// <para>
+    /// The helper-to-option map is read off <c>CliHost.cs</c> and closed over the calls the
+    /// helpers make to each other, so <c>ResolveLiveCatalog</c> answers for the
+    /// <c>--store</c> and <c>--rules</c> it reaches through two other helpers rather than
+    /// appearing to read nothing. Comments come out first: a helper named in a doc comment is
+    /// a mention and not a call, and counting one would attribute options to commands that
+    /// never touch them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_option_a_command_inherits_from_a_shared_helper_is_declared_for_that_command()
+    {
+        var optionsOfHelper = HelperOptions();
+
+        // The premise, and it is the whole test: were CliHost to stop reading options — or
+        // were this parser to stop seeing them — every command below would be compared
+        // against nothing and the guard would pass by having found nothing to check.
+        Assert.NotEmpty(optionsOfHelper);
+
+        var byClass = TableRow.Matches(Read("src/Rempart.Cli/CommandTable.cs"))
+            .ToDictionary(m => m.Groups[2].Value, m => m.Groups[1].Value, StringComparer.Ordinal);
+
+        var undeclared = new List<string>();
+        var inherited = 0;
+
+        foreach (var path in CommandFiles())
+        {
+            if (!byClass.TryGetValue(Path.GetFileNameWithoutExtension(path), out var command))
+            {
+                continue;
+            }
+
+            var declared = (CommandSurface.Find(command)?.Options ?? [])
+                .Select(option => option.Name)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var body = WithoutComments(File.ReadAllText(path));
+
+            foreach (var (helper, options) in optionsOfHelper)
+            {
+                if (!Regex.IsMatch(body, $@"\b{helper}\s*\("))
+                {
+                    continue;
+                }
+
+                inherited += options.Count;
+
+                undeclared.AddRange(options
+                    .Where(option => !declared.Contains(option))
+                    .Select(option => $"{command} hérite {option} de {helper}"));
+            }
+        }
+
+        Assert.True(inherited > 0,
+            "Aucune commande n'appelle un helper de CliHost qui lit une option : soit le "
+            + "partage a disparu, soit cette garde ne sait plus reconnaître un appel.");
+
+        Assert.True(undeclared.Count == 0,
+            "Une commande lit une option par un helper partagé sans la déclarer : "
+            + $"{Join(undeclared.Distinct(StringComparer.Ordinal))}. Cette option sera "
+            + "refusée par Usage.Check sur une ligne que la commande lit pourtant, et le "
+            + "refus tombera sur l'utilisateur au lieu de tomber ici.");
     }
 
     /// <summary>
@@ -407,6 +508,246 @@ public sealed class CommandSurfaceTests
     }
 
     /// <summary>
+    /// The refusal of unknown options is wired into the entry point, and wired <em>before</em>
+    /// the dispatch.
+    ///
+    /// <para>
+    /// <see cref="Usage.Check"/> is a pure function in Core, so every test of it passes with
+    /// the call missing from <c>Program.cs</c> — the check would be written, tested, and
+    /// reach no command line. That is D2 one directory over, and this repository has shipped
+    /// that omission three times. Reading the source is the only way to see it: the Linux job
+    /// does not compile <c>Rempart.Cli</c>, so nothing here can call the entry point.
+    /// </para>
+    ///
+    /// <para>
+    /// Order is half the claim and the half that matters. Behind the dispatch, the check
+    /// would print its refusal after <c>scan</c> had already read the machine and written a
+    /// report — the exact harm, with a sentence added at the end. The single
+    /// <c>Dispatch</c> call is asserted with it: a second one is a second way in, and it
+    /// would not have to pass this door.
+    /// </para>
+    ///
+    /// <para>
+    /// Order alone is not the claim, and reading it as such is how this guard came to hold
+    /// nothing. Two mutations of one token each left it green and reopened the defect end to
+    /// end: deleting the <c>return</c> from the refusal branch — the check ran, printed
+    /// « Rien n'a été exécuté », and fell through to the scan, so the sentence became an
+    /// active lie — and passing <see cref="Usage.Fallback"/> instead of the resolved command
+    /// word, which is the exempted command and refuses nothing, silently. So the shape is
+    /// asserted, not the ordering of two <c>IndexOf</c>: the check is given <em>the same two
+    /// identifiers the dispatch is given</em>, and its answer leaves by a <c>return</c>
+    /// carrying its own code. Reading the source is the only way to see any of it — the Linux
+    /// job does not compile <c>Rempart.Cli</c> — and a textual guard is what that costs; what
+    /// it does not excuse is a textual guard that reads less than the line it is watching.
+    /// The other half is <c>scripts/verify.ps1</c> and the publish job, which run the built
+    /// binary on a line the tool must refuse; that is the only place the door is really
+    /// walked through, and <c>BuildChainParityTests</c> holds it there.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_usage_check_runs_before_the_dispatch()
+    {
+        var program = Read("src/Rempart.Cli/Program.cs");
+
+        var dispatch = Regex.Match(program,
+            @"CommandTable\.Dispatch\(\s*(?<command>\w+)\s*\)\(\s*(?<args>\w+)\s*\)");
+
+        Assert.True(dispatch.Success,
+            "Program.cs n'appelle plus CommandTable.Dispatch(<mot>)(<arguments>) : cette garde "
+            + "ne sait plus dire où passe la ligne de commande, ni avec quoi, et ne garde donc "
+            + "plus rien.");
+
+        var word = dispatch.Groups["command"].Value;
+        var arguments = dispatch.Groups["args"].Value;
+
+        // The whole refusal branch, and nothing less: the condition names what is checked, the
+        // body names what becomes of the answer. Split into two assertions the two mutations
+        // walk straight between.
+        var guard = Regex.Match(program,
+            $@"if\s*\(\s*Usage\.Check\(\s*{word}\s*,\s*{arguments}\s*\)\s+is\s+\{{\s*\}}\s*"
+            + @"(?<refusal>\w+)\s*\)\s*\{(?<body>(?:[^{}]|\{[^{}]*\})*)\}");
+
+        Assert.True(guard.Success,
+            $"Program.cs ne contient pas « if (Usage.Check({word}, {arguments}) is {{ }} … ) "
+            + "{ … } ». Le refus des options inconnues est écrit et testé dans Core, et soit "
+            + "aucune ligne de commande ne le rencontre, soit il est interrogé sur autre chose "
+            + $"que les deux valeurs remises au dispatch — « {word} » et « {arguments} ». "
+            + "Interrogé sur « Usage.Fallback », par exemple, il rend toujours null : « rempart "
+            + "scan --replay capture.json » rescanne la machine locale sans un mot.");
+
+        var refusal = guard.Groups["refusal"].Value;
+
+        Assert.True(
+            Regex.IsMatch(guard.Groups["body"].Value, $@"return\s*\(int\)\s*{refusal}\.Code\s*;"),
+            $"La branche de refus de Program.cs ne rend pas « return (int){refusal}.Code; ». "
+            + "Elle imprime alors le refus et laisse la ligne partir au dispatch : la machine "
+            + "est lue, le rapport est écrit, et « Rien n'a été exécuté. » devient un mensonge "
+            + "actif — le défaut entier, plus une phrase qui le nie.");
+
+        Assert.True(guard.Index < dispatch.Index,
+            "Usage.Check est appelée après le dispatch. Une option inconnue serait alors "
+            + "refusée une fois la machine lue et le rapport écrit : le défaut entier, plus "
+            + "une phrase à la fin.");
+
+        var ways = Regex.Matches(program, @"CommandTable\.Dispatch\(").Count;
+
+        Assert.True(ways == 1,
+            $"Program.cs appelle CommandTable.Dispatch {ways} fois, attendu une seule. Un "
+            + "second appel est une seconde entrée vers les commandes, et rien n'oblige "
+            + "celle-là à passer par la porte au-dessus.");
+    }
+
+    /// <summary>
+    /// The line count the documents give for <c>Program.cs</c> is the one the file has.
+    ///
+    /// <para>
+    /// Three passages went on saying « 29 non-empty lines » after the usage check took the
+    /// file to forty, in the document that calls itself the reference for the architecture and
+    /// in the debt entry that cites the number as the proof the debt is closed. That is the
+    /// class of defect this repository is built against, applied to its own prose: a figure
+    /// nobody re-measures, describing a file anybody can measure.
+    /// </para>
+    ///
+    /// <para>
+    /// Over the documents that describe the tool <em>as it stands</em>. <c>docs/adr/</c> and
+    /// <c>docs/ROADMAP.md</c> are deliberately out: an ADR records what a decision did on the
+    /// day it was taken — « 1 881 lignes non vides à 29 » is what ADR-005 achieved, and it
+    /// still is — and correcting a dated record to today's figure is falsifying it, not
+    /// maintaining it. What has to stay true is the sentence written in the present tense.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_document_that_counts_the_lines_of_Program_cs_counts_them_right()
+    {
+        var measured = File.ReadAllLines(Path.Combine(RepositoryRoot,
+                "src", "Rempart.Cli", "Program.cs"))
+            .Count(line => line.Trim().Length > 0);
+
+        var claims = new List<string>();
+        var examined = 0;
+
+        foreach (var document in Describing)
+        {
+            // Bounded rather than open: past sixty characters the number found is no longer
+            // the one this sentence is about.
+            foreach (Match claim in Regex.Matches(Read(document),
+                         @"Program\.cs[\s\S]{0,60}?(?:\*\*)?(\d+)(?:\*\*)?\s*"
+                         + @"(?:non-empty lines|lignes non vides)"))
+            {
+                examined++;
+
+                if (int.Parse(claim.Groups[1].Value) != measured)
+                {
+                    claims.Add($"{document} → {Regex.Replace(claim.Value, @"\s+", " ")}");
+                }
+            }
+        }
+
+        Assert.True(examined > 0,
+            "Aucun des documents qui décrivent l'outil tel qu'il est ne chiffre les lignes de "
+            + "Program.cs, ou plus dans une forme que cette garde reconnaît : elle passerait "
+            + "au vert quel que soit le chiffre écrit.");
+
+        Assert.True(claims.Count == 0,
+            $"Program.cs porte {measured} lignes non vides, et la documentation en annonce "
+            + $"d'autres : {Join(claims)}. Un chiffre que personne ne remesure décrit un "
+            + "fichier que tout le monde peut mesurer.");
+    }
+
+    /// <summary>
+    /// The documents that speak of the tool in the present tense, and are therefore falsified
+    /// by a change rather than merely dated by one.
+    /// </summary>
+    private static readonly string[] Describing =
+        ["README.md", "docs/ARCHITECTURE.md", "docs/DEBT.md"];
+
+    /// <summary>
+    /// The one command the usage check exempts is the dispatch table's fallback, and the
+    /// claim is confronted with the table on disk rather than believed.
+    ///
+    /// <para>
+    /// The exemption exists because the help is where an unusable command line already lands,
+    /// and because <c>rempart --help</c> carries no command word at all — refusing options
+    /// there would make the tool answer an unreadable line with a second unreadable line.
+    /// Every other command acts on what it was given, which is the whole harm.
+    /// </para>
+    ///
+    /// <para>
+    /// Written as a constant in Core and checked here, because Core cannot see the table:
+    /// <c>Rempart.Cli</c> targets <c>net10.0-windows</c>. Should the fallback ever become
+    /// another command, the exemption follows it or this fails — what must not happen is an
+    /// exemption quietly covering a command that does something.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_command_the_usage_check_exempts_is_the_dispatch_fallback()
+    {
+        var table = Read("src/Rempart.Cli/CommandTable.cs");
+
+        var fallbacks = FallbackRow.Matches(table).Select(m => m.Groups[1].Value).ToList();
+
+        Assert.True(fallbacks.Count == 1,
+            $"La table de dispatch a {fallbacks.Count} bras par défaut ({Join(fallbacks)}), "
+            + "attendu un seul : cette garde ne sait plus lequel la vérification d'usage "
+            + "exempte.");
+
+        var byClass = TableRow.Matches(table)
+            .ToDictionary(m => m.Groups[2].Value, m => m.Groups[1].Value, StringComparer.Ordinal);
+
+        Assert.True(byClass.TryGetValue(fallbacks[0], out var fallbackCommand),
+            $"Le bras par défaut lance {fallbacks[0]}, qui n'est nommée par aucune ligne de "
+            + "la table : la commande de repli n'est joignable que par ce bras, ce que la "
+            + "table dit elle-même refuser.");
+
+        Assert.Equal(Usage.Fallback, fallbackCommand);
+    }
+
+    /// <summary>
+    /// « Undocumented » and « inexistent » are two different things, and the refusal of
+    /// unknown options must not merge them.
+    ///
+    /// <para>
+    /// Six options exist that the help does not mention — <c>scan --store</c>,
+    /// <c>capture --rules</c> and four more, all inherited from a shared helper. They are
+    /// typed on real command lines. A refusal built on the help text rather than on the
+    /// declared surface would reject every one of them, which is a worse failure than the
+    /// silence being closed: it breaks lines that work today.
+    /// </para>
+    ///
+    /// <para>
+    /// Derived from the help parser above rather than from <see cref="KnownUndocumented"/>,
+    /// so that it keeps speaking about whatever the gap actually is on the day it runs. The
+    /// non-empty assertion is the premise: the day the help documents everything, this test
+    /// stops proving anything and has to say so.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_option_the_help_omits_is_still_accepted_by_the_usage_check()
+    {
+        var help = HelpByCommand();
+
+        var undocumented = CommandSurface.All
+            .SelectMany(command => command.Options
+                .Select(option => option.Name)
+                .Where(name => !help.GetValueOrDefault(command.Name, []).Contains(name))
+                .Select(name => (Command: command.Name, Option: name)))
+            .ToList();
+
+        Assert.NotEmpty(undocumented);
+
+        var refused = undocumented
+            .Where(entry => Usage.Check(entry.Command, [entry.Command, entry.Option, "valeur"])
+                is not null)
+            .Select(entry => $"{entry.Command} {entry.Option}");
+
+        Assert.True(!refused.Any(),
+            $"Des options existantes mais non documentées sont refusées : {Join(refused)}. "
+            + "« Non documentée » et « inexistante » sont deux choses différentes : ces "
+            + "options-là sont lues par la commande, tapées sur de vraies lignes, et les "
+            + "refuser casse un usage réel.");
+    }
+
+    /// <summary>
     /// An option documented for a command that does not read it is worse than an
     /// undocumented one: the reader types it, nothing happens, and nothing says so.
     /// </summary>
@@ -560,6 +901,62 @@ public sealed class CommandSurfaceTests
 
         return blocks;
     }
+
+    /// <summary>
+    /// Every option each <c>CliHost</c> helper reads: the ones it reads itself, plus the ones
+    /// the helpers it calls read. Helpers reading none are dropped — they have nothing to say
+    /// about a command's surface, and keeping them would only make an empty match look like a
+    /// checked one.
+    /// </summary>
+    private static Dictionary<string, HashSet<string>> HelperOptions()
+    {
+        var source = WithoutComments(Read("src/Rempart.Cli/CliHost.cs"));
+        var declarations = HostMember.Matches(source).ToList();
+
+        var bodies = declarations.ToDictionary(
+            declaration => declaration.Groups[1].Value,
+            declaration => source[declaration.Index..End(declarations, declaration, source.Length)],
+            StringComparer.Ordinal);
+
+        var options = bodies.ToDictionary(
+            entry => entry.Key,
+            entry => OptionRead.Matches(entry.Value)
+                .Select(m => m.Groups[2].Value)
+                .ToHashSet(StringComparer.Ordinal),
+            StringComparer.Ordinal);
+
+        // Closed by repetition rather than by recursion: ResolveLiveCatalog reads no option
+        // of its own and reaches two that do, and a helper chain three deep would need the
+        // second pass. One pass per helper is more than any chain can be.
+        for (var pass = 0; pass < bodies.Count; pass++)
+        {
+            foreach (var (name, body) in bodies)
+            {
+                foreach (var callee in bodies.Keys.Where(other =>
+                    !string.Equals(other, name, StringComparison.Ordinal)
+                    && Regex.IsMatch(body, $@"\b{other}\s*\(")))
+                {
+                    options[name].UnionWith(options[callee]);
+                }
+            }
+        }
+
+        return options
+            .Where(entry => entry.Value.Count > 0)
+            .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
+    }
+
+    /// <summary>Where a member's text stops: at the next declaration, or at the end.</summary>
+    private static int End(List<Match> declarations, Match current, int end) =>
+        declarations.FirstOrDefault(next => next.Index > current.Index)?.Index ?? end;
+
+    /// <summary>
+    /// The source with its comment lines removed. A helper or an option named in a doc
+    /// comment is a mention, and reading it as a call attributes options to code that never
+    /// touches them.
+    /// </summary>
+    private static string WithoutComments(string source) =>
+        Regex.Replace(source, @"(?m)^[ \t]*//.*$", string.Empty);
 
     private static string Join(IEnumerable<string> names)
     {

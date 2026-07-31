@@ -32,6 +32,14 @@ public sealed record CommandOption(string Name, OptionArity Arity);
 /// <summary>
 /// One command's whole argument surface: what it accepts and how many bare arguments it
 /// makes sense of.
+///
+/// <para>
+/// <paramref name="Positionals"/> is a ceiling and not a count. Zero of them is legitimate
+/// almost everywhere — <c>rempart explain</c> with no identifier lists the catalog, and that
+/// is what it is for — so a command answers for having too few; what nobody could answer for
+/// was having too many. <c>rempart scan capture.json</c> declared none, was given one, and
+/// scanned the local machine.
+/// </para>
 /// </summary>
 public sealed record CommandSpec(string Name, IReadOnlyList<CommandOption> Options, int Positionals);
 
