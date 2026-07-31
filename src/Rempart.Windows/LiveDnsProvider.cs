@@ -23,5 +23,5 @@ public sealed class LiveDnsProvider(IRegistryProvider registry) : IDnsProvider
     {
     }
 
-    public IReadOnlyList<DnsInterface> Read() => inner.Read();
+    public DnsRead Read() => inner.Read();
 }

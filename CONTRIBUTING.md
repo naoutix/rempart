@@ -3,14 +3,29 @@
 ## Getting started
 
 ```bash
-dotnet test                                   # 827 tests (78 require Windows), ~12 s
+dotnet test                                   # the whole suite, a few seconds
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 
-That count is what a fresh clone runs, and what CI reports. A machine holding real
-captures in `tests/fixtures/local/` runs more — three tests per capture, because the
-replay theories are parameterised by fixture — and that folder is gitignored, so the
-difference never shows in a diff. When writing a count down, quote the CI figure.
+Most of the suite needs no Windows machine; `Rempart.Tests.Windows` does, and CI runs
+the two as separate jobs. **No test count here, deliberately.** The line used to carry
+one, and it had drifted by several hundred without anything noticing — which is what a
+documented figure does when nothing measures it.
+
+Holding it was the other option, and the repository has the precedent: the line
+count of `Program.cs` is written into the documentation, and a test reddens on any
+passage that miscounts it. That figure is read from a file in the checkout, it is the
+same on every machine, and it is a budget — a number a decision chose, so changing it
+means something. A test count is none of the three. It cannot be read from a checkout,
+only by running the suite; it would move on nearly every pull request, in the
+direction the project wants; and a workstation does not print the same number as CI
+anyway, because real captures in `tests/fixtures/local/` add three tests each and that
+folder is gitignored, so the difference never shows in a diff. A guard for it would
+either hold a number nobody can reproduce or redden every time someone writes a test.
+
+The figures that *are* written down here — the size of the rule catalog, below — are
+the ones a test can measure, and `ShippedRulesTests` measures them against the catalog
+on every run.
 
 Prerequisites: **.NET SDK 10.0.302 or later** — `winget install
 Microsoft.DotNet.SDK.10`. `global.json` pins that floor with
@@ -78,7 +93,7 @@ fields need particular care:
   The loader demands it for every comparison operator (`equals`, `notEquals`,
   `atLeast`, `atMost`) on a registry check, and refuses the file without it. It does
   **not** demand it of a `service`, `policy` or `wmi` check, whose state is directly
-  observable — there is no "value Windows applies when the key is absent". Nineteen
+  observable — there is no "value Windows applies when the key is absent". 19
   of the 82 shipped rules legitimately carry none. Where it does apply, this field
   decides correctness: on the Windows registry an absent key is the common case, and
   behavior then follows a documented default which is often the desired state. An

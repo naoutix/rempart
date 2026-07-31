@@ -161,10 +161,15 @@ public class AppxPackageNameTests
     }
 }
 
-internal sealed class FakeSoftwareInventoryProvider(params InstalledSoftware[] software)
+internal sealed class FakeSoftwareInventoryProvider(SoftwareInventoryRead read)
     : ISoftwareInventoryProvider
 {
-    public IReadOnlyList<InstalledSoftware> Read() => software;
+    public FakeSoftwareInventoryProvider(params InstalledSoftware[] software)
+        : this(SoftwareInventoryRead.Found(software))
+    {
+    }
+
+    public SoftwareInventoryRead Read() => read;
 }
 
 public class SoftwareInventoryCollectorTests
@@ -242,6 +247,95 @@ public class SoftwareInventoryCollectorTests
         Assert.Equal(FindingSeverity.Suspicious, finding.Severity);
     }
 
+    private static IReadOnlyList<Finding> Collect(SoftwareInventoryRead read) =>
+        new SoftwareInventoryCollector(BloatwareCatalog.Empty).Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            softwareInventory: new FakeSoftwareInventoryProvider(read)));
+
+    /// <summary>
+    /// A source the scan was refused. Four independent sources fill one list, so an ACL on the
+    /// uninstall keys used to produce the same empty inventory as a machine with nothing
+    /// installed — and the report said nothing at all (#184).
+    ///
+    /// <para>
+    /// <see cref="AuditGap.Refused"/>: every registry source and the Chocolatey library are
+    /// denied by an ACL, and an ACL is what elevating opens. Exit 3, which is the one thing the
+    /// caller can act on.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_source_is_reported_rather_than_read_as_no_software()
+    {
+        var finding = Assert.Single(Collect(
+            SoftwareInventoryRead.Refused([], [@"HKLM\SOFTWARE\…\Uninstall"])));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal(AuditGap.Refused, finding.Gap);
+        Assert.Contains("Uninstall", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+
+        // The mute half, the only way to reach the sentence the collector writes itself: a
+        // read carrying a diagnostic has it printed verbatim.
+        var mute = Assert.Single(Collect(new SoftwareInventoryRead(ReadStatus.AccessDenied, [], null)));
+
+        Assert.Equal(AuditGap.Refused, mute.Gap);
+        Assert.Contains("administrateur", string.Join(" ", mute.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The other cause, and the pair is what makes either half a claim: a source that failed
+    /// without being denied — the Chocolatey library on a volume that went away. No privilege
+    /// repairs it, so advising elevation here is the inversion CONTRIBUTING forbids.
+    /// </summary>
+    [Fact]
+    public void A_source_that_failed_without_being_denied_is_reported_as_itself()
+    {
+        var finding = Assert.Single(Collect(
+            SoftwareInventoryRead.Failed([], [@"C:\ProgramData\chocolatey\lib"])));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+
+        var mute = Assert.Single(Collect(new SoftwareInventoryRead(ReadStatus.Failed, [], null)));
+
+        Assert.Equal(AuditGap.Unreadable, mute.Gap);
+        Assert.NotEmpty(Assert.Single(mute.Reasons));
+        Assert.DoesNotContain("administrateur", string.Join(" ", mute.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// A partial read keeps what it read. Reporting the gap must not cost the entries the
+    /// other three sources gave — including, on a bad day, the one the bloatware catalogue was
+    /// about to escalate. Answering with the gap alone is the shape the ports collector and the
+    /// two WMI-backed ones each had to be corrected out of.
+    /// </summary>
+    [Fact]
+    public void A_partial_inventory_names_the_gap_without_dropping_what_it_saw()
+    {
+        var findings = Collect(SoftwareInventoryRead.Refused(
+            [
+                new InstalledSoftware("7-Zip", "23.01", "Igor Pavlov", SoftwareSource.Uninstall,
+                    Provisioned: false, SurvivesFeatureUpdate: true),
+            ],
+            [@"HKCU\SOFTWARE\…\Uninstall"]));
+
+        Assert.Equal(2, findings.Count);
+        Assert.Contains(findings, f => f.Gap == AuditGap.Refused);
+        Assert.Contains(findings, f => f.Target == "7-Zip" && f.Gap is null);
+    }
+
+    /// <summary>
+    /// The other half of the asymmetry: a read that answered with nothing says nothing. Zero
+    /// installed program is not a plausible machine, but it accuses nobody and triggers no
+    /// rule — so a finding here would cry wolf on every replay of a capture that never
+    /// collected the surface, which is three of the four versioned ones.
+    /// </summary>
+    [Fact]
+    public void An_empty_but_successful_inventory_stays_silent() =>
+        Assert.Empty(Collect(SoftwareInventoryRead.Found([])));
+
     [Fact]
     public void An_unmatched_entry_stays_benign()
     {
@@ -269,10 +363,117 @@ public class SoftwareSnapshotTests
         var round = RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot));
         var replayed = new SnapshotSoftwareInventoryProvider(round).Read();
 
-        Assert.Equal(entry, Assert.Single(replayed));
+        Assert.Equal(entry, Assert.Single(replayed.Software));
     }
 
+    /// <summary>
+    /// A capture that never collected the inventory. An empty, successful read and not a gap:
+    /// zero installed program accuses nobody and triggers no rule, so a fixture predating this
+    /// collection replays exactly as it did.
+    ///
+    /// <para>
+    /// The status is asserted beside the emptiness, because the two are what #184 separated: a
+    /// capture that recorded a <em>refusal</em> replays as one — the test next door — and this
+    /// one must not be dragged along with it.
+    /// </para>
+    /// </summary>
     [Fact]
-    public void A_snapshot_without_software_replays_an_empty_inventory() =>
-        Assert.Empty(new SnapshotSoftwareInventoryProvider(new MachineSnapshot()).Read());
+    public void A_snapshot_without_software_replays_an_empty_inventory()
+    {
+        var read = new SnapshotSoftwareInventoryProvider(new MachineSnapshot()).Read();
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Empty(read.Software);
+        Assert.Null(read.Diagnostic);
+    }
+
+    /// <summary>
+    /// The four steps a field added to the snapshot has to survive, on the second of the two
+    /// reads #184 gave a channel: recorded by the scan, serialised into the capture, replayed
+    /// out of it, and — in <c>AnonymiserTests</c> — scrubbed.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object, for the reason the
+    /// firewall test in <c>SnapshotReplayTests</c> gives: the capture is a <em>file</em>, and a
+    /// status the recorder sets but the source-generated serialiser drops would pass every
+    /// in-memory assertion and still replay as a machine with nothing installed.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_refused_inventory_is_recorded_serialised_and_replayed_as_a_refusal()
+    {
+        var kept = new InstalledSoftware(
+            "7-Zip", "23.01", "Igor Pavlov", SoftwareSource.Uninstall, false, true, "7-Zip");
+
+        var snapshot = new MachineSnapshot();
+        var source = new CountingSoftwareInventoryProvider(
+            SoftwareInventoryRead.Refused([kept], [@"HKCU\SOFTWARE\…\Uninstall"]));
+        var recording = new RecordingSoftwareInventoryProvider(source, snapshot);
+
+        recording.Read();
+        recording.Read();
+
+        // A scan walks the collectors twice; asking the machine again on the second pass would
+        // make the capture depend on which pass caught it in a better mood.
+        Assert.Equal(1, source.Calls);
+
+        var replayed = new SnapshotSoftwareInventoryProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read();
+
+        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+        Assert.Contains("Uninstall", replayed.Diagnostic!, StringComparison.Ordinal);
+
+        // The inventory the readable sources gave survives the refusal of the one that did
+        // not: dropping it would trade one silence for another, on the surface the bloatware
+        // catalogue is confronted with.
+        Assert.Equal(kept, Assert.Single(replayed.Software));
+    }
+
+    /// <summary>
+    /// The half no factory of this read can build, reached the way a capture reaches it — the
+    /// same hole #177 found on the scheduler and #179 on the firewall.
+    ///
+    /// <para>
+    /// A capture written before <c>softwareStatus</c> existed carries a list and nothing else,
+    /// and the absence has to keep meaning what it meant: the inventory was read. Reading it as
+    /// a refusal would put a NOTABLE on every capture older than this batch, the real-machine
+    /// ones outside the repository included, and send their readers to elevate against a file
+    /// already on disk.
+    /// </para>
+    ///
+    /// <para>
+    /// Asserted on the <em>value</em> the replay produces and never on the presence of the key:
+    /// the serialiser writes every field it has, so a « the key is absent » premise goes green
+    /// on any regeneration and proves nothing (#163).
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_inventory_captured_before_the_status_replays_as_the_read_it_recorded()
+    {
+        const string BeforeTheField = """
+            {"software":[{"name":"7-Zip","version":"23.01","publisher":"Igor Pavlov",
+              "source":"Uninstall","provisioned":false,"survivesFeatureUpdate":true,
+              "identifier":"7-Zip"}]}
+            """;
+
+        var read = new SnapshotSoftwareInventoryProvider(
+            RempartJson.DeserialiseSnapshot(BeforeTheField)).Read();
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.Equal("7-Zip", Assert.Single(read.Software).Name);
+    }
+
+    private sealed class CountingSoftwareInventoryProvider(SoftwareInventoryRead answer)
+        : ISoftwareInventoryProvider
+    {
+        public int Calls { get; private set; }
+
+        public SoftwareInventoryRead Read()
+        {
+            Calls++;
+            return answer;
+        }
+    }
 }

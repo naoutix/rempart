@@ -407,6 +407,11 @@ public sealed class AnonymiserTests
     [InlineData("ports")]
     [InlineData("extensions")]
     [InlineData("hosts")]
+    // The two that arrived with #184. The software one earns the line on its own: it names the
+    // sources it lost, and one of them is the Chocolatey library — a configurable path, which
+    // on a machine that moved it sits under a profile.
+    [InlineData("dns")]
+    [InlineData("software")]
     public void A_diagnostic_that_quotes_a_user_path_is_scrubbed_like_the_listing(string surface)
     {
         const string quoted = @"lecture refusée : C:\Users\claire\AppData\Local\x";
@@ -419,6 +424,8 @@ public sealed class AnonymiserTests
             ListeningPortsDiagnostic = surface == "ports" ? quoted : null,
             BrowserExtensionsDiagnostic = surface == "extensions" ? quoted : null,
             HostsFileDiagnostic = surface == "hosts" ? quoted : null,
+            DnsDiagnostic = surface == "dns" ? quoted : null,
+            SoftwareDiagnostic = surface == "software" ? quoted : null,
         };
 
         var after = Anonymiser.Apply(snapshot);
@@ -428,6 +435,8 @@ public sealed class AnonymiserTests
             "processes" => after.ProcessesDiagnostic,
             "ports" => after.ListeningPortsDiagnostic,
             "hosts" => after.HostsFileDiagnostic,
+            "dns" => after.DnsDiagnostic,
+            "software" => after.SoftwareDiagnostic,
             _ => after.BrowserExtensionsDiagnostic,
         };
 
@@ -465,6 +474,8 @@ public sealed class AnonymiserTests
             ListeningPortsDiagnostic = $@"table sans réponse : C:\Users\{marker}\s.exe",
             BrowserExtensionsDiagnostic = $@"profil illisible : C:\Users\{marker}\prefs.js",
             HostsFileDiagnostic = $@"hosts illisible : C:\Users\{marker}\hosts",
+            DnsDiagnostic = $@"cle DNS refusee : C:\Users\{marker}\interfaces",
+            SoftwareDiagnostic = $@"source non lue : C:\Users\{marker}\chocolatey",
             DirectoriesDiagnostic = { [$@"C:\Users\{marker}"] = $@"refusé : C:\Users\{marker}" },
 
             // The fifth sibling, and the one that shows why the sweep is written this way:

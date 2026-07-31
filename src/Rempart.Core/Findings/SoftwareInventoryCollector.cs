@@ -36,9 +36,35 @@ public sealed class SoftwareInventoryCollector(BloatwareCatalog catalog) : IFind
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
+        var read = providers.SoftwareInventory.Read();
         var findings = new List<Finding>();
 
-        foreach (var software in providers.SoftwareInventory.Read())
+        // Added rather than returned, for the reason the read is partial by nature: four
+        // independent sources fill one list, and dropping the three that answered because the
+        // fourth refused would trade one silence for another — including, on a bad day, the
+        // bloatware entry the catalog was about to escalate.
+        //
+        // The gap follows the status and is not guessed from the sentence, which names the
+        // sources and never the cause. Both are reachable here, unlike the DNS read next door:
+        // the registry sources can only be denied, and the Chocolatey listing can be denied
+        // (an ACL, which elevating opens — exit 3) or fail (an I/O error, which no privilege
+        // repairs — exit 5).
+        if (read.Status is ReadStatus.AccessDenied or ReadStatus.Failed)
+        {
+            var refused = read.Status is ReadStatus.AccessDenied;
+
+            findings.Add(Finding.Unread(
+                "software", "inventaire logiciel",
+                refused ? AuditGap.Refused : AuditGap.Unreadable,
+                read.Diagnostic,
+                refused
+                    ? "Inventaire logiciel refusé. Relancer en administrateur : un logiciel "
+                      + "indésirable installé resterait absent du rapport."
+                    : "Inventaire logiciel sans réponse : un logiciel indésirable installé "
+                      + "resterait absent du rapport."));
+        }
+
+        foreach (var software in read.Software)
         {
             var details = new Dictionary<string, string>(StringComparer.Ordinal)
             {

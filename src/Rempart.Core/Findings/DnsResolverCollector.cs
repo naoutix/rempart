@@ -35,9 +35,40 @@ public sealed class DnsResolverCollector : IFindingCollector
 
     public IReadOnlyList<Finding> Collect(ProviderSet providers)
     {
+        var read = providers.Dns.Read();
         var findings = new List<Finding>();
 
-        foreach (var iface in providers.Dns.Read())
+        // A hole in what the scan saw, and not a machine that resolves nothing. Added rather
+        // than returned: the read is partial by nature — the interface enumeration and the two
+        // values of each interface are separate reads — so answering with this finding alone
+        // would drop the adapters that did answer, including the one carrying the resolver.
+        //
+        // Refused for a denial, and the argument is the channel rather than the surface: the
+        // only thing under the shipped read is IRegistryProvider, which catches the two denial
+        // exceptions and lets every other failure through, so AccessDenied here is an ACL and
+        // nothing else — and an ACL on Tcpip\Parameters\Interfaces is opened by elevating.
+        // Exit 3, « droits insuffisants », which is exactly what the caller can act on.
+        //
+        // Failed cannot be built by any factory of this read and a capture can still hold it,
+        // which is the shape #177 found on the firewall: read as Unreadable, exit 5, because
+        // no console however elevated re-reads a snapshot. Anything else — Found on an empty
+        // list, NotFound on a machine with no interface key — is an answer and stays silent.
+        if (read.Status is ReadStatus.AccessDenied or ReadStatus.Failed)
+        {
+            var refused = read.Status is ReadStatus.AccessDenied;
+
+            findings.Add(Finding.Unread(
+                "dns-resolver", "résolveurs DNS",
+                refused ? AuditGap.Refused : AuditGap.Unreadable,
+                read.Diagnostic,
+                refused
+                    ? "Lecture des résolveurs DNS refusée. Relancer en administrateur : un "
+                      + "serveur posé par-dessus celui du réseau resterait invisible."
+                    : "Lecture des résolveurs DNS sans réponse : un serveur posé par-dessus "
+                      + "celui du réseau resterait invisible."));
+        }
+
+        foreach (var iface in read.Interfaces)
         {
             if (iface.StaticServers.Count > 0)
             {

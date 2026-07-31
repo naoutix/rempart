@@ -243,10 +243,10 @@ using it.
 
 ## Status
 
-**v1.0.0 — the read-only audit is complete**: 827 tests, three report formats, a
-signed integrity seal for the stick, and fleet comparison. It is a stable release
-rather than a candidate because the sealed archive has been run on a machine other
-than the one that built it — this project's own release condition.
+**v1.0.0 — the read-only audit is complete**: three report formats, a signed
+integrity seal for the stick, and fleet comparison. It is a stable release rather
+than a candidate because the sealed archive has been run on a machine other than
+the one that built it — this project's own release condition.
 
 Remediation — writing to the machine — is a later milestone and has not started.
 [ROADMAP.md](docs/ROADMAP.md) (French) records what was deferred and why. One
@@ -264,12 +264,13 @@ code comments and the technical documentation are in English; dated internal rec
 ## Developing
 
 ```bash
-dotnet test                                   # 827 tests (78 require Windows), ~12 s
+dotnet test                                   # the whole suite, a few seconds
 dotnet run --project src/Rempart.Cli -- scan  # scan the local machine
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the project invariants, how to add a
-rule, the test layout, and the known build pitfalls.
+rule, the test layout, the known build pitfalls — and why no test count is written
+down here.
 
 ## Documentation map
 

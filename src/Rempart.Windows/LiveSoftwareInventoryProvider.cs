@@ -34,35 +34,98 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
 
     private readonly IRegistryProvider registry;
     private readonly string chocolateyLib;
+    private readonly Func<string, string[]> chocolateyPackages;
 
     public LiveSoftwareInventoryProvider()
         : this(new LiveRegistryProvider(), @"C:\ProgramData\chocolatey\lib")
     {
     }
 
-    public LiveSoftwareInventoryProvider(IRegistryProvider registry, string chocolateyLib)
+    /// <param name="enumerate">
+    /// How the Chocolatey library is listed, <c>Directory.GetDirectories</c> in production.
+    ///
+    /// <para>
+    /// A parameter for the reason <see cref="LiveFileSystemProvider"/> takes one, and it is the
+    /// reason #173 stayed open through three rounds there: the mapping below —
+    /// <c>UnauthorizedAccessException</c> to a denial, <c>IOException</c> to a failure — is a
+    /// contract nothing else states, and a real directory can be staged as <em>refused</em> but
+    /// not as <em>failing</em>. Without the seam, the branch that names the defect is the one
+    /// branch no test can enter.
+    /// </para>
+    /// </param>
+    public LiveSoftwareInventoryProvider(
+        IRegistryProvider registry, string chocolateyLib, Func<string, string[]>? enumerate = null)
     {
         this.registry = registry;
         this.chocolateyLib = chocolateyLib;
+        chocolateyPackages = enumerate ?? Directory.GetDirectories;
     }
 
-    public IReadOnlyList<InstalledSoftware> Read()
+    /// <summary>
+    /// The four sources, and what each of them could not read.
+    ///
+    /// <para>
+    /// The two gap lists are threaded through rather than thrown away, which is the whole of
+    /// #184 on this surface: six registry enumerations and one directory listing feed one
+    /// inventory, each could answer « refusé » since REV-11, and the return type had nowhere
+    /// to say so — an ACL on the uninstall keys produced the same empty list as a machine with
+    /// nothing installed. Kept apart by cause, because the advice differs: a denial is repaired
+    /// by elevating and an I/O failure is not.
+    /// </para>
+    ///
+    /// <para>
+    /// A denial anywhere makes the whole read a refusal even when something else also broke,
+    /// and the sentence names both sources. Ranking it the other way would drop the one piece
+    /// of advice that works on part of the hole; the reader is told what was lost either way.
+    /// </para>
+    /// </summary>
+    public SoftwareInventoryRead Read()
     {
         var software = new List<InstalledSoftware>();
+        var denied = new List<string>();
+        var unreadable = new List<string>();
 
-        ReadUninstall(software);
-        ReadAppx(software);
-        ReadAppPaths(software);
-        ReadChocolatey(software);
+        ReadUninstall(software, denied);
+        ReadAppx(software, denied);
+        ReadAppPaths(software, denied);
+        ReadChocolatey(software, denied, unreadable);
 
-        return software;
+        if (denied.Count > 0)
+        {
+            return SoftwareInventoryRead.Refused(software, [.. denied, .. unreadable]);
+        }
+
+        return unreadable.Count > 0
+            ? SoftwareInventoryRead.Failed(software, unreadable)
+            : SoftwareInventoryRead.Found(software);
     }
 
-    private void ReadUninstall(List<InstalledSoftware> software)
+    /// <summary>
+    /// The names of a key's subkeys, noting the path when the enumeration was denied.
+    ///
+    /// <para>
+    /// <c>NotFound</c> is not noted and is not a hole: <c>WOW6432Node</c> is absent on an ARM
+    /// installation and the per-user uninstall key on a fresh profile, and calling either of
+    /// them a gap would put a NOTABLE on ordinary machines.
+    /// </para>
+    /// </summary>
+    private IReadOnlyList<string> SubKeys(string keyPath, List<string> denied)
+    {
+        var listing = registry.ListSubKeys(keyPath);
+
+        if (listing.Status is ReadStatus.AccessDenied)
+        {
+            denied.Add(keyPath);
+        }
+
+        return listing.Names;
+    }
+
+    private void ReadUninstall(List<InstalledSoftware> software, List<string> denied)
     {
         foreach (var root in UninstallRoots)
         {
-            foreach (var key in registry.ListSubKeys(root).Names)
+            foreach (var key in SubKeys(root, denied))
             {
                 var path = $@"{root}\{key}";
                 var name = Text(path, "DisplayName");
@@ -84,16 +147,17 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
         }
     }
 
-    private void ReadAppx(List<InstalledSoftware> software)
+    private void ReadAppx(List<InstalledSoftware> software, List<string> denied)
     {
-        var provisioned = new HashSet<string>(registry.ListSubKeys(AppxProvisioned).Names, StringComparer.OrdinalIgnoreCase);
+        var provisioned = new HashSet<string>(
+            SubKeys(AppxProvisioned, denied), StringComparer.OrdinalIgnoreCase);
 
         // A leftover scale or language asset is not an installed application, and the
         // repository keeps one long after its package is gone. Of what remains, an
         // updated package leaves its older versions registered: one row per identity,
         // the highest version, architectures kept apart.
         var installed = AppxPackageName.LatestPerIdentity(
-            registry.ListSubKeys(AppxInstalled).Names
+            SubKeys(AppxInstalled, denied)
                 .Where(fullName => !AppxPackageName.IsResourcePackage(fullName)));
 
         foreach (var fullName in installed)
@@ -111,9 +175,9 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
         }
     }
 
-    private void ReadAppPaths(List<InstalledSoftware> software)
+    private void ReadAppPaths(List<InstalledSoftware> software, List<string> denied)
     {
-        foreach (var exe in registry.ListSubKeys(AppPaths).Names)
+        foreach (var exe in SubKeys(AppPaths, denied))
         {
             software.Add(new InstalledSoftware(
                 exe, Version: null, Publisher: null, SoftwareSource.AppPath,
@@ -121,7 +185,20 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
         }
     }
 
-    private void ReadChocolatey(List<InstalledSoftware> software)
+    /// <summary>
+    /// The one source that is not the registry, and the only one that can fail without anyone
+    /// denying anything.
+    ///
+    /// <para>
+    /// <c>Directory.Exists</c> answering false is not a gap: Chocolatey is simply not
+    /// installed, which is the state of most machines. The two exceptions below are, and they
+    /// were caught together and dropped in silence — so a library the scan could not open
+    /// looked exactly like a machine that never installed a package. Told apart because the
+    /// advice differs: an ACL is opened by elevating, an I/O error is not.
+    /// </para>
+    /// </summary>
+    private void ReadChocolatey(
+        List<InstalledSoftware> software, List<string> denied, List<string> unreadable)
     {
         if (!Directory.Exists(chocolateyLib))
         {
@@ -130,16 +207,22 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
 
         try
         {
-            foreach (var directory in Directory.EnumerateDirectories(chocolateyLib))
+            foreach (var directory in chocolateyPackages(chocolateyLib))
             {
                 software.Add(new InstalledSoftware(
                     Path.GetFileName(directory), Version: null, Publisher: "Chocolatey",
                     SoftwareSource.Chocolatey, Provisioned: false, SurvivesFeatureUpdate: true));
             }
         }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+        catch (UnauthorizedAccessException)
         {
-            // Denied or unreadable: nothing is fabricated, the other sources are still collected.
+            denied.Add(chocolateyLib);
+        }
+        catch (IOException)
+        {
+            // Not a denial and not returned as one — the invariant CONTRIBUTING records, and
+            // the defect #173 spent three rounds on one channel over.
+            unreadable.Add(chocolateyLib);
         }
     }
 
