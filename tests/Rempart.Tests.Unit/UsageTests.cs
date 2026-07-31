@@ -32,6 +32,16 @@ namespace Rempart.Tests.Unit;
 /// </para>
 ///
 /// <para>
+/// And a fifth, which is the fourth wearing a dash and which outlived it: <c>rempart -scan
+/// --from t.json</c> exited <c>0</c> after the command word became refusable, because
+/// <see cref="CommandLine.WordAt"/> reads a leading dash as « no command word » and the line
+/// resolved to the exempted help without ever being judged. The record it is refused on is the
+/// same one again, read from the other end — <see cref="CommandSurface.HelpFlags"/> declares
+/// the spellings that ask for the help, and everything else standing where a command word goes
+/// is the complement.
+/// </para>
+///
+/// <para>
 /// The refusal is by construction rather than by list. <see cref="CommandSurface"/> is the
 /// declared surface, and <c>CommandSurfaceTests</c> holds it equal to the options the CLI
 /// really reads — so an option added tomorrow is refused until it is declared there, which
@@ -75,6 +85,20 @@ public sealed class UsageTests
 
         return refusal!;
     }
+
+    /// <summary>
+    /// The command word the entry point resolves a line to.
+    ///
+    /// <para>
+    /// A <em>copy</em> of the line <c>Program.cs</c> writes, and said to be one: nothing in
+    /// this project compiles <c>Rempart.Cli</c>, so this file cannot read that resolution and
+    /// would stay green while it changed. What holds the entry point to it is
+    /// <c>BuildChainParityTests</c>, which requires the build chain to run the binary itself
+    /// on the lines that must keep working and on the ones that must not.
+    /// </para>
+    /// </summary>
+    private static string Resolved(string[] line) =>
+        CommandLine.WordAt(line, 0) ?? Usage.Fallback;
 
     /// <summary>
     /// The case in the issue, kept whole: the command word, the typo, and a file name that
@@ -511,13 +535,15 @@ public sealed class UsageTests
     ///
     /// <para>
     /// « By construction » is on the alphabet that reaches this check, and that is narrower
-    /// than it sounds: <c>-scan</c> and <c>--scan</c> are not in the two families and would
-    /// fail if they were, because <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon
-    /// as the first token starts with a dash, so the line resolves to
-    /// <see cref="Usage.Fallback"/> and never gets here. A misspelt command word wearing a dash
-    /// still prints the help and exits <c>0</c> — measured on the binary,
-    /// <c>rempart -scan --from t.json</c> → 0 — and that is the same open question as
-    /// <c>rempart --json</c> rather than a hole this walk was meant to cover.
+    /// than it sounds: <c>-scan</c> and <c>--scan</c> are in neither family, because
+    /// <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon as the first token starts
+    /// with a dash, so those lines resolve to <see cref="Usage.Fallback"/> rather than
+    /// arriving here as a word. They printed the help and exited <c>0</c> for exactly that
+    /// reason — measured, <c>rempart -scan --from t.json</c> → 0 — and they are now walked by
+    /// <see cref="A_command_word_wearing_a_dash_is_refused_rather_than_answered_with_the_help"/>,
+    /// which is a second walk rather than a third family here: the two questions are answered
+    /// by different branches of <see cref="Usage.Check"/>, and a probe of one proves nothing
+    /// about the other.
     /// </para>
     /// </summary>
     [Fact]
@@ -550,6 +576,203 @@ public sealed class UsageTests
             + "Ils partent au bras par défaut du dispatch, qui imprime l'aide et rend 0 : "
             + "l'outil a fait autre chose que ce qu'on lui demandait, et le seul canal qu'une "
             + "machine lit dit que tout va bien.");
+    }
+
+    /// <summary>
+    /// The same typo wearing a dash — the last spelling of this defect, and the one the walk
+    /// above says out loud that it cannot reach.
+    ///
+    /// <para>
+    /// <c>rempart -scan --from t.json</c> printed the usage text and exited <c>0</c>, measured
+    /// on the binary. <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon as the first
+    /// token starts with a dash, so the line carried « no command word », resolved to
+    /// <see cref="Usage.Fallback"/> and never reached the refusal at all. « No command word »
+    /// was a fact about the parser given for a fact about the person typing: whoever wrote
+    /// <c>-scan --from t.json</c> asked for a replay and was told, in the one channel a
+    /// scheduler reads, that it had happened.
+    /// </para>
+    ///
+    /// <para>
+    /// Constructed like the walk above and on the same surface: every declared command word,
+    /// worn with one dash and with two. The complement is what makes it a construction — the
+    /// spellings <see cref="CommandSurface.HelpFlags"/> declares come out of the probes, so
+    /// <c>--help</c> is not refused for being the dashed form of a command word, and nothing
+    /// here lists what a refusal looks like.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_command_word_wearing_a_dash_is_refused_rather_than_answered_with_the_help()
+    {
+        var dashed = CommandSurface.All
+            .SelectMany(command => new[] { "-" + command.Name, "--" + command.Name })
+            .ToList();
+
+        var probes = dashed
+            .Where(word => !CommandSurface.HelpFlags.Contains(word, StringComparer.Ordinal))
+            .ToList();
+
+        // The premises, and they are what make the walk mean anything: two probes per declared
+        // command and no two of them the same word, so this really is the surface rather than a
+        // handful of spellings; and the exemption really takes something out — « --help » is at
+        // once the dashed form of a declared command word and a declared way of asking for the
+        // help, and it is the one dashed word that must go on printing the usage text.
+        Assert.Equal(CommandSurface.All.Count * 2, dashed.Count);
+        Assert.Equal(dashed.Count, dashed.Distinct(StringComparer.Ordinal).Count());
+        Assert.True(probes.Count < dashed.Count,
+            "Aucune orthographe à tiret d'un mot de commande n'est déclarée comme demande "
+            + "d'aide : ce test n'éprouve plus la frontière qu'il existe pour tenir, mais un "
+            + "refus sans exception, et « rempart --help » ne serait plus joignable.");
+
+        var swallowed = probes
+            .Where(word => Usage.Check(Resolved([word]), [word]) is null)
+            .OrderBy(word => word, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(swallowed.Count == 0,
+            $"Des mots de commande mal tapés portant un tiret passent : {string.Join(", ", swallowed)}. "
+            + "Ils ne portent aucun mot de commande aux yeux de l'analyseur, retombent donc sur "
+            + "l'aide et rendent 0 : l'outil a fait autre chose que ce qu'on lui demandait, et "
+            + "le seul canal qu'une machine lit dit que tout va bien.");
+    }
+
+    /// <summary>
+    /// An option typed where a command word goes — <c>rempart --json</c>, which printed the
+    /// help and exited <c>0</c> like the misspelt words did.
+    ///
+    /// <para>
+    /// Walked over every option the surface declares rather than sampled on <c>--json</c>: what
+    /// is being held is that no option is a command, not that one particular spelling is not.
+    /// The declared help spellings come out for the same reason as above — they are what
+    /// legitimately stands where a command word would.
+    /// </para>
+    ///
+    /// <para>
+    /// Nothing declares a global option, and this is what that means read as a rule rather than
+    /// as an absence: an option belongs to the command that declares it, so typed without one
+    /// it belongs to nothing.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_option_typed_where_a_command_word_goes_is_refused()
+    {
+        var options = CommandSurface.All
+            .SelectMany(command => command.Options.Select(option => option.Name))
+            .Distinct(StringComparer.Ordinal)
+            .Where(name => !CommandSurface.HelpFlags.Contains(name, StringComparer.Ordinal))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.NotEmpty(options);
+
+        var swallowed = options
+            .Where(option => Usage.Check(Resolved([option]), [option]) is null)
+            .ToList();
+
+        Assert.True(swallowed.Count == 0,
+            $"Des options tapées sans mot de commande passent : {string.Join(", ", swallowed)}. "
+            + "Une option appartient à la commande qui la déclare : tapée sans commande, elle "
+            + "n'appartient à rien, et l'aide imprimée avec un code de réussite fait croire "
+            + "qu'elle a été honorée.");
+    }
+
+    /// <summary>
+    /// The other side of the same rule, walked over what the surface declares: each spelling of
+    /// the help still reaches the help.
+    ///
+    /// <para>
+    /// The refusal above is the complement of this list, so the list is what the refusal cannot
+    /// touch. Its non-emptiness is the premise: were it to empty out, every line carrying no
+    /// command word but carrying a token would be refused, and <c>rempart --help</c> — the
+    /// commonest line the tool has — would answer an unreadable command line with a second one.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_spelling_the_surface_declares_for_the_help_reaches_it()
+    {
+        Assert.NotEmpty(CommandSurface.HelpFlags);
+
+        var refused = CommandSurface.HelpFlags
+            .Where(flag => Usage.Check(Resolved([flag]), [flag]) is not null)
+            .ToList();
+
+        Assert.True(refused.Count == 0,
+            $"Des orthographes déclarées de l'aide sont refusées : {string.Join(", ", refused)}. "
+            + "Elles sont écrites dans la surface précisément pour que le refus des jetons à "
+            + "tiret ne les emporte pas.");
+    }
+
+    /// <summary>
+    /// A word that merely <em>starts with</em> a declared spelling of the help is not one.
+    ///
+    /// <para>
+    /// The lesson of the command-word walk, applied to the list that walk has to except.
+    /// Measured there: replacing the exemption's equality with
+    /// <c>StartsWith(Fallback, StringComparison.Ordinal)</c> left the whole suite green while
+    /// <c>rempart helpme --replay capture.json</c> printed the usage text and exited <c>0</c>.
+    /// The same looseness on <see cref="CommandSurface.HelpFlags"/> would open
+    /// <c>rempart --helpme</c> and <c>rempart -hx</c>, and the command-word walk would only
+    /// catch it through <c>-help</c> — that is, only for as long as <c>help</c> happens to be
+    /// a declared command word. Derived from the list rather than written out, so the spelling
+    /// added tomorrow is watched without anyone remembering this test.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_word_that_only_starts_with_a_declared_help_spelling_is_refused()
+    {
+        var probes = CommandSurface.HelpFlags.Select(flag => flag + "x").ToList();
+
+        // The premises: there is something to lengthen, and no lengthened form is itself a
+        // declared spelling — which is what would make this walk assert its own opposite.
+        Assert.NotEmpty(probes);
+        Assert.DoesNotContain(probes,
+            probe => CommandSurface.HelpFlags.Contains(probe, StringComparer.Ordinal));
+
+        var swallowed = probes
+            .Where(probe => Usage.Check(Resolved([probe]), [probe]) is null)
+            .OrderBy(probe => probe, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(swallowed.Count == 0,
+            $"Des jetons qui commencent seulement par une orthographe de l'aide passent : "
+            + $"{string.Join(", ", swallowed)}. L'exemption se lit sur le mot entier ou elle "
+            + "couvre tout ce qui lui ressemble, et chacun de ces mots est une ligne à qui "
+            + "l'outil répond par l'aide et un code de réussite.");
+    }
+
+    /// <summary>
+    /// What the refusal says to somebody whose first token is neither: the two ways out, and
+    /// both derived rather than retyped.
+    ///
+    /// <para>
+    /// <c>-scan</c> is a command word one keystroke away from <c>scan</c>, and <c>--json</c> is
+    /// an option somebody expected to be global. Naming only the commands would leave the first
+    /// reader served and the second guessing; naming only the help would do the reverse.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_refusal_of_a_first_token_that_is_neither_names_both_ways_out()
+    {
+        var refusal = Refused(Resolved(["-scan"]), ["-scan", "--from", "t.json"]);
+
+        Assert.Equal(ExitCode.Usage, refusal.Code);
+        Assert.NotEqual(ExitCode.Success, refusal.Code);
+        Assert.Contains(Named("-scan"), refusal.Message, StringComparison.Ordinal);
+
+        foreach (var command in CommandSurface.All)
+        {
+            Assert.Contains(command.Name, refusal.Message, StringComparison.Ordinal);
+        }
+
+        foreach (var flag in CommandSurface.HelpFlags)
+        {
+            Assert.Contains(Named(flag), refusal.Message, StringComparison.Ordinal);
+        }
+
+        // One refusal at a time, the word first, as for « scna »: the options of a line whose
+        // first token names nothing are not a question, there being no surface to judge them
+        // against. « --from » is a real option of « scan » — the assertion is that the sentence
+        // does not turn the reader towards it.
+        Assert.DoesNotContain(Named("--from"), refusal.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -592,13 +815,25 @@ public sealed class UsageTests
 
     /// <summary>
     /// The help stays reachable from a line it could not parse — including
-    /// <c>rempart --help</c> and bare <c>rempart</c>, which carry no command word at all.
+    /// <c>rempart --help</c>, <c>rempart -h</c> and bare <c>rempart</c>, which carry no command
+    /// word at all.
     ///
     /// <para>
     /// The single exemption, and it is structural rather than a taste: the help is where a line
     /// nobody can parse already goes, and it acts on nothing. Every other command acts, which
     /// is the whole harm. That the exempted word really is the dispatch table's fallback is
     /// checked against the table on disk, in <c>CommandSurfaceTests</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// The lines are written out here, and this is the one place in this file where that is
+    /// right: they are the contract itself — the five ways of asking for the help — and not a
+    /// sample of a space. What holds the same claim by construction, so that a spelling added
+    /// tomorrow is covered without this list being touched, is
+    /// <see cref="Every_spelling_the_surface_declares_for_the_help_reaches_it"/>. <c>-h</c> is
+    /// among them by decision: it answered <c>0</c> before anything declared it, exactly as
+    /// <c>-scan</c> did, and the difference is that the help acts on nothing — a line that
+    /// asks for it and gets it did what it was asked.
     /// </para>
     ///
     /// <para>
@@ -617,11 +852,11 @@ public sealed class UsageTests
     [Fact]
     public void The_help_is_reachable_from_a_line_it_could_not_parse()
     {
-        string[][] lines = [[], ["--help"], ["help"], ["help", "--replay"]];
+        string[][] lines = [[], ["--help"], ["-h"], ["help"], ["help", "--replay"]];
 
         foreach (var line in lines)
         {
-            Assert.Null(Usage.Check(CommandLine.WordAt(line, 0) ?? Usage.Fallback, line));
+            Assert.Null(Usage.Check(Resolved(line), line));
         }
     }
 
