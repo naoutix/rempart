@@ -27,8 +27,9 @@ namespace Rempart.Tests.Windows;
 /// </summary>
 public sealed class LiveDnsProviderTests(ITestOutputHelper output)
 {
-    private readonly IReadOnlyList<Core.Providers.DnsInterface> interfaces =
-        new LiveDnsProvider().Read();
+    private readonly Core.Providers.DnsRead read = new LiveDnsProvider().Read();
+
+    private IReadOnlyList<Core.Providers.DnsInterface> Interfaces => read.Interfaces;
 
     /// <summary>
     /// The independent half, and the one that refuses to go quiet. Every IPv4 resolver the
@@ -72,7 +73,7 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
             return;
         }
 
-        var found = interfaces
+        var found = Interfaces
             .SelectMany(iface => iface.StaticServers.Concat(iface.DhcpServers))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -106,12 +107,12 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
         // exist left this test green while its neighbour reddened, and its neighbour is
         // allowed to fall silent on a machine with no IPv4 resolver. Both green, DNS read
         // entirely broken. Any Windows machine enumerates network interfaces.
-        Assert.True(interfaces.Count > 0,
+        Assert.True(Interfaces.Count > 0,
             "Aucune interface réseau lue : sur une machine Windows allumée ce n'est pas une "
             + "réponse, c'est une clé de registre qui n'est pas celle qu'on croit. Sans "
             + "cette ligne, les deux contrôles ci-dessous seraient vrais par vacuité.");
 
-        var resolvers = interfaces
+        var resolvers = Interfaces
             .SelectMany(iface => iface.StaticServers.Concat(iface.DhcpServers))
             .ToList();
 
@@ -125,8 +126,15 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
             + "Deux adresses collées en une n'existent nulle part, donc le rapport les "
             + "signale comme un résolveur inconnu.");
 
-        Assert.True(interfaces.All(iface => !string.IsNullOrWhiteSpace(iface.Id)),
+        Assert.True(Interfaces.All(iface => !string.IsNullOrWhiteSpace(iface.Id)),
             "Interface sans identifiant : la clé énumérée n'est pas celle qu'on croit.");
+
+        // And what the read says about itself, which the count cannot say for it: this runner
+        // is refused nothing under Tcpip\Parameters\Interfaces, so the read has to come back
+        // « lue » and silent. Before #184 there was no field here to assert at all, and a
+        // refusal reached the report as the empty list a machine with no adapter returns.
+        Assert.Equal(Core.Providers.ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
     }
 }
 

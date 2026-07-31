@@ -20,25 +20,62 @@ namespace Rempart.Core.Providers;
 /// handed out by the network — the distinction the collector evaluates, since a static
 /// resolver on a machine that gets one by DHCP is a deliberate act.
 /// </para>
+///
+/// <para>
+/// Three reads deep, and each one can be denied on its own: the enumeration of the interfaces,
+/// and the two values of each interface. All three are watched, because the cheapest place to
+/// hide a resolver is the one nobody looks at — an ACL on a single adapter key used to remove
+/// that adapter from the inventory without a word (#184).
+/// </para>
 /// </summary>
 public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvider
 {
     public const string InterfacesKey =
         @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces";
 
-    public IReadOnlyList<DnsInterface> Read()
+    public DnsRead Read()
     {
         var interfaces = new List<DnsInterface>();
 
-        // .Names, without reading the status: IDnsProvider.Read carries no channel of its own
-        // (partition guard: « une machine sans interface réseau configurée existe »), so a
-        // refusal here has nowhere to go yet. Named rather than left implicit — it is the
-        // one caller of this enumeration that still drops the answer.
-        foreach (var guid in registry.ListSubKeys(InterfacesKey).Names)
+        // The denied paths, gathered rather than counted: what the report can act on is which
+        // surface it lost, and a bare count of two would say nothing about where the hole is.
+        var denied = new List<string>();
+
+        var listing = registry.ListSubKeys(InterfacesKey);
+
+        // The key itself. Refused here means no interface at all was seen, which used to be
+        // the same empty list a machine with no configured adapter returns — the defect of
+        // #184, on the surface a hijack is laid on.
+        if (listing.Status is ReadStatus.AccessDenied)
+        {
+            return DnsRead.Refused([], [InterfacesKey]);
+        }
+
+        // The key is not on this machine. An answer, and one this read is allowed to give
+        // silently: nothing resolves through an interface that was never configured.
+        if (listing.Status is ReadStatus.NotFound)
+        {
+            return DnsRead.Absent;
+        }
+
+        foreach (var guid in listing.Names)
         {
             var keyPath = $@"{InterfacesKey}\{guid}";
-            var stat = Split(registry.ReadValue(keyPath, "NameServer").Value?.Text);
-            var dhcp = Split(registry.ReadValue(keyPath, "DhcpNameServer").Value?.Text);
+            var staticRead = registry.ReadValue(keyPath, "NameServer");
+            var dhcpRead = registry.ReadValue(keyPath, "DhcpNameServer");
+
+            // The refusal one level down, and the one that hides a hijack most cheaply: an ACL
+            // on a single interface key made both values read back as « rien », so the adapter
+            // dropped out of the inventory with its static resolver. An absent value is the
+            // ordinary case and stays silent; only a denial speaks.
+            if (staticRead.Status is ReadStatus.AccessDenied
+                || dhcpRead.Status is ReadStatus.AccessDenied)
+            {
+                denied.Add(keyPath);
+            }
+
+            var stat = Split(staticRead.Value?.Text);
+            var dhcp = Split(dhcpRead.Value?.Text);
 
             // An interface with no resolver at all is not a finding and not an omission: a
             // machine carries a dozen of these — tunnels, loopback, disconnected adapters —
@@ -49,7 +86,11 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
             }
         }
 
-        return interfaces;
+        // What the readable interfaces gave is kept beside the refusal: dropping them because
+        // one adapter was denied would trade one silence for another.
+        return denied.Count > 0
+            ? DnsRead.Refused(interfaces, denied)
+            : DnsRead.Found(interfaces);
     }
 
     /// <summary>

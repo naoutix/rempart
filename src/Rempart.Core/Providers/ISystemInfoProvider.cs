@@ -114,7 +114,8 @@ public sealed class ProviderSet(
     /// <summary>Absent, the firewall state stays "unknown" — the cross-check rule stands down.</summary>
     public IFirewallProvider Firewall { get; } = firewall ?? UnreadFirewall.Instance;
 
-    /// <summary>Absent, no DNS interface is enumerated — no resolver is invented.</summary>
+    /// <summary>Absent, no DNS interface is enumerated — no resolver is invented, and no
+    /// refusal either: nothing was asked, so there is nothing to report.</summary>
     public IDnsProvider Dns { get; } = dns ?? EmptyDns.Instance;
 
     /// <summary>Absent, the hosts file is seen as empty — no mapping is invented.</summary>
@@ -170,7 +171,10 @@ internal sealed class EmptyDns : IDnsProvider
 {
     public static readonly EmptyDns Instance = new();
 
-    public IReadOnlyList<DnsInterface> Read() => [];
+    // Found and empty, like the hosts file two classes down and unlike the drivers: nobody
+    // wired a provider, so no read was attempted, and « personne n'a regardé » is not « j'ai
+    // regardé et on m'a refusé ». Only the second reaches the report.
+    public DnsRead Read() => DnsRead.Found([]);
 }
 
 internal sealed class EmptyHostsFile : IHostsFileProvider
@@ -201,7 +205,9 @@ internal sealed class EmptySoftwareInventory : ISoftwareInventoryProvider
 {
     public static readonly EmptySoftwareInventory Instance = new();
 
-    public IReadOnlyList<InstalledSoftware> Read() => [];
+    // Found and empty, for the reason its DNS neighbour gives: an unwired provider read
+    // nothing, and an empty inventory triggers no rule and accuses nobody.
+    public SoftwareInventoryRead Read() => SoftwareInventoryRead.Found([]);
 }
 
 internal sealed class EmptyBrowserExtensions : IBrowserExtensionProvider

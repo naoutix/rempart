@@ -481,12 +481,14 @@ public sealed class ExitCodeTests
             [@"autorun / C:\ProgramData\…\Startup",
              @"autorun / C:\Users\anon\…\Startup",
              "browser-extension / profil de navigateur",
+             "dns-resolver / résolveurs DNS",
              "driver / pilotes chargés",
              "hosts-entry / hosts",
              "listening-port / pare-feu",
              "listening-port / ports en écoute",
              "process / processus courants",
              "scheduled-task / planificateur de tâches",
+             "software / inventaire logiciel",
              "unquoted-service-path / Win32_Service",
              @"wmi-subscription / root\subscription:ActiveScriptEventConsumer",
              @"wmi-subscription / root\subscription:CommandLineEventConsumer"],
@@ -576,11 +578,13 @@ public sealed class ExitCodeTests
         Assert.Equal(
             [@"autorun / C:\ProgramData\…\Startup",
              @"autorun / C:\Users\anon\…\Startup",
+             "dns-resolver / résolveurs DNS",
              "driver / pilotes chargés",
              "hosts-entry / hosts",
              "listening-port / pare-feu",
              "process / processus courants",
              "scheduled-task / planificateur de tâches",
+             "software / inventaire logiciel",
              "unquoted-service-path / Win32_Service",
              @"wmi-subscription / root\subscription:ActiveScriptEventConsumer",
              @"wmi-subscription / root\subscription:CommandLineEventConsumer"],
@@ -649,7 +653,12 @@ public sealed class ExitCodeTests
                 listeningPorts: new AnsweringListeningPorts(),
                 firewall: new DenyingFirewall(),
                 hostsFile: new DenyingHostsFile(),
-                browserExtensions: new AnsweringBrowserExtensions()),
+                browserExtensions: new AnsweringBrowserExtensions(),
+                // The two #184 gave a channel. Through their real refusal factories rather
+                // than by hand, so what this pair judges is the sentence the production path
+                // composes and not one the test planted.
+                dns: new DenyingDns(),
+                softwareInventory: new DenyingSoftwareInventory()),
             "test", "2026-07-24T09:15:00Z",
             ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
@@ -713,6 +722,17 @@ public sealed class ExitCodeTests
         public BrowserExtensionRead Read() => BrowserExtensionRead.Found([]);
     }
 
+    private sealed class DenyingDns : IDnsProvider
+    {
+        public DnsRead Read() => DnsRead.Refused([], [RegistryDnsProvider.InterfacesKey]);
+    }
+
+    private sealed class DenyingSoftwareInventory : ISoftwareInventoryProvider
+    {
+        public SoftwareInventoryRead Read() =>
+            SoftwareInventoryRead.Refused([], [@"HKLM\SOFTWARE\…\Uninstall"]);
+    }
+
     /// <summary>
     /// A scan of a machine whose every diagnosable surface answers with a failure, run through
     /// the finding collectors the tool really ships.
@@ -767,7 +787,16 @@ public sealed class ExitCodeTests
                 // container whose values none parse. Both came back « relancer en
                 // administrateur ». It has Refused beside Failed now, and this double, which
                 // sat here unused since #173, is what was waiting for it.
-                firewall: new FailingFirewall()),
+                firewall: new FailingFirewall(),
+                // The two #184 gave a channel. The inventory fails the way its own provider
+                // can — the Chocolatey library is the one source under it that breaks without
+                // anyone denying anything — while the DNS read has no factory for a failure at
+                // all, its only source being the registry, which refuses or answers. That
+                // state is reachable from a capture and nowhere else, so it is built by hand
+                // here, exactly as the browser extensions are and for the same reason: this
+                // guard needs the planted diagnostic to arrive verbatim.
+                dns: new FailingDns(),
+                softwareInventory: new FailingSoftwareInventory()),
             "test", "2026-07-24T09:15:00Z",
             ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
 
@@ -810,6 +839,18 @@ public sealed class ExitCodeTests
     private sealed class FailingHostsFile : IHostsFileProvider
     {
         public HostsFileRead ReadLines() => HostsFileRead.Failed(FailedDiagnostic);
+    }
+
+    private sealed class FailingDns : IDnsProvider
+    {
+        public DnsRead Read() => new(ReadStatus.Failed, [], FailedDiagnostic);
+    }
+
+    private sealed class FailingSoftwareInventory : ISoftwareInventoryProvider
+    {
+        // Built by hand rather than through Failed, whose sentence is composed: this guard
+        // needs the planted diagnostic to arrive verbatim.
+        public SoftwareInventoryRead Read() => new(ReadStatus.Failed, [], FailedDiagnostic);
     }
 
     private sealed class FailingBrowserExtensions : IBrowserExtensionProvider

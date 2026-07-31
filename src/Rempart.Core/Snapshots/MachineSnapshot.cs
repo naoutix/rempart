@@ -170,6 +170,25 @@ public sealed class MachineSnapshot
     /// <summary>Per-interface DNS configuration, or null if the snapshot predates it.</summary>
     public List<DnsInterface>? Dns { get; set; }
 
+    /// <summary>
+    /// Whether the DNS interfaces could be enumerated, or null on a capture predating this
+    /// field. Same reasoning and same shape as <see cref="DriversStatus"/>: an object in place
+    /// of the <c>dns</c> array would make every existing capture unreadable, the real-machine
+    /// ones kept outside the repository included.
+    ///
+    /// <para>
+    /// The status is stored and the <em>state it implies</em> is not, which is the trap #182
+    /// named: a capture carrying a status it never wrote would replay as a file contradicting
+    /// itself. A capture holding a list and no status replays as the enumeration it was taken
+    /// to be, and one holding neither replays as the silence it always produced — this surface
+    /// is allowed to be silent about zero.
+    /// </para>
+    /// </summary>
+    public ReadStatus? DnsStatus { get; set; }
+
+    /// <summary>Which key refused, when one did.</summary>
+    public string? DnsDiagnostic { get; set; }
+
     /// <summary>Lines of the hosts file, or null if the snapshot predates its collection.</summary>
     public List<string>? HostsFile { get; set; }
 
@@ -189,6 +208,14 @@ public sealed class MachineSnapshot
 
     /// <summary>Installed software, or null if the snapshot predates its collection.</summary>
     public List<InstalledSoftware>? Software { get; set; }
+
+    /// <summary>Whether every inventory source could be read. Same reasoning as
+    /// <see cref="DriversStatus"/>, and one status for the four sources because one list is
+    /// what they fill: the diagnostic beside it names which of them was lost.</summary>
+    public ReadStatus? SoftwareStatus { get; set; }
+
+    /// <summary>Which inventory sources could not be read, when some could not.</summary>
+    public string? SoftwareDiagnostic { get; set; }
 
     /// <summary>Browser extensions, or null if the snapshot predates their collection.</summary>
     public List<BrowserExtension>? BrowserExtensions { get; set; }
