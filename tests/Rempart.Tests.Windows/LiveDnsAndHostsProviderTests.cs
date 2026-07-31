@@ -10,11 +10,25 @@ namespace Rempart.Tests.Windows;
 /// The DNS read against the real registry.
 ///
 /// <para>
-/// What is left here is the interop half: that the key path is where Windows actually keeps
+/// What is left here is the interop half: that the key paths are where Windows actually keeps
 /// its interfaces on this machine, and that what the read finds is what the machine resolves
-/// with. The splitting, the key path constant and the « no resolver, no interface » rule are
+/// with. The splitting, the key path constants and the « no resolver, no interface » rule are
 /// judgements and moved to Core with <c>RegistryDnsProvider</c>, where the Linux job
 /// exercises them against a fake registry — the same two-step CatalogSignature took.
+/// </para>
+///
+/// <para>
+/// And one question that can only be asked here, because it is a fact about Windows and not
+/// about the program. Every test in Core reads a registry a test wrote, so a subtree nobody
+/// declared is invisible to all of them — <c>RegistryDnsProviderTests</c> says so in as many
+/// words. The real <c>Services</c> hive is the only corpus that can answer, and
+/// <see cref="No_service_outside_the_declared_stacks_keeps_a_resolver_per_interface"/> asks it
+/// of the one shape it is named for: <em>a resolver kept per adapter, under a service outside
+/// the declared stacks</em>. That is narrower than « are the stacks the program names the stacks
+/// that keep resolvers », which is what this paragraph used to claim, and the difference is a
+/// real one — a resolver at the global level of a service is out of reach of it, and
+/// <c>RegistryDnsProvider</c> names that surface rather than leaving the wider sentence to
+/// cover it.
 /// </para>
 ///
 /// <para>
@@ -44,10 +58,17 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
     /// </para>
     ///
     /// <para>
-    /// IPv4 only, deliberately: the read walks <c>Tcpip\Parameters\Interfaces</c>, which is
-    /// the IPv4 stack. IPv6 resolvers live under <c>Tcpip6</c> and are not collected — a
-    /// known gap, and demanding them here would turn it into a red build rather than the
-    /// documented limitation it is.
+    /// <b>IPv4 only, and the reason changed with #191 without the line moving.</b> It used to be
+    /// « the read walks the v4 stack and nothing else », which was the defect. The read now
+    /// walks both, and this confrontation still cannot be made on the v6 side: measured on a
+    /// real Windows 11 machine, the resolvers the operating system reports over IPv6 are, in
+    /// order of frequency, a DHCPv6 lease — written to <c>Dhcpv6DNSServers</c> as a
+    /// <c>REG_BINARY</c>, which this read does not decode — and the <c>fec0:0:0:ffff::1-3</c>
+    /// site-local trio, which is built into the resolver and sits in no key at all. Both are
+    /// reported by <c>Get-DnsClientServerAddress</c> and neither is in the subtree this read
+    /// walks, so demanding them here would redden every machine rather than catch anything.
+    /// What <em>is</em> under <c>NameServer</c> on the v6 stack — the statically configured
+    /// resolver, which is the hijack lever — is collected, and Core holds that.
     /// </para>
     /// </summary>
     [Fact]
@@ -130,11 +151,121 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
             "Interface sans identifiant : la clé énumérée n'est pas celle qu'on croit.");
 
         // And what the read says about itself, which the count cannot say for it: this runner
-        // is refused nothing under Tcpip\Parameters\Interfaces, so the read has to come back
-        // « lue » and silent. Before #184 there was no field here to assert at all, and a
+        // is refused nothing under either Parameters\Interfaces key, so the read has to come
+        // back « lue » and silent. Before #184 there was no field here to assert at all, and a
         // refusal reached the report as the empty list a machine with no adapter returns.
         Assert.Equal(Core.Providers.ReadStatus.Found, read.Status);
         Assert.Null(read.Diagnostic);
+    }
+
+    /// <summary>
+    /// The one question no fake registry can answer, asked of the shape this walk can reach:
+    /// does a service this program does not declare keep a DNS resolver <em>per adapter</em>?
+    ///
+    /// <para>
+    /// #191 was a stack that existed and was named nowhere in the repository, and the guard it
+    /// produced holds a table against an enum — which cannot find a third subtree, both being
+    /// the program's own account of itself. This walks the real <c>Services</c> hive instead
+    /// and complains about any service that keeps <c>NameServer</c> or <c>DhcpNameServer</c>
+    /// per adapter and is not one of the declared stacks.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What it is worth, stated rather than implied.</b> Its corpus is one machine, so it
+    /// proves nothing about the next one; it only reddens where a stack is really there and
+    /// really configured. Measured on the machine this was written on: <c>NetBT</c> also keeps
+    /// a <c>Parameters\Interfaces</c> subtree, and what it holds is <c>NameServerList</c> —
+    /// WINS servers, another protocol and another value name, which is why the match is on the
+    /// exact two names this read uses and not on « anything that looks like a name server ».
+    /// </para>
+    ///
+    /// <para>
+    /// <b>And what it cannot reach at all</b>, which its name does not say and this paragraph
+    /// does: it only ever builds <c>{service}\Parameters\Interfaces\{adapter}</c>, so a resolver
+    /// held at the global level of a service — <c>{service}\Parameters\NameServer</c>, which on
+    /// this machine exists on the declared v4 stack — is outside it in both directions, declared
+    /// stack or not. That surface is named by <c>RegistryDnsProvider</c> and pinned by
+    /// <c>RegistryDnsProviderTests</c>; widening this walk to it would redden here on an
+    /// ordinary machine, which is a question to settle before reading it and not by an
+    /// assertion.
+    /// </para>
+    ///
+    /// <para>
+    /// The declared keys are asserted to exist first, and that is the half that would catch a
+    /// path this program guessed: a key that is not there answers « rien » for ever, and
+    /// nothing downstream can tell that apart from a machine with nothing configured — the
+    /// invariant CONTRIBUTING records about never shipping an unverified key.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void No_service_outside_the_declared_stacks_keeps_a_resolver_per_interface()
+    {
+        const string Services = @"HKLM\SYSTEM\CurrentControlSet\Services";
+
+        var registry = new LiveRegistryProvider();
+
+        foreach (var (stack, interfacesKey) in Core.Providers.RegistryDnsProvider.Stacks)
+        {
+            Assert.True(
+                registry.ListSubKeys(interfacesKey).Status is Core.Providers.ReadStatus.Found,
+                $"La pile « {stack} » est déclarée sur {interfacesKey}, et cette clé ne répond "
+                + "pas sur cette machine. Une clé qui n'est pas là rend « rien » pour toujours, "
+                + "et rien en aval ne distingue cela d'une machine sans résolveur.");
+        }
+
+        var declared = Core.Providers.RegistryDnsProvider.Stacks
+            .Select(stack => stack.InterfacesKey)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var services = registry.ListSubKeys(Services);
+
+        // A walk that enumerated nothing would go green having looked at nothing at all.
+        Assert.Equal(Core.Providers.ReadStatus.Found, services.Status);
+        Assert.NotEmpty(services.Names);
+
+        var elsewhere = new List<string>();
+        var walked = 0;
+
+        foreach (var service in services.Names)
+        {
+            var interfacesKey = $@"{Services}\{service}\Parameters\Interfaces";
+
+            if (declared.Contains(interfacesKey))
+            {
+                continue;
+            }
+
+            var adapters = registry.ListSubKeys(interfacesKey);
+
+            if (adapters.Status is not Core.Providers.ReadStatus.Found)
+            {
+                continue;
+            }
+
+            walked++;
+
+            foreach (var adapter in adapters.Names)
+            {
+                var values = registry.ListValues($@"{interfacesKey}\{adapter}");
+
+                if (values.Status is Core.Providers.ReadStatus.Found
+                    && (values.Values.ContainsKey("NameServer")
+                        || values.Values.ContainsKey("DhcpNameServer")))
+                {
+                    elsewhere.Add($@"{interfacesKey}\{adapter}");
+                }
+            }
+        }
+
+        output.WriteLine(
+            $"{services.Names.Count} services énumérés, dont {walked} hors des piles déclarées "
+            + "avec un sous-arbre Parameters\\Interfaces.");
+
+        Assert.True(elsewhere.Count == 0,
+            $"Cette machine garde un résolveur DNS par interface hors des piles que Rempart "
+            + $"déclare : {string.Join(", ", elsewhere)}. Ou bien c'est une pile à déclarer "
+            + "dans RegistryDnsProvider.Stacks, ou bien c'est une valeur homonyme à écarter "
+            + "ici — dans les deux cas, un résolveur y est aujourd'hui invisible au rapport.");
     }
 }
 

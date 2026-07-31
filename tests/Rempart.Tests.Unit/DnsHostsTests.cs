@@ -33,14 +33,28 @@ public class DnsResolverTests
             new FakeRegistryProvider(), new FakeSystemInfoProvider(),
             dns: new FakeDnsProvider(interfaces)));
 
-    /// <summary>A resolver received from DHCP is the network's: inventoried, not judged.</summary>
-    [Fact]
-    public void A_dhcp_resolver_is_benign_inventory()
+    /// <summary>
+    /// Every stack the provider layer names, so that the judgement below is read once per
+    /// stack rather than once — discovered from <see cref="DnsStack"/> and not listed, which
+    /// is what makes a stack added tomorrow judged without anyone remembering this file.
+    /// </summary>
+    public static TheoryData<DnsStack> EveryStack() => [.. Enum.GetValues<DnsStack>()];
+
+    /// <summary>
+    /// A resolver received from DHCP is the network's: inventoried, not judged — and the
+    /// inventory line says which stack it sits on, since an adapter appears once per stack
+    /// under the same identifier.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryStack))]
+    public void A_dhcp_resolver_is_benign_inventory(DnsStack stack)
     {
-        var finding = Assert.Single(Collect(new DnsInterface("if0", [], ["192.168.0.1"])));
+        var finding = Assert.Single(Collect(
+            new DnsInterface("if0", [], ["192.168.0.1"], stack)));
 
         Assert.Equal(FindingSeverity.Benign, finding.Severity);
         Assert.Equal("DHCP", finding.Details["origine"]);
+        Assert.Equal(stack.ToString(), finding.Details["pile"]);
     }
 
     /// <summary>A recognised static resolver — Cloudflare, Google — is a common deliberate choice.</summary>
@@ -48,28 +62,155 @@ public class DnsResolverTests
     public void A_well_known_static_resolver_is_benign()
     {
         Assert.Equal(FindingSeverity.Benign,
-            Assert.Single(Collect(new DnsInterface("if0", ["1.1.1.1"], []))).Severity);
+            Assert.Single(Collect(new DnsInterface("if0", ["1.1.1.1"], [], DnsStack.IPv4)))
+                .Severity);
     }
+
+    /// <summary>
+    /// Every operator the collector recognises, on <em>both</em> families — derived from the
+    /// table and not copied out of it, which is the whole point: three <c>InlineData</c>
+    /// picked off the list is what let the list's own omission through.
+    /// </summary>
+    public static TheoryData<string, string, DnsStack> EveryWellKnownAddress()
+    {
+        var data = new TheoryData<string, string, DnsStack>();
+
+        foreach (var resolver in DnsResolverCollector.WellKnownResolvers)
+        {
+            foreach (var address in resolver.IPv4)
+            {
+                data.Add(resolver.Operator, address, DnsStack.IPv4);
+            }
+
+            foreach (var address in resolver.IPv6)
+            {
+                data.Add(resolver.Operator, address, DnsStack.IPv6);
+            }
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// <b>The same deliberate choice is judged the same on both stacks.</b> This is the defect
+    /// #191 shipped: the recognised list carried Cloudflare's and Google's v6 addresses and
+    /// neither Quad9's nor OpenDNS's, which cost nothing while no v6 resolver was collected and
+    /// became a NOTABLE on a hardened machine the day <c>Tcpip6</c> started being read — the
+    /// false positive on an ordinary configuration this repository refuses by principle.
+    ///
+    /// <para>
+    /// Read off the table, so an operator added tomorrow is judged here without this file being
+    /// opened, and the guard below refuses an operator declared on one family only. The two
+    /// together are what make « the same choice, the same verdict » a property rather than a
+    /// paragraph.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryWellKnownAddress))]
+    public void A_recognised_public_resolver_is_benign_on_the_stack_of_its_family(
+        string operatorName, string server, DnsStack stack)
+    {
+        var finding = Assert.Single(Collect(new DnsInterface("if0", [server], [], stack)));
+
+        // The operator is named in the message and not only in the theory row: a red line here
+        // reads « the audit stopped recognising this operator on this family », which is the
+        // fact, rather than « an address came back Notable ».
+        Assert.True(finding.Severity is FindingSeverity.Benign,
+            $"{operatorName} sur {server} ({stack}) est signalé comme un résolveur statique non "
+            + "reconnu, alors que le même opérateur est reconnu sur l'autre pile.");
+
+        Assert.Empty(finding.Reasons);
+        Assert.Equal(stack.ToString(), finding.Details["pile"]);
+    }
+
+    /// <summary>
+    /// And the guard that makes the theory above cover what it claims: an operator is declared
+    /// on both families or it is not declared at all.
+    ///
+    /// <para>
+    /// Without it the table can be extended with a v4-only row and every test stays green — the
+    /// exact shape the flat list had, where eight addresses of one family and four of the other
+    /// read as a list of twelve. This is the line somebody adding an operator has to satisfy,
+    /// and satisfying it means going and reading the operator's own <c>AAAA</c> record.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_recognised_operator_is_declared_on_both_address_families()
+    {
+        Assert.NotEmpty(DnsResolverCollector.WellKnownResolvers);
+
+        Assert.All(DnsResolverCollector.WellKnownResolvers, resolver =>
+        {
+            Assert.True(resolver.IPv4.Count > 0,
+                $"{resolver.Operator} n'a aucune adresse IPv4 déclarée.");
+
+            Assert.True(resolver.IPv6.Count > 0,
+                $"{resolver.Operator} est reconnu en IPv4 et sur aucune adresse IPv6 : une "
+                + "machine qui le choisit délibérément sur la pile v6 récolte un NOTABLE que la "
+                + "même machine ne récolte pas sur la pile v4.");
+        });
+    }
+
+    /// <summary>
+    /// The spelling an IPv6 address was typed in does not decide the verdict.
+    ///
+    /// <para>
+    /// Upper case and any run of zero groups left uncompressed name the same address
+    /// (RFC 4291 §2.2), and the registry holds whichever spelling was configured. Matching the
+    /// text made Quad9 written <c>2620:FE::FE</c> an unrecognised resolver; nothing reached that
+    /// comparison before #191, and everything on the v6 stack does now.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("2620:FE::FE")]
+    [InlineData("2620:00fe:0000:0000:0000:0000:0000:00fe")]
+    [InlineData("2606:4700:4700:0:0:0:0:1111")]
+    [InlineData("0:0:0:0:0:0:0:1")]
+    public void A_recognised_resolver_written_another_way_is_the_same_resolver(string server) =>
+        Assert.Equal(FindingSeverity.Benign,
+            Assert.Single(Collect(new DnsInterface("if0", [server], [], DnsStack.IPv6)))
+                .Severity);
+
+    /// <summary>
+    /// The loopback in the vocabulary the IPv6 stack speaks — a filter installed on purpose,
+    /// which is a deliberate configuration and not a hijack.
+    /// </summary>
+    [Fact]
+    public void A_local_IPv6_static_resolver_is_benign() =>
+        Assert.Equal(FindingSeverity.Benign,
+            Assert.Single(Collect(new DnsInterface("if0", ["::1"], [], DnsStack.IPv6)))
+                .Severity);
 
     /// <summary>A local resolver — loopback, a filter installed on purpose — stays benign.</summary>
     [Fact]
     public void A_loopback_static_resolver_is_benign()
     {
         Assert.Equal(FindingSeverity.Benign,
-            Assert.Single(Collect(new DnsInterface("if0", ["127.0.0.1"], []))).Severity);
+            Assert.Single(Collect(new DnsInterface("if0", ["127.0.0.1"], [], DnsStack.IPv4)))
+                .Severity);
     }
 
     /// <summary>
     /// An unrecognised static resolver is flagged: a server laid over the network's own
     /// is the very lever of a DNS hijack.
+    ///
+    /// <para>
+    /// Read on every stack, because that is the half of the judgement that transfers: « typed
+    /// in by hand » is the same act and the same key name on both, so a v6 resolver nobody
+    /// recognises is a hijack lever for the reason a v4 one is. The half that does not transfer
+    /// is asserted next door, in <c>RegistryDnsProviderTests</c>, as the silence it is.
+    /// </para>
     /// </summary>
-    [Fact]
-    public void An_unrecognised_static_resolver_is_notable()
+    [Theory]
+    [MemberData(nameof(EveryStack))]
+    public void An_unrecognised_static_resolver_is_notable(DnsStack stack)
     {
-        var finding = Assert.Single(Collect(new DnsInterface("if0", ["203.0.113.5"], [])));
+        var finding = Assert.Single(Collect(
+            new DnsInterface("if0", ["203.0.113.5"], [], stack)));
 
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Contains("203.0.113.5", string.Join(" ", finding.Reasons));
+        Assert.Equal(stack.ToString(), finding.Details["pile"]);
     }
 
     /// <summary>
@@ -79,18 +220,40 @@ public class DnsResolverTests
     [Fact]
     public void A_mix_with_one_unrecognised_resolver_is_notable()
     {
-        var finding = Assert.Single(Collect(new DnsInterface("if0", ["1.1.1.1", "203.0.113.5"], [])));
+        var finding = Assert.Single(Collect(
+            new DnsInterface("if0", ["1.1.1.1", "203.0.113.5"], [], DnsStack.IPv4)));
 
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Contains("203.0.113.5", string.Join(" ", finding.Reasons));
         Assert.DoesNotContain("1.1.1.1", finding.Reasons.Single());
     }
 
+    /// <summary>
+    /// The same adapter under both stacks, which is how Windows keys the two subtrees: two
+    /// resolver lists on one card, and the report has to keep them apart. Folding them on the
+    /// identifier would have lost one of the two — and the one lost is whichever stack the
+    /// fold happened to visit second.
+    /// </summary>
+    [Fact]
+    public void One_adapter_carrying_a_resolver_on_each_stack_is_judged_twice()
+    {
+        var findings = Collect(
+            new DnsInterface("{carte}", ["1.1.1.1"], [], DnsStack.IPv4),
+            new DnsInterface("{carte}", ["2001:db8::53"], [], DnsStack.IPv6));
+
+        Assert.All(findings, finding => Assert.Equal("{carte}", finding.Source));
+        Assert.Equal(["IPv4", "IPv6"], findings.Select(finding => finding.Details["pile"]));
+
+        Assert.Equal(
+            [FindingSeverity.Benign, FindingSeverity.Notable],
+            findings.Select(finding => finding.Severity));
+    }
+
     /// <summary>An interface without resolvers produces nothing: nothing to inventory.</summary>
     [Fact]
     public void An_interface_without_resolvers_yields_nothing()
     {
-        Assert.Empty(Collect(new DnsInterface("if0", [], [])));
+        Assert.Empty(Collect(new DnsInterface("if0", [], [], DnsStack.IPv4)));
     }
 
     private static IReadOnlyList<Finding> Collect(DnsRead read) =>
@@ -194,11 +357,15 @@ public class DnsResolverTests
     [Fact]
     public void A_refused_dns_read_is_recorded_serialised_and_replayed_as_a_refusal()
     {
-        var kept = new DnsInterface("{lu}", ["203.0.113.5"], []);
+        // On the IPv6 stack, so the field #191 adds travels the same four steps in the same
+        // test rather than in a happier one of its own: a stack recorded and dropped on the way
+        // out replays as a v4 resolver, which is an address on a card the reader would go and
+        // look for with the wrong command.
+        var kept = new DnsInterface("{lu}", ["2001:db8::53"], [], DnsStack.IPv6);
 
         var snapshot = new MachineSnapshot();
         var source = new CountingDnsProvider(
-            DnsRead.Refused([kept], [$@"{RegistryDnsProvider.InterfacesKey}\{{muet}}"]));
+            DnsRead.Refused([kept], [$@"{RegistryDnsProvider.InterfacesKeyIPv6}\{{muet}}"]));
         var recording = new RecordingDnsProvider(source, snapshot);
 
         recording.Read();
@@ -224,6 +391,42 @@ public class DnsResolverTests
         var survivor = Assert.Single(replayed.Interfaces);
         Assert.Equal(kept.Id, survivor.Id);
         Assert.Equal(kept.StaticServers, survivor.StaticServers);
+        Assert.Equal(DnsStack.IPv6, survivor.Stack);
+    }
+
+    /// <summary>
+    /// The compatibility half of the stack field, asserted on the <em>value</em> a capture
+    /// written before it replays as — never on the key being missing, which is the premise
+    /// #163 caught going green over nothing.
+    ///
+    /// <para>
+    /// A capture predating #191 holds interfaces and no stack, and every one of them was read
+    /// from <c>Tcpip</c>: that read walked no other key. So the field has to deserialise to
+    /// <see cref="DnsStack.IPv4"/> — not to « unknown », which would put a shrug on every
+    /// capture on disk, and not to whichever member happens to be declared first tomorrow.
+    /// </para>
+    ///
+    /// <para>
+    /// Against a literal document rather than against the versioned fixture, and beside the
+    /// test that uses the fixture: this one keeps saying what it says on the day that capture
+    /// is regenerated and starts carrying a stack of its own.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_capture_written_before_the_stacks_replays_its_interfaces_as_IPv4()
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(
+            """
+            {"dns":[{"id":"{ancienne}","staticServers":["203.0.113.5"],"dhcpServers":[]}]}
+            """);
+
+        var iface = Assert.Single(new SnapshotDnsProvider(snapshot).Read().Interfaces);
+
+        Assert.Equal(DnsStack.IPv4, iface.Stack);
+        Assert.Equal(["203.0.113.5"], iface.StaticServers);
+
+        // And the report says of it exactly what it said before the field existed.
+        Assert.Equal("IPv4", Assert.Single(Collect(iface)).Details["pile"]);
     }
 
     /// <summary>
@@ -258,6 +461,10 @@ public class DnsResolverTests
                 && written.ValueKind is not JsonValueKind.Null,
                 "La fixture porte désormais un statut de lecture DNS : elle ne prouve plus la "
                 + "compatibilité des captures antérieures au champ.");
+
+            Assert.DoesNotContain(
+                document.RootElement.GetProperty("dns").EnumerateArray(),
+                iface => iface.TryGetProperty("stack", out _));
         }
 
         var read = new SnapshotDnsProvider(RempartJson.DeserialiseSnapshot(json)).Read();
@@ -266,6 +473,10 @@ public class DnsResolverTests
         Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.Null(read.Diagnostic);
         Assert.Equal(2, read.Interfaces.Count);
+
+        // The stack the interfaces of that capture were read on, and the only one the read
+        // that wrote it ever walked (#191).
+        Assert.All(read.Interfaces, iface => Assert.Equal(DnsStack.IPv4, iface.Stack));
 
         // And the collector says exactly what it said about that capture yesterday: two
         // resolver findings and no gap.

@@ -167,7 +167,17 @@ public sealed class MachineSnapshot
     /// <summary>Firewall state, or null if the snapshot predates its collection.</summary>
     public FirewallState? Firewall { get; set; }
 
-    /// <summary>Per-interface DNS configuration, or null if the snapshot predates it.</summary>
+    /// <summary>
+    /// DNS configuration per interface and per stack, or null if the snapshot predates it.
+    ///
+    /// <para>
+    /// One entry per (interface, stack) pair since #191, each naming its own stack. A capture
+    /// written before that field carries entries with no <c>stack</c>, which deserialise to
+    /// <see cref="DnsStack.IPv4"/> — the stack those captures were read on, since that read
+    /// walked <c>Tcpip</c> and nothing else. The compatibility assertion is on that value and
+    /// not on the key being absent (#163).
+    /// </para>
+    /// </summary>
     public List<DnsInterface>? Dns { get; set; }
 
     /// <summary>
