@@ -264,18 +264,53 @@ if (-not $SkipPublish) {
 
                 # DET-OPTION-INCONNUE, sur le binaire. Usage.Check est une fonction pure de
                 # Core que toute la suite eprouve ; ce qui la relie a une ligne de commande
-                # tient en quatre jetons de Program.cs, que le job Linux ne compile pas. Deux
-                # mutations d'un seul jeton y rouvrent le defaut de bout en bout avec 1027
-                # tests verts : supprimer le « return » de la branche de refus, et passer au
-                # controle le mot de commande exempte. Aucune garde textuelle ne remplace le
-                # fait de lancer le binaire. Les deux formes de la meme phrase :
-                # « --replay » n'existe pas -- l'option de rejeu est « --from » --
+                # tient en quelques jetons de Program.cs, que le job Linux ne compile pas. Deux
+                # mutations d'un seul jeton y rouvrent le defaut de bout en bout avec la suite
+                # verte : supprimer le « return » de la branche de refus, et passer au controle
+                # le mot de commande exempte. Aucune garde textuelle ne remplace le fait de
+                # lancer le binaire.
+                #
+                # Ces sondes n'abaissent pas $ErrorActionPreference, et ce paragraphe est la
+                # pour qu'on ne le reintroduise pas : mesure sous « powershell.exe -NoProfile
+                # -File », PSVersion 5.1.26100.8875, dans la forme exacte de cette etape --
+                # les six appels passent et l'etape finit OK. Le travers 5.1 est reel mais ne
+                # se declenche que quand la sortie d'erreur du natif est redirigee ou
+                # fusionnee : la meme ligne ecrite avec « 2>&1 » et capturee leve bien
+                # NativeCommandError. « | Out-Null » ne redirige que la sortie standard.
+                #
+                # D'abord ce qui ne doit PAS etre refuse. Depuis que le mot de commande l'est,
+                # cette moitie du contrat tient a « WordAt(args, 0) ?? Usage.Fallback » dans
+                # Program.cs, et rien ne la regardait : ecrire « ?? args[0] » a la place --
+                # la forme naturelle de la question laissee ouverte, « rempart --json » --
+                # fait rendre 6 a « rempart --help » avec la suite entierement verte. Les
+                # trois facons de demander l'aide sont celles qu'une personne tape.
+                & .\rempart.exe | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "rempart seul n'imprime plus l'aide ($LASTEXITCODE)" }
+
+                & .\rempart.exe --help | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "rempart --help n'imprime plus l'aide ($LASTEXITCODE)" }
+
+                & .\rempart.exe help | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "rempart help n'imprime plus l'aide ($LASTEXITCODE)" }
+
+                # Puis ce qui doit l'etre, une sonde par branche du refus. D'abord l'option qui
+                # n'existe pas -- l'option de rejeu est « --from » --
                 & .\rempart.exe scan --replay t.capture.json | Out-Null
                 if ($LASTEXITCODE -ne 6) { throw "une option inconnue n'a pas ete refusee ($LASTEXITCODE)" }
 
-                # ... et le chemin de la capture tape sans son option.
+                # ... le chemin de la capture tape sans son option ...
                 & .\rempart.exe scan t.capture.json | Out-Null
                 if ($LASTEXITCODE -ne 6) { throw "un argument nu n'a pas ete refuse ($LASTEXITCODE)" }
+
+                # ... et le mot de commande lui-meme. « rempart scna --replay <capture> »
+                # imprimait l'aide et rendait 0 : la faute de frappe emportait avec elle
+                # une option qui n'existe pas, et l'ordonnanceur qui ne lit que le code de
+                # sortie voyait une reussite. Le mot part maintenant a la porte du refus et
+                # non au bras par defaut du dispatch, et c'est ici que ce changement de
+                # porte se constate : la porte est dans Rempart.Cli, qu'aucun test du job
+                # Linux ne compile.
+                & .\rempart.exe scna --replay t.capture.json | Out-Null
+                if ($LASTEXITCODE -ne 6) { throw "un mot de commande inconnu n'a pas ete refuse ($LASTEXITCODE)" }
 
                 # Les memes commandes que le job publish-aot passe au binaire publie, et
                 # pour la meme raison : la suite Windows tourne sous JIT, ou l'interop COM

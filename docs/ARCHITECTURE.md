@@ -605,7 +605,7 @@ list a code the tool does not return — which it did, for code 4, for months.
 | `3` | droits insuffisants | A **surface** was denied — re-run elevated |
 | `4` | régression | `diff` found a control that used to pass |
 | `5` | audit partiel | A **rule** came back `Unknown`, or a **surface** answered with a failure — the score covers less than the machine, and nothing the caller does to the run changes that |
-| `6` | erreur d'usage | The command line named something the command does not declare — an option, a bare argument, or an option left without its value. **Nothing ran**, so the machine is not the suspect and a retry loop is the wrong answer: the remedy is to retype the line |
+| `6` | erreur d'usage | The command line named something nothing declares — a command word, an option, a bare argument, or an option left without its value. **Nothing ran**, so the machine is not the suspect and a retry loop is the wrong answer: the remedy is to retype the line |
 
 `6` is not `1`, and the distance between them is the same one the five above are ordered
 by — what the caller can do about it. `1` says a run was attempted and broke, which is

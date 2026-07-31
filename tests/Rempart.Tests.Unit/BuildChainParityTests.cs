@@ -180,57 +180,49 @@ public sealed class BuildChainParityTests
     /// « rempart scan failed (6) » the day a tag is cut. So every workflow is walked, and only
     /// the two files that must carry a probe are required to have one.
     /// </para>
+    ///
+    /// <para>
+    /// Since a word naming no command is refused too, the probes now include one — the command
+    /// typo that used to be answered by the help with a code of success. That one is worth more
+    /// than the other two put together: what changed for it is which of two doors the word
+    /// walks into, and no reading of Core can see a door in <c>Rempart.Cli</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// One probe per <see cref="RefusalKind"/> rather than one probe, because « at least one
+    /// line the tool refuses » stopped distinguishing them the day the command word became
+    /// refusable. Misspell the two probes DET-OPTION-INCONNUE exists for — <c>sacn --replay
+    /// nowhere.json</c>, <c>scna nowhere.json</c> — and the binary answers 6 to both, so the
+    /// workflow's own gates pass, this guard passed, and nothing reached the option branches
+    /// any more. Measured, whole suite green.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_build_chain_runs_the_binary_on_a_line_the_tool_must_refuse()
     {
         var expected = (int)ExitCode.Usage;
         var ungated = new List<string>();
-        var probing = new List<string>();
+        var probing = new Dictionary<string, HashSet<RefusalKind>>(StringComparer.Ordinal);
 
-        foreach (var file in Files)
+        foreach (var call in Invocations())
         {
-            var lines = RepositoryFiles.Read(file)
-                .Replace("\r\n", "\n", StringComparison.Ordinal)
-                .Split('\n');
-
-            for (var index = 0; index < lines.Length; index++)
+            if (Usage.Check(call.Command, call.Typed) is not { } refusal)
             {
-                // Stops at whatever ends the argument list in these scripts — a pipe, a
-                // closing parenthesis, a separator, a comment — so that « (& $exe version)
-                // .Trim() » is not read as a command carrying an argument named « ).Trim() ».
-                var call = Regex.Match(lines[index],
-                    @"(?:\$exe|rempart\.exe)\s+(?<command>[a-z][a-z0-9-]*)(?<rest>[^|)\n;#>]*)");
-
-                if (!call.Success)
-                {
-                    continue;
-                }
-
-                var command = call.Groups["command"].Value;
-                string[] typed =
-                [
-                    command,
-                    .. call.Groups["rest"].Value
-                        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries),
-                ];
-
-                if (Usage.Check(command, typed) is null)
-                {
-                    continue;
-                }
-
-                // The gate sits on the line below, or just under the comment explaining it.
-                if (string.Join('\n', lines.Skip(index).Take(4))
-                    .Contains($"-ne {expected}", StringComparison.Ordinal))
-                {
-                    probing.Add(file);
-                }
-                else
-                {
-                    ungated.Add($"{file}:{index + 1} → {lines[index].Trim()}");
-                }
+                continue;
             }
+
+            if (!call.GatedOnRefusal)
+            {
+                ungated.Add($"{call.File}:{call.Line} → {call.Text}");
+                continue;
+            }
+
+            if (!probing.TryGetValue(call.File, out var kinds))
+            {
+                probing[call.File] = kinds = [];
+            }
+
+            kinds.Add(KindOf(call, refusal));
         }
 
         Assert.True(ungated.Count == 0,
@@ -242,13 +234,97 @@ public sealed class BuildChainParityTests
 
         foreach (var file in new[] { Ci, Verify })
         {
-            Assert.True(probing.Contains(file),
+            var kinds = probing.TryGetValue(file, out var found) ? found : [];
+
+            Assert.True(kinds.Count > 0,
                 $"{file} ne passe au binaire aucune ligne que l'outil doit refuser. Le refus "
-                + "des options inconnues est écrit dans Core, où tout l'éprouve, et relié à une "
-                + "ligne de commande par quelques jetons de Program.cs que le job Linux ne "
-                + "compile pas. Deux mutations d'un seul jeton y rouvrent le défaut de bout en "
-                + "bout avec la suite entièrement verte : c'est ici, en exécutant le binaire, "
-                + "que cela se voit.");
+                + "est écrit dans Core, où tout l'éprouve, et relié à une ligne de commande par "
+                + "quelques jetons de Program.cs que le job Linux ne compile pas. Deux "
+                + "mutations d'un seul jeton y rouvrent le défaut de bout en bout avec la suite "
+                + "entièrement verte : c'est ici, en exécutant le binaire, que cela se voit.");
+
+            var missing = Enum.GetValues<RefusalKind>()
+                .Where(kind => !kinds.Contains(kind))
+                .ToList();
+
+            Assert.True(missing.Count == 0,
+                $"{file} ne sonde pas chaque refus : {string.Join(", ", missing)} n'y est "
+                + "éprouvé sur aucune ligne gardée. Les trois branches partent du même "
+                + "Usage.Check et arrivent au même code 6, ce qui les rend interchangeables "
+                + "pour la garde du workflow : une faute de frappe dans le mot d'une sonde "
+                + "d'option — « sacn --replay » pour « scan --replay » — la transforme en "
+                + "troisième sonde de mot inconnu, le binaire rend toujours 6, et plus rien "
+                + "n'éprouve l'option ni l'argument nu de bout en bout. Le mot est décidé par "
+                + "CommandSurface, l'option et l'argument par la phrase que l'outil imprime : "
+                + "aucune orthographe n'est écrite ici.");
+        }
+    }
+
+    /// <summary>
+    /// The build chain runs the binary on the lines this refusal promised not to touch, and
+    /// requires <see cref="ExitCode.Success"/> back.
+    ///
+    /// <para>
+    /// Refusing the command word made <c>Program.cs</c>'s first token load-bearing, and nothing
+    /// was watching it. <c>WordAt(args, 0) ?? Usage.Fallback</c> is the whole of what keeps
+    /// <c>rempart --help</c> and bare <c>rempart</c> out of the check; write
+    /// <c>?? args[0]</c> instead and <c>rempart --help</c> answers 6, having printed a refusal
+    /// naming <c>--help</c> as a command nobody declares. Measured: whole suite green, because
+    /// the check is a pure function of Core and every unit test of the exemption hands it
+    /// <see cref="Usage.Fallback"/> itself. That same mutation over the previous behaviour was
+    /// inert — the word went to the dispatch table's fallback arm and the help was printed
+    /// anyway — so this exposure is the correction's own, and the natural shape of the next
+    /// question in this series (<c>rempart --json</c> still exits 0) is exactly that mutation.
+    /// </para>
+    ///
+    /// <para>
+    /// Both shapes are required, and the second is the one that bites: a line carrying no
+    /// command word but carrying tokens is where the boundary sits, and bare <c>rempart</c>
+    /// alone would survive the mutation above. The exempted word typed out is the third, for
+    /// the same reason the refusal has three probes rather than one — it is the only one of the
+    /// three that reaches the dispatch table.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_build_chain_runs_the_binary_on_the_lines_the_refusal_must_not_touch()
+    {
+        var bare = new List<string>();
+        var optionOnly = new List<string>();
+        var exemptedWord = new List<string>();
+
+        foreach (var call in Invocations().Where(call => call.GatedOnSuccess))
+        {
+            if (call.Word is null)
+            {
+                (call.Typed.Length == 0 ? bare : optionOnly).Add(call.File);
+            }
+            else if (string.Equals(call.Word, Usage.Fallback, StringComparison.Ordinal))
+            {
+                exemptedWord.Add(call.File);
+            }
+        }
+
+        foreach (var file in new[] { Ci, Verify })
+        {
+            Assert.True(optionOnly.Contains(file),
+                $"{file} ne lance jamais le binaire sur une ligne qui porte des jetons sans "
+                + "mot de commande — « rempart --help » — en exigeant 0. C'est la frontière "
+                + "même du refus ajouté : elle tient à « WordAt(args, 0) ?? Usage.Fallback » "
+                + "dans Program.cs, et « ?? args[0] » à la place fait rendre 6 à "
+                + "« rempart --help » avec toute la suite verte, parce que rien ici ne compile "
+                + "Rempart.Cli et que les tests de l'exemption passent Usage.Fallback "
+                + "eux-mêmes. Seul le binaire franchit cette porte.");
+
+            Assert.True(bare.Contains(file),
+                $"{file} ne lance jamais le binaire sans aucun argument en exigeant 0. "
+                + "« rempart » seul est la première ligne que tape qui découvre l'outil, et "
+                + "c'est la moitié du contrat que le refus du mot de commande promet de ne pas "
+                + "toucher.");
+
+            Assert.True(exemptedWord.Contains(file),
+                $"{file} ne lance jamais le binaire sur « rempart {Usage.Fallback} » en "
+                + "exigeant 0. C'est la seule des trois lignes d'aide qui traverse le contrôle "
+                + "puis la table de dispatch : les deux autres s'arrêtent à l'exemption.");
         }
     }
 
@@ -297,21 +373,48 @@ public sealed class BuildChainParityTests
     /// The last hand-written link: a command word typed into a workflow or a script is a
     /// string nothing checks. Confronted here with <see cref="CommandSurface"/>, which is
     /// what the dispatch table actually knows.
+    ///
+    /// <para>
+    /// The calls the chain gates on <see cref="ExitCode.Usage"/> are left out, and that is the
+    /// one exemption: a line written to be refused names a word on purpose, and the probe for
+    /// the command typo names one that must never exist. Excluding on « the word is unknown »
+    /// instead would have made this test vacuous the day it was written: every typo would
+    /// exempt itself.
+    /// </para>
+    ///
+    /// <para>
+    /// What the exemption does let through is a typo written <em>inside</em> a gated probe, and
+    /// that is watched next door rather than here:
+    /// <see cref="The_build_chain_runs_the_binary_on_a_line_the_tool_must_refuse"/> requires one
+    /// gated probe per branch of the refusal, so a misspelt <c>sacn --replay nowhere.json</c>
+    /// takes the option branch's only end-to-end probe away and is red there. Measured before
+    /// that requirement existed: both DET-OPTION-INCONNUE probes misspelt, the binary answering
+    /// 6 to each, CI green and the whole suite green.
+    /// </para>
+    ///
+    /// <para>
+    /// The premise is on the calls and not on the total: <c>LocalDiagnostics</c> alone
+    /// satisfies « something was extracted », so were the exemption to swallow every call this
+    /// test would go on checking four names and pass its own emptiness check.
+    /// </para>
     /// </summary>
     [Fact]
     public void Every_command_the_build_chain_invokes_exists_in_the_command_surface()
     {
-        var invoked = Regex
-            .Matches(RepositoryFiles.Read(Ci) + RepositoryFiles.Read(Release),
-                @"\$exe\s+([a-z][a-z0-9-]*)")
-            .Select(match => match.Groups[1].Value)
-            .Concat(Regex
-                .Matches(RepositoryFiles.Read(Verify), @"rempart\.exe\s+([a-z][a-z0-9-]*)")
-                .Select(match => match.Groups[1].Value))
+        var typed = Invocations()
+            .Where(call => !call.GatedOnRefusal)
+            .Select(call => call.Word)
+            .OfType<string>()
+            .ToList();
+
+        Assert.True(typed.Count > 0,
+            "Aucun appel du binaire portant un mot de commande n'a survécu à l'exemption : ce "
+            + "test ne lit plus que $aotDiagnostics, et passerait quelle que soit la ligne "
+            + "écrite dans un workflow.");
+
+        var invoked = typed
             .Concat(LocalDiagnostics())
             .ToHashSet(StringComparer.Ordinal);
-
-        Assert.True(invoked.Count > 0, "Aucune commande extraite : ce test ne vérifie rien.");
 
         var unknown = invoked
             .Where(name => CommandSurface.Find(name) is null)
@@ -936,6 +1039,153 @@ public sealed class BuildChainParityTests
             + "d'un binaire qui embarque déjà ces règles a produit une release dont chaque scan "
             + "s'arrêtait sur 82 identifiants en double.");
     }
+
+    /// <summary>
+    /// Which of <see cref="Usage.Check"/>'s refusals a probe of the build chain walks into.
+    ///
+    /// <para>
+    /// Named here because « at least one refused line » stopped telling them apart the day the
+    /// command word became refusable: the two probes DET-OPTION-INCONNUE exists for can be
+    /// misspelt into two more command-word probes — <c>sacn --replay nowhere.json</c>,
+    /// <c>scna nowhere.json</c> — and the binary still answers 6 to both, so the workflow's own
+    /// gates pass and the chain goes on looking exercised while nothing reaches the option
+    /// branches any more. Measured: with that pair written into <c>ci.yml</c>, the whole suite
+    /// stayed green.
+    /// </para>
+    /// </summary>
+    private enum RefusalKind
+    {
+        /// <summary>A word <see cref="CommandSurface"/> does not declare.</summary>
+        CommandWord,
+
+        /// <summary>An option the command does not declare, or one left without its value.</summary>
+        Option,
+
+        /// <summary>One bare argument more than the command has a reader for.</summary>
+        BareArgument,
+    }
+
+    /// <summary>
+    /// One call of the binary found in the build chain: where it sits, the tokens the tool
+    /// would receive, the command word typed if any, and the exit code the chain demands of it.
+    /// </summary>
+    private sealed record Invocation(
+        string File, int Line, string Text, string? Word, string[] Typed, int? Gate)
+    {
+        /// <summary>
+        /// The word the entry point would resolve this line to, which is
+        /// <see cref="Usage.Fallback"/> when the line carries none.
+        ///
+        /// <para>
+        /// A reproduction of <c>Program.cs</c> rather than a reading of it, and it is stated
+        /// as such because the repository forbids the second list everywhere else: nothing
+        /// here compiles <c>Rempart.Cli</c>. What holds the entry point to it is not this
+        /// property but the probes
+        /// <see cref="The_build_chain_runs_the_binary_on_the_lines_the_refusal_must_not_touch"/>
+        /// requires — <c>rempart --help</c> run by the binary, which answers 0 only if the
+        /// resolution really is this one.
+        /// </para>
+        /// </summary>
+        public string Command => Word ?? Usage.Fallback;
+
+        /// <summary>The chain requires this call to be refused.</summary>
+        public bool GatedOnRefusal => Gate == (int)ExitCode.Usage;
+
+        /// <summary>The chain requires this call to succeed.</summary>
+        public bool GatedOnSuccess => Gate == (int)ExitCode.Success;
+    }
+
+    /// <summary>
+    /// Every call of the binary the build chain makes, parsed back into the tokens the tool
+    /// would receive.
+    ///
+    /// <para>
+    /// One walk read by three guards, for the reason <see cref="CommandLine.Split"/> is one
+    /// walk read by two refusals: they judge the same lines from different sides — is a line
+    /// the tool refuses gated on that refusal, is a line nobody gated naming a command at all,
+    /// and are the lines that must keep working actually run — and one call belongs to several
+    /// of those questions at once. Two walks could disagree about where a call stops, and then
+    /// a probe would look like a typo to one guard while a typo looked like a probe to another.
+    /// </para>
+    ///
+    /// <para>
+    /// Keyed on the call operator rather than on the binary's name, so that a line carrying no
+    /// command word at all — <c>&amp; $exe</c>, <c>&amp; $exe --help</c> — is a call like the
+    /// rest instead of being invisible; those two are exactly the half of the contract the
+    /// command-word refusal promised not to touch. The argument list stops at whatever ends it
+    /// in these scripts — a pipe, a closing parenthesis, a separator, a comment — so that
+    /// « (&amp; $exe version).Trim() » is not read as a command carrying an argument named
+    /// « ).Trim() ».
+    /// </para>
+    ///
+    /// <para>
+    /// A call whose arguments come from a variable is left out, because its tokens are not in
+    /// the file: <c>&amp; .\rempart.exe $command</c> is the <c>$aotDiagnostics</c> loop, and
+    /// <see cref="The_local_script_replays_every_diagnostic_the_publish_job_runs"/> is what
+    /// reads it, by name, against the workflow.
+    /// </para>
+    /// </summary>
+    private static List<Invocation> Invocations()
+    {
+        var found = new List<Invocation>();
+
+        foreach (var file in Files)
+        {
+            var lines = RepositoryFiles.Read(file)
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Split('\n');
+
+            for (var index = 0; index < lines.Length; index++)
+            {
+                var call = Regex.Match(lines[index],
+                    @"&\s*(?:\$exe|(?:\.\\)?rempart\.exe)(?<rest>[^|)\n;#>]*)");
+
+                if (!call.Success || call.Groups["rest"].Value.Contains('$', StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string[] typed = [.. call.Groups["rest"].Value
+                    .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)];
+
+                // The gate sits on the line below, or just under the comment explaining it.
+                var gate = Regex.Match(string.Join('\n', lines.Skip(index).Take(4)),
+                    @"-ne\s+(?<code>\d+)");
+
+                found.Add(new Invocation(
+                    file,
+                    index + 1,
+                    lines[index].Trim(),
+                    CommandLine.WordAt(typed, 0),
+                    typed,
+                    gate.Success
+                        ? int.Parse(gate.Groups["code"].Value, CultureInfo.InvariantCulture)
+                        : null));
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Which refusal a probe walks into, decided by <see cref="CommandSurface"/> and by the
+    /// sentence the tool itself prints — never by a second copy of <see cref="Usage.Check"/>'s
+    /// branches written here, which would agree with itself the day one of them stopped firing.
+    ///
+    /// <para>
+    /// The word first, because that is the one branch whose condition is a declaration lookup
+    /// and nothing else. Past it, the refusal names the token it is about: an option token it
+    /// names is an option refused — unknown, or left without its value — and anything else is
+    /// the surplus bare argument.
+    /// </para>
+    /// </summary>
+    private static RefusalKind KindOf(Invocation call, FailureExit refusal) =>
+        call.Word is null || CommandSurface.Find(call.Word) is null
+            ? RefusalKind.CommandWord
+            : call.Typed.Skip(1).Any(token => token.StartsWith('-')
+                && refusal.Message.Contains(token, StringComparison.Ordinal))
+                ? RefusalKind.Option
+                : RefusalKind.BareArgument;
 
     /// <summary>
     /// The items every <c>Copy-Item</c> places in the given destination variable, reduced to

@@ -23,6 +23,15 @@ namespace Rempart.Tests.Unit;
 /// </para>
 ///
 /// <para>
+/// A fourth spelling sits one rank up and is the one the dispatch table used to answer on
+/// purpose: the <em>command</em> word nobody declares. <c>rempart scna --replay capture.json</c>
+/// printed the usage text and exited <c>0</c>, so a scheduler saw a run that had succeeded
+/// while the tool had done something else entirely. It is refused on the same record as the
+/// other three — the word is in <see cref="CommandSurface"/> or it is not — and the refusal is
+/// walked over every command rather than sampled on the one the issue names.
+/// </para>
+///
+/// <para>
 /// The refusal is by construction rather than by list. <see cref="CommandSurface"/> is the
 /// declared surface, and <c>CommandSurfaceTests</c> holds it equal to the options the CLI
 /// really reads — so an option added tomorrow is refused until it is declared there, which
@@ -59,9 +68,10 @@ public sealed class UsageTests
 
         Assert.True(refusal is not null,
             $"« rempart {string.Join(' ', args)} » n'a pas été refusée, alors que "
-            + $"« {command} » ne déclare pas tout ce qui est écrit là. La ligne part donc "
-            + "s'exécuter telle quelle : c'est le défaut lui-même, une machine regardée pour "
-            + "une autre.");
+            + $"« {command} » ne déclare pas tout ce qui est écrit là — ou n'est pas une "
+            + "commande. La ligne part donc s'exécuter telle quelle : c'est le défaut "
+            + "lui-même, une machine regardée pour une autre, ou l'aide imprimée avec un code "
+            + "de réussite.");
 
         return refusal!;
     }
@@ -437,31 +447,182 @@ public sealed class UsageTests
     }
 
     /// <summary>
-    /// A word naming no command is not judged on its options: it already goes to the help,
-    /// which is the answer to a line nobody can parse. Refusing here would print an option
-    /// error about a command that does not exist, burying the thing actually wrong.
+    /// The issue's own line: a command word misspelt, carrying an option that does not exist.
+    ///
+    /// <para>
+    /// <c>rempart scna --replay capture.json</c> printed the usage text and exited <c>0</c>.
+    /// The dispatch table sent every word it did not recognise to the help — a decision, and
+    /// one it documented — so the tool did something other than what it was asked while the
+    /// one channel a scheduler reads reported success. That is DET-OPTION-INCONNUE moved from
+    /// the option to the command word, and closing it changes a contract rather than repairing
+    /// an oversight.
+    /// </para>
+    ///
+    /// <para>
+    /// The word is named and the option is not, which is the « one refusal at a time » the
+    /// unknown option already followed, applied one rank up: <c>--replay</c> is a judgement
+    /// about the surface of <c>scna</c>, and <c>scna</c> has none. Told both, a caller would
+    /// be sent to fix the spelling of an option belonging to a command that does not exist.
+    /// </para>
     /// </summary>
     [Fact]
-    public void A_word_that_names_no_command_is_not_judged_on_its_options() =>
-        Assert.Null(Usage.Check("scna", ["scna", "--replay", "capture.json"]));
+    public void The_command_typo_that_printed_the_help_and_returned_zero_is_refused_by_name()
+    {
+        var refusal = Refused("scna", ["scna", "--replay", "capture.json"]);
+
+        Assert.Contains(Named("scna"), refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(ExitCode.Usage, refusal.Code);
+        Assert.NotEqual(ExitCode.Success, refusal.Code);
+
+        Assert.DoesNotContain("--replay", refusal.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A typo on <em>any</em> command word, walked over the whole surface rather than sampled
+    /// on the one the issue happens to name.
+    ///
+    /// <para>
+    /// The probes are derived, two per command, and neither family stands in for the other.
+    /// One character short — <c>sca</c>, <c>hel</c>, <c>diagnose-wm</c> — is a word a command
+    /// <em>starts with</em>, which is what a lookup written loosely would answer for. One
+    /// character long — <c>scanx</c>, <c>helpx</c> — is a word that <em>starts with</em> a
+    /// command, which is what a loose exemption lets in. Forty typos written out here would be
+    /// a second list, and the command added tomorrow would be in neither.
+    /// </para>
+    ///
+    /// <para>
+    /// The second family is not symmetry for its own sake; it was measured. With the short one
+    /// alone, loosening the exemption below to
+    /// <c>command.StartsWith(Fallback, StringComparison.Ordinal)</c> — one token — left all
+    /// 1 049 tests green while <c>rempart helpme --replay capture.json</c> printed the usage
+    /// text and exited <c>0</c> again: the defect entire, on any word beginning with « help ».
+    /// </para>
+    ///
+    /// <para>
+    /// <c>help</c> is walked like the rest, deliberately: what <see cref="Usage.Check"/>
+    /// exempts is that word and not anything resembling it. <c>hel</c> is not the help, and
+    /// answering it with the help and a code of success is the defect.
+    /// </para>
+    ///
+    /// <para>
+    /// The line carries nothing but the word, which is the harshest shape: there is no option
+    /// to complain about, so a refusal can only come from the word itself.
+    /// </para>
+    ///
+    /// <para>
+    /// « By construction » is on the alphabet that reaches this check, and that is narrower
+    /// than it sounds: <c>-scan</c> and <c>--scan</c> are not in the two families and would
+    /// fail if they were, because <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon
+    /// as the first token starts with a dash, so the line resolves to
+    /// <see cref="Usage.Fallback"/> and never gets here. A misspelt command word wearing a dash
+    /// still prints the help and exits <c>0</c> — measured on the binary,
+    /// <c>rempart -scan --from t.json</c> → 0 — and that is the same open question as
+    /// <c>rempart --json</c> rather than a hole this walk was meant to cover.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_typo_on_any_command_word_is_refused_rather_than_answered_with_the_help()
+    {
+        var declared = CommandSurface.All
+            .Select(command => command.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var typos = declared
+            .SelectMany(name => new[] { name[..^1], name + "x" })
+            .ToList();
+
+        // The premise, and it is what makes the walk mean anything: the probes really are
+        // words no command goes by, there are two per command, and no two of them are the
+        // same word. Were a probe a command, this test would be asserting that a declared
+        // command is refused; were the two families to collapse into one, half the looseness
+        // above would stop being watched.
+        Assert.DoesNotContain(typos, declared.Contains);
+        Assert.Equal(CommandSurface.All.Count * 2, typos.Count);
+        Assert.Equal(typos.Count, typos.Distinct(StringComparer.Ordinal).Count());
+
+        var swallowed = typos
+            .Where(typo => Usage.Check(typo, [typo]) is null)
+            .OrderBy(typo => typo, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(swallowed.Count == 0,
+            $"Des mots de commande que rien ne déclare passent : {string.Join(", ", swallowed)}. "
+            + "Ils partent au bras par défaut du dispatch, qui imprime l'aide et rend 0 : "
+            + "l'outil a fait autre chose que ce qu'on lui demandait, et le seul canal qu'une "
+            + "machine lit dit que tout va bien.");
+    }
+
+    /// <summary>
+    /// The lookup is exact. Case, an edge of whitespace and the empty word are three ways of
+    /// not being a command, and each of them used to print the help and exit <c>0</c>.
+    ///
+    /// <para>
+    /// <c>Help</c> is the one that matters: the exemption is a comparison against
+    /// <see cref="Usage.Fallback"/> and it is ordinal, so a word that merely looks like the
+    /// help does not inherit what the help is exempted for.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("Scan")]
+    [InlineData("SCAN")]
+    [InlineData("Help")]
+    [InlineData("scan ")]
+    [InlineData(" scan")]
+    [InlineData("")]
+    public void A_word_that_only_resembles_a_command_is_refused(string word) =>
+        Assert.NotNull(Usage.Check(word, [word]));
+
+    /// <summary>
+    /// The refusal prints the commands that do exist, derived from <see cref="CommandSurface"/>
+    /// rather than retyped — the same reason the option refusal prints the accepted options. A
+    /// message that only says « non » leaves the reader guessing the spelling, which is how the
+    /// typo happened; <c>scan</c> is in that list, and it is what whoever typed <c>scna</c> was
+    /// reaching for.
+    /// </summary>
+    [Fact]
+    public void The_refusal_of_an_unknown_command_names_the_commands_that_exist()
+    {
+        var refusal = Refused("scna", ["scna"]);
+
+        foreach (var command in CommandSurface.All)
+        {
+            Assert.Contains(command.Name, refusal.Message, StringComparison.Ordinal);
+        }
+    }
 
     /// <summary>
     /// The help stays reachable from a line it could not parse — including
-    /// <c>rempart --help</c>, which carries no command word at all and lands on the fallback.
+    /// <c>rempart --help</c> and bare <c>rempart</c>, which carry no command word at all.
     ///
     /// <para>
-    /// The single exemption, and it is structural rather than a taste: the help is where an
-    /// unusable command line already goes, and it acts on nothing. Every other command acts,
-    /// which is the whole harm. That the exempted word really is the dispatch table's
-    /// fallback is checked against the table on disk, in <c>CommandSurfaceTests</c>.
+    /// The single exemption, and it is structural rather than a taste: the help is where a line
+    /// nobody can parse already goes, and it acts on nothing. Every other command acts, which
+    /// is the whole harm. That the exempted word really is the dispatch table's fallback is
+    /// checked against the table on disk, in <c>CommandSurfaceTests</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// The resolution written below is a <em>copy</em> of the one <c>Program.cs</c> performs,
+    /// and saying otherwise would be the second list this repository forbids everywhere else:
+    /// nothing in this project compiles <c>Rempart.Cli</c>, so this test cannot read that line
+    /// and would stay green while it changed. It is written that way rather than with
+    /// <see cref="Usage.Fallback"/> handed over outright because that is where the boundary of
+    /// the command-word refusal sits — a check reading « this word names no command » and given
+    /// the raw <c>args[0]</c> answers the two commonest lines of the tool, no word and
+    /// <c>--help</c>, with an error and a code of 6 — but what holds the entry point to it is
+    /// <c>BuildChainParityTests</c>, which requires the build chain to run the binary itself on
+    /// <c>rempart --help</c> and demand a 0.
     /// </para>
     /// </summary>
     [Fact]
     public void The_help_is_reachable_from_a_line_it_could_not_parse()
     {
-        Assert.Null(Usage.Check(Usage.Fallback, ["--help"]));
-        Assert.Null(Usage.Check(Usage.Fallback, ["help", "--replay"]));
-        Assert.Null(Usage.Check(Usage.Fallback, []));
+        string[][] lines = [[], ["--help"], ["help"], ["help", "--replay"]];
+
+        foreach (var line in lines)
+        {
+            Assert.Null(Usage.Check(CommandLine.WordAt(line, 0) ?? Usage.Fallback, line));
+        }
     }
 
     /// <summary>

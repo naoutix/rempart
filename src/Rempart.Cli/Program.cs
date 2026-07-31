@@ -17,7 +17,7 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 try
 {
-    // No command word at all reads as a request for the help, the same as an unknown one.
+    // No command word at all reads as a request for the help; an unknown one no longer does.
     var command = WordAt(args, 0) ?? Usage.Fallback;
 
     // Ahead of the dispatch, and that order is the correction rather than a detail: behind

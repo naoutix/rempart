@@ -166,7 +166,7 @@ jobs:
           # It has never fired only because the runner's scan comes back 0 today.
           exit 0
 
-      - name: A line the tool cannot honour scans nothing
+      - name: Both sides of the usage door
         shell: pwsh
         run: |
           # DET-OPTION-INCONNUE, on the binary. Usage.Check is a pure function of Core and
@@ -175,10 +175,31 @@ jobs:
           # end to end with the whole suite green: dropping the `return` from the refusal
           # branch printed « Rien n'a été exécuté » and then scanned the machine anyway,
           # and handing the check the exempted command word rescanned it silently. No
-          # textual guard substitutes for running the thing. Both spellings of the same
-          # sentence: the option that does not exist -- the replay option is `--from` --
-          # and the capture path typed without it.
+          # textual guard substitutes for running the thing.
           $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+
+          # What must NOT be refused, first, because refusing the command word put that half
+          # of the contract in the hands of one token of Program.cs and nothing was watching
+          # it. `WordAt(args, 0) ?? Usage.Fallback` is what keeps a line carrying no command
+          # word out of the check; write `?? args[0]` instead -- which is the natural shape of
+          # the next issue in this series, the one about `rempart --json` -- and `rempart
+          # --help` answers 6 with the whole suite green. The three lines that ask for the
+          # help are the ones a person types, and none of them was ever run here.
+          & $exe
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { throw "bare rempart no longer prints the help ($code)" }
+
+          & $exe --help
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { throw "rempart --help no longer prints the help ($code)" }
+
+          & $exe help
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { throw "rempart help no longer prints the help ($code)" }
+
+          # And what must be. Three spellings of one sentence, one per branch of the refusal:
+          # the option that does not exist -- the replay option is `--from` -- the capture
+          # path typed without it, and the command word itself.
           & $exe scan --replay nowhere.json
           $code = $LASTEXITCODE
           if ($code -ne 6) { throw "an unknown option was not refused ($code)" }
@@ -186,6 +207,15 @@ jobs:
           & $exe scan nowhere.json
           $code = $LASTEXITCODE
           if ($code -ne 6) { throw "a bare argument was not refused ($code)" }
+
+          # The command word went furthest of the three: `rempart scna --replay nowhere.json`
+          # printed the usage text and exited 0, carrying an option that does not exist past a
+          # word that does not either. The dispatch table sent every word it did not recognise
+          # to the help, so nothing here can be proven by reading Core alone -- what changed is
+          # which of the two doors the word walks into, and only the binary crosses it.
+          & $exe scna --replay nowhere.json
+          $code = $LASTEXITCODE
+          if ($code -ne 6) { throw "an unknown command word was not refused ($code)" }
 
           # The refusal this step demands is the step's own last exit code, and the runner
           # reads that trailing code as the step's verdict: on the first run both probes
