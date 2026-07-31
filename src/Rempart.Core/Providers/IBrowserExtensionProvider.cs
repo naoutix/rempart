@@ -63,6 +63,23 @@ public sealed record BrowserExtensionRead(
         new(ReadStatus.Found, extensions);
 
     /// <summary>
+    /// No profile was walked at all: no provider was wired, or the capture being replayed holds
+    /// no extension block. Distinct from <see cref="Found"/> on an empty list, which is the
+    /// ordinary answer of a machine carrying no extension and the one this read keeps silent —
+    /// « personne n'a regardé » is not « j'ai regardé et il n'y a rien », and a profile nobody
+    /// opened is exactly where a sideloaded extension sits (#192).
+    ///
+    /// <para>
+    /// <see cref="ReadStatus.Failed"/> for the reason <see cref="Partial"/> carries it: no
+    /// privilege wires a provider and none re-reads a snapshot, so the one status the report
+    /// turns into « relancer en administrateur » would be advice that cannot work.
+    /// </para>
+    /// </summary>
+    /// <param name="reason">What was not read, in French — it reaches the report.</param>
+    public static BrowserExtensionRead Failed(string reason) =>
+        new(ReadStatus.Failed, [], reason);
+
+    /// <summary>
     /// What was read, and what could not be. Partial by design: the extensions that were
     /// decoded stay in the inventory, and what could not be read is named beside them.
     ///

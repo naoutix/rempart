@@ -186,13 +186,27 @@ public sealed class StatusChannelTests
     }
 
     /// <summary>
-    /// The asymmetry phase 2 settled, and the one thing a shared shape must not flatten: a
-    /// surface never collected answers differently depending on whether zero could be true.
-    /// Both halves in one test, because it is the <em>difference</em> that is the invariant —
-    /// asserting them apart would let someone align them without failing anything.
+    /// A surface a capture never collected says so, whatever zero would have meant on it —
+    /// which is the correction #192 made to what this test used to assert.
+    ///
+    /// <para>
+    /// « The asymmetry phase 2 settled » is what stood here: a surface never collected answered
+    /// <em>differently</em> depending on whether zero could be true of a machine, so the drivers
+    /// failed and the browser extensions succeeded. The asymmetry is real and it is about
+    /// emptiness, not about absence. Zero extension is an ordinary machine state and a walk that
+    /// found none still answers <see cref="ReadStatus.Found"/> — the branch two tests up, where
+    /// the capture recorded a list. A capture holding <em>no</em> extension block walked no
+    /// profile at all, and answering « aucune extension » there was the claim, not the silence.
+    /// </para>
+    ///
+    /// <para>
+    /// All eight status-carrying reads therefore answer the same status on this branch now, and
+    /// the <c>absent</c> parameter of <see cref="StatusChannel.Replay{TRead,TItem}"/> carries
+    /// what genuinely differs between them: the sentence, which names the surface nobody read.
+    /// </para>
     /// </summary>
     [Fact]
-    public void An_uncollected_surface_answers_by_whether_zero_could_have_been_true()
+    public void An_uncollected_surface_says_so_whatever_zero_would_have_meant_on_it()
     {
         var empty = new MachineSnapshot();
 
@@ -207,12 +221,29 @@ public sealed class StatusChannelTests
         Assert.Equal(ReadStatus.Failed,
             new SnapshotListeningPortProvider(empty).Enumerate().Status);
 
-        // Zero browser extension is an ordinary state of an ordinary machine, so the same
-        // absence is an answer rather than a failure. Flagging it would cry wolf.
+        // And the four that answered Found until #192, on the argument that zero was plausible
+        // for them. It is, of a read that happened; none happened here.
         var extensions = new SnapshotBrowserExtensionProvider(empty).Read();
-        Assert.Equal(ReadStatus.Found, extensions.Status);
+        Assert.Equal(ReadStatus.Failed, extensions.Status);
         Assert.Empty(extensions.Extensions);
-        Assert.Null(extensions.Diagnostic);
+        Assert.NotNull(extensions.Diagnostic);
+
+        Assert.Equal(ReadStatus.Failed, new SnapshotDnsProvider(empty).Read().Status);
+        Assert.Equal(ReadStatus.Failed, new SnapshotHostsFileProvider(empty).ReadLines().Status);
+        Assert.Equal(ReadStatus.Failed,
+            new SnapshotSoftwareInventoryProvider(empty).Read().Status);
+
+        // None of them a refusal: the answer to a block a capture never held is to re-capture,
+        // and no console however elevated re-reads a file already written.
+        Assert.All(
+            new[]
+            {
+                new SnapshotDnsProvider(empty).Read().Status,
+                new SnapshotHostsFileProvider(empty).ReadLines().Status,
+                new SnapshotSoftwareInventoryProvider(empty).Read().Status,
+                extensions.Status,
+            },
+            status => Assert.NotEqual(ReadStatus.AccessDenied, status));
     }
 
     /// <summary>
@@ -735,34 +766,57 @@ public sealed class StatusChannelTests
     }
 
     /// <summary>
-    /// The compatibility half, against a capture genuinely written before the field.
-    /// <c>default-win11</c> carries <c>hostsFile</c> and nothing beside it, and the absence
-    /// of a status has to mean exactly what it meant yesterday: a file with no entry in it,
-    /// which is the ordinary state of Windows and the reason this read is allowed to be
-    /// silent about zero.
+    /// The compatibility half, and it was pointed at the wrong branch until #192.
+    ///
+    /// <para>
+    /// It read « <c>default-win11</c> carries <c>hostsFile</c> and nothing beside it », and that
+    /// premise was never true: the key is there and its <em>value</em> is <c>null</c>, so this
+    /// capture has always taken the third branch of <see cref="StatusChannel.Replay{TRead,TItem}"/>
+    /// — the one for a surface never collected — and the branch it claimed to hold, a list
+    /// recorded without a status, was exercised by nothing. It is held here on a literal
+    /// document, which says what it says whatever the fixtures are regenerated into.
+    /// </para>
+    ///
+    /// <para>
+    /// And the fixture is kept, for what it does prove: a capture holding no <c>hosts</c> block
+    /// now replays as a file that was not read. The absence of the <em>list</em> and the absence
+    /// of the <em>status</em> are two different absences, and folding them together is how the
+    /// first premise came to be written.
+    /// </para>
     /// </summary>
     [Fact]
-    public void A_capture_written_before_the_hosts_status_replays_as_a_file_with_no_entry()
+    public void A_hosts_list_without_a_status_replays_as_read_and_no_block_as_unread()
     {
+        // A capture predating the status field: lines and nothing beside them. Read as the
+        // success it was taken to be — a hosts file with no entry is the ordinary state of
+        // Windows, and inventing a failure would make every older capture report a broken one.
+        var recorded = new SnapshotHostsFileProvider(RempartJson.DeserialiseSnapshot(
+            """{"hostsFile":["# Copyright (c) 1993-2009 Microsoft Corp."]}""")).ReadLines();
+
+        Assert.Equal(ReadStatus.Found, recorded.Status);
+        Assert.Null(recorded.Diagnostic);
+        Assert.Single(recorded.Lines);
+
         var json = File.ReadAllText(Path.Combine(
             FixtureReplayTests.FixtureDirectory, "synthetic", "default-win11.capture.json"));
 
         using (var document = JsonDocument.Parse(json))
         {
-            // The premise of the test, asserted rather than assumed: the day this capture is
-            // regenerated with a status, it stops being evidence about older ones. On the
-            // value and never on the key — see Carries.
-            Assert.False(Carries(document.RootElement, "hostsFileStatus"),
-                "La fixture porte désormais un statut de lecture du fichier hosts : elle ne "
-                + "prouve plus la compatibilité des captures antérieures au champ.");
+            // The premise of the second half, asserted rather than assumed, and on the value
+            // and never on the key — see Carries. The day this capture is regenerated with a
+            // hosts block it stops being evidence about a capture that holds none.
+            Assert.False(Carries(document.RootElement, "hostsFile"),
+                "La fixture porte désormais un bloc hosts : elle ne prouve plus ce que rejoue "
+                + "une capture qui n'en a pas.");
         }
 
-        var read = new SnapshotHostsFileProvider(
+        var unread = new SnapshotHostsFileProvider(
             RempartJson.DeserialiseSnapshot(json)).ReadLines();
 
-        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
-        Assert.Null(read.Diagnostic);
-        Assert.Empty(read.Lines);
+        Assert.Equal(ReadStatus.Failed, unread.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, unread.Status);
+        Assert.NotNull(unread.Diagnostic);
+        Assert.Empty(unread.Lines);
     }
 
     /// <summary>

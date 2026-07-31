@@ -78,13 +78,26 @@ public static class StatusChannel
     ///   <item>A list and no status: a capture predating the status field. It is read as the
     ///   success it was taken to be, which is the best available reading of what it recorded
     ///   and no worse than what that capture used to produce.</item>
-    ///   <item>Neither: the surface was never collected. What <paramref name="absent"/>
-    ///   answers is a judgement and not a shape — zero driver cannot be true of a running
-    ///   machine, so it fails; zero browser extension is ordinary, so it succeeds. That
-    ///   asymmetry is deliberate and is why this parameter exists rather than a constant.
-    ///   The directory read shows it is not a two-way split either: an empty <em>listing</em>
-    ///   is an answer there, while a directory the capture holds <em>nothing</em> about is
-    ///   not, and only the caller knows which of its states it is naming.</item>
+    ///   <item>Neither: the surface was never collected, and every read now says so —
+    ///   <see cref="ReadStatus.Failed"/>, with a sentence naming what was not read.
+    ///   <para>
+    ///   What <paramref name="absent"/> answers used to be a judgement about emptiness: zero
+    ///   driver cannot be true of a running machine so it failed, zero browser extension is
+    ///   ordinary so it succeeded. The judgement is real and it was applied to the wrong
+    ///   branch (#192). It decides what a read that <em>ran</em> and came back empty means —
+    ///   case 1 above, where the capture recorded a status, and case 2, where it recorded a
+    ///   list — and the four reads that answered a success here were answering it about a
+    ///   surface no scan had opened. « Personne n'a regardé » is not « j'ai regardé et il n'y
+    ///   a rien », and the directory read had carried the sentence since
+    ///   DET-FICHIERS-MUET: a startup folder nobody enumerated is not a startup folder with
+    ///   nothing in it.
+    ///   </para>
+    ///   <para>
+    ///   The parameter stays, and carries what genuinely differs from one read to the next:
+    ///   the type, and the sentence that names the surface. Only the caller knows which of
+    ///   its surfaces it is speaking about — the directory read is keyed by an argument and
+    ///   quotes the path it was handed.
+    ///   </para></item>
     /// </list>
     /// </summary>
     public static TRead Replay<TRead, TItem>(

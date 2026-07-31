@@ -96,7 +96,7 @@ public sealed class LiveSoftwareInventoryProvider : ISoftwareInventoryProvider
         }
 
         return unreadable.Count > 0
-            ? SoftwareInventoryRead.Failed(software, unreadable)
+            ? SoftwareInventoryRead.SourcesFailed(software, unreadable)
             : SoftwareInventoryRead.Found(software);
     }
 

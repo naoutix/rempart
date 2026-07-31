@@ -82,10 +82,28 @@ public sealed record SoftwareInventoryRead(
     /// At least one source was attempted, did not answer, and was <b>not</b> denied — a
     /// Chocolatey library on a volume that went away. No privilege repairs it, so the status
     /// says so as plainly as the name does.
+    ///
+    /// <para>
+    /// Named for the sources rather than for the read since #192, and the difference is the one
+    /// that issue is about: this says « ces sources-là n'ont pas répondu », which presupposes an
+    /// inventory that was attempted. <see cref="Failed"/> beside it says nobody attempted one,
+    /// and folding the two under one name would have made the report's sentence depend on which
+    /// overload a call site happened to bind to.
+    /// </para>
     /// </summary>
-    public static SoftwareInventoryRead Failed(
+    public static SoftwareInventoryRead SourcesFailed(
         IReadOnlyList<InstalledSoftware> software, IReadOnlyList<string> sources) =>
         new(ReadStatus.Failed, software, Incomplete(sources));
+
+    /// <summary>
+    /// No source was read at all: no provider was wired, or the capture being replayed holds no
+    /// software block. Not <see cref="Found"/> on an empty list, which claims a machine with
+    /// nothing installed — a claim no machine ever earns and this read used to make on every
+    /// scan that omitted the provider (#192).
+    /// </summary>
+    /// <param name="reason">What was not read, in French — it reaches the report.</param>
+    public static SoftwareInventoryRead Failed(string reason) =>
+        new(ReadStatus.Failed, [], reason);
 
     /// <summary>
     /// The sentence both states share. It names the sources and never the cause: the cause is

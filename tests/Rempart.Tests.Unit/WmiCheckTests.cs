@@ -79,7 +79,17 @@ public sealed class WmiCheckTests
     {
         var providers = new ProviderSet(new FakeRegistryProvider(), new FakeSystemInfoProvider());
 
-        Assert.Equal(VerdictStatus.Unknown, RuleEvaluator.Evaluate(Rule(), providers).Status);
+        var verdict = RuleEvaluator.Evaluate(Rule(), providers);
+
+        Assert.Equal(VerdictStatus.Unknown, verdict.Status);
+
+        // Unverifiable, and no longer refused (#192). This fallback answered
+        // WmiRead.AccessDenied, which carries no reason, so the WMI-backed rules of a scan
+        // supplied with no WMI provider were all filed under a missing privilege — the twin of
+        // the correction #177 made to the snapshot provider and did not make here.
+        Assert.Contains("fournisseur", verdict.Observed!, StringComparison.Ordinal);
+        Assert.DoesNotContain("administrateur", verdict.Observed!,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

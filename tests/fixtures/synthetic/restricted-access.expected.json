@@ -3644,6 +3644,52 @@
       ],
       "details": {},
       "gap": "Unreadable"
+    },
+    {
+      "kind": "dns-resolver",
+      "source": "r\u00E9solveurs DNS",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Cette capture ne contient aucun bloc DNS : les interfaces de la machine n\u0027ont pas \u00E9t\u00E9 \u00E9num\u00E9r\u00E9es au moment o\u00F9 elle a \u00E9t\u00E9 prise."
+      ],
+      "details": {},
+      "gap": "Unreadable"
+    },
+    {
+      "kind": "hosts-entry",
+      "source": "hosts",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Cette capture ne contient aucun bloc hosts : le fichier n\u0027a pas \u00E9t\u00E9 lu au moment o\u00F9 elle a \u00E9t\u00E9 prise."
+      ],
+      "details": {
+        "type": "lecture"
+      },
+      "gap": "Unreadable"
+    },
+    {
+      "kind": "software",
+      "source": "inventaire logiciel",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Cette capture ne contient aucun bloc logiciel : aucune des quatre sources n\u0027a \u00E9t\u00E9 lue au moment o\u00F9 elle a \u00E9t\u00E9 prise."
+      ],
+      "details": {},
+      "gap": "Unreadable"
+    },
+    {
+      "kind": "browser-extension",
+      "source": "profil de navigateur",
+      "target": "\u2014",
+      "severity": "Notable",
+      "reasons": [
+        "Cette capture ne contient aucun bloc d\u0027extensions : aucun profil de navigateur n\u0027a \u00E9t\u00E9 parcouru au moment o\u00F9 elle a \u00E9t\u00E9 prise."
+      ],
+      "details": {},
+      "gap": "Unreadable"
     }
   ],
   "score": {

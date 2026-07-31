@@ -134,15 +134,29 @@ public class BrowserExtensionSnapshotTests
         Assert.Equal(extension.FromStore, replayed.FromStore);
     }
 
+    /// <summary>
+    /// A capture holding no extension block says so, since #192 — where it replayed as an empty
+    /// and successful walk.
+    ///
+    /// <para>
+    /// « No extension is a plausible machine state » was the argument, and it is still the
+    /// answer for a walk that took place and found none: that is <see cref="ReadStatus.Found"/>
+    /// on an empty list and it stays silent. A capture with no block walked no profile, and the
+    /// profile nobody opened is where a sideloaded extension is installed — the case
+    /// <c>BrowserExtensionRead</c> carries a channel for at all.
+    /// </para>
+    /// </summary>
     [Fact]
-    public void A_snapshot_without_extensions_replays_an_empty_list()
+    public void A_snapshot_without_extensions_says_so_rather_than_replaying_an_empty_walk()
     {
         var read = new SnapshotBrowserExtensionProvider(new MachineSnapshot()).Read();
 
-        // Empty and successful, not denied: no extension is a plausible machine state,
-        // so an old capture must not start claiming a profile could not be read.
+        // Failed and not denied: no console however elevated re-reads a capture already
+        // written, so the answer here may not be « relancer en administrateur ».
         Assert.Empty(read.Extensions);
-        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
+        Assert.NotNull(read.Diagnostic);
     }
 }
 

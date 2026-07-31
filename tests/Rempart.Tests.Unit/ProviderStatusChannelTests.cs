@@ -31,6 +31,17 @@ namespace Rempart.Tests.Unit;
 /// <c>KnownUndocumented</c> uses in <c>CommandSurfaceTests</c>. Adding a provider without
 /// touching this file is what must be impossible.
 /// </para>
+///
+/// <para>
+/// <b>What the partition below is about, since #192.</b> Every « aucun » here is a judgement
+/// about <em>emptiness</em> — whether zero can be true of a machine — and it decides what a read
+/// that <em>ran</em> and came back with nothing means. It never decided what a surface nobody
+/// read answers, and four reads carrying a channel were using it for that: an unwired DNS, an
+/// unwired inventory, an unwired <c>hosts</c> file and an unwired profile walk all answered
+/// <c>Found</c> on an empty list. <see cref="UnreadSurfaceTests"/> holds that half, on the two
+/// wirings where nobody looked, and reads the exemptions of this partition rather than
+/// re-deciding them.
+/// </para>
 /// </summary>
 public sealed class ProviderStatusChannelTests
 {

@@ -259,10 +259,14 @@ public sealed class RecordingScheduledTaskProvider(
 // already read" of the recording side. Both live in StatusChannel, written once. What stays
 // here, one pair at a time, is what genuinely differs: the three snapshot fields the read is
 // stored in (they cannot be named generically — they are separate properties because the
-// JSON shape says so), and the answer to "this capture never collected this surface", which
-// is a judgement rather than a shape. Zero driver cannot be true of a running machine; zero
-// browser extension is ordinary. Phase 2 settled that asymmetry and it is the one thing a
-// generalisation here must not flatten.
+// JSON shape says so), and the sentence naming the surface a capture holds nothing about.
+//
+// That last one used to be a judgement about emptiness as well — zero driver cannot be true of
+// a running machine, zero browser extension is ordinary — and the judgement was applied to the
+// wrong branch (#192). It decides what an empty read that happened means, which is a question
+// the recorded status and the recorded list already answer above; a capture holding no block at
+// all read nothing, and the eight reads say so alike. What a generalisation here must still not
+// flatten is the sentence: a reader of a replay is told which surface the capture never held.
 
 public sealed class RecordingDriverProvider(
     IDriverProvider inner, MachineSnapshot snapshot) : IDriverProvider
@@ -386,19 +390,21 @@ public sealed class SnapshotDnsProvider(MachineSnapshot snapshot) : IDnsProvider
 {
     public DnsRead Read() => StatusChannel.Replay(
         snapshot.DnsStatus, snapshot.Dns, snapshot.DnsDiagnostic,
-        // Absent from an earlier capture: an empty, successful read. Unlike the drivers and
-        // like the hosts file, zero is a state this surface is allowed to answer — a machine
-        // with no configured interface exists, and the partition guard has said so since the
-        // day it was written. A capture predating this collection therefore replays exactly as
-        // it did rather than growing a gap it never recorded, which is the promise
-        // StatusChannel makes to the real captures kept outside this repository.
+        // Absent from a capture: a read that did not happen, since #192. It was an empty and
+        // successful read, on the argument that zero is a state this surface may answer — which
+        // is true of an enumeration that ran and found no configured interface, and is the
+        // answer that surface still gets. It was never true of a capture holding no dns block:
+        // nothing was enumerated, so « zéro interface » was a claim the capture never made.
         //
-        // What #184 corrected is the other reading, and only it: a refusal used to arrive here
-        // as this same empty list. It now arrives as a refusal, from the capture that recorded
-        // one. Whether « jamais capturé » should itself speak on this surface is a separate
-        // judgement about emptiness, and reversing it would put a NOTABLE on every capture
-        // older than this batch.
-        static () => DnsRead.Found([]));
+        // That judgement was left open in writing on this very line — « whether jamais capturé
+        // should itself speak on this surface is a separate judgement » — and it is settled the
+        // same way as the seven neighbours that already speak: the listening ports two classes
+        // up answer Failed on exactly this branch, and three of the four versioned fixtures hit
+        // it. It costs those captures a line saying what they cannot answer, and no verdict:
+        // AuditGap.Unreadable is exit 5, « non déterminé », never a Fail against the machine.
+        static () => DnsRead.Failed(
+            "Cette capture ne contient aucun bloc DNS : les interfaces de la machine n'ont pas "
+            + "été énumérées au moment où elle a été prise."));
 }
 
 public sealed class RecordingHostsFileProvider(
@@ -422,11 +428,14 @@ public sealed class SnapshotHostsFileProvider(MachineSnapshot snapshot) : IHosts
 {
     public HostsFileRead ReadLines() => StatusChannel.Replay(
         snapshot.HostsFileStatus, snapshot.HostsFile, snapshot.HostsFileDiagnostic,
-        // Absent from an earlier capture: an empty, successful read. Unlike the drivers and
-        // like the browser extensions, a hosts file with no entry is a plausible state — the
-        // default one, in fact — so a fixture predating this collection replays as « rien à
-        // signaler » rather than as a failure it never had.
-        static () => HostsFileRead.Found([]));
+        // Absent from a capture: a read that did not happen, since #192. « A hosts file with no
+        // entry is a plausible state — the default one, in fact » is the argument this line
+        // carried, and it holds for a file that was read: that is still Found on an empty list.
+        // A capture with no hostsFile block is not that file. All four versioned fixtures land
+        // here, and what they gain is the sentence below rather than a verdict.
+        static () => HostsFileRead.Failed(
+            "Cette capture ne contient aucun bloc hosts : le fichier n'a pas été lu au moment "
+            + "où elle a été prise."));
 }
 
 public sealed class RecordingProxyProvider(IProxyProvider inner, MachineSnapshot snapshot) : IProxyProvider
@@ -463,10 +472,14 @@ public sealed class SnapshotSoftwareInventoryProvider(MachineSnapshot snapshot)
 {
     public SoftwareInventoryRead Read() => StatusChannel.Replay(
         snapshot.SoftwareStatus, snapshot.Software, snapshot.SoftwareDiagnostic,
-        // Absent from an earlier capture: an empty, successful read, for the reason its DNS
-        // neighbour gives. An empty inventory triggers no rule and accuses no machine, so a
-        // capture predating this collection replays exactly as it did.
-        static () => SoftwareInventoryRead.Found([]));
+        // Absent from a capture: a read that did not happen, for the reason its DNS neighbour
+        // gives — the reason having changed with it (#192). An empty inventory accuses no
+        // machine, which is why an inventory that ran and found nothing stays silent; a capture
+        // holding no software block replayed as a machine with nothing installed, which is a
+        // claim rather than a silence.
+        static () => SoftwareInventoryRead.Failed(
+            "Cette capture ne contient aucun bloc logiciel : aucune des quatre sources n'a été "
+            + "lue au moment où elle a été prise."));
 }
 
 public sealed class RecordingWifiProfileProvider(
@@ -502,11 +515,15 @@ public sealed class SnapshotBrowserExtensionProvider(MachineSnapshot snapshot)
     public BrowserExtensionRead Read() => StatusChannel.Replay(
         snapshot.BrowserExtensionsStatus, snapshot.BrowserExtensions,
         snapshot.BrowserExtensionsDiagnostic,
-        // Absent from an earlier capture: an empty, successful read. Unlike drivers, no
-        // extension is a plausible state, so a fixture predating this collection replays as
-        // "nothing to report" rather than as a failure it never had. This is the line the
-        // shared shape must not standardise away.
-        static () => BrowserExtensionRead.Found([]));
+        // Absent from a capture: a read that did not happen, since #192. « No extension is a
+        // plausible state » is the argument this line carried and it is the reason a walk that
+        // found none is still Found on an empty list — the line the shared shape must not
+        // standardise away, and it is not standardised away. What was folded into it is the
+        // capture that walked no profile at all, which is the state the channel here exists to
+        // name: the profile nobody opened is where a sideloaded extension sits.
+        static () => BrowserExtensionRead.Failed(
+            "Cette capture ne contient aucun bloc d'extensions : aucun profil de navigateur "
+            + "n'a été parcouru au moment où elle a été prise."));
 }
 
 public sealed class RecordingComponentStoreProvider(

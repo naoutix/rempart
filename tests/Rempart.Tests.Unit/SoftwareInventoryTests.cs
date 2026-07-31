@@ -291,7 +291,7 @@ public class SoftwareInventoryCollectorTests
     public void A_source_that_failed_without_being_denied_is_reported_as_itself()
     {
         var finding = Assert.Single(Collect(
-            SoftwareInventoryRead.Failed([], [@"C:\ProgramData\chocolatey\lib"])));
+            SoftwareInventoryRead.SourcesFailed([], [@"C:\ProgramData\chocolatey\lib"])));
 
         Assert.Equal(AuditGap.Unreadable, finding.Gap);
         Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
@@ -367,24 +367,40 @@ public class SoftwareSnapshotTests
     }
 
     /// <summary>
-    /// A capture that never collected the inventory. An empty, successful read and not a gap:
-    /// zero installed program accuses nobody and triggers no rule, so a fixture predating this
-    /// collection replays exactly as it did.
+    /// A capture that never collected the inventory says so, since #192 — where it answered an
+    /// empty, successful read.
+    ///
+    /// <para>
+    /// « Zero installed program accuses nobody » was the argument, and it answers a question
+    /// nobody asked: the objection to speaking here would be a false accusation, and a gap is
+    /// not an accusation. What the old answer did assert is that this machine has nothing
+    /// installed — a state no machine is in — over four sources the capture never opened.
+    /// </para>
     ///
     /// <para>
     /// The status is asserted beside the emptiness, because the two are what #184 separated: a
     /// capture that recorded a <em>refusal</em> replays as one — the test next door — and this
-    /// one must not be dragged along with it.
+    /// one must not be dragged along with it, which is why the denial is refused by name.
     /// </para>
     /// </summary>
     [Fact]
-    public void A_snapshot_without_software_replays_an_empty_inventory()
+    public void A_snapshot_without_software_says_so_rather_than_reporting_nothing_installed()
     {
         var read = new SnapshotSoftwareInventoryProvider(new MachineSnapshot()).Read();
 
-        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.Empty(read.Software);
-        Assert.Null(read.Diagnostic);
+        Assert.NotNull(read.Diagnostic);
+
+        var finding = Assert.Single(
+            new SoftwareInventoryCollector(BloatwareCatalog.Empty).Collect(new ProviderSet(
+                new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+                softwareInventory: new FakeSoftwareInventoryProvider(read))));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

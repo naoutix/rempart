@@ -5,7 +5,7 @@ anon:000000000002 contre anon:000000000004
 [synthèse] 17 constat(s) apparu(s).
   conformité 52 % → 52 %
 
-[constats] 20 écart(s)
+[constats] 22 écart(s)
 
   apparu    C:\Users\anon:1a2b3c4d5e6f\AppData\Local\Temp\OneDriveSync.exe
             HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\OneDriveSync
@@ -52,9 +52,15 @@ anon:000000000002 contre anon:000000000004
             → Accès à toutes les pages web : peut lire et modifier tout ce qui s'affiche.
             → Permission sensible : nativeMessaging.
 
+  disparu   —
+            profil de navigateur
+
   apparu    198.51.100.23
             Ethernet
             → Résolveur DNS statique non reconnu (198.51.100.23) — un serveur posé par-dessus celui du réseau est le levier d'un détournement DNS.
+
+  disparu   —
+            résolveurs DNS
 
   disparu   —
             pilotes chargés

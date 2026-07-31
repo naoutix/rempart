@@ -127,7 +127,7 @@ données : catalogue au 2026-07-21, à jour
 
   « rempart explain <ID> » détaille une règle et ce que coûte sa correction.
 
-[constats] 1 driver, 1 listening-port, 2 logon-extension, 2 lsa-package, 1 process, 196 scheduled-task, 1 wmi-subscription — 3 à examiner
+[constats] 1 browser-extension, 1 dns-resolver, 1 driver, 1 hosts-entry, 1 listening-port, 2 logon-extension, 2 lsa-package, 1 process, 196 scheduled-task, 1 software, 1 wmi-subscription — 7 à examiner
 
   NOTABLE     pilotes chargés
               —
@@ -140,6 +140,22 @@ données : catalogue au 2026-07-21, à jour
   NOTABLE     ports en écoute
               —
               → Points d'écoute absents de l'instantané.
+
+  NOTABLE     résolveurs DNS
+              —
+              → Cette capture ne contient aucun bloc DNS : les interfaces de la machine n'ont pas été énumérées au moment où elle a été prise.
+
+  NOTABLE     hosts
+              —
+              → Cette capture ne contient aucun bloc hosts : le fichier n'a pas été lu au moment où elle a été prise.
+
+  NOTABLE     inventaire logiciel
+              —
+              → Cette capture ne contient aucun bloc logiciel : aucune des quatre sources n'a été lue au moment où elle a été prise.
+
+  NOTABLE     profil de navigateur
+              —
+              → Cette capture ne contient aucun bloc d'extensions : aucun profil de navigateur n'a été parcouru au moment où elle a été prise.
 
 [inventory] Ok
   os.name                          Windows 11 Pro
