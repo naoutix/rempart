@@ -52,6 +52,20 @@ namespace Rempart.Core.Providers;
 /// finding either. <c>RegistryDnsProviderTests</c> pins the first of those two rather than
 /// leaving it to this paragraph.
 /// </para>
+///
+/// <para>
+/// And one surface a level <em>above</em> the subtree walked here, on both stacks alike:
+/// <c>{service}\Parameters</c> carries values named <c>NameServer</c> and
+/// <c>DhcpNameServer</c> — the two names this read watches per adapter. Measured on a real
+/// Windows 11 machine: <c>Tcpip\Parameters\DhcpNameServer</c> held <c>192.168.1.1</c>, written
+/// by Windows itself, <c>Tcpip\Parameters\NameServer</c> was present and empty, and
+/// <c>Tcpip6\Parameters</c> kept <c>Dhcpv6DNSServers</c> at that level. This read descends into
+/// <c>{interfaces}\{guid}</c> and never opens <c>{service}\Parameters</c>, so none of them
+/// reaches a report. Whether the resolver consults them is a fact about Windows that has not
+/// been established here, and it is what decides between reading them and writing down why not —
+/// so the silence is pinned by a test rather than left to be discovered. It is not an IPv6 gap:
+/// the v4 stack has had the same one since this read was written.
+/// </para>
 /// </summary>
 public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvider
 {

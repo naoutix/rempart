@@ -19,11 +19,16 @@ namespace Rempart.Tests.Windows;
 ///
 /// <para>
 /// And one question that can only be asked here, because it is a fact about Windows and not
-/// about the program: whether the stacks the program names are the stacks that keep resolvers.
-/// Every test in Core reads a registry a test wrote, so a subtree nobody declared is invisible
-/// to all of them — <c>RegistryDnsProviderTests</c> says so in as many words. The real
-/// <c>Services</c> hive is the only corpus that can answer, and
-/// <see cref="No_service_outside_the_declared_stacks_keeps_a_resolver_per_interface"/> asks it.
+/// about the program. Every test in Core reads a registry a test wrote, so a subtree nobody
+/// declared is invisible to all of them — <c>RegistryDnsProviderTests</c> says so in as many
+/// words. The real <c>Services</c> hive is the only corpus that can answer, and
+/// <see cref="No_service_outside_the_declared_stacks_keeps_a_resolver_per_interface"/> asks it
+/// of the one shape it is named for: <em>a resolver kept per adapter, under a service outside
+/// the declared stacks</em>. That is narrower than « are the stacks the program names the stacks
+/// that keep resolvers », which is what this paragraph used to claim, and the difference is a
+/// real one — a resolver at the global level of a service is out of reach of it, and
+/// <c>RegistryDnsProvider</c> names that surface rather than leaving the wider sentence to
+/// cover it.
 /// </para>
 ///
 /// <para>
@@ -154,8 +159,8 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The one question no fake registry can answer: are the stacks the program names the
-    /// stacks this machine keeps resolvers on?
+    /// The one question no fake registry can answer, asked of the shape this walk can reach:
+    /// does a service this program does not declare keep a DNS resolver <em>per adapter</em>?
     ///
     /// <para>
     /// #191 was a stack that existed and was named nowhere in the repository, and the guard it
@@ -172,6 +177,17 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
     /// a <c>Parameters\Interfaces</c> subtree, and what it holds is <c>NameServerList</c> —
     /// WINS servers, another protocol and another value name, which is why the match is on the
     /// exact two names this read uses and not on « anything that looks like a name server ».
+    /// </para>
+    ///
+    /// <para>
+    /// <b>And what it cannot reach at all</b>, which its name does not say and this paragraph
+    /// does: it only ever builds <c>{service}\Parameters\Interfaces\{adapter}</c>, so a resolver
+    /// held at the global level of a service — <c>{service}\Parameters\NameServer</c>, which on
+    /// this machine exists on the declared v4 stack — is outside it in both directions, declared
+    /// stack or not. That surface is named by <c>RegistryDnsProvider</c> and pinned by
+    /// <c>RegistryDnsProviderTests</c>; widening this walk to it would redden here on an
+    /// ordinary machine, which is a question to settle before reading it and not by an
+    /// assertion.
     /// </para>
     ///
     /// <para>

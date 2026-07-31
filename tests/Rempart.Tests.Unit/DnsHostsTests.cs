@@ -67,22 +67,119 @@ public class DnsResolverTests
     }
 
     /// <summary>
-    /// The same, in the vocabulary the IPv6 stack speaks. The well-known list has carried
-    /// Cloudflare's and Google's v6 addresses since it was written and the loopback rule has
-    /// known <c>::1</c> as long — but nothing ever reached them, the collection stopping at
-    /// <c>Tcpip</c> (#191). A machine resolving through Cloudflare over IPv6 must not become a
-    /// NOTABLE on the day the second stack starts being read.
+    /// Every operator the collector recognises, on <em>both</em> families — derived from the
+    /// table and not copied out of it, which is the whole point: three <c>InlineData</c>
+    /// picked off the list is what let the list's own omission through.
+    /// </summary>
+    public static TheoryData<string, string, DnsStack> EveryWellKnownAddress()
+    {
+        var data = new TheoryData<string, string, DnsStack>();
+
+        foreach (var resolver in DnsResolverCollector.WellKnownResolvers)
+        {
+            foreach (var address in resolver.IPv4)
+            {
+                data.Add(resolver.Operator, address, DnsStack.IPv4);
+            }
+
+            foreach (var address in resolver.IPv6)
+            {
+                data.Add(resolver.Operator, address, DnsStack.IPv6);
+            }
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// <b>The same deliberate choice is judged the same on both stacks.</b> This is the defect
+    /// #191 shipped: the recognised list carried Cloudflare's and Google's v6 addresses and
+    /// neither Quad9's nor OpenDNS's, which cost nothing while no v6 resolver was collected and
+    /// became a NOTABLE on a hardened machine the day <c>Tcpip6</c> started being read — the
+    /// false positive on an ordinary configuration this repository refuses by principle.
+    ///
+    /// <para>
+    /// Read off the table, so an operator added tomorrow is judged here without this file being
+    /// opened, and the guard below refuses an operator declared on one family only. The two
+    /// together are what make « the same choice, the same verdict » a property rather than a
+    /// paragraph.
+    /// </para>
     /// </summary>
     [Theory]
-    [InlineData("2606:4700:4700::1111")]
-    [InlineData("2001:4860:4860::8888")]
-    [InlineData("::1")]
-    public void A_well_known_or_local_IPv6_static_resolver_is_benign(string server)
+    [MemberData(nameof(EveryWellKnownAddress))]
+    public void A_recognised_public_resolver_is_benign_on_the_stack_of_its_family(
+        string operatorName, string server, DnsStack stack)
     {
+        var finding = Assert.Single(Collect(new DnsInterface("if0", [server], [], stack)));
+
+        // The operator is named in the message and not only in the theory row: a red line here
+        // reads « the audit stopped recognising this operator on this family », which is the
+        // fact, rather than « an address came back Notable ».
+        Assert.True(finding.Severity is FindingSeverity.Benign,
+            $"{operatorName} sur {server} ({stack}) est signalé comme un résolveur statique non "
+            + "reconnu, alors que le même opérateur est reconnu sur l'autre pile.");
+
+        Assert.Empty(finding.Reasons);
+        Assert.Equal(stack.ToString(), finding.Details["pile"]);
+    }
+
+    /// <summary>
+    /// And the guard that makes the theory above cover what it claims: an operator is declared
+    /// on both families or it is not declared at all.
+    ///
+    /// <para>
+    /// Without it the table can be extended with a v4-only row and every test stays green — the
+    /// exact shape the flat list had, where eight addresses of one family and four of the other
+    /// read as a list of twelve. This is the line somebody adding an operator has to satisfy,
+    /// and satisfying it means going and reading the operator's own <c>AAAA</c> record.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_recognised_operator_is_declared_on_both_address_families()
+    {
+        Assert.NotEmpty(DnsResolverCollector.WellKnownResolvers);
+
+        Assert.All(DnsResolverCollector.WellKnownResolvers, resolver =>
+        {
+            Assert.True(resolver.IPv4.Count > 0,
+                $"{resolver.Operator} n'a aucune adresse IPv4 déclarée.");
+
+            Assert.True(resolver.IPv6.Count > 0,
+                $"{resolver.Operator} est reconnu en IPv4 et sur aucune adresse IPv6 : une "
+                + "machine qui le choisit délibérément sur la pile v6 récolte un NOTABLE que la "
+                + "même machine ne récolte pas sur la pile v4.");
+        });
+    }
+
+    /// <summary>
+    /// The spelling an IPv6 address was typed in does not decide the verdict.
+    ///
+    /// <para>
+    /// Upper case and any run of zero groups left uncompressed name the same address
+    /// (RFC 4291 §2.2), and the registry holds whichever spelling was configured. Matching the
+    /// text made Quad9 written <c>2620:FE::FE</c> an unrecognised resolver; nothing reached that
+    /// comparison before #191, and everything on the v6 stack does now.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData("2620:FE::FE")]
+    [InlineData("2620:00fe:0000:0000:0000:0000:0000:00fe")]
+    [InlineData("2606:4700:4700:0:0:0:0:1111")]
+    [InlineData("0:0:0:0:0:0:0:1")]
+    public void A_recognised_resolver_written_another_way_is_the_same_resolver(string server) =>
         Assert.Equal(FindingSeverity.Benign,
             Assert.Single(Collect(new DnsInterface("if0", [server], [], DnsStack.IPv6)))
                 .Severity);
-    }
+
+    /// <summary>
+    /// The loopback in the vocabulary the IPv6 stack speaks — a filter installed on purpose,
+    /// which is a deliberate configuration and not a hijack.
+    /// </summary>
+    [Fact]
+    public void A_local_IPv6_static_resolver_is_benign() =>
+        Assert.Equal(FindingSeverity.Benign,
+            Assert.Single(Collect(new DnsInterface("if0", ["::1"], [], DnsStack.IPv6)))
+                .Severity);
 
     /// <summary>A local resolver — loopback, a filter installed on purpose — stays benign.</summary>
     [Fact]

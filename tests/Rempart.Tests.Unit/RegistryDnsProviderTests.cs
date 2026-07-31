@@ -29,17 +29,28 @@ public sealed class RegistryDnsProviderTests
     /// This is what « par construction » comes to here, and it is worth stating what it does
     /// and does not buy. Every theory below is read once per member, so a stack declared
     /// tomorrow is exercised on collection, on the two value names, on a refused enumeration
-    /// and on a refused adapter key without anyone remembering this file — the enumeration this
-    /// repository keeps refusing is a list of stacks written by hand, and there is none.
+    /// and on a refused adapter key without anyone remembering this file.
     /// </para>
     ///
     /// <para>
-    /// <b>What it cannot see.</b> It reads the stacks the program names, never the stacks
-    /// Windows has: a third resolver subtree that this enum does not mention is invisible to
-    /// every test in this file, because a fake registry answers what the test put in it. That
-    /// question is a fact about Windows, it is asked against the real <c>Services</c> hive by
-    /// <c>LiveDnsProviderTests.No_service_outside_the_declared_stacks_keeps_a_resolver_per_interface</c>,
-    /// and it is the reason the two service names are pinned by value below rather than derived.
+    /// One list of stacks is written by hand and stays written by hand:
+    /// <see cref="The_interfaces_of_each_stack_are_looked_for_where_Windows_keeps_them"/> holds
+    /// the whole table against the keys somebody verified on a machine. Deriving that one would
+    /// assert nothing at all, and it is the line a stack cannot get past: declaring a member and
+    /// a key for it leaves every other test here green — they all read the same declaration —
+    /// and reddens this one, which is where the key gets written down after being read off a
+    /// real registry rather than guessed.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What none of it can see.</b> It reads the stacks the program names, never the stacks
+    /// Windows has: a resolver subtree this enum does not mention is invisible to every test in
+    /// this file, because a fake registry answers what the test put in it. That question is a
+    /// fact about Windows and is asked against the real <c>Services</c> hive by
+    /// <c>LiveDnsProviderTests.No_service_outside_the_declared_stacks_keeps_a_resolver_per_interface</c>
+    /// — which asks it of one shape only, a resolver kept <em>per adapter</em> under another
+    /// service. A resolver kept somewhere else is out of reach of both, and the one such place
+    /// this repository has measured is pinned below rather than left unsaid.
     /// </para>
     /// </summary>
     public static TheoryData<DnsStack> EveryStack() => [.. Enum.GetValues<DnsStack>()];
@@ -50,8 +61,23 @@ public sealed class RegistryDnsProviderTests
     /// </summary>
     private static string ResolverOf(DnsStack stack) => $"203.0.113.{(int)stack + 1}";
 
-    /// <summary>The identifier this file gives the one adapter of a given stack.</summary>
-    private static string AdapterOf(DnsStack stack) => $"{{carte-{stack}}}";
+    /// <summary>
+    /// The identifier this file gives its adapter — <b>one identifier for every stack</b>,
+    /// because that is the only shape Windows produces.
+    ///
+    /// <para>
+    /// A card is bound to both stacks and keyed by its GUID under each of them, which is the
+    /// whole reason <see cref="DnsInterface.Stack"/> exists. An identifier that differed per
+    /// stack was a machine that does not exist, and it hid a defect under a green suite: folding
+    /// the two subtrees on the identifier — <c>!interfaces.Any(seen =&gt; seen.Id == guid)</c> in
+    /// the read — put #191 back, losing the v6 list of every real card, and passed every test in
+    /// this file and in the live suite. Sharing the identifier is what lets a test meet that
+    /// fold at all; the one that states it and reddens on it is
+    /// <see cref="One_adapter_declared_under_every_stack_is_read_once_per_stack"/>, since the
+    /// theories below stage a single stack each and cannot see a fold across two.
+    /// </para>
+    /// </summary>
+    private const string Adapter = "{carte}";
 
     [Theory]
     // A DHCP lease writes them space-separated.
@@ -87,16 +113,15 @@ public sealed class RegistryDnsProviderTests
     public void A_static_resolver_and_a_leased_one_are_kept_apart(DnsStack stack)
     {
         var key = RegistryDnsProvider.InterfacesKeyOf(stack);
-        var adapter = AdapterOf(stack);
 
         var registry = new FakeRegistryProvider()
-            .WithSubKeys(key, adapter)
-            .WithText($@"{key}\{adapter}", "NameServer", "9.9.9.9")
-            .WithText($@"{key}\{adapter}", "DhcpNameServer", "192.168.1.1");
+            .WithSubKeys(key, Adapter)
+            .WithText($@"{key}\{Adapter}", "NameServer", "9.9.9.9")
+            .WithText($@"{key}\{Adapter}", "DhcpNameServer", "192.168.1.1");
 
         var iface = Assert.Single(new RegistryDnsProvider(registry).Read().Interfaces);
 
-        Assert.Equal(adapter, iface.Id);
+        Assert.Equal(Adapter, iface.Id);
         Assert.Equal(stack, iface.Stack);
         Assert.Equal(["9.9.9.9"], iface.StaticServers);
         Assert.Equal(["192.168.1.1"], iface.DhcpServers);
@@ -135,11 +160,10 @@ public sealed class RegistryDnsProviderTests
     public void A_static_resolver_on_any_declared_stack_reaches_the_report(DnsStack stack)
     {
         var key = RegistryDnsProvider.InterfacesKeyOf(stack);
-        var adapter = AdapterOf(stack);
 
         var registry = new FakeRegistryProvider()
-            .WithSubKeys(key, adapter)
-            .WithText($@"{key}\{adapter}", "NameServer", ResolverOf(stack));
+            .WithSubKeys(key, Adapter)
+            .WithText($@"{key}\{Adapter}", "NameServer", ResolverOf(stack));
 
         var read = new RegistryDnsProvider(registry).Read();
         var iface = Assert.Single(read.Interfaces);
@@ -155,6 +179,66 @@ public sealed class RegistryDnsProviderTests
         Assert.Contains(ResolverOf(stack), string.Join(" ", finding.Reasons),
             StringComparison.Ordinal);
         Assert.Equal(stack.ToString(), finding.Details["pile"]);
+    }
+
+    /// <summary>
+    /// <b>One card, declared under every stack by the same identifier — the only arrangement a
+    /// Windows machine actually produces</b>, and the one the fix has to survive.
+    ///
+    /// <para>
+    /// A network card is bound to both stacks and keyed by its GUID under each
+    /// <c>Parameters\Interfaces</c>, with a resolver list of its own on each side. So the read
+    /// meets the same identifier twice per card, and the temptation is to take the second sight
+    /// of it for a duplicate. Doing so — <c>!interfaces.Any(seen =&gt; seen.Id == guid)</c> before
+    /// the add — is #191 put back where it stood: the v6 list of every real card dropped without
+    /// a word, on the one machine shape that matters.
+    /// </para>
+    ///
+    /// <para>
+    /// Written because this file used to stage a different identifier per stack, which is a
+    /// machine that does not exist: with that fold applied, the whole unit suite and the three
+    /// live DNS tests stayed green. The identifier is shared everywhere now, and this states the
+    /// property in one place — one record per declared stack, in the order they are declared,
+    /// all under the one identifier — rather than leaving it to be inferred from theories that
+    /// stage a single stack each.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void One_adapter_declared_under_every_stack_is_read_once_per_stack()
+    {
+        var registry = new FakeRegistryProvider();
+
+        foreach (var (stack, key) in RegistryDnsProvider.Stacks)
+        {
+            registry
+                .WithSubKeys(key, Adapter)
+                .WithText($@"{key}\{Adapter}", "NameServer", ResolverOf(stack));
+        }
+
+        var read = new RegistryDnsProvider(registry).Read();
+
+        Assert.Equal(
+            RegistryDnsProvider.Stacks.Select(declared => declared.Stack),
+            read.Interfaces.Select(iface => iface.Stack));
+
+        Assert.All(read.Interfaces, iface => Assert.Equal(Adapter, iface.Id));
+
+        // And each carries the list of its own subtree: one subtree read twice would give the
+        // right count and the wrong addresses.
+        Assert.Equal(
+            RegistryDnsProvider.Stacks.Select(declared => ResolverOf(declared.Stack)),
+            read.Interfaces.Select(iface => Assert.Single(iface.StaticServers)));
+
+        // What the reader ends up with: one finding per stack about one card, told apart by
+        // « pile » and by nothing else, the identifier being the same on both.
+        var findings = new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry)));
+
+        Assert.Equal(
+            RegistryDnsProvider.Stacks.Select(declared => declared.Stack.ToString()),
+            findings.Select(finding => finding.Details["pile"]));
+
+        Assert.All(findings, finding => Assert.Equal(Adapter, finding.Source));
     }
 
     /// <summary>
@@ -185,8 +269,8 @@ public sealed class RegistryDnsProviderTests
 
             readable.Add(stack);
             registry
-                .WithSubKeys(key, AdapterOf(stack))
-                .WithText($@"{key}\{AdapterOf(stack)}", "NameServer", ResolverOf(stack));
+                .WithSubKeys(key, Adapter)
+                .WithText($@"{key}\{Adapter}", "NameServer", ResolverOf(stack));
         }
 
         var read = new RegistryDnsProvider(registry).Read();
@@ -321,6 +405,62 @@ public sealed class RegistryDnsProviderTests
     }
 
     /// <summary>
+    /// <b>The surface one level above the subtree this read walks</b>, and what the read says
+    /// about it: nothing — stated here so that it is a known boundary and not an oversight.
+    ///
+    /// <para>
+    /// Each stack's service keeps a <c>Parameters</c> key above its <c>Interfaces</c> subtree,
+    /// and that key carries values under the very two names this read watches per adapter.
+    /// Measured on the machine this was written on:
+    /// <c>…\Services\Tcpip\Parameters\DhcpNameServer</c> holds <c>192.168.1.1</c>, written by
+    /// Windows itself; <c>…\Tcpip\Parameters\NameServer</c> is present and empty; and the v6
+    /// service keeps <c>Dhcpv6DNSServers</c> at the same level. <see cref="RegistryDnsProvider"/>
+    /// descends into <c>{interfaces}\{guid}</c> and never reads <c>{service}\Parameters</c>, so
+    /// none of them reaches a report.
+    /// </para>
+    ///
+    /// <para>
+    /// Whether Windows <em>resolves</em> through those values is a fact about the platform that
+    /// this repository has not established, and the two answers call for different work — a
+    /// second read, or a line saying why it is not one. What is not in doubt is that they exist
+    /// and carry the names this read treats as the hijack lever, so the silence is pinned here:
+    /// reading them one day reddens this test, which is a deliberate act, instead of quietly
+    /// adding a finding to every machine.
+    /// </para>
+    ///
+    /// <para>
+    /// It is not an IPv6 gap — the v4 stack has the same one, and has had it since this read was
+    /// written — which is why #191 closes the stack that was missing and names this rather than
+    /// widening into it.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_resolver_at_the_global_level_of_a_stack_is_not_where_this_read_looks()
+    {
+        var registry = new FakeRegistryProvider();
+
+        foreach (var (_, interfacesKey) in RegistryDnsProvider.Stacks)
+        {
+            // The Parameters key above the Interfaces subtree, whatever the service is called.
+            var parameters = interfacesKey[..interfacesKey.LastIndexOf('\\')];
+
+            registry
+                .WithText(parameters, "NameServer", "203.0.113.9")
+                .WithText(parameters, "DhcpNameServer", "192.168.1.1");
+        }
+
+        var read = new RegistryDnsProvider(registry).Read();
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.Empty(read.Interfaces);
+
+        // Silent, and not « aucun résolveur » spoken as a claim: the scan never read there.
+        Assert.Empty(new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry))));
+    }
+
+    /// <summary>
     /// The dozen adapters a machine carries that resolve nothing — tunnels, loopback,
     /// disconnected cards — stay out. Listing them would bury the one or two that matter.
     /// </summary>
@@ -349,25 +489,38 @@ public sealed class RegistryDnsProviderTests
     /// </para>
     ///
     /// <para>
-    /// The two service names are written out and that is deliberate, in a file that otherwise
+    /// The service names are written out and that is deliberate, in a file that otherwise
     /// derives everything from <see cref="DnsStack"/>: a service name is a fact about Windows,
     /// it can only be established on a real machine, and CONTRIBUTING has a rule about shipping
     /// one that was guessed — it answers « rien » for ever and nothing tells it apart from a
-    /// machine with nothing to say. Adding a stack has to redden this line, so that somebody
-    /// writes down the key they verified.
+    /// machine with nothing to say.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The whole table and not the two rows it happens to have</b>, which is what makes the
+    /// previous paragraph true rather than merely intended. Asserting
+    /// <c>InterfacesKeyOf(IPv4)</c> and <c>InterfacesKeyOf(IPv6)</c> one at a time said nothing
+    /// about a third row: a <c>DnsStack.IPvX</c> declared on
+    /// <c>…\Services\Tcpip7\Parameters\Interfaces</c> — a service that exists on no machine —
+    /// left the unit suite entirely green, this test included, and only the live suite caught it
+    /// on a Windows runner. Held as one sequence, the table cannot grow without this list being
+    /// written out too, and writing a line here is where somebody records the key they went and
+    /// verified.
     /// </para>
     /// </summary>
     [Fact]
     public void The_interfaces_of_each_stack_are_looked_for_where_Windows_keeps_them()
     {
-        Assert.Equal(
-            @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces",
-            RegistryDnsProvider.InterfacesKeyOf(DnsStack.IPv4));
+        (DnsStack Stack, string InterfacesKey)[] verified =
+        [
+            (DnsStack.IPv4, @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"),
+            (DnsStack.IPv6, @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces"),
+        ];
 
-        Assert.Equal(
-            @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces",
-            RegistryDnsProvider.InterfacesKeyOf(DnsStack.IPv6));
+        Assert.Equal(verified, RegistryDnsProvider.Stacks);
 
+        // And the two constants callers name are the same two paths, so that neither can drift
+        // from the table the read walks.
         Assert.Equal(
             RegistryDnsProvider.InterfacesKey,
             RegistryDnsProvider.InterfacesKeyOf(DnsStack.IPv4));
@@ -566,11 +719,11 @@ public sealed class RegistryDnsProviderTests
 
         public RegistrySubKeyList ListSubKeys(string keyPath) =>
             string.Equals(keyPath, key, StringComparison.OrdinalIgnoreCase)
-                ? RegistrySubKeyList.Found([AdapterOf(present)])
+                ? RegistrySubKeyList.Found([Adapter])
                 : RegistrySubKeyList.NotFound;
 
         public RegistryRead ReadValue(string keyPath, string valueName) =>
-            string.Equals(keyPath, $@"{key}\{AdapterOf(present)}", StringComparison.OrdinalIgnoreCase)
+            string.Equals(keyPath, $@"{key}\{Adapter}", StringComparison.OrdinalIgnoreCase)
                 && valueName == "NameServer"
                     ? RegistryRead.Found(RegistryValue.OfText(ResolverOf(present)))
                     : RegistryRead.NotFound;
