@@ -494,7 +494,7 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
     /// Both halves are asserted together, because it is their conjunction that is the fix.
     /// Not <c>Found</c> — the list is not the machine's inventory. And not empty either:
     /// dropping the three objects that did arrive would trade one silence for another, which
-    /// is what <c>ListeningPortRead.Partial</c> and <c>ScheduledTaskRead.Partial</c> exist to
+    /// is what <c>ListeningPortRead.Partial</c> and <c>ScheduledTaskRead.Partially</c> exist to
     /// prevent one interface over.
     /// </para>
     /// </summary>

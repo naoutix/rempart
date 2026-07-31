@@ -47,9 +47,10 @@ public enum ReadStatus
     /// before.</b> The two issues that introduced it left thirteen factories named
     /// <c>Failed</c> or <c>Partial</c> still spelling their failures <see cref="AccessDenied"/>,
     /// so this member was the vocabulary of two channels rather than of the layer. It is now
-    /// the layer's, and <c>ReadFactoryNamingTests</c> holds the two apart by construction:
-    /// <see cref="AccessDenied"/> is reachable only through a factory whose name says
-    /// « refused », because it is the only status the report turns into an instruction to its
+    /// the layer's, and <c>ReadFactoryNamingTests</c> holds the two apart: a factory whose name
+    /// states a cause carries it, and <see cref="AccessDenied"/> is reached either through a
+    /// name that says « refused » or through a <see cref="StatusFoldAttribute"/> that delegates
+    /// to one — because it is the only status the report turns into an instruction to its
     /// reader. Four <c>== AccessDenied</c> comparisons had to be widened to
     /// <c>is AccessDenied or Failed</c> in the same commit — the two WMI-backed collectors and
     /// <c>CheckReader.ReadService</c>, which read « anything the layer could not give » through
@@ -65,6 +66,33 @@ public enum ReadStatus
     /// </summary>
     Failed,
 }
+
+/// <summary>
+/// Marks a read factory that states no cause of its own and picks among the ones that do.
+///
+/// <para>
+/// The vocabulary of this layer is that a factory's name states a cause and
+/// <see cref="ReadStatus"/> is the same statement in a form a caller can branch on:
+/// <c>Found</c>, <c>Absent</c>/<c>NotFound</c>/<c>NotInstalled</c>,
+/// <c>Refused</c>/<c>Denied</c>/<c>AccessDenied</c>, <c>Failed</c>. A fold cannot obey that,
+/// and not for want of a better name: <c>ScheduledTaskRead.Partially</c> answers a refusal on
+/// one input and a failure on another, so any single word it could be called would be a lie on
+/// one of the two. What it does instead is read the cause off its arguments — in one place,
+/// beside where the HRESULTs are already read — and call the named factory for it.
+/// </para>
+///
+/// <para>
+/// <b>This attribute exists because the guard could not otherwise tell a fold from a defect.</b>
+/// <c>ReadFactoryNamingTests</c> builds every factory on three shapes of argument and asserts on
+/// the statuses it reaches; a factory that answers differently between them either is a fold and
+/// says so here, or is exactly the bug #177 was opened over — a name promising one state and a
+/// field holding another, on the input that actually occurs. Declaring it is therefore not an
+/// exemption granted quietly: the guard pins the set of members carrying this attribute, refuses
+/// one that does not really fold, and requires a named test per branch.
+/// </para>
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class StatusFoldAttribute : Attribute;
 
 public sealed record RegistryValue(string Kind, string? Text, long? Number)
 {

@@ -45,7 +45,7 @@ public sealed record WmiRead(
 
     /// <summary>
     /// What was read, and the walk that did not reach the end. Same shape as
-    /// <see cref="ListeningPortRead.Partial"/> and <see cref="ScheduledTaskRead.Partial"/>,
+    /// <see cref="ListeningPortRead.Partial"/> and <see cref="ScheduledTaskRead.Partially"/>,
     /// for the same reason: what arrived stays in the inventory and the gap is named beside
     /// it.
     ///

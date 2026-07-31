@@ -654,15 +654,42 @@ all at once — the fourth listed eight of them.
 caller can branch on.** `Found`, `Absent`/`NotFound`/`NotInstalled`,
 `Refused`/`Denied`/`AccessDenied`, `Failed` — one word per member, and a qualifier may sit in
 front of it (`PartiallyRefused`). `Partial` alone says how much came back and not why the
-rest did not, so it may carry anything except a refusal. `ReadFactoryNamingTests` discovers
-every factory in the provider layer by reflection and holds two rules: a name that states a
-cause carries it, and `AccessDenied` is reachable *only* through a name that says so —
-because it is the only status the report turns into an instruction to its reader.
+rest did not, so it may carry anything except a refusal.
 
-The one that produced a wrong verdict rather than a wrong name was the scheduler:
+`ReadFactoryNamingTests` discovers by reflection every factory of **every read record carrying
+a `ReadStatus`** — narrower than "the provider layer", and deliberately so: `FirewallState` and
+`PolicyFacts` invented bespoke booleans instead of taking this channel, so they are out of this
+guard and inside `ProviderStatusChannelTests`. It builds each factory on three shapes of
+argument and holds three rules: a name that states a cause carries it on every shape;
+`AccessDenied` is reached only through a name that says so — or through a declared fold that
+delegates to one — because it is the only status the report turns into an instruction to its
+reader; and a factory whose answer *moves* between shapes must declare itself `[StatusFold]`.
+
+That third rule is the one the guard was missing, and its absence made the other two
+decorative: built once on empty lists, the guard read every factory on the input no caller
+passes. The defect of #177 could be put straight back on `BrowserExtensionRead.Partial`, in the
+shape this batch adopted for the scheduler, under a green suite. A fold — `Partially`,
+`Combine` — states no cause because it *has* none to state; it reads one off its arguments and
+calls the factory that names it. Declaring one is not a quiet exemption: the set is pinned in
+the guard, a declaration that does not really fold is refused, and each fold names the tests
+holding its branches, which the guard resolves against the assembly. What none of this reaches
+is a factory branching on a count above one or on the contents of a string; that is written
+down in the test rather than papered over with "by construction".
+
+The one of the twelve that produced a wrong verdict rather than a wrong name was the scheduler:
 `ScheduledTaskRead` had `AccessDenied` for every way of not getting an inventory, so a scan
 with no task enumerator, a COM call that blew up and a capture taken before scheduled tasks
 were collected all came back "relancer en administrateur" and exited `3`.
+
+**A correctly named factory can produce it too, which is why the naming rule is a guard and not
+the whole answer.** `SnapshotWmiProvider` answered the perfectly-named `WmiRead.AccessDenied`
+for a query the capture never held — and that read carries no reason, which is exactly what
+`Finding.WmiGap` reads as a genuine denial. Replaying such a capture advised elevating against
+a file already written, on the eight WMI keys at once. It answers `WmiRead.Failed` with a
+sentence now. It was latent, not observed: the snapshot key embeds the property list, so the
+next property added to any query would have moved every capture ever taken onto that line —
+including the real ones outside this repository that the status channel promises to keep
+replayable.
 
 **`5` does not always mean "re-run elevated"** — in fact it never does. `WIN-ENC-001`
 returns `Unknown` from an elevated console too, when the machine has no

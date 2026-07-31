@@ -512,6 +512,49 @@ public class ScheduledTasksTests
             StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// A capture that carries the status and no sentence, which is the one input that reaches
+    /// the collector's fallback wording.
+    ///
+    /// <para>
+    /// Every factory on this read writes a diagnostic when it is neither <c>Found</c> nor the
+    /// bare <c>AccessDenied</c>, so <see cref="Finding.Unread"/>'s <c>diagnostic ?? unexplained</c>
+    /// always takes the first branch and the sentence added beside it in #177 was unreachable
+    /// through them — code believed covered and observed by nothing. A capture is not built
+    /// through the factories: it is deserialised into the record, field by field, so a file
+    /// holding a status without a reason produces exactly this, and the round trip below is the
+    /// claim rather than a hand-made value.
+    /// </para>
+    ///
+    /// <para>
+    /// What it must not say is the same thing the replay above must not say. A wording that
+    /// promised elevation would contradict <see cref="AuditGap.Unreadable"/> inside its own
+    /// finding, which is the pairing the driver collector states and this branch exists for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_capture_holding_a_failure_without_a_reason_still_says_what_it_could_not_read()
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(RempartJson.Serialise(
+            new MachineSnapshot
+            {
+                SystemInfo = FakeSystemInfoProvider.Default,
+                ScheduledTasks = new ScheduledTaskRead(ReadStatus.Failed, []),
+            }));
+
+        var read = new SnapshotScheduledTaskProvider(snapshot).Enumerate();
+
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.Null(read.Diagnostic);
+
+        var finding = Assert.Single(Collect(read, new FakeSignatureProvider()));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.Contains("sans réponse", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData("S-1-5-21-2354378594-2253722242-1776815907-1002")]
     [InlineData(@"DESKTOP-3VR09H0\leoar")]

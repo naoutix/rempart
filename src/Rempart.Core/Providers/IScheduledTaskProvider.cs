@@ -203,7 +203,19 @@ public sealed record ScheduledTaskRead(
     /// The walk's own account of what it lost, picking the state from the gaps rather than
     /// from the caller — the HRESULTs are read in one place, <see cref="TaskFolderGap.Of"/>,
     /// and this is where that reading is turned into the answer a collector branches on.
+    ///
+    /// <para>
+    /// <see cref="StatusFoldAttribute"/> because it answers <see cref="ReadStatus.AccessDenied"/>
+    /// on a denied gap and <see cref="ReadStatus.Failed"/> without one, and no single name states
+    /// both. Unmarked, that is indistinguishable from the defect of #177 — and it was: the guard
+    /// built this factory with an empty gap list, only ever saw <see cref="ReadStatus.Failed"/>,
+    /// and passed it. Its two branches are held by
+    /// <c>ScheduledTasksTests.A_partly_refused_walk_keeps_its_tasks_and_names_the_folder_it_lost</c>
+    /// and <c>…A_walk_that_lost_a_folder_without_being_refused_does_not_advise_elevation</c>,
+    /// which the guard checks exist.
+    /// </para>
     /// </summary>
+    [StatusFold]
     public static ScheduledTaskRead Partially(
         IReadOnlyList<ScheduledTask> tasks, IReadOnlyList<TaskFolderGap> gaps) =>
         gaps.Any(gap => gap.Denied)

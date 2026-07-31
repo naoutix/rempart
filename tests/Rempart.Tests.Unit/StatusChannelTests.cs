@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rempart.Core.Findings;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Snapshots;
@@ -730,6 +731,48 @@ public sealed class StatusChannelTests
 
         Assert.Equal(ReadStatus.Found, services.Status);
         Assert.NotEmpty(services.Instances);
+    }
+
+    /// <summary>
+    /// A query the capture never holds: a read that did not happen, and not a refused one.
+    ///
+    /// <para>
+    /// The twin of <c>ScheduledTasksTests.Older_snapshot_replays_without_inventing_an_empty_scheduler</c>,
+    /// ten lines away in <c>RecordingProviders</c> and left standing when that one was corrected:
+    /// <c>SnapshotWmiProvider</c> answered <c>WmiRead.AccessDenied</c>, which carries no reason,
+    /// which is exactly what <see cref="Finding.WmiGap"/> reads as the refusal — so a replay
+    /// printed « Relancer en administrateur » over a file already written, on a machine that may
+    /// no longer exist, and exited <c>3</c>. The factory was never misnamed, which is why #177's
+    /// own list did not reach here; the verdict was wrong all the same.
+    /// </para>
+    ///
+    /// <para>
+    /// The finding is asserted as well as the status, for the reason the scheduler's twin gives:
+    /// the status alone would go green on a collector that stopped reading it. And the whole
+    /// point is latency — the four fixtures carry all eight keys today, and the key embeds the
+    /// property list, so the next property added to any query moves every capture ever taken
+    /// onto this line at once.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_wmi_query_absent_from_the_capture_does_not_replay_as_a_refusal()
+    {
+        var read = new SnapshotWmiProvider(new MachineSnapshot())
+            .Query(@"root\CIMV2", "Win32_Service", ["Name", "PathName"]);
+
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
+        Assert.NotNull(read.Diagnostic);
+
+        var finding = Assert.Single(new UnquotedServicePathCollector().Collect(
+            new ProviderSet(
+                new FakeRegistryProvider(),
+                new FakeSystemInfoProvider(),
+                wmi: new SnapshotWmiProvider(new MachineSnapshot()))));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class CountingWmiProvider(WmiRead answer) : IWmiProvider

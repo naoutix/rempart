@@ -54,6 +54,15 @@ public sealed class ScheduledTasksCollector : IFindingCollector
             // Two fallbacks, picked by the value beside them, for the reason the driver
             // collector states: a sentence promising elevation under Unreadable contradicts
             // the marker in its own finding.
+            //
+            // The second is reachable, and only just: every factory on this read writes a
+            // diagnostic when it is neither Found nor the bare AccessDenied, so Finding.Unread
+            // always prints the read's own words. What does not go through a factory is a
+            // capture — it is deserialised field by field — so a file holding a status without
+            // a reason lands here. That is the one input, and
+            // ScheduledTasksTests.A_capture_holding_a_failure_without_a_reason_still_says_what_it_could_not_read
+            // is the test that reaches it. Written down because the branch shipped unreachable
+            // and looked covered.
             findings.Add(Finding.Unread(
                 "scheduled-task", "planificateur de tâches", gap, read.Diagnostic,
                 gap is AuditGap.Refused

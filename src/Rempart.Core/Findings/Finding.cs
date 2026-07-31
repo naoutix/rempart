@@ -88,13 +88,26 @@ public enum AuditGap
     /// <para>
     /// <b>The first half of that has stopped being true and the second has not.</b> #173 split
     /// <c>DirectoryRead</c> and <c>HostsFileRead</c>; #177 finished the layer, and
-    /// <c>ReadFactoryNamingTests</c> now holds by construction that
-    /// <see cref="Providers.ReadStatus.AccessDenied"/> is reachable only through a factory
-    /// whose name says « refused ». So the status <em>is</em> a witness across the providers,
-    /// and every collector here branches on it rather than on prose. The diagnostic still is
-    /// not one, and never was: <c>ScheduledTaskRead.PartiallyRefused</c> writes a sentence for
-    /// a denial, <c>DirectoryRead.Refused</c> writes one for an ACL, and
-    /// <c>WmiRead.AccessDenied</c> refuses in silence.
+    /// <c>ReadFactoryNamingTests</c> holds every factory carrying a
+    /// <see cref="Providers.ReadStatus"/> to reaching
+    /// <see cref="Providers.ReadStatus.AccessDenied"/> only through a name that says « refused »
+    /// — or through a <see cref="Providers.StatusFoldAttribute"/> that delegates to one, which is
+    /// declared, pinned, and owes a named test per branch. So the status is a witness across the
+    /// providers in a way the diagnostic never was and still is not:
+    /// <c>ScheduledTaskRead.PartiallyRefused</c> writes a sentence for a denial,
+    /// <c>DirectoryRead.Refused</c> writes one for an ACL, and <c>WmiRead.AccessDenied</c>
+    /// refuses in silence.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>A witness is not a rule, and two sites here deliberately read something else.</b>
+    /// <c>BrowserExtensionsCollector</c> branches on a diagnostic being present, because on that
+    /// channel its presence is the whole event — a profile was lost — and the status says only
+    /// how; <see cref="Finding.WmiGap"/> two hundred lines below branches on a diagnostic being
+    /// <em>absent</em>, for the one channel that documents silence as the refusal and needs the
+    /// distinction on replays of captures older than the split. Both are argued where they sit.
+    /// What changed is that a collector now <em>may</em> read the status; nothing claims they all
+    /// do, and the sentence that did was wrong about these two.
     /// </para>
     ///
     /// <para>
@@ -287,14 +300,24 @@ public sealed record Finding(
     /// </para>
     ///
     /// <para>
-    /// <b>Since #177 the status alone would answer, and the reason is kept anyway.</b> Every
-    /// factory in the provider layer that builds a failure now says <c>Failed</c>, so a live
-    /// read reaching here with <see cref="Providers.ReadStatus.AccessDenied"/> was denied
-    /// whatever it wrote. A <em>replayed</em> one need not have been: a capture taken before
-    /// that split recorded <c>AccessDenied</c> with a reason beside it for a repository that
-    /// had merely stopped serving, and reading the reason is what keeps that snapshot
-    /// answering what it answered when it was written. Which is also the warning the paragraph
-    /// above already carried: a channel that denies <em>and</em> explains itself —
+    /// <b>Since #177 the status alone would answer for a live read, and the reason is kept
+    /// anyway.</b> Every factory carrying a <see cref="Providers.ReadStatus"/> that builds a
+    /// failure now says <c>Failed</c>, so a live read reaching here with
+    /// <see cref="Providers.ReadStatus.AccessDenied"/> was denied whatever it wrote. A
+    /// <em>replayed</em> one need not have been, and the two cases are not symmetric. A capture
+    /// taken before that split recorded <c>AccessDenied</c> <em>with a reason beside it</em> for
+    /// a repository that had merely stopped serving; reading the reason is what keeps that
+    /// snapshot answering what it answered when it was written, and lands it on
+    /// <see cref="AuditGap.Unreadable"/>, which is right.
+    /// </para>
+    ///
+    /// <para>
+    /// The other half of that had to be closed at the source instead, because no rule here could
+    /// have told it apart: <c>SnapshotWmiProvider</c> answered a bare <c>AccessDenied</c> — no
+    /// reason, indistinguishable from a genuine denial — for a query the capture simply never
+    /// held, so a replay sent its reader to elevate against a file already written. It answers
+    /// <c>WmiRead.Failed</c> with a sentence now. Which is also the warning the paragraph above
+    /// already carried, one interface over: a channel that denies <em>and</em> explains itself —
     /// <c>ScheduledTaskRead.PartiallyRefused</c>, <c>DirectoryRead.Refused</c> — must not be
     /// classified through here.
     /// </para>
