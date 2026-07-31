@@ -488,9 +488,14 @@ public sealed class SnapshotComponentStoreProvider(MachineSnapshot snapshot)
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {
-    // Absent from an earlier capture: treated as a denial, never as an absence of
-    // tasks. A fixture predating this batch stays replayable, it simply produces a
-    // "not enumerated" finding instead of the inventory.
+    // Absent from an earlier capture: a failed read, never an absence of tasks. A fixture
+    // predating this batch stays replayable, it simply produces a "not enumerated" finding
+    // instead of the inventory.
+    //
+    // « Treated as a denial » is what this line said, and did, until #177 — the factory it
+    // calls carried AccessDenied and the collector turned that into « relancer en
+    // administrateur ». Re-running a replay elevated repairs nothing; the answer is to
+    // re-capture, which is what AuditGap.Unreadable names and what the status now says.
     public ScheduledTaskRead Enumerate() =>
         snapshot.ScheduledTasks
         ?? ScheduledTaskRead.Failed("Tâches planifiées absentes de l'instantané.");
@@ -511,13 +516,25 @@ public sealed class RecordingWmiProvider(IWmiProvider inner, MachineSnapshot sna
 
 public sealed class SnapshotWmiProvider(MachineSnapshot snapshot) : IWmiProvider
 {
-    // Absent from an earlier capture: treated as a denial, hence "not verifiable".
-    // A fixture predating this batch stays replayable, it simply yields fewer verdicts.
+    // Absent from an earlier capture: a query that was never asked, never a denial. A fixture
+    // predating this batch stays replayable, it simply yields fewer verdicts.
+    //
+    // « Treated as a denial » is what this line said, and did, until #177's second round — the
+    // twin of the scheduler's, ten lines above, and left standing when that one was corrected.
+    // WmiRead.AccessDenied carries no reason, Finding.WmiGap reads exactly that as the refusal,
+    // and the two WMI-backed collectors printed « Relancer en administrateur » over a capture
+    // already written, exit 3. Re-running a replay elevated repairs nothing; the answer is to
+    // re-capture, which is what AuditGap.Unreadable names and what this status now says.
+    //
+    // Latent rather than academic: the key embeds the property list, so the next property added
+    // to a query moves every capture ever taken — the fixtures here and the real ones outside
+    // the repository that StatusChannel promises to keep replayable — onto this line at once.
     public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties) =>
         snapshot.Wmi.TryGetValue(
             RecordingWmiProvider.Key(namespacePath, className, properties), out var read)
             ? read
-            : WmiRead.AccessDenied;
+            : WmiRead.Failed(
+                $"Requête WMI absente de l'instantané : {className} sous {namespacePath}.");
 }
 
 public sealed class SnapshotSystemInfoProvider(MachineSnapshot snapshot) : ISystemInfoProvider

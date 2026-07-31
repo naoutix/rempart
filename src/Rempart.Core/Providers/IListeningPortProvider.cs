@@ -55,19 +55,32 @@ public sealed record ListeningPortRead(
     public static ListeningPortRead Found(IReadOnlyList<ListeningPort> ports) =>
         new(ReadStatus.Found, ports);
 
+    /// <summary>
+    /// The read was attempted and did not complete. <b>There is no refusal factory beside it,
+    /// and that is a statement about the surface</b>: the tables come from <c>iphlpapi</c>,
+    /// which asks no privilege to enumerate them, so nothing here can be repaired by elevating
+    /// — the status says so, and <c>ListeningPortsCollector</c> answers
+    /// <see cref="Findings.AuditGap.Unreadable"/> without having to weigh anything.
+    /// </summary>
     public static ListeningPortRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, [], reason);
+        new(ReadStatus.Failed, [], reason);
 
     /// <summary>
     /// What was read, and what could not be — four tables are queried (TCP and UDP, IPv4
     /// and IPv6) and they fail one at a time. The endpoints that were read stay in the
     /// report and the missing table is named beside them: dropping the IPv4 ports because
-    /// the IPv6 table refused would trade one silence for another. Same shape as
+    /// the IPv6 table failed would trade one silence for another. Same shape as
     /// <see cref="BrowserExtensionRead.Partial"/>.
+    ///
+    /// <para>
+    /// <c>Partial</c> says how much came back and not why the rest did not, so the cause is
+    /// the one <see cref="Failed"/> states next door and for its reason: on this surface there
+    /// is no denial to express.
+    /// </para>
     /// </summary>
     public static ListeningPortRead Partial(
         IReadOnlyList<ListeningPort> ports, string reason) =>
-        new(ReadStatus.AccessDenied, ports, reason);
+        new(ReadStatus.Failed, ports, reason);
 
     IReadOnlyList<ListeningPort> IStatusCarryingRead<ListeningPortRead, ListeningPort>.Items =>
         Ports;

@@ -363,7 +363,7 @@ public sealed class LiveSecurityPolicyProviderTests(ITestOutputHelper output)
     ///
     /// <para>
     /// What was read stays read, which is the half that is not negotiable either:
-    /// <c>ScheduledTaskRead.Partial</c> and <c>WmiRead.Partial</c> both keep their inventory
+    /// <c>ScheduledTaskRead.Partially</c> and <c>WmiRead.Partial</c> both keep their inventory
     /// and name the gap beside it, and dropping the password policy because the group
     /// enumeration refused would trade one silence for another.
     /// </para>
@@ -607,6 +607,7 @@ public sealed class LiveSecurityPolicyProviderTests(ITestOutputHelper output)
         Assert.NotEmpty(established);
     }
 
+    /// <summary>
     /// Every string a static table declares, in both forms a public static string field can
     /// take: <c>const</c>, which is what <see cref="PolicyFactNames"/> writes today, and
     /// <c>static readonly</c>, which is the only form left the day a name stops being a

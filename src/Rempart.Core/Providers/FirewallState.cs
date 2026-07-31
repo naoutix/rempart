@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Rempart.Core.Providers;
 
 /// <summary>
@@ -41,8 +43,8 @@ public sealed record FirewallState(
     ///
     /// <para>
     /// What a capture taken before the firewall was collected replays as. Distinct from
-    /// <see cref="Failed"/>, which is a read that was attempted and refused: both settle
-    /// nothing, only the second one has something to report.
+    /// <see cref="Failed"/> and <see cref="Refused"/>, which are reads that were attempted:
+    /// all three settle nothing, only the last two have something to report.
     /// </para>
     /// </summary>
     public static readonly FirewallState Unread = new([], PublicFirewallEnabled: false, false)
@@ -51,7 +53,9 @@ public sealed record FirewallState(
     };
 
     /// <summary>
-    /// A read that was attempted and could not be completed.
+    /// A read that was attempted, could not be completed, and <b>was not denied</b> — a
+    /// universal key the machine does not have, a rule container that answered with values
+    /// none of which parse. Re-running elevated changes none of it.
     ///
     /// <para>
     /// The whole point of the record: the fields of a failed read are indistinguishable
@@ -59,6 +63,15 @@ public sealed record FirewallState(
     /// block — so the difference has to be carried, not inferred. Without it the tool
     /// asserted « bloqué en entrée » about a machine nobody had managed to read, which is
     /// worse than saying nothing: it silenced the exposure of a port it never measured.
+    /// </para>
+    ///
+    /// <para>
+    /// Named apart from <see cref="Refused"/> since #179, and until then this factory was
+    /// both. Its own summary said « could not be completed » while the two summaries beside
+    /// it said « refused », and <c>ListeningPortsCollector</c> believed the second: every
+    /// firewall read that failed without anyone denying anything came back
+    /// <see cref="Findings.AuditGap.Refused"/>, telling its reader to re-run as
+    /// administrator over a key that does not exist.
     /// </para>
     /// </summary>
     /// <param name="reason">
@@ -72,19 +85,83 @@ public sealed record FirewallState(
             Diagnostic = reason,
         };
 
-    /// <summary>False when the state comes from <see cref="Unread"/> or
-    /// <see cref="Failed"/>: no conclusions.</summary>
+    /// <summary>
+    /// A read that was attempted and <b>denied</b> — the registry answering
+    /// <see cref="ReadStatus.AccessDenied"/> on a key or on its values. The one state of this
+    /// record that re-running elevated repairs, and therefore the only one allowed to say so.
+    /// </summary>
+    /// <param name="reason">
+    /// What was refused, in French — it reaches the report. It names surfaces, never the
+    /// values behind them.
+    /// </param>
+    public static FirewallState Refused(string reason) =>
+        new([], PublicFirewallEnabled: false, false)
+        {
+            Readable = false,
+            Denied = true,
+            Diagnostic = reason,
+        };
+
+    /// <summary>False when the state comes from <see cref="Unread"/>, <see cref="Failed"/>
+    /// or <see cref="Refused"/>: no conclusions.</summary>
     public bool Readable { get; init; } = true;
 
     /// <summary>
-    /// Why the firewall could not be read, when the read was attempted and refused.
+    /// Whether the read that did not settle was <em>denied</em>, as opposed to abandoned for
+    /// any other reason.
     ///
     /// <para>
-    /// Null in both other cases, and the two are told apart by <see cref="Readable"/>: a
-    /// state that was read has nothing to explain, and one that was never collected has
-    /// nothing to explain <em>either</em> — « je n'ai pas regardé » is not « j'ai regardé et
-    /// on m'a refusé », and a capture predating this field must not be replayed as the
-    /// second.
+    /// The single bit this record was missing, in the only form a caller may branch on.
+    /// Deriving it by reading <see cref="Diagnostic"/> back would be the prose-parsing this
+    /// repository keeps refusing — the mistake #175 was opened over.
+    /// </para>
+    ///
+    /// <para>
+    /// Appended and defaulted, so a capture written before it replays unchanged: absent means
+    /// « no denial was recorded », which is all an older capture could distinguish anyway. It
+    /// therefore replays as <see cref="ReadStatus.Failed"/> and not as a refusal — inventing a
+    /// denial nobody recorded is the inversion CONTRIBUTING forbids, and no console, however
+    /// elevated, re-reads a snapshot.
+    /// </para>
+    /// </summary>
+    public bool Denied { get; init; }
+
+    /// <summary>
+    /// The same three answers as <see cref="Readable"/> and <see cref="Denied"/> together, in
+    /// the vocabulary every other read in this layer already speaks (#177): a name states a
+    /// cause, and this is that cause in the form a collector branches on.
+    ///
+    /// <para>
+    /// Derived rather than stored, and that is what keeps an older capture replayable: there
+    /// is no third field for a capture to disagree with, so a file written before
+    /// <see cref="Denied"/> existed is read through the same function as one written after.
+    /// <see cref="JsonIgnoreAttribute"/> for the same reason — a key that deserialisation
+    /// would silently drop is worse than no key.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="Readable"/> is read first, so a state that <em>was</em> read is
+    /// <see cref="ReadStatus.Found"/> whatever else it carries. Then the denial. Then the
+    /// diagnostic, which is the one thing that separates <see cref="Unread"/> — nobody looked,
+    /// nothing to report, <see cref="ReadStatus.NotFound"/> — from a read that was attempted
+    /// and has something to say.
+    /// </para>
+    /// </summary>
+    [JsonIgnore]
+    public ReadStatus Status =>
+        Readable ? ReadStatus.Found
+        : Denied ? ReadStatus.AccessDenied
+        : Diagnostic is null ? ReadStatus.NotFound
+        : ReadStatus.Failed;
+
+    /// <summary>
+    /// Why the firewall did not settle, when the read was attempted — refused or failed, and
+    /// <see cref="Status"/> is what says which.
+    ///
+    /// <para>
+    /// Null when nobody looked, and null when the read succeeded: « je n'ai pas regardé » is
+    /// not « j'ai regardé et je n'ai pas pu », and a capture predating this field must not be
+    /// replayed as the second.
     /// </para>
     ///
     /// <para>

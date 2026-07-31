@@ -62,7 +62,7 @@ public sealed class AutorunsCollector : IFindingCollector
             }
 
             // Added, not returned: a refused key must not cost the entries of the four that
-            // answered — the rule ScheduledTaskRead.Partial settled one issue ago.
+            // answered — the rule ScheduledTaskRead.Partially settled one issue ago.
             foreach (var (name, value) in read.Values)
             {
                 if (value.ToString() is { Length: > 0 } command)

@@ -50,7 +50,12 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
     {
         var read = providers.Wmi.Query(Namespace, className, properties);
 
-        if (read.Status == ReadStatus.AccessDenied)
+        // Both holes and not just the denial, since #177 gave the channel a word for a
+        // failure: this test read « anything the WMI layer could not answer » for as long as
+        // WmiRead.Failed spelled itself AccessDenied, and narrowing it to the denial alone
+        // would leave a repository that stopped serving on root\subscription reported by
+        // nobody — the DET-*-MUET silence, one status apart.
+        if (read.Status is ReadStatus.AccessDenied or ReadStatus.Failed)
         {
             // Report the failure: an unreadable namespace is not an empty namespace,
             // and it is exactly where what this collector looks for would hide.

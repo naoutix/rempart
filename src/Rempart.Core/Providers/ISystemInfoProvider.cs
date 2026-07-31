@@ -248,6 +248,9 @@ internal sealed class UnavailableScheduledTasks : IScheduledTaskProvider
 {
     public static readonly UnavailableScheduledTasks Instance = new();
 
+    // A failure and not a denial, the correction #175 made one interface over for the same
+    // sentence: no privilege supplies an enumerator nobody wired, and this call answered
+    // « accès refusé » until #177 gave the factory the status its name had always claimed.
     public ScheduledTaskRead Enumerate() =>
         ScheduledTaskRead.Failed("Aucun énumérateur de tâches planifiées n'est disponible.");
 }

@@ -81,12 +81,17 @@ public sealed class ProviderStatusChannelTests
         // deux, et un dossier vide reste muet — c'est l'asymétrie, pas son abandon.
         "IFileSystemProvider.ListFiles → statut + diagnostic",
 
-        // FirewallState.Readable, canal maison : « non lu » ne devient jamais « ouvert » —
-        // ni « bloqué », qui était le vrai danger, puisque les défauts Windows appliqués à
-        // une lecture ratée décrivent mot pour mot un pare-feu actif (REV-07, fermée). Le
-        // booléen reste le canal ; un Diagnostic s'est posé à côté pour nommer la surface
-        // qui a refusé, et c'est lui qui distingue « refusé » de « jamais collecté ».
-        "IFirewallProvider.Read → booléen dédié",
+        // Arrivée ici en « booléen dédié », premier des deux canaux maison : « non lu » ne
+        // devient jamais « ouvert » — ni « bloqué », qui était le vrai danger, puisque les
+        // défauts Windows appliqués à une lecture ratée décrivent mot pour mot un pare-feu
+        // actif (REV-07, fermée). Le booléen répondait à une question et une seule, et
+        // l'écart s'est logé dans celle qu'il ne posait pas : « refusé » ou « en panne ». Sa
+        // propre documentation employait les deux mots pour le même membre, et
+        // ListeningPortsCollector a cru celui qui était faux — une clé universelle absente et
+        // un conteneur de règles illisible ressortaient en « relancer en administrateur »,
+        // code 3 (#179). Le statut partagé de #177 dit maintenant lequel des deux, et le
+        // booléen reste à côté pour qu'une capture antérieure rejoue inchangée.
+        "IFirewallProvider.Read → statut + diagnostic",
 
         // Un fichier hosts sans entrée est l'état par défaut de Windows, et le reste : c'est
         // pourquoi la lecture a le droit de se taire sur zéro ligne. Ce qui était plié dans
@@ -206,10 +211,19 @@ public sealed class ProviderStatusChannelTests
     /// </para>
     ///
     /// <para>
-    /// The two bespoke booleans are named here instead of being derived, and naming them is
-    /// the point: <c>PolicyFacts.Denied</c> and <c>FirewallState.Readable</c> each invented
-    /// their own way to say « je n'ai pas pu lire », so nothing but a list can find them.
-    /// A third invention should be visible as an invention.
+    /// The bespoke booleans are named here instead of being derived, and naming them is the
+    /// point: <c>PolicyFacts.Denied</c> and <c>FirewallState.Readable</c> each invented their
+    /// own way to say « je n'ai pas pu lire », so nothing but a list can find them. A third
+    /// invention should be visible as an invention.
+    /// </para>
+    ///
+    /// <para>
+    /// The firewall has since joined the shared vocabulary and left this branch — it carries a
+    /// <c>ReadStatus</c> and is classified on it, the line above says so, and it is the naming
+    /// guard rather than this list that now judges its factories. <c>Readable</c> stayed beside
+    /// the status because a capture written before #179 records it and nothing else; the
+    /// reading below still finds it, which is why the branch is kept rather than deleted with
+    /// the one type that no longer needs it.
     /// </para>
     ///
     /// <para>

@@ -21,10 +21,18 @@ namespace Rempart.Windows.Tasks;
 /// <para>
 /// Non-elevated enumeration sees the user's tasks and most system tasks; some folders
 /// remain denied. A denial is recorded — as a <see cref="TaskFolderGap"/> naming the
-/// folder, which is what makes the read <see cref="ScheduledTaskRead.Partial"/> — and the
-/// walk continues: a partial, honest inventory is better than none, and better still than
-/// a partial one handed over as complete. This paragraph made both promises from the
+/// folder, which is what makes the read <see cref="ScheduledTaskRead.PartiallyRefused"/> —
+/// and the walk continues: a partial, honest inventory is better than none, and better still
+/// than a partial one handed over as complete. This paragraph made both promises from the
 /// first day and kept only the second.
+/// </para>
+///
+/// <para>
+/// Not every folder the walk gives up on is denied, and that is why the partial read has two
+/// forms since #177. <see cref="ScheduledTaskRead.Partially"/> picks between them from the
+/// gaps rather than here: the HRESULT is classified once, in <see cref="TaskFolderGap.Of"/>,
+/// and the fold sits in the core where a test on the Linux job can reach it — this file is
+/// only reachable from a Windows runner with a scheduler in the required state.
 /// </para>
 /// </summary>
 public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskProvider
@@ -92,7 +100,7 @@ public sealed unsafe partial class LiveScheduledTaskProvider : IScheduledTaskPro
         // halves since it was written, and only the second was ever implemented.
         return gaps.Count == 0
             ? ScheduledTaskRead.Found(tasks)
-            : ScheduledTaskRead.Partial(tasks, gaps);
+            : ScheduledTaskRead.Partially(tasks, gaps);
     }
 
     private static ITaskService CreateService()

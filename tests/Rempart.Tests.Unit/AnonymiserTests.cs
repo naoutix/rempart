@@ -71,10 +71,11 @@ public sealed class AnonymiserTests
         var snapshot = new MachineSnapshot
         {
             SystemInfo = FakeSystemInfoProvider.Default,
-            ScheduledTasks = ScheduledTaskRead.Partial([],
+            ScheduledTasks = ScheduledTaskRead.PartiallyRefused([],
             [
-                new TaskFolderGap($@"\SoftLanding\{Sid}", Reason),
-                new TaskFolderGap($@"\Microsoft\Windows\SoftLanding\{Sid}\Sync", Reason),
+                new TaskFolderGap($@"\SoftLanding\{Sid}", Reason, Denied: true),
+                new TaskFolderGap($@"\Microsoft\Windows\SoftLanding\{Sid}\Sync", Reason,
+                    Denied: true),
             ]),
         };
 
@@ -144,7 +145,7 @@ public sealed class AnonymiserTests
         var snapshot = new MachineSnapshot
         {
             SystemInfo = FakeSystemInfoProvider.Default,
-            Firewall = FirewallState.Failed(
+            Firewall = FirewallState.Refused(
                 @"Pare-feu non lu : export C:\Users\leoar\AppData\Local\fw.log illisible."),
         };
 
@@ -155,6 +156,12 @@ public sealed class AnonymiserTests
         // Scrubbed, not dropped: the replay still has to know the read was refused, and why.
         Assert.False(result.Firewall!.Readable);
         Assert.Contains("Pare-feu non lu", result.Firewall.Diagnostic!, StringComparison.Ordinal);
+
+        // Including which kind of not-settling it was. The anonymiser rebuilds the state with
+        // a `with` expression, which carries every init property it does not name — so this
+        // holds today by construction and would stop holding the day the block is rewritten
+        // as a constructor call, which is exactly when nobody would think to check.
+        Assert.Equal(ReadStatus.AccessDenied, result.Firewall.Status);
     }
 
     [Fact]
@@ -496,8 +503,9 @@ public sealed class AnonymiserTests
 
             // The folder a partial task walk names is not free text and is not a profile
             // path: it is a scheduler path, scrubbed by the rule that applies to a task.
-            ScheduledTasks = ScheduledTaskRead.Partial([],
-                [new TaskFolderGap($@"\{marker}", "GetTasks : accès refusé (0x80070005)")]),
+            ScheduledTasks = ScheduledTaskRead.PartiallyRefused([],
+                [new TaskFolderGap(
+                    $@"\{marker}", "GetTasks : accès refusé (0x80070005)", Denied: true)]),
 
             // The seventh sibling, and the first keyed by what is missing rather than
             // free-standing: a policy read that established part of its facts names, beside

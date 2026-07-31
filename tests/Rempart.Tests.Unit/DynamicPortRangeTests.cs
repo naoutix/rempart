@@ -215,7 +215,12 @@ public sealed class DynamicPortRangeTests
     {
         var read = DynamicPortRangeRead.Combine([("ipv4/tcp", null), ("ipv4/udp", null)]);
 
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        // A failure and not a refusal. This read has no refusal at all — netsh reads a value
+        // any account may read — and the status said « accès refusé » until #177 anyway, so a
+        // fold nobody had named was handing out the one status the report turns into an
+        // instruction to its reader.
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.Null(read.Range);
         Assert.Contains("ipv4/tcp", read.Diagnostic!, StringComparison.Ordinal);
 

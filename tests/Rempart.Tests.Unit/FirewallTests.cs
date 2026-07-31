@@ -69,32 +69,59 @@ public class FirewallReachabilityTests
     }
 
     /// <summary>
-    /// A read that was attempted and refused. It settles nothing either, and unlike
+    /// A read that was attempted and did not settle. It settles nothing either, and unlike
     /// <see cref="FirewallState.Unread"/> it has something to say about why — « personne
-    /// n'a regardé » and « j'ai regardé et on m'a refusé » are not the same answer, and the
+    /// n'a regardé » and « j'ai regardé et je n'ai pas pu » are not the same answer, and the
     /// report has to be able to print the second.
+    ///
+    /// <para>
+    /// Both ways of not settling, and the status each carries, which is the whole of #179:
+    /// the record said « refused » in two summaries and « could not be completed » in a third
+    /// about one and the same member, so a caller had a sentence and no way to tell which it
+    /// had. The three states are pinned here side by side because a name is not a guarantee —
+    /// <see cref="ReadFactoryNamingTests"/> is what makes the two factory names bind.
+    /// </para>
     /// </summary>
     [Fact]
-    public void A_refused_read_answers_unknown_and_says_why()
+    public void A_read_that_did_not_settle_answers_unknown_and_says_which_kind_it_was()
     {
-        var state = FirewallState.Failed("Pare-feu non lu : règles locales.");
+        const string Reason = "Pare-feu non lu : règles locales.";
 
-        Assert.False(state.Readable);
-        Assert.Equal("Pare-feu non lu : règles locales.", state.Diagnostic);
-        Assert.Equal(FirewallReachability.Unknown, state.InboundReachability("TCP", 4444, null));
+        var failed = FirewallState.Failed(Reason);
+        var refused = FirewallState.Refused(Reason);
+
+        Assert.False(failed.Readable);
+        Assert.False(refused.Readable);
+        Assert.Equal(Reason, failed.Diagnostic);
+        Assert.Equal(Reason, refused.Diagnostic);
+        Assert.Equal(FirewallReachability.Unknown, failed.InboundReachability("TCP", 4444, null));
+        Assert.Equal(FirewallReachability.Unknown, refused.InboundReachability("TCP", 4444, null));
+
+        // And the half that did not exist before #179.
+        Assert.Equal(ReadStatus.Failed, failed.Status);
+        Assert.Equal(ReadStatus.AccessDenied, refused.Status);
     }
 
     /// <summary>
-    /// The other half of the same invariant: silence on the diagnostic means « rien à
-    /// signaler », so neither a state that was read nor one nobody collected may carry one.
-    /// A capture written before the field existed deserialises into the first of those two,
-    /// which is what keeps it replayable.
+    /// The two states that settle nothing and have nothing to report either, told apart from
+    /// the two above by their status rather than by the presence of a sentence.
+    ///
+    /// <para>
+    /// « Rien à signaler » is what silence on the diagnostic means, so neither a state that
+    /// was read nor one nobody collected may carry one. A capture written before the field
+    /// existed deserialises into the first, which is what keeps it replayable — and a capture
+    /// with no firewall block at all replays as <see cref="FirewallState.Unread"/>, whose
+    /// <see cref="ReadStatus.NotFound"/> is what keeps the collector quiet about it.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Only_a_refused_read_carries_a_diagnostic()
+    public void A_read_state_and_an_uncollected_one_carry_no_diagnostic()
     {
         Assert.Null(With().Diagnostic);
         Assert.Null(FirewallState.Unread.Diagnostic);
+
+        Assert.Equal(ReadStatus.Found, With().Status);
+        Assert.Equal(ReadStatus.NotFound, FirewallState.Unread.Status);
     }
 
     /// <summary>Firewall off: everything that listens is reachable.</summary>

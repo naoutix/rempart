@@ -97,7 +97,12 @@ public static class CheckReader
     {
         var read = services.Read(check.Path);
 
-        if (read.Status == ReadStatus.AccessDenied)
+        // Both holes, and the second one arrived under this branch rather than beside it:
+        // ServiceRead.Failed carried AccessDenied until #177, so widening the read's
+        // vocabulary without widening this test would have let an unopenable service control
+        // manager fall through to « absent » below — compared against the rule, and answered
+        // Fail on a machine nobody managed to read. Unknown is never Fail.
+        if (read.Status is ReadStatus.AccessDenied or ReadStatus.Failed)
         {
             // The reason for an internal failure travels with the verdict, exactly as it
             // does for WMI below: without it, an SCM that would not open looks like missing

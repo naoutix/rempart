@@ -152,7 +152,7 @@ public sealed class CompromiseMarkersTests
 
     /// <summary>
     /// The collectors whose surface the markers touch, named rather than taken wholesale
-    /// from <see cref="ScanEngine.DefaultFindingCollectors"/>.
+    /// from <see cref="Rempart.Core.Engine.ScanEngine.DefaultFindingCollectors"/>.
     ///
     /// <para>
     /// The others read named registry values, and a bare snapshot has none: they would

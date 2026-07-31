@@ -78,6 +78,79 @@ public sealed class FirewallReadRefusalTests
         Assert.False(refused.Readable);
         Assert.NotNull(refused.Diagnostic);
         Assert.Equal(FirewallReachability.Unknown, refused.InboundReachability("TCP", 4444, null));
+
+        // And it is a refusal rather than merely « not settled »: the registry said no, which
+        // is the one answer on this channel that re-running elevated repairs.
+        Assert.Equal(ReadStatus.AccessDenied, refused.Status);
+    }
+
+    /// <summary>The universal keys, the two the read treats an absence of as a failure.</summary>
+    public static TheoryData<string> UniversalSurfaces()
+    {
+        var data = new TheoryData<string>();
+        foreach (var surface in LiveFirewallProvider.Surfaces.Where(s => s.Universal))
+        {
+            data.Add(surface.Path);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// The other half of #179, on the side that produces it: a universal key the machine does
+    /// not have. Every Windows installation carries these two, so their absence is a failed
+    /// read — the provider has said so since it was written, in the <c>Universal</c> flag on
+    /// its own surface list — and <em>nobody denied anything</em>.
+    ///
+    /// <para>
+    /// It reached the same <c>FirewallState.Failed</c> as a genuine denial, and the collector
+    /// read that state as a refusal, so this exited <c>3</c> with « relancer en administrateur »
+    /// against a key no elevation creates. Generated from the provider's own list, like the
+    /// refusal theory above, so a sixth universal surface gains its case unasked.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(UniversalSurfaces))]
+    public void An_absent_universal_key_is_a_failure_and_not_a_refusal(string path)
+    {
+        var read = new LiveFirewallProvider(
+            new StubRegistryProvider(denied: null) { Absent = path }).Read();
+
+        Assert.False(read.Readable);
+        Assert.NotNull(read.Diagnostic);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.False(read.Denied);
+    }
+
+    /// <summary>
+    /// The mixed walk, and the shape a real non-elevated read of a policy-managed machine
+    /// takes: something denied <em>and</em> something merely failed, in one sentence.
+    ///
+    /// <para>
+    /// It answers a refusal, and that is not a shrug — elevating repairs the denied half, so
+    /// the advice is earned. The rule is the one <c>ScheduledTaskRead.Partially</c> already
+    /// applies to a folder walk. Without this row the provider could satisfy the two theories
+    /// above by reading only the last surface it touched, which is the single-point reading
+    /// #177's guard was rewritten over.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_read_that_met_a_denial_and_a_failure_answers_the_denial()
+    {
+        var registry = new StubRegistryProvider(
+            denied: @"HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PublicProfile")
+        {
+            RulesAnswerNothing = true,
+        };
+
+        var read = new LiveFirewallProvider(registry).Read();
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+
+        // The premise: both halves really are in the sentence, so the row is the mixed case
+        // and not a denial on its own.
+        Assert.Contains("profil Public de stratégie de groupe", read.Diagnostic!, StringComparison.Ordinal);
+        Assert.Contains("règles illisibles", read.Diagnostic!, StringComparison.Ordinal);
     }
 
     /// <summary>The control: nothing refused, and the same stub answers a readable state.
@@ -109,6 +182,10 @@ public sealed class FirewallReadRefusalTests
 
         Assert.False(refused.Readable);
         Assert.Equal(FirewallReachability.Unknown, refused.InboundReachability("TCP", 4444, null));
+
+        // A failure, and the second of the two entries #179 found travelling as a refusal:
+        // the key opened, the values came back, none of them parsed. No privilege is missing.
+        Assert.Equal(ReadStatus.Failed, refused.Status);
     }
 
     /// <summary>
@@ -147,6 +224,7 @@ public sealed class FirewallReadRefusalTests
         Assert.False(refused.Readable);
         Assert.NotNull(refused.Diagnostic);
         Assert.Equal(FirewallReachability.Unknown, refused.InboundReachability("TCP", 4444, null));
+        Assert.Equal(ReadStatus.AccessDenied, refused.Status);
     }
 
     /// <summary>
@@ -187,6 +265,13 @@ public sealed class FirewallReadRefusalTests
         /// </summary>
         public string? DeniedEnumeration { get; init; }
 
+        /// <summary>
+        /// A key the machine simply does not have. On a universal surface that is a failed
+        /// read and not a fact about the machine — and not a refusal either, which is the
+        /// distinction #179 closed.
+        /// </summary>
+        public string? Absent { get; init; }
+
         public RegistryRead ReadValue(string keyPath, string valueName) =>
             Status(keyPath) switch
             {
@@ -225,6 +310,11 @@ public sealed class FirewallReadRefusalTests
             if (string.Equals(keyPath, denied, StringComparison.OrdinalIgnoreCase))
             {
                 return ReadStatus.AccessDenied;
+            }
+
+            if (string.Equals(keyPath, Absent, StringComparison.OrdinalIgnoreCase))
+            {
+                return ReadStatus.NotFound;
             }
 
             var policy = keyPath.Contains(@"\Policies\", StringComparison.OrdinalIgnoreCase);
