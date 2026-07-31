@@ -181,10 +181,12 @@ jobs:
           # What must NOT be refused, first, because refusing the command word put that half
           # of the contract in the hands of one token of Program.cs and nothing was watching
           # it. `WordAt(args, 0) ?? Usage.Fallback` is what keeps a line carrying no command
-          # word out of the check; write `?? args[0]` instead -- which is the natural shape of
-          # the next issue in this series, the one about `rempart --json` -- and `rempart
-          # --help` answers 6 with the whole suite green. The three lines that ask for the
-          # help are the ones a person types, and none of them was ever run here.
+          # word out of the check; write `?? args[0]` instead -- and `rempart --help` answers 6
+          # with the whole suite green. The four lines that ask for the help are the ones a
+          # person types. `-h` is one of them by decision now: it answered 0 for want of
+          # anyone reading it, exactly as `-scan` did, and it is declared in CommandSurface so
+          # that the two stop being the same case. Every declared spelling is run here, which
+          # BuildChainParityTests requires from that declaration rather than from a list.
           & $exe
           $code = $LASTEXITCODE
           if ($code -ne 0) { throw "bare rempart no longer prints the help ($code)" }
@@ -193,13 +195,17 @@ jobs:
           $code = $LASTEXITCODE
           if ($code -ne 0) { throw "rempart --help no longer prints the help ($code)" }
 
+          & $exe -h
+          $code = $LASTEXITCODE
+          if ($code -ne 0) { throw "rempart -h no longer prints the help ($code)" }
+
           & $exe help
           $code = $LASTEXITCODE
           if ($code -ne 0) { throw "rempart help no longer prints the help ($code)" }
 
-          # And what must be. Three spellings of one sentence, one per branch of the refusal:
+          # And what must be. Four spellings of one sentence, one per branch of the refusal:
           # the option that does not exist -- the replay option is `--from` -- the capture
-          # path typed without it, and the command word itself.
+          # path typed without it, the command word itself, and that word wearing a dash.
           & $exe scan --replay nowhere.json
           $code = $LASTEXITCODE
           if ($code -ne 6) { throw "an unknown option was not refused ($code)" }
@@ -216,6 +222,16 @@ jobs:
           & $exe scna --replay nowhere.json
           $code = $LASTEXITCODE
           if ($code -ne 6) { throw "an unknown command word was not refused ($code)" }
+
+          # And the same word wearing a dash, which survived the refusal above by never
+          # meeting it: `WordAt` answers « no command word » on a leading dash, so
+          # `rempart -scan --from t.json` resolved to the exempted help and printed the usage
+          # text with a code of success -- measured on the published binary of the previous
+          # round. Which door a line walks into is decided in Rempart.Cli, which the Linux job
+          # does not compile, so this probe is the only place the new one is crossed.
+          & $exe -scan --from nowhere.json
+          $code = $LASTEXITCODE
+          if ($code -ne 6) { throw "a dashed command word was not refused ($code)" }
 
           # The refusal this step demands is the step's own last exit code, and the runner
           # reads that trailing code as the step's verdict: on the first run both probes

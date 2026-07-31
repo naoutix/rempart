@@ -280,15 +280,22 @@ if (-not $SkipPublish) {
                 #
                 # D'abord ce qui ne doit PAS etre refuse. Depuis que le mot de commande l'est,
                 # cette moitie du contrat tient a « WordAt(args, 0) ?? Usage.Fallback » dans
-                # Program.cs, et rien ne la regardait : ecrire « ?? args[0] » a la place --
-                # la forme naturelle de la question laissee ouverte, « rempart --json » --
+                # Program.cs, et rien ne la regardait : ecrire « ?? args[0] » a la place
                 # fait rendre 6 a « rempart --help » avec la suite entierement verte. Les
-                # trois facons de demander l'aide sont celles qu'une personne tape.
+                # quatre facons de demander l'aide sont celles qu'une personne tape. « -h »
+                # en est une par decision : elle rendait 0 faute que quiconque la lise,
+                # exactement comme « -scan », et elle est declaree dans CommandSurface pour
+                # que les deux cessent d'etre le meme cas. Chaque orthographe declaree est
+                # lancee ici, ce que BuildChainParityTests exige de cette declaration et
+                # jamais d'une liste ecrite dans le test.
                 & .\rempart.exe | Out-Null
                 if ($LASTEXITCODE -ne 0) { throw "rempart seul n'imprime plus l'aide ($LASTEXITCODE)" }
 
                 & .\rempart.exe --help | Out-Null
                 if ($LASTEXITCODE -ne 0) { throw "rempart --help n'imprime plus l'aide ($LASTEXITCODE)" }
+
+                & .\rempart.exe -h | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "rempart -h n'imprime plus l'aide ($LASTEXITCODE)" }
 
                 & .\rempart.exe help | Out-Null
                 if ($LASTEXITCODE -ne 0) { throw "rempart help n'imprime plus l'aide ($LASTEXITCODE)" }
@@ -311,6 +318,14 @@ if (-not $SkipPublish) {
                 # Linux ne compile.
                 & .\rempart.exe scna --replay t.capture.json | Out-Null
                 if ($LASTEXITCODE -ne 6) { throw "un mot de commande inconnu n'a pas ete refuse ($LASTEXITCODE)" }
+
+                # ... et le meme mot portant un tiret, qui echappait au refus ci-dessus faute
+                # de le rencontrer : WordAt repond « aucun mot de commande » des le premier
+                # tiret, si bien que « rempart -scan --from t.json » retombait sur l'aide
+                # exemptee et sortait 0 -- mesure sur le binaire publie au tour precedent.
+                # La porte est dans Rempart.Cli, qu'aucun test du job Linux ne compile.
+                & .\rempart.exe -scan --from t.capture.json | Out-Null
+                if ($LASTEXITCODE -ne 6) { throw "un mot de commande a tiret n'a pas ete refuse ($LASTEXITCODE)" }
 
                 # Les memes commandes que le job publish-aot passe au binaire publie, et
                 # pour la meme raison : la suite Windows tourne sous JIT, ou l'interop COM

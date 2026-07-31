@@ -63,7 +63,10 @@ internal static class CommandTable
         // Usage.Check refuses a word naming no command ahead of the dispatch, so the only
         // words reaching here are the rows above: CommandSurfaceTests holds those rows equal
         // to CommandSurface, which is what Check consults, and holds Program.cs to asking the
-        // check first. What is left is exhaustiveness, which the compiler demands of a switch
+        // check first. A line carrying no command word at all resolves to "help" and reaches
+        // the row above rather than this arm -- and only when it asks for the help, since
+        // Check now tells "rempart --help" from "rempart -scan", which used to arrive here
+        // together. What is left is exhaustiveness, which the compiler demands of a switch
         // expression. It still names the help because the help is the one command that acts on
         // nothing — not because arriving here would be acceptable: were that check taken back
         // out, this arm is the defect, whole. That it cannot be taken out in silence is held

@@ -41,14 +41,30 @@ namespace Rempart.Core.Cli;
 /// channel a scheduler reads called it a success — the defect above, one rank up. Refusing it
 /// changes a contract, and the change is stated rather than slipped in: whoever relied on
 /// <c>rempart &lt;typo&gt;</c> exiting <c>0</c> will see it. What is untouched is the way the
-/// help is actually asked for — <c>rempart</c> alone, <c>rempart --help</c> and
-/// <c>rempart help</c> still print the usage text and exit <c>0</c>, the first two because a
-/// line carrying no command word at all resolves to <see cref="Fallback"/> before it gets
-/// here. « No command word » is a fact about the parser and not about the person typing:
-/// <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon as the first token starts with
-/// a dash, so <c>rempart -scan --from t.json</c> is a misspelt command word carrying an option
-/// and still prints the help with a code of success — the same open question as
-/// <c>rempart --json</c>, and not something this check decides.
+/// help is actually asked for — <c>rempart</c> alone, <c>rempart --help</c>, <c>rempart -h</c>
+/// and <c>rempart help</c> still print the usage text and exit <c>0</c>.
+/// </para>
+///
+/// <para>
+/// Those four are a declaration and no longer a side effect, which is the last spelling of the
+/// same defect. « No command word » is a fact about the parser, and it was being taken for a
+/// fact about the person typing: <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon
+/// as the first token starts with a dash, so <c>rempart -scan --from t.json</c> — a misspelt
+/// command word carrying an option — resolved to <see cref="Fallback"/> and never reached this
+/// check at all. Measured on the binary: <c>-scan</c>, <c>--scan</c>, <c>-scan --from t.json</c>
+/// and <c>--json</c> all printed the help and exited <c>0</c>. A line carrying no command word
+/// is now exempt when it asks for the help — nothing typed, the word itself, or a spelling
+/// <see cref="CommandSurface.HelpFlags"/> declares — and refused otherwise. Which is which is
+/// read off that declaration and never off the shape of the token, so the refusal is the
+/// complement of what is written down rather than a list of what is not.
+/// </para>
+///
+/// <para>
+/// That closes <c>rempart --json</c> with it, the case left open when the command word was
+/// refused: an option belongs to the command that declares it, so typed where a command word
+/// goes it belongs to nothing. What still needs a notion nothing declares is an option that
+/// contradicts another, which is about what a line <em>means</em> — see the two exclusions
+/// below.
 /// </para>
 ///
 /// <para>
@@ -67,19 +83,28 @@ public static class Usage
     /// exempts.
     ///
     /// <para>
-    /// The exemption is structural rather than a taste. <c>rempart</c> alone and
-    /// <c>rempart --help</c> carry no command word at all, and both are the normal way of
-    /// asking what the tool does — refusing options there would answer an unreadable line with
-    /// a second unreadable line, and take the usage text away from the reader who needs it
-    /// most. Every other command <em>acts</em> on what it was given, which is the entire harm.
+    /// The exemption is structural rather than a taste. The help is the normal way of asking
+    /// what the tool does — refusing options there would answer an unreadable line with a
+    /// second unreadable line, and take the usage text away from the reader who needs it most.
+    /// Every other command <em>acts</em> on what it was given, which is the entire harm.
+    /// </para>
+    ///
+    /// <para>
+    /// Resolving to this word is not the same as asking for it, and treating the two as one is
+    /// what let <c>rempart -scan</c> print the help and exit <c>0</c>. Every line whose first
+    /// token wears a dash resolves here; the ones that <em>ask</em> are the empty line, this
+    /// word typed out, and the spellings <see cref="CommandSurface.HelpFlags"/> declares. Only
+    /// those are exempt, and <see cref="Check"/> says so on the arguments rather than on this
+    /// constant, which cannot tell them apart.
     /// </para>
     ///
     /// <para>
     /// It used to be more than that: the dispatch table sent every word it did not recognise
     /// here too, so <c>rempart scna</c> was answered by the help with a code of success. That
     /// arm is now unreachable — <see cref="Check"/> refuses a word naming no command ahead of
-    /// the dispatch — and what remains of the fallback is the one case it was always right
-    /// for: no word at all.
+    /// the dispatch — and what remains of the fallback is the case it was always right for: a
+    /// line that asks for the help, whether by carrying nothing or by naming one of the
+    /// spellings the surface declares for it.
     /// </para>
     ///
     /// <para>
@@ -105,8 +130,11 @@ public static class Usage
     /// Takes the whole array, command word included — the very one the command would read —
     /// so that the answer is about the line that would actually run rather than about a
     /// tidied copy of it. <paramref name="command"/> is the word the dispatch resolved, which
-    /// is <see cref="Fallback"/> when there was none; that case is exempt, so the walk below
-    /// never has to wonder whether <c>args[0]</c> is a command word.
+    /// is <see cref="Fallback"/> when there was none. That is also why the array is needed and
+    /// not only the word: the resolution loses the difference between a line asking for the
+    /// help and a line whose first token merely wears a dash, and only the first is exempt.
+    /// Past that branch the walk below never has to wonder whether <c>args[0]</c> is a command
+    /// word — it is one, and one the surface declares.
     /// </para>
     ///
     /// <para>
@@ -127,7 +155,16 @@ public static class Usage
     {
         if (string.Equals(command, Fallback, StringComparison.Ordinal))
         {
-            return null;
+            // A line reaches the fallback in two ways that have nothing to do with each other,
+            // and until this branch told them apart both exited 0. Because it asks for the
+            // help — no token at all, the word itself, or a spelling the surface declares. Or
+            // because its first token wears a dash, so CommandLine.WordAt answered « no
+            // command word »: « rempart -scan --from t.json » is a misspelt command word
+            // carrying an option, and it was answered with the usage text and a code of
+            // success. Which of the two is decided on the declaration and never on the shape
+            // of the token, so a second single-dash spelling is accepted the day it is
+            // declared and not the day somebody widens a condition here.
+            return args.Length == 0 || AsksForHelp(args[0]) ? null : Neither(args[0]);
         }
 
         // A word naming no command is refused here, and is not judged on its arguments: an
@@ -210,10 +247,55 @@ public static class Usage
     private static FailureExit Unknown(string command) =>
         new(ExitCode.Usage,
             $"Commande inconnue : « {command} ». Rien n'a été exécuté." + Environment.NewLine
-            + "Commandes : "
-            + string.Join(", ", CommandSurface.All.Select(spec => spec.Name)
-                .OrderBy(name => name, StringComparer.Ordinal))
-            + $". « rempart {Fallback} » les détaille.");
+            + Commands() + $" « rempart {Fallback} » les détaille.");
+
+    /// <summary>
+    /// Whether a first token carrying no command name is one of the ways of asking for the
+    /// help: a spelling <see cref="CommandSurface.HelpFlags"/> declares, or the word
+    /// <see cref="Fallback"/> itself — which is what keeps <c>rempart help --replay</c> exempt,
+    /// the help being the one command that acts on nothing.
+    ///
+    /// <para>
+    /// Ordinal and whole, like the exemption above and for the reason that one was measured
+    /// against: a comparison loose at either end lets in every word that merely resembles one
+    /// of these, and each of those is a line the tool would answer with the help and a code of
+    /// success.
+    /// </para>
+    /// </summary>
+    private static bool AsksForHelp(string token) =>
+        string.Equals(token, Fallback, StringComparison.Ordinal)
+        || CommandSurface.HelpFlags.Contains(token, StringComparer.Ordinal);
+
+    /// <summary>
+    /// The sentence a first token gets when it is neither a command word nor a request for the
+    /// help — <c>rempart -scan</c>, <c>rempart --json</c>.
+    ///
+    /// <para>
+    /// Both ways out are named, and both are derived from the surface rather than retyped, for
+    /// the reason <see cref="Unknown"/> names the commands: the two readers who land here are
+    /// reaching for different things. <c>-scan</c> is a command word one keystroke away from a
+    /// real one; <c>--json</c> is an option somebody expected to be global, and nothing in this
+    /// tool declares a global option. Told only about the commands, the second is left guessing
+    /// whether the tool has a help at all.
+    /// </para>
+    /// </summary>
+    private static FailureExit Neither(string token) =>
+        new(ExitCode.Usage,
+            $"« {token} » n'est ni une commande ni une demande d'aide. Rien n'a été exécuté."
+            + Environment.NewLine + Commands()
+            + Environment.NewLine + "Aide : " + Name(CommandSurface.HelpFlags)
+            + $", ou « rempart {Fallback} ».");
+
+    /// <summary>
+    /// The commands that do exist, derived from <see cref="CommandSurface"/> and shared by the
+    /// two refusals that name them: retyped in either, the list would rot in one of the two and
+    /// nothing would say which.
+    /// </summary>
+    private static string Commands() =>
+        "Commandes : "
+        + string.Join(", ", CommandSurface.All.Select(spec => spec.Name)
+            .OrderBy(name => name, StringComparer.Ordinal))
+        + ".";
 
     /// <summary>
     /// The value-taking options this line names without giving one, each once.
@@ -292,8 +374,10 @@ public static class Usage
     }
 
     /// <summary>
-    /// Every offending word at once, not the first: a caller who fixes one, re-runs, and is
-    /// told about the next is bisecting their own command line.
+    /// Words as a refusal quotes them. Given every offending word at once rather than the
+    /// first — a caller who fixes one, re-runs, and is told about the next is bisecting their
+    /// own command line — and also the spellings a refusal points the reader towards, so that
+    /// what is refused and what is offered are quoted the same way.
     /// </summary>
     private static string Name(IReadOnlyList<string> tokens) =>
         string.Join(", ", tokens.Select(token => $"« {token} »"));

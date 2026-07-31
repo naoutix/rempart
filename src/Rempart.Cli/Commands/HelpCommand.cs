@@ -30,6 +30,10 @@ internal static class HelpCommand
         $"""
         Rempart — audit de postes Windows
 
+          Sans argument, ou avec « --help », « -h » ou « help », ce texte s'affiche.
+          Tout autre premier mot — « -scan », « --json » — est refusé : l'outil ne
+          fait alors rien, et le dit avec le code 6 plutôt qu'avec celui du succès.
+
           rempart scan [--json] [--report [dossier]] [--from <instantané>]
                        [--rules <dossier>] [--analyze-store]
                        [--virustotal-key <clé>] [--fetch-pac] [--probe-dns]

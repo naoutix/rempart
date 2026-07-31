@@ -281,22 +281,44 @@ public sealed class BuildChainParityTests
     /// Both shapes are required, and the second is the one that bites: a line carrying no
     /// command word but carrying tokens is where the boundary sits, and bare <c>rempart</c>
     /// alone would survive the mutation above. The exempted word typed out is the third, for
-    /// the same reason the refusal has three probes rather than one — it is the only one of the
-    /// three that reaches the dispatch table.
+    /// the same reason the refusal has a probe per branch rather than one — it is the only one
+    /// of the three that reaches the dispatch table.
+    /// </para>
+    ///
+    /// <para>
+    /// Of the shape that carries tokens, <em>every</em> declared spelling is required rather
+    /// than one of them, and that list is <see cref="CommandSurface.HelpFlags"/> rather than a
+    /// list written here. Those spellings are what now tells <c>rempart --help</c> from
+    /// <c>rempart -scan</c>, which used to be the same line to this tool; each one is a
+    /// promise that a person's line goes on working, and a promise held by nothing but its
+    /// sibling's probe is one that the day it breaks nobody measures. <c>-h</c> in particular
+    /// answered <c>0</c> by accident before it was declared, and the accident is exactly what
+    /// this change removed.
     /// </para>
     /// </summary>
     [Fact]
     public void The_build_chain_runs_the_binary_on_the_lines_the_refusal_must_not_touch()
     {
         var bare = new List<string>();
-        var optionOnly = new List<string>();
         var exemptedWord = new List<string>();
+        var spelled = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
         foreach (var call in Invocations().Where(call => call.GatedOnSuccess))
         {
             if (call.Word is null)
             {
-                (call.Typed.Length == 0 ? bare : optionOnly).Add(call.File);
+                if (call.Typed.Length == 0)
+                {
+                    bare.Add(call.File);
+                    continue;
+                }
+
+                if (!spelled.TryGetValue(call.File, out var found))
+                {
+                    spelled[call.File] = found = [];
+                }
+
+                found.Add(call.Typed[0]);
             }
             else if (string.Equals(call.Word, Usage.Fallback, StringComparison.Ordinal))
             {
@@ -304,12 +326,24 @@ public sealed class BuildChainParityTests
             }
         }
 
+        // The premise: the day nothing is declared, every requirement below about a line
+        // carrying tokens would be satisfied by an empty demand, and the boundary this guard
+        // exists for would stop being run at all.
+        Assert.NotEmpty(CommandSurface.HelpFlags);
+
         foreach (var file in new[] { Ci, Verify })
         {
-            Assert.True(optionOnly.Contains(file),
-                $"{file} ne lance jamais le binaire sur une ligne qui porte des jetons sans "
-                + "mot de commande — « rempart --help » — en exigeant 0. C'est la frontière "
-                + "même du refus ajouté : elle tient à « WordAt(args, 0) ?? Usage.Fallback » "
+            var typed = spelled.TryGetValue(file, out var found) ? found : [];
+
+            var missing = CommandSurface.HelpFlags
+                .Where(flag => !typed.Contains(flag))
+                .ToList();
+
+            Assert.True(missing.Count == 0,
+                $"{file} ne lance pas le binaire sur ces lignes en exigeant 0 : "
+                + $"{string.Join(", ", missing.Select(flag => $"« rempart {flag} »"))}. Ce sont "
+                + "des lignes qui portent des jetons sans mot de commande, c'est-à-dire la "
+                + "frontière même du refus : elle tient à « WordAt(args, 0) ?? Usage.Fallback » "
                 + "dans Program.cs, et « ?? args[0] » à la place fait rendre 6 à "
                 + "« rempart --help » avec toute la suite verte, parce que rien ici ne compile "
                 + "Rempart.Cli et que les tests de l'exemption passent Usage.Fallback "
@@ -1058,6 +1092,22 @@ public sealed class BuildChainParityTests
         /// <summary>A word <see cref="CommandSurface"/> does not declare.</summary>
         CommandWord,
 
+        /// <summary>
+        /// A first token wearing a dash that asks for nothing declared — <c>-scan</c>,
+        /// <c>--json</c>.
+        ///
+        /// <para>
+        /// Its own kind rather than a variety of <see cref="CommandWord"/>, because it walks
+        /// into the refusal by a different door and that door is the one this repository keeps
+        /// finding unguarded: <see cref="CommandLine.WordAt"/> answers <c>null</c>, the line
+        /// resolves to <see cref="Usage.Fallback"/>, and it was the exempted command that
+        /// decided its fate. Sharing the kind would leave the probe deletable — the
+        /// command-word probe alone would satisfy the requirement — which is exactly how a
+        /// guard stops holding what its name says.
+        /// </para>
+        /// </summary>
+        DashedWord,
+
         /// <summary>An option the command does not declare, or one left without its value.</summary>
         Option,
 
@@ -1173,19 +1223,21 @@ public sealed class BuildChainParityTests
     /// branches written here, which would agree with itself the day one of them stopped firing.
     ///
     /// <para>
-    /// The word first, because that is the one branch whose condition is a declaration lookup
-    /// and nothing else. Past it, the refusal names the token it is about: an option token it
-    /// names is an option refused — unknown, or left without its value — and anything else is
-    /// the surplus bare argument.
+    /// The absence of a word first, then the word, because those are the two branches whose
+    /// condition is a declaration lookup and nothing else. Past them, the refusal names the
+    /// token it is about: an option token it names is an option refused — unknown, or left
+    /// without its value — and anything else is the surplus bare argument.
     /// </para>
     /// </summary>
     private static RefusalKind KindOf(Invocation call, FailureExit refusal) =>
-        call.Word is null || CommandSurface.Find(call.Word) is null
-            ? RefusalKind.CommandWord
-            : call.Typed.Skip(1).Any(token => token.StartsWith('-')
-                && refusal.Message.Contains(token, StringComparison.Ordinal))
-                ? RefusalKind.Option
-                : RefusalKind.BareArgument;
+        call.Word is null
+            ? RefusalKind.DashedWord
+            : CommandSurface.Find(call.Word) is null
+                ? RefusalKind.CommandWord
+                : call.Typed.Skip(1).Any(token => token.StartsWith('-')
+                    && refusal.Message.Contains(token, StringComparison.Ordinal))
+                    ? RefusalKind.Option
+                    : RefusalKind.BareArgument;
 
     /// <summary>
     /// The items every <c>Copy-Item</c> places in the given destination variable, reduced to

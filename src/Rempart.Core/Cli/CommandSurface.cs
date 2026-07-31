@@ -206,6 +206,40 @@ public static class CommandSurface
         new("help", [], Positionals: 0),
     ];
 
+    /// <summary>
+    /// The spellings that ask for the help without naming a command word.
+    ///
+    /// <para>
+    /// A first token wearing a dash is no command word — <see cref="CommandLine.WordAt"/>
+    /// answers <c>null</c> — and every one of them used to resolve to the help and exit
+    /// <c>0</c>. That took a fact about the parser for a fact about the person typing:
+    /// <c>rempart -scan --from t.json</c> is a misspelt command word carrying an option, and
+    /// the tool answered it with the usage text and a code of success. Declaring the spellings
+    /// that really do ask for the help is what lets every other one be refused as the
+    /// complement — the shape the option refusal already has, where what is accepted is
+    /// written down and nothing enumerates what is not.
+    /// </para>
+    ///
+    /// <para>
+    /// <c>-h</c> is here by decision rather than by accident. It answered <c>0</c> before this
+    /// list existed and for the same reason <c>-scan</c> did — nothing read either — but the
+    /// two are not the same case, and that is the whole distinction: the help acts on nothing,
+    /// so a line that asks for it and gets it is a run that did what it was asked, which is
+    /// all the exit code answers for. It is the one single-dash token the tool accepts, and it
+    /// is accepted because it is written here, never because of how it is spelt.
+    /// </para>
+    ///
+    /// <para>
+    /// Not <see cref="CommandOption"/>s of <c>help</c>, deliberately. An option is something a
+    /// command reads with one of the four readers of <see cref="CommandLine"/>, and
+    /// <c>CommandSurfaceTests</c> holds the declared options equal to the ones the CLI really
+    /// reads — these are read by no command at all. They decide which door a line walks into
+    /// before any command runs, which is why they sit beside the command names rather than
+    /// under one of them.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> HelpFlags { get; } = ["--help", "-h"];
+
     /// <summary>The command's surface, or null when nothing goes by that name.</summary>
     public static CommandSpec? Find(string command) =>
         All.FirstOrDefault(c => string.Equals(c.Name, command, StringComparison.Ordinal));
