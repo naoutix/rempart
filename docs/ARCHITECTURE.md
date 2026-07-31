@@ -657,9 +657,14 @@ front of it (`PartiallyRefused`). `Partial` alone says how much came back and no
 rest did not, so it may carry anything except a refusal.
 
 `ReadFactoryNamingTests` discovers by reflection every factory of **every read record carrying
-a `ReadStatus`** — narrower than "the provider layer", and deliberately so: `FirewallState` and
-`PolicyFacts` invented bespoke booleans instead of taking this channel, so they are out of this
-guard and inside `ProviderStatusChannelTests`. It builds each factory on three shapes of
+a `ReadStatus`** — narrower than "the provider layer", and deliberately so: `PolicyFacts`
+invented a bespoke boolean instead of taking this channel, so it is out of this guard and
+inside `ProviderStatusChannelTests`. `FirewallState` was out on the same ground until #179, and
+what the exemption cost is the argument for the channel: its boolean answered "readable" and
+nothing else, so the question it could not ask — refused, or failed? — was answered in prose,
+and its three summaries called the same member a refusal twice and a failure once. Taking the
+`ReadStatus` put it under this guard with no list to add it to, and its three factories were
+judged on the first run. It builds each factory on three shapes of
 argument and holds three rules: a name that states a cause carries it on every shape;
 `AccessDenied` is reached only through a name that says so — or through a declared fold that
 delegates to one — because it is the only status the report turns into an instruction to its

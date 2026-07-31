@@ -180,9 +180,10 @@ public class PortTests
     /// spoken since DET-PORTS-MUET.
     ///
     /// <para>
-    /// Only a refusal speaks. <see cref="FirewallState.Unread"/> — every capture predating
-    /// the firewall collection — carries no diagnostic and stays quiet, which is why the
-    /// test above asserts a single finding while this one asserts two.
+    /// Only a read that was attempted speaks. <see cref="FirewallState.Unread"/> — every
+    /// capture predating the firewall collection — is <see cref="ReadStatus.NotFound"/> and
+    /// stays quiet, which is why the test above asserts a single finding while this one
+    /// asserts two.
     /// </para>
     /// </summary>
     [Fact]
@@ -191,7 +192,7 @@ public class PortTests
         var refused = Collect(
             new FakeSignatureProvider(),
             [],
-            FirewallState.Failed("Pare-feu non lu : règles locales."),
+            FirewallState.Refused("Pare-feu non lu : règles locales."),
             new ListeningPort("TCP", "0.0.0.0", 445, 4));
 
         var said = Assert.Single(refused, f => f.Source == "pare-feu");
@@ -206,6 +207,53 @@ public class PortTests
 
         Assert.DoesNotContain(uncollected, f => f.Source == "pare-feu");
     }
+
+    /// <summary>
+    /// The defect #179 was opened over, and it is a false verdict rather than only a
+    /// contradiction in prose.
+    ///
+    /// <para>
+    /// The collector classified on « is there a diagnostic », because that was the only
+    /// question <see cref="FirewallState"/> could answer, and it read the answer as a refusal
+    /// because <see cref="FirewallState.Diagnostic"/> was documented « the read was attempted
+    /// and refused ». Two of the five entries <c>LiveFirewallProvider</c> can put in that
+    /// sentence are not refusals at all — a universal key the machine does not have, and a
+    /// rule container that answered with values none of which parse — so a firewall that
+    /// failed came back <see cref="AuditGap.Refused"/>, and the run exited <c>3</c> telling
+    /// its reader to re-run as administrator. That is the inversion CONTRIBUTING forbids in
+    /// so many words, on the collector the audit's own listening-port chapter rests on.
+    /// </para>
+    ///
+    /// <para>
+    /// All four states the branch can see, rather than the one that fails: a fix that flipped
+    /// every firewall gap to <see cref="AuditGap.Unreadable"/> would close the defect and open
+    /// its mirror, and the two rows below are what stop it. The two silent states are here for
+    /// the same reason — a collector that started speaking about a firewall nobody looked at
+    /// would be the crying wolf this repository keeps refusing, and it is one line away.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_firewall_that_failed_without_being_denied_never_advises_elevation()
+    {
+        const string Reason = "Pare-feu non lu : règles locales.";
+
+        Assert.Equal(AuditGap.Refused, FirewallGap(FirewallState.Refused(Reason)));
+        Assert.Equal(AuditGap.Unreadable, FirewallGap(FirewallState.Failed(Reason)));
+
+        // And the two that settle nothing to say: silence, not a gap of either kind.
+        Assert.Null(FirewallGap(FirewallState.Unread));
+        Assert.Null(FirewallGap(BlocksAll));
+    }
+
+    /// <summary>
+    /// What the collector says about the firewall itself, or null when it says nothing —
+    /// the port findings beside it are another question.
+    /// </summary>
+    private static AuditGap? FirewallGap(FirewallState firewall) =>
+        Collect(
+            new FakeSignatureProvider(), [], firewall,
+            new ListeningPort("TCP", "0.0.0.0", 445, 4))
+        .SingleOrDefault(finding => finding.Source == "pare-feu")?.Gap;
 
     /// <summary>
     /// An unsigned binary listening only on loopback is not escalated: it exposes nothing

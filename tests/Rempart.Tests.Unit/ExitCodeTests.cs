@@ -440,8 +440,17 @@ public sealed class ExitCodeTests
     /// call that blew up, a scan wired with no enumerator and a capture that never held the
     /// surface all came back « relancer en administrateur », and exited <c>3</c>. It has
     /// <c>Failed</c> and <c>PartiallyFailed</c> now, and the double below stopped being dead.
-    /// The registry and the firewall stay exempt on the old ground, which for them is still
-    /// true.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>And the firewall in #179, which is the fourth time the exemption turned out to be
+    /// about the vocabulary rather than about the surface.</b> Three summaries on one record
+    /// called the same member a refusal twice and a failure once; the collector quoted one of
+    /// the two that were wrong. What the read composes into a single sentence is not one kind
+    /// of thing — a denied key, a denied enumeration and a denied value are refusals, a
+    /// universal key the machine does not have and a rule container whose values none parse
+    /// are not — so the sentence was never enough and the state now carries the answer beside
+    /// it. The registry stays exempt on the old ground, which for it is still true.
     /// </para>
     /// </summary>
     [Fact]
@@ -474,6 +483,7 @@ public sealed class ExitCodeTests
              "browser-extension / profil de navigateur",
              "driver / pilotes chargés",
              "hosts-entry / hosts",
+             "listening-port / pare-feu",
              "listening-port / ports en écoute",
              "process / processus courants",
              "scheduled-task / planificateur de tâches",
@@ -516,10 +526,17 @@ public sealed class ExitCodeTests
     /// <c>DirectoryRead.Refused</c> for the startup folders, <c>HostsFileRead.Refused</c> for
     /// the ACL that protects a redirection, a scheduler walk whose gap carries the
     /// <c>E_ACCESSDENIED</c> its interface calls « the one HRESULT that means elevate and
-    /// retry », <c>FirewallState.Failed</c> which the live read builds from a registry denial,
+    /// retry », <c>FirewallState.Refused</c> which the live read builds from a registry denial,
     /// and the bare <c>AccessDenied</c> the WMI-backed reads use. The listening tables and the
     /// browser profiles answer instead: they have no refusal to express, which is exactly why
-    /// they are the ones wired to fail in the guard above.
+    /// they are among the ones wired to fail in the guard above.
+    /// </para>
+    ///
+    /// <para>
+    /// The firewall named <c>Failed</c> here until #179 — the same shape the first two had
+    /// until #173, one factory doing duty for both answers — so this guard was asserting « a
+    /// denial comes back <see cref="AuditGap.Refused"/> » through a call named after a failure,
+    /// and its mirror could not speak for the surface at all. Both halves name it now.
     /// </para>
     ///
     /// <para>
@@ -673,7 +690,11 @@ public sealed class ExitCodeTests
 
     private sealed class DenyingFirewall : IFirewallProvider
     {
-        public FirewallState Read() => FirewallState.Failed(DeniedDiagnostic);
+        // Refused, not Failed. It said Failed until #179, because that was the only factory
+        // this state had and its own summary called the result a refusal — so the mirror
+        // guard below could not be stated for the firewall at all, and this one was asserting
+        // « a denial comes back Refused » about a call named after a failure.
+        public FirewallState Read() => FirewallState.Refused(DeniedDiagnostic);
     }
 
     private sealed class DenyingHostsFile : IHostsFileProvider
@@ -737,20 +758,18 @@ public sealed class ExitCodeTests
                 // PartiallyRefused, and this double, which sat here unused since #173, is what
                 // was waiting for them.
                 scheduledTasks: new FailingScheduledTasks(),
-                // Still answering, and still for the old reason: FirewallState.Diagnostic is
-                // « the read was attempted and refused », and the live read builds it from
-                // registry denials plus one parse failure travelling in the same sentence.
-                // Splitting that channel is a separate correction; faking it here would ask
-                // this guard to certify what the mirror below forbids.
-                firewall: new AnsweringFirewall()),
+                // Failing, and this one is the reason #179 was opened. It was answering here,
+                // exempted because FirewallState.Diagnostic was documented « the read was
+                // attempted and refused » while the factory writing it was named Failed — one
+                // member described as a refusal in two summaries and as a failure in a third.
+                // The live read composes that sentence from registry denials *and* from two
+                // things that are not: a universal key the machine does not have, and a rule
+                // container whose values none parse. Both came back « relancer en
+                // administrateur ». It has Refused beside Failed now, and this double, which
+                // sat here unused since #173, is what was waiting for it.
+                firewall: new FailingFirewall()),
             "test", "2026-07-24T09:15:00Z",
             ScanEngine.DefaultFindingCollectors(DriverBlocklist.Empty, BloatwareCatalog.Empty));
-
-    private sealed class AnsweringFirewall : IFirewallProvider
-    {
-        public FirewallState Read() =>
-            new([], PublicFirewallEnabled: true, PublicDefaultInboundAllow: false);
-    }
 
     private sealed class FailingWmi : IWmiProvider
     {

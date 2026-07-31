@@ -39,8 +39,19 @@ internal sealed record FirewallSurface(
 /// fails towards « the firewall is on and blocks »: no rules read, <c>EnableFirewall</c>
 /// absent (default: enabled), <c>DefaultInboundAction</c> absent (default: block). Those
 /// three defaults are correct answers about a machine that was read and wrong ones about a
-/// machine that was not, and they are indistinguishable afterwards — so the refusal is
-/// recorded as it happens and the state comes back <see cref="FirewallState.Failed"/>.
+/// machine that was not, and they are indistinguishable afterwards — so the failure is
+/// recorded as it happens and the state comes back unreadable.
+/// </para>
+///
+/// <para>
+/// <b>And it says which kind.</b> Five things can put an entry in that sentence and only
+/// three are denials — a key, an enumeration or a value the registry refused. A universal key
+/// the machine does not have and a rule container whose values none parse are failures, and
+/// they travelled under <see cref="FirewallState.Failed"/> beside the denials until #179,
+/// where the collector read the lot as a refusal and advised an elevation that repairs
+/// neither. The walk tracks the denials as it meets them and ends on
+/// <see cref="FirewallState.Refused"/> or <see cref="FirewallState.Failed"/> accordingly; a
+/// denial anywhere wins, because elevating really does repair that half.
 /// </para>
 /// </summary>
 public sealed class LiveFirewallProvider : IFirewallProvider
@@ -97,6 +108,12 @@ public sealed class LiveFirewallProvider : IFirewallProvider
         var rules = new List<FirewallRule>();
         var rulesKeyAnswered = false;
 
+        // Tracked beside the sentence rather than read back out of it. Every entry below is a
+        // reason the state does not settle, and only some of them are denials: until #179 the
+        // two travelled in one string and the caller was left to guess, which it did — wrongly,
+        // and in the direction that sends a reader to elevate over a key that does not exist.
+        var denied = false;
+
         foreach (var surface in Surfaces)
         {
             // KeyExists is the only enumerating read that carries a status today, which is
@@ -107,6 +124,10 @@ public sealed class LiveFirewallProvider : IFirewallProvider
             if (presence == ReadStatus.AccessDenied
                 || (presence == ReadStatus.NotFound && surface.Universal))
             {
+                // Only the first of the two is a denial. A universal key the machine does not
+                // have is a failed read — that is what Universal means — and no privilege
+                // brings it back.
+                denied |= presence == ReadStatus.AccessDenied;
                 unreadable.Add(surface.Label);
                 continue;
             }
@@ -123,6 +144,7 @@ public sealed class LiveFirewallProvider : IFirewallProvider
             var enumerated = registry.ListValues(surface.Path);
             if (enumerated.Status == ReadStatus.AccessDenied)
             {
+                denied = true;
                 unreadable.Add(surface.Label);
                 continue;
             }
@@ -138,12 +160,13 @@ public sealed class LiveFirewallProvider : IFirewallProvider
         }
 
         // Group Policy takes precedence over the local setting when it defines one.
-        var enabled = ReadFlag(PolicyPublicProfile, "EnableFirewall", unreadable)
-            ?? ReadFlag(LocalPublicProfile, "EnableFirewall", unreadable)
+        var enabled = ReadFlag(PolicyPublicProfile, "EnableFirewall", unreadable, ref denied)
+            ?? ReadFlag(LocalPublicProfile, "EnableFirewall", unreadable, ref denied)
             ?? true; // Absent: the firewall is enabled by default.
 
-        var defaultInboundAllow = ReadFlag(PolicyPublicProfile, "DefaultInboundAction", unreadable)
-            ?? ReadFlag(LocalPublicProfile, "DefaultInboundAction", unreadable)
+        var defaultInboundAllow =
+            ReadFlag(PolicyPublicProfile, "DefaultInboundAction", unreadable, ref denied)
+            ?? ReadFlag(LocalPublicProfile, "DefaultInboundAction", unreadable, ref denied)
             ?? false; // Absent: the Windows inbound default is block.
 
         // A rules key that opened, enumerated, and yielded nothing usable. Every Windows
@@ -163,10 +186,17 @@ public sealed class LiveFirewallProvider : IFirewallProvider
 
         if (unreadable.Count > 0)
         {
-            return FirewallState.Failed(
+            var reason =
                 "Pare-feu non lu : "
                 + string.Join(", ", unreadable.Distinct(StringComparer.Ordinal))
-                + ". La joignabilité des ports en écoute n'est pas tranchée.");
+                + ". La joignabilité des ports en écoute n'est pas tranchée.";
+
+            // A denial anywhere in the walk earns the refusal, even mixed with a plain
+            // failure: elevating repairs that half, so advising it is true rather than a
+            // shrug. The same rule ScheduledTaskRead.Partially applies to a folder walk.
+            // With no denial at all the state is a failure, and says so — which is the
+            // whole of #179.
+            return denied ? FirewallState.Refused(reason) : FirewallState.Failed(reason);
         }
 
         return new FirewallState(rules, enabled, defaultInboundAllow);
@@ -185,12 +215,19 @@ public sealed class LiveFirewallProvider : IFirewallProvider
     /// catches the value-level one, which a per-value ACL can produce on a key that opens.
     /// </para>
     /// </summary>
-    private bool? ReadFlag(FirewallSurface surface, string valueName, List<string> unreadable)
+    /// <param name="denied">
+    /// Raised when this value was refused, never lowered. The only branch here that is a
+    /// denial is the one the registry spells <see cref="ReadStatus.AccessDenied"/>; an absent
+    /// value is the ordinary case and leaves it alone.
+    /// </param>
+    private bool? ReadFlag(
+        FirewallSurface surface, string valueName, List<string> unreadable, ref bool denied)
     {
         var read = registry.ReadValue(surface.Path, valueName);
 
         if (read.Status == ReadStatus.AccessDenied)
         {
+            denied = true;
             unreadable.Add(surface.Label);
             return null;
         }
