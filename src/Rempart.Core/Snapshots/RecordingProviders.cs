@@ -488,9 +488,14 @@ public sealed class SnapshotComponentStoreProvider(MachineSnapshot snapshot)
 public sealed class SnapshotScheduledTaskProvider(MachineSnapshot snapshot)
     : IScheduledTaskProvider
 {
-    // Absent from an earlier capture: treated as a denial, never as an absence of
-    // tasks. A fixture predating this batch stays replayable, it simply produces a
-    // "not enumerated" finding instead of the inventory.
+    // Absent from an earlier capture: a failed read, never an absence of tasks. A fixture
+    // predating this batch stays replayable, it simply produces a "not enumerated" finding
+    // instead of the inventory.
+    //
+    // « Treated as a denial » is what this line said, and did, until #177 — the factory it
+    // calls carried AccessDenied and the collector turned that into « relancer en
+    // administrateur ». Re-running a replay elevated repairs nothing; the answer is to
+    // re-capture, which is what AuditGap.Unreadable names and what the status now says.
     public ScheduledTaskRead Enumerate() =>
         snapshot.ScheduledTasks
         ?? ScheduledTaskRead.Failed("Tâches planifiées absentes de l'instantané.");

@@ -115,8 +115,15 @@ public sealed record DynamicPortRangeRead(
     public static DynamicPortRangeRead Found(DynamicPortRange range) =>
         new(ReadStatus.Found, range);
 
+    /// <summary>
+    /// Nobody could ask the machine. <b>There is no refusal factory on this read at all</b>,
+    /// and there is nothing to refuse: <c>netsh int ipv4 show dynamicport</c> reads a value
+    /// any account may read, and the branches that reach here are a binary that is not there,
+    /// a table that would not parse, and a capture taken before the range was collected. None
+    /// of the three is repaired by elevating.
+    /// </summary>
     public static DynamicPortRangeRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, null, reason);
+        new(ReadStatus.Failed, null, reason);
 
     /// <summary>
     /// What the judgement uses, and whether it was read. Kept as one call so no caller can

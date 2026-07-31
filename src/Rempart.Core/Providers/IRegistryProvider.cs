@@ -43,14 +43,24 @@ public enum ReadStatus
     /// </para>
     ///
     /// <para>
-    /// Appended last, and only ever <em>produced</em> by the two reads above: every other
-    /// channel keeps spelling its failures <see cref="AccessDenied"/>, so no existing
-    /// <c>== AccessDenied</c> comparison changes meaning. Two callers of
-    /// <c>DirectoryRead.Failed</c> do change branch, though — a scan wired with no file
-    /// provider and a capture holding nothing at a path — and both move from « droits
-    /// insuffisants » to « audit partiel », which is the answer they always should have given.
+    /// <b>Appended last, and produced by every read that can fail — since #177, and not
+    /// before.</b> The two issues that introduced it left thirteen factories named
+    /// <c>Failed</c> or <c>Partial</c> still spelling their failures <see cref="AccessDenied"/>,
+    /// so this member was the vocabulary of two channels rather than of the layer. It is now
+    /// the layer's, and <c>ReadFactoryNamingTests</c> holds the two apart by construction:
+    /// <see cref="AccessDenied"/> is reachable only through a factory whose name says
+    /// « refused », because it is the only status the report turns into an instruction to its
+    /// reader. Four <c>== AccessDenied</c> comparisons had to be widened to
+    /// <c>is AccessDenied or Failed</c> in the same commit — the two WMI-backed collectors and
+    /// <c>CheckReader.ReadService</c>, which read « anything the layer could not give » through
+    /// a test that named only the denial.
+    /// </para>
+    ///
+    /// <para>
     /// Statuses are serialised by name, so a capture taken before this value simply never
-    /// carries it and replays exactly as it did.
+    /// carries it and replays exactly as it did — a snapshot recording <see cref="AccessDenied"/>
+    /// on a surface a scan run today would call <see cref="Failed"/> still answers what it
+    /// answered when it was written.
     /// </para>
     /// </summary>
     Failed,

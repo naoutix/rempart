@@ -31,8 +31,17 @@ public sealed record WmiRead(
     public static WmiRead Found(IReadOnlyList<WmiInstance> instances) =>
         new(ReadStatus.Found, instances);
 
+    /// <summary>
+    /// The query was attempted, did not complete, and was not denied — a repository that
+    /// stopped serving, a third-party provider faulting. <see cref="ReadStatus.Failed"/> since
+    /// #177; it spelled itself <see cref="ReadStatus.AccessDenied"/> before, and what kept the
+    /// answer right was <see cref="Diagnostic"/> being null for a denial and written here.
+    /// That convention still holds and is still what <c>Finding.WmiGap</c> reads, but it is no
+    /// longer the only thing standing between a faulting provider and « relancer en
+    /// administrateur ».
+    /// </summary>
     public static WmiRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, [], reason);
+        new(ReadStatus.Failed, [], reason);
 
     /// <summary>
     /// What was read, and the walk that did not reach the end. Same shape as
@@ -49,15 +58,16 @@ public sealed record WmiRead(
     /// </para>
     ///
     /// <para>
-    /// <see cref="ReadStatus.AccessDenied"/>, like every other failed read of this record:
-    /// the enum has no fourth member, and what separates a genuine refusal from a failure is
-    /// <see cref="Diagnostic"/> — null for the first, written for the second. The reason is
-    /// composed by the caller, which is the only place that knows which class stopped
-    /// answering and on which code.
+    /// <see cref="ReadStatus.Failed"/>, like <see cref="Failed"/> beside it: <c>Partial</c>
+    /// says how much came back and never why the rest did not, so the status has to, and on
+    /// this channel a walk that broke partway is never a denial — <c>LiveWmiProvider.Classify</c>
+    /// sends the three refusal HRESULTs to <see cref="AccessDenied"/> before anything gets
+    /// here. The reason is composed by the caller, which is the only place that knows which
+    /// class stopped answering and on which code.
     /// </para>
     /// </summary>
     public static WmiRead Partial(IReadOnlyList<WmiInstance> instances, string reason) =>
-        new(ReadStatus.AccessDenied, instances, reason);
+        new(ReadStatus.Failed, instances, reason);
 }
 
 /// <summary>

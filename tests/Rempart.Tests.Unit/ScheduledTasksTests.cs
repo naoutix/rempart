@@ -247,6 +247,14 @@ public class ScheduledTasksTests
     /// <summary>
     /// An unreadable scheduler is not an empty scheduler. Silently returning
     /// zero tasks would make a failure look like a healthy machine.
+    ///
+    /// <para>
+    /// And it is not a refused scheduler either, which is the half this test did not hold.
+    /// <c>ScheduledTaskRead.Failed</c> carried <c>AccessDenied</c> until #177, so the marshaller
+    /// blowing up inside the COM walk — a bug, on any account, with no privilege to be had —
+    /// came back « relancer en administrateur » and exited <c>3</c>. The reason printed here
+    /// was already right; nothing read it.
+    /// </para>
     /// </summary>
     [Fact]
     public void Failed_enumeration_produces_a_finding_never_silence()
@@ -257,6 +265,11 @@ public class ScheduledTasksTests
 
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Contains("bidule", string.Join(" ", finding.Reasons));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.NotEqual(AuditGap.Refused, finding.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -287,7 +300,7 @@ public class ScheduledTasksTests
         const string Refused = @"\Microsoft\Windows\UpdateOrchestrator";
 
         var findings = Collect(
-            ScheduledTaskRead.Partial(
+            ScheduledTaskRead.Partially(
                 [Task(@"\Perso", Exec(@"C:\tools\agent.exe"))],
                 [TaskFolderGap.Of(Refused, "GetTasks", AccessDenied)]),
             new FakeSignatureProvider().With(@"C:\tools\agent.exe", SignatureStatus.Unsigned));
@@ -298,8 +311,67 @@ public class ScheduledTasksTests
         Assert.Equal(FindingSeverity.Notable, gap.Severity);
         Assert.Contains(Refused, string.Join(" ", gap.Reasons), StringComparison.Ordinal);
 
+        // And it stays a refusal, which is the half the split must not lose: this folder
+        // answered E_ACCESSDENIED, so elevation is exactly the remedy — the marker is what
+        // carries it, the walk having written its own sentence in place of the fallback.
+        Assert.Equal(AuditGap.Refused, gap.Gap);
+
         var task = Assert.Single(findings, f => f.Source == @"\Perso");
         Assert.Equal(FindingSeverity.Suspicious, task.Severity);
+    }
+
+    /// <summary>
+    /// The other half of the same walk, and the reason the partial read has two forms since
+    /// #177: a folder can be abandoned without anybody being refused anything.
+    ///
+    /// <para>
+    /// <c>GetFolders</c> answering <c>0x80041318</c>, a task that will not say where it lives,
+    /// the depth cap — none of them is a permission, and the walk used to hand all of them
+    /// back through the one <c>Partial</c> that carried <c>AccessDenied</c>. The tasks it did
+    /// read are kept either way; what changes is whether the report tells its reader to
+    /// re-run as administrator over a scheduler that would not have answered anyway.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_walk_that_lost_a_folder_without_being_refused_does_not_advise_elevation()
+    {
+        const string Lost = @"\Microsoft\Windows\UpdateOrchestrator";
+
+        var findings = Collect(
+            ScheduledTaskRead.Partially(
+                [Task(@"\Perso", Exec(@"C:\tools\agent.exe"))],
+                [TaskFolderGap.Of(Lost, "GetFolders", unchecked((int)0x80041318))]),
+            new FakeSignatureProvider().With(@"C:\tools\agent.exe", SignatureStatus.Unsigned));
+
+        var gap = Assert.Single(findings, f => f.Source == "planificateur de tâches");
+
+        Assert.Equal(AuditGap.Unreadable, gap.Gap);
+        Assert.NotEqual(AuditGap.Refused, gap.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", gap.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+
+        // The folder is still named and the tasks are still kept: the split changes the
+        // remedy offered, nothing else.
+        Assert.Contains(Lost, string.Join(" ", gap.Reasons), StringComparison.Ordinal);
+        Assert.Single(findings, f => f.Source == @"\Perso");
+    }
+
+    /// <summary>
+    /// A walk that met both keeps the elevation advice: it answers for the folder that was
+    /// denied, and there is no third gap to say « half of this is a permission ».
+    /// </summary>
+    [Fact]
+    public void A_walk_that_met_a_denial_and_a_failure_still_offers_the_remedy_for_the_denial()
+    {
+        var findings = Collect(
+            ScheduledTaskRead.Partially([],
+            [
+                TaskFolderGap.Of(@"\A", "GetFolders", unchecked((int)0x80041318)),
+                TaskFolderGap.Of(@"\B", "GetTasks", AccessDenied),
+            ]),
+            new FakeSignatureProvider());
+
+        Assert.Equal(AuditGap.Refused, Assert.Single(findings).Gap);
     }
 
     /// <summary>
@@ -413,14 +485,31 @@ public class ScheduledTasksTests
     /// <summary>
     /// Absent from a capture predating this batch: the fixture stays replayable
     /// and yields a "not enumerated" finding rather than an empty scheduler.
+    ///
+    /// <para>
+    /// <b>And not a refused one.</b> This assertion said <c>AccessDenied</c> and the line it
+    /// watched said « treated as a denial », so replaying any capture taken before scheduled
+    /// tasks were collected told its reader to re-run the scan as administrator — against a
+    /// file that had already been written, on a machine that may no longer exist. The remedy
+    /// is to re-capture, which is what <c>AuditGap.Unreadable</c> names and exit code <c>5</c>
+    /// reports; the finding is asserted here as well as the status, because the status alone
+    /// would go green on a collector that stopped reading it.
+    /// </para>
     /// </summary>
     [Fact]
     public void Older_snapshot_replays_without_inventing_an_empty_scheduler()
     {
         var read = new SnapshotScheduledTaskProvider(new MachineSnapshot()).Enumerate();
 
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.NotNull(read.Diagnostic);
+
+        var finding = Assert.Single(Collect(read, new FakeSignatureProvider()));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]

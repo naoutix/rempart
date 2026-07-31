@@ -38,11 +38,25 @@ public sealed record ComponentStoreRead(
     /// <summary>Why the read is not <see cref="ReadStatus.Found"/>. Never silent.</summary>
     string? Diagnostic)
 {
+    /// <summary>DISM answered « accès refusé ». Elevation is the answer.</summary>
     public static ComponentStoreRead Denied(string diagnostic) =>
         new(ReadStatus.AccessDenied, null, null, null, null, null, null, null, diagnostic);
 
+    /// <summary>
+    /// The analysis was attempted and did not produce figures: DISM absent, a process that
+    /// would not start, output nothing could be read out of, a capture taken without
+    /// <c>--analyze-store</c>.
+    ///
+    /// <para>
+    /// <see cref="ReadStatus.NotFound"/> until #177, which produced no wrong verdict —
+    /// <c>ComponentStoreCollector</c> tests for <see cref="ReadStatus.AccessDenied"/> and sends
+    /// everything else to <c>CollectorStatus.Failed</c>, so the safety net was the collector's
+    /// and not the type's. What it did do is make the name and the field say two different
+    /// things on a read whose whole point is to keep « we do not know » apart from a number.
+    /// </para>
+    /// </summary>
     public static ComponentStoreRead Failed(string diagnostic) =>
-        new(ReadStatus.NotFound, null, null, null, null, null, null, null, diagnostic);
+        new(ReadStatus.Failed, null, null, null, null, null, null, null, diagnostic);
 
     /// <summary>
     /// What a cleanup could actually free: backups, disabled features, cache and

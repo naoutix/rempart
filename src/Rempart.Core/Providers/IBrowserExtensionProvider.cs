@@ -85,10 +85,18 @@ public sealed record BrowserExtensionRead(
     /// profile out of the running browser holding it open. The defect here was a silent
     /// omission in the documentation, not an inverted verdict, and it is corrected as one.
     /// </para>
+    ///
+    /// <para>
+    /// <c>Partial</c> names how much came back, never why the rest did not, so the status
+    /// beside it has to: <see cref="ReadStatus.Failed"/>, because the paragraph above is
+    /// exactly the argument for it — whichever of the two exceptions threw, elevating repairs
+    /// neither, and a read carrying <see cref="ReadStatus.AccessDenied"/> is the one thing the
+    /// report turns into « relancer en administrateur ».
+    /// </para>
     /// </summary>
     public static BrowserExtensionRead Partial(
         IReadOnlyList<BrowserExtension> extensions, IReadOnlyList<string> unreadable) =>
-        new(ReadStatus.AccessDenied, extensions,
+        new(ReadStatus.Failed, extensions,
             $"{unreadable.Count} profil(s) de navigateur illisible(s) : "
             + string.Join(", ", unreadable.Distinct(StringComparer.Ordinal))
             + ". Une extension installée dans un de ces profils n'apparaît pas dans l'inventaire.");

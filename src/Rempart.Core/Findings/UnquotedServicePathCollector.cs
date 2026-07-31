@@ -32,7 +32,11 @@ public sealed class UnquotedServicePathCollector : IFindingCollector
         var read = providers.Wmi.Query(Namespace, "Win32_Service", ["Name", "PathName"]);
         var findings = new List<Finding>();
 
-        if (read.Status == ReadStatus.AccessDenied)
+        // Both holes and not just the denial, for the reason WmiSubscriptionsCollector states:
+        // this branch read « the WMI layer had nothing to give » while WmiRead.Failed spelled
+        // itself AccessDenied, and #177 split the two. Narrowed to the denial it would say
+        // nothing at all about a Win32_Service enumeration that broke.
+        if (read.Status is ReadStatus.AccessDenied or ReadStatus.Failed)
         {
             // Added rather than returned: a WMI enumeration breaks one object at a time, so
             // the services handed over before it broke are still worth judging. Answering

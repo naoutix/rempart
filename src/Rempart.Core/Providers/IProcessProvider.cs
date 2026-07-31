@@ -35,13 +35,18 @@ public sealed record ProcessRead(
     string? Diagnostic = null)
     : IStatusCarryingRead<ProcessRead, RunningProcess>
 {
+    /// <summary>The enumeration was refused. Elevation is the answer.</summary>
     public static readonly ProcessRead AccessDenied = new(ReadStatus.AccessDenied, []);
 
     public static ProcessRead Found(IReadOnlyList<RunningProcess> processes) =>
         new(ReadStatus.Found, processes);
 
+    /// <summary>
+    /// The enumeration was attempted, did not complete, and was not denied. No amount of
+    /// rights changes this one, which is why it may not be spelled with the status beside it.
+    /// </summary>
     public static ProcessRead Failed(string reason) =>
-        new(ReadStatus.AccessDenied, [], reason);
+        new(ReadStatus.Failed, [], reason);
 
     IReadOnlyList<RunningProcess> IStatusCarryingRead<ProcessRead, RunningProcess>.Items =>
         Processes;

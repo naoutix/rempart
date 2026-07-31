@@ -197,9 +197,13 @@ public sealed class StatusChannelTests
 
         // No machine that is switched on runs zero drivers or zero processes: silence there
         // can only ever be a failure to look, and it is said out loud.
-        Assert.Equal(ReadStatus.AccessDenied, new SnapshotDriverProvider(empty).Enumerate().Status);
-        Assert.Equal(ReadStatus.AccessDenied, new SnapshotProcessProvider(empty).Enumerate().Status);
-        Assert.Equal(ReadStatus.AccessDenied,
+        //
+        // A failure and not a denial, since #177. All three said « accès refusé » before, and
+        // no console however elevated re-reads a snapshot — the answer to a surface a capture
+        // never held is to re-capture, which is what AuditGap.Unreadable names.
+        Assert.Equal(ReadStatus.Failed, new SnapshotDriverProvider(empty).Enumerate().Status);
+        Assert.Equal(ReadStatus.Failed, new SnapshotProcessProvider(empty).Enumerate().Status);
+        Assert.Equal(ReadStatus.Failed,
             new SnapshotListeningPortProvider(empty).Enumerate().Status);
 
         // Zero browser extension is an ordinary state of an ordinary machine, so the same
@@ -229,7 +233,7 @@ public sealed class StatusChannelTests
 
         Assert.Equal(1, source.Calls);
 
-        Assert.Equal(ReadStatus.AccessDenied, snapshot.DriversStatus);
+        Assert.Equal(ReadStatus.Failed, snapshot.DriversStatus);
         Assert.Equal("WMI muet.", snapshot.DriversDiagnostic);
         Assert.NotNull(snapshot.Drivers);
 
@@ -462,7 +466,10 @@ public sealed class StatusChannelTests
             @"\Perso", "Perso", Enabled: true, "ready", null, null, null, []);
 
         var snapshot = new MachineSnapshot();
-        var source = new CountingScheduledTaskProvider(ScheduledTaskRead.Partial([task], [Gap]));
+        // Through the fold rather than through the named factory, so the walk's own choice is
+        // exercised as well: this gap carries E_ACCESSDENIED, so the read that comes out of it
+        // has to be the refusal.
+        var source = new CountingScheduledTaskProvider(ScheduledTaskRead.Partially([task], [Gap]));
         var recording = new RecordingScheduledTaskProvider(source, snapshot);
 
         var first = recording.Enumerate();
@@ -664,13 +671,18 @@ public sealed class StatusChannelTests
         var first = new RecordingWmiProvider(source, snapshot).Query(Namespace, Class, properties);
 
         Assert.Equal(1, source.Calls);
-        Assert.Equal(ReadStatus.AccessDenied, first.Status);
+
+        // Failed and not AccessDenied since #177: a walk that stopped on 0x80041004 was never
+        // refused anything, and Classify sends the three denial HRESULTs to WmiRead.AccessDenied
+        // long before this state is reached.
+        Assert.Equal(ReadStatus.Failed, first.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, first.Status);
 
         var replayed = new SnapshotWmiProvider(
                 RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot)))
             .Query(Namespace, Class, properties);
 
-        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+        Assert.Equal(ReadStatus.Failed, replayed.Status);
         Assert.Equal(Reason, replayed.Diagnostic);
         Assert.Equal("pilote", Assert.Single(replayed.Instances).Find("Name"));
     }
@@ -757,12 +769,17 @@ public sealed class StatusChannelTests
         var recording = new RecordingServiceStateProvider(
             new FixedServiceStateProvider(ServiceRead.Failed(ServiceFailure)), snapshot);
 
-        Assert.Equal(ReadStatus.AccessDenied, recording.Read("mpssvc").Status);
+        // Failed and not AccessDenied since #177. An RPC endpoint that will not answer is not
+        // a permission, and this read said it was for two issues after ReadStatus gained the
+        // word for it — CheckReader.ReadService is what kept the verdict Unknown either way,
+        // and it had to be widened in the same commit for that to stay true.
+        Assert.Equal(ReadStatus.Failed, recording.Read("mpssvc").Status);
 
         var replayed = new SnapshotServiceStateProvider(
             RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read("mpssvc");
 
-        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+        Assert.Equal(ReadStatus.Failed, replayed.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, replayed.Status);
         Assert.Equal(ServiceFailure, replayed.Diagnostic);
         Assert.Null(replayed.Info);
 

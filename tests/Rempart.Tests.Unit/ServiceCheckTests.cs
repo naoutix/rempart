@@ -136,6 +136,14 @@ public sealed class ServiceCheckTests
 
         Assert.Equal(VerdictStatus.Unknown, verdict.Status);
         Assert.Contains("1722", verdict.Observed ?? "", StringComparison.Ordinal);
+
+        // Never Fail, written out beside the equality rather than left implicit in it: this is
+        // where #177 could have broken the invariant CONTRIBUTING opens with. The read answers
+        // ReadStatus.Failed now, and CheckReader.ReadService tested for AccessDenied alone —
+        // left that way, an RPC endpoint that would not answer fell through to « absent », got
+        // compared against « running », and made a critical accusation about a machine nobody
+        // had managed to read.
+        Assert.NotEqual(VerdictStatus.Fail, verdict.Status);
     }
 
     [Theory]
