@@ -3,7 +3,7 @@ using Rempart.Core.Cli;
 namespace Rempart.Tests.Unit;
 
 /// <summary>
-/// What the tool does with a word on its command line that nobody declared.
+/// What the tool does with a command line naming something the command never declared.
 ///
 /// <para>
 /// It used to do nothing at all. <c>rempart scan --replay capture.json</c> — the replay
@@ -15,11 +15,21 @@ namespace Rempart.Tests.Unit;
 /// </para>
 ///
 /// <para>
+/// Three spellings of that sentence, all tested here, because all three ended on the same
+/// machine: the word nobody declares, the bare argument nobody reads
+/// (<c>rempart scan capture.json</c> — the issue's own line, one keystroke away, exiting 5,
+/// which all three CI gates accept), and the option left without the value it must carry
+/// (<c>rempart scan --from --json</c>).
+/// </para>
+///
+/// <para>
 /// The refusal is by construction rather than by list. <see cref="CommandSurface"/> is the
 /// declared surface, and <c>CommandSurfaceTests</c> holds it equal to the options the CLI
 /// really reads — so an option added tomorrow is refused until it is declared there, which
 /// is the direction the defect came from, reversed. Nothing here enumerates option names;
-/// the test that walks the whole surface is what proves it.
+/// the tests that walk the whole surface are what prove it, and they walk it on the refusal
+/// side as well as on the acceptance side. That asymmetry was a hole: exempting a command
+/// from the check outright used to leave the suite green.
 /// </para>
 /// </summary>
 public sealed class UsageTests
@@ -115,9 +125,11 @@ public sealed class UsageTests
     /// exists, which is the difference between a check by construction and a second list.
     ///
     /// <para>
-    /// Both shapes, because the four readers disagree about them: the option followed by a
-    /// value, and the option alone at the end of the line — which is what an
-    /// <see cref="OptionArity.OptionalValue"/> is for, and what every reader tolerates.
+    /// Each option written the way its declared arity says it is written: a flag alone, and
+    /// anything that takes a value followed by one. That is the pairing under test — the
+    /// arity is the promise that <c>Positional</c> and the option's own reader draw the same
+    /// line — and giving a flag a trailing word would not be testing the option, it would be
+    /// handing the command a bare argument it never declared.
     /// </para>
     ///
     /// <para>
@@ -136,14 +148,13 @@ public sealed class UsageTests
         {
             foreach (var option in command.Options)
             {
-                if (Usage.Check(command.Name, [command.Name, option.Name, "valeur"]) is { } withValue)
-                {
-                    refused.Add($"{command.Name} {option.Name} <valeur> — {withValue.Message}");
-                }
+                string[] line = option.Arity == OptionArity.Flag
+                    ? [command.Name, option.Name]
+                    : [command.Name, option.Name, "valeur"];
 
-                if (Usage.Check(command.Name, [command.Name, option.Name]) is { } bare)
+                if (Usage.Check(command.Name, line) is { } refusal)
                 {
-                    refused.Add($"{command.Name} {option.Name} — {bare.Message}");
+                    refused.Add($"{string.Join(' ', line)} — {refusal.Message}");
                 }
             }
         }
@@ -152,6 +163,202 @@ public sealed class UsageTests
             "Une option que sa commande déclare a été refusée : "
             + $"{string.Join(" | ", refused)}. Le refus se lit sur la surface déclarée et sur "
             + "rien d'autre, sans quoi il casse des lignes de commande qui fonctionnent.");
+    }
+
+    /// <summary>
+    /// An option that may be given bare is given bare, on every command that declares one.
+    ///
+    /// <para>
+    /// <see cref="OptionArity.OptionalValue"/> is the whole of the distinction: <c>--report</c>
+    /// alone writes the reports where they go by default, and <c>--report D:\audits</c> says
+    /// where. Refusing the first would break the commoner of the two spellings, on the option
+    /// most likely to be typed from memory.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_option_that_may_be_given_bare_is_accepted_bare()
+    {
+        var bare = CommandSurface.All
+            .SelectMany(command => command.Options
+                .Where(option => option.Arity is OptionArity.Flag or OptionArity.OptionalValue)
+                .Select(option => (Command: command.Name, option.Name)))
+            .ToList();
+
+        // The premise: the day no command declares one of those two arities, this test stops
+        // proving anything and has to say so.
+        Assert.NotEmpty(bare);
+
+        var refused = bare
+            .Where(entry => Usage.Check(entry.Command, [entry.Command, entry.Name]) is not null)
+            .Select(entry => $"{entry.Command} {entry.Name}");
+
+        Assert.True(!refused.Any(),
+            $"Une option qui peut être donnée nue a été refusée nue : {string.Join(", ", refused)}. "
+            + "C'est l'arité déclarée qui dit laquelle des deux formes une option accepte, et un "
+            + "refus qui ne la lit pas casse « rempart scan --report ».");
+    }
+
+    /// <summary>
+    /// Every command but the exempted one refuses a word it does not declare — walked over
+    /// <see cref="CommandSurface.All"/> rather than sampled.
+    ///
+    /// <para>
+    /// The acceptance side has always been walked; the refusal side was six commands out of
+    /// twenty, and the asymmetry was the hole. What <c>CommandSurfaceTests</c> confronts with
+    /// the dispatch table is the <em>constant</em> <see cref="Usage.Fallback"/>; the set of
+    /// commands <see cref="Usage.Check"/> actually lets through was held by nothing. Measured:
+    /// adding <c>|| command == "capture"</c> to that condition — exempting a command that
+    /// writes a snapshot to disk — left the whole suite green.
+    /// </para>
+    ///
+    /// <para>
+    /// The exempted command is asserted as the complement rather than assumed, so that an
+    /// exemption removed is as visible as one added: the help must stay reachable from a line
+    /// nobody can parse, which is what the exemption is for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_command_but_the_exempted_one_refuses_a_word_it_does_not_declare()
+    {
+        const string Nobodys = "--replay";
+
+        // The premise, and it is what makes the walk mean anything: the probe really is a word
+        // no command declares. The day one does, this test would be asserting that a declared
+        // option is refused.
+        Assert.DoesNotContain(CommandSurface.All.SelectMany(command => command.Options),
+            option => string.Equals(option.Name, Nobodys, StringComparison.Ordinal));
+
+        var accepted = CommandSurface.All
+            .Where(command =>
+                Usage.Check(command.Name, [command.Name, Nobodys, "capture.json"]) is null)
+            .Select(command => command.Name)
+            .ToList();
+
+        Assert.True(accepted is [Usage.Fallback],
+            $"« {Nobodys} » passe sur : {string.Join(", ", accepted)}, attendu la seule "
+            + $"« {Usage.Fallback} ». Une commande exemptée est une commande qui agit sur ce "
+            + "qu'on lui a donné sans l'avoir lu — c'est le défaut entier — et l'exemption de "
+            + "l'aide existe parce que l'aide, elle, n'agit sur rien : elle doit rester "
+            + "joignable depuis une ligne que personne ne sait analyser.");
+    }
+
+    /// <summary>
+    /// The issue's own sentence, one keystroke away: the caller types the path of the capture
+    /// and forgets <c>--from</c>.
+    ///
+    /// <para>
+    /// <c>rempart scan capture.json</c> scanned the local machine and returned a report nothing
+    /// distinguishes from a replay — the same harm as <c>--replay</c>, with an exit code of 5
+    /// that all three CI gates accept. The material to refuse it was in the record the check
+    /// already reads: <c>scan</c> declares <c>Positionals: 0</c>, and the walk that answers
+    /// « which tokens are options » answers « which are bare arguments » in the same pass.
+    /// </para>
+    ///
+    /// <para>
+    /// The refusal names <c>--from</c>, because that is what the caller was reaching for.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_capture_path_typed_without_its_option_is_refused_by_name()
+    {
+        var refusal = Refused("scan", ["scan", "capture.json"]);
+
+        Assert.Contains(Named("capture.json"), refusal.Message, StringComparison.Ordinal);
+        Assert.Contains("--from", refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(ExitCode.Usage, refusal.Code);
+    }
+
+    /// <summary>
+    /// The same, walked over the whole surface: one bare argument more than a command declares
+    /// is refused, whichever command it is. Sampling <c>scan</c> would leave nineteen commands
+    /// answering for themselves.
+    /// </summary>
+    [Fact]
+    public void One_bare_argument_more_than_a_command_declares_is_refused_everywhere()
+    {
+        var accepted = new List<string>();
+
+        foreach (var command in CommandSurface.All.Where(c => c.Name != Usage.Fallback))
+        {
+            string[] line =
+            [
+                command.Name,
+                .. Enumerable.Range(0, command.Positionals + 1).Select(i => $"argument{i}"),
+            ];
+
+            if (Usage.Check(command.Name, line) is null)
+            {
+                accepted.Add(string.Join(' ', line));
+            }
+        }
+
+        Assert.True(accepted.Count == 0,
+            "Une commande accepte un argument nu de plus qu'elle n'en déclare : "
+            + $"{string.Join(" | ", accepted)}. Elle le laissera tomber en silence et fera ce "
+            + "qu'elle fait sans argument — « rempart scan capture.json » scannait ainsi la "
+            + "machine locale et rendait un rapport que rien ne distinguait du rejeu demandé.");
+    }
+
+    /// <summary>
+    /// The number a command declares is a ceiling, not a count: too few bare arguments is the
+    /// command's own business, and answering it here would break the commands whose no-argument
+    /// form is a feature — <c>rempart explain</c> alone lists the catalog, which is what
+    /// DET-EXPLAIN-POSITIONNEL made it do by accident and what it legitimately does on purpose.
+    /// </summary>
+    [Fact]
+    public void Fewer_bare_arguments_than_a_command_declares_is_the_command_s_own_business()
+    {
+        Assert.Null(Usage.Check("explain", ["explain"]));
+        Assert.Null(Usage.Check("diff", ["diff", "avant.json"]));
+        Assert.Null(Usage.Check("index", ["index"]));
+    }
+
+    /// <summary>
+    /// The quietest half of the defect, and the one that leaves no trace: an option that must
+    /// carry a value, given none, answers exactly as if it had never been typed.
+    ///
+    /// <para>
+    /// <c>rempart scan --json --from</c> scanned the local machine having been asked for a
+    /// replay in as many words — <see cref="CommandLine.OptionValue"/> found nothing after
+    /// <c>--from</c> and returned <c>null</c>, which is what an absent option returns.
+    /// <c>rempart scan --rules</c> runs the embedded catalog while the caller believes their
+    /// own rules were loaded. Walked over the declared arities rather than sampled: which
+    /// options must carry a value is the surface's answer, not this file's.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_option_that_must_carry_a_value_is_refused_without_one()
+    {
+        var mustCarry = CommandSurface.All
+            .SelectMany(command => command.Options
+                .Where(option => option.Arity
+                    is OptionArity.Value or OptionArity.RepeatableValue)
+                .Select(option => (Command: command.Name, option.Name)))
+            .ToList();
+
+        Assert.NotEmpty(mustCarry);
+
+        var swallowed = mustCarry
+            .Where(entry => Usage.Check(entry.Command, [entry.Command, entry.Name]) is null)
+            .Select(entry => $"{entry.Command} {entry.Name}");
+
+        Assert.True(!swallowed.Any(),
+            $"Une option à valeur est acceptée sans valeur : {string.Join(", ", swallowed)}. "
+            + "Son lecteur rend alors null, c'est-à-dire la même réponse que pour une option "
+            + "absente : la commande retombe sur son défaut sans un mot.");
+    }
+
+    /// <summary>
+    /// The same, on the shape it really takes on a command line: not at the end, but followed
+    /// by the next option. <c>--from</c> then reads <c>--json</c> as the path to replay.
+    /// </summary>
+    [Fact]
+    public void An_option_whose_value_is_the_next_option_is_refused()
+    {
+        var refusal = Refused("scan", ["scan", "--from", "--json"]);
+
+        Assert.Contains(Named("--from"), refusal.Message, StringComparison.Ordinal);
+        Assert.Equal(ExitCode.Usage, refusal.Code);
     }
 
     /// <summary>

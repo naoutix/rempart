@@ -76,8 +76,8 @@ public enum ExitCode
     ///
     /// <para>
     /// It never competes with the precedence <see cref="ExitCodes.ForScan"/> arbitrates:
-    /// that function answers for a finished scan, and a line carrying an option nobody
-    /// declares never reaches a scan. Seventh and contiguous, which is what
+    /// that function answers for a finished scan, and a line <see cref="Usage.Check"/>
+    /// refused never reaches one. Seventh and contiguous, which is what
     /// <c>The_codes_are_contiguous_from_zero</c> holds.
     /// </para>
     /// </summary>

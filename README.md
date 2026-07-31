@@ -186,7 +186,7 @@ and `rempart help` prints the same seven lines because it derives them from that
 | `3` | A **surface** was denied — re-run elevated |
 | `4` | `diff` found a control that used to pass and no longer does |
 | `5` | The scan finished and part of it has no answer — a **rule** came back `Unknown`, or a **surface** answered with a failure. Elevation is not the remedy either way |
-| `6` | The command line carried an option the command does not declare. Nothing was run — the machine is not the suspect, and the remedy is to retype the line rather than to retry it |
+| `6` | The command line named something the command does not declare — an option, a bare argument, or an option left without its value. Nothing was run: the machine is not the suspect, and the remedy is to retype the line rather than to retry it |
 
 `3` and `5` are told apart by what you can do about them, which is the only thing that
 makes one number useful: `3` is a door you have the key to, `5` is a door with no lock.

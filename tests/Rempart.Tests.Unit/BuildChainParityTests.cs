@@ -151,6 +151,108 @@ public sealed class BuildChainParityTests
     }
 
     /// <summary>
+    /// The build chain runs the binary on a command line the tool must refuse, and requires
+    /// <see cref="ExitCode.Usage"/> back.
+    ///
+    /// <para>
+    /// This is the only place the refusal is actually walked through. <c>Usage.Check</c> is a
+    /// pure function of Core and is tested to death there; what connects it to a command line
+    /// is four tokens in <c>Program.cs</c>, which the Linux job does not compile and no test
+    /// can therefore call. Both halves of that wiring were mutated by a single token and left
+    /// the whole suite green: dropping the <c>return</c> from the refusal branch printed
+    /// « Rien n'a été exécuté » and then scanned the machine anyway, and handing the check the
+    /// exempted command word rescanned it without a word. <c>CommandSurfaceTests</c> now reads
+    /// the shape of that branch, which is what a textual guard can do; running the binary is
+    /// what proves it, and it costs one line in a step that already exists.
+    /// </para>
+    ///
+    /// <para>
+    /// Which invocations count as probes is <see cref="Usage.Check"/>'s own answer, not a
+    /// spelling written here: every binary call found in the chain is parsed back into tokens
+    /// and submitted to it, so the guard keeps working the day the probe is rewritten with a
+    /// different undeclared word — or with a surplus bare argument, the other half of the same
+    /// defect.
+    /// </para>
+    ///
+    /// <para>
+    /// Both directions, and the second is what the whole chain gets for free: a line the tool
+    /// refuses and nobody expected it to is now a red test rather than a job that stops on
+    /// « rempart scan failed (6) » the day a tag is cut. So every workflow is walked, and only
+    /// the two files that must carry a probe are required to have one.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_build_chain_runs_the_binary_on_a_line_the_tool_must_refuse()
+    {
+        var expected = (int)ExitCode.Usage;
+        var ungated = new List<string>();
+        var probing = new List<string>();
+
+        foreach (var file in Files)
+        {
+            var lines = RepositoryFiles.Read(file)
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Split('\n');
+
+            for (var index = 0; index < lines.Length; index++)
+            {
+                // Stops at whatever ends the argument list in these scripts — a pipe, a
+                // closing parenthesis, a separator, a comment — so that « (& $exe version)
+                // .Trim() » is not read as a command carrying an argument named « ).Trim() ».
+                var call = Regex.Match(lines[index],
+                    @"(?:\$exe|rempart\.exe)\s+(?<command>[a-z][a-z0-9-]*)(?<rest>[^|)\n;#>]*)");
+
+                if (!call.Success)
+                {
+                    continue;
+                }
+
+                var command = call.Groups["command"].Value;
+                string[] typed =
+                [
+                    command,
+                    .. call.Groups["rest"].Value
+                        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries),
+                ];
+
+                if (Usage.Check(command, typed) is null)
+                {
+                    continue;
+                }
+
+                // The gate sits on the line below, or just under the comment explaining it.
+                if (string.Join('\n', lines.Skip(index).Take(4))
+                    .Contains($"-ne {expected}", StringComparison.Ordinal))
+                {
+                    probing.Add(file);
+                }
+                else
+                {
+                    ungated.Add($"{file}:{index + 1} → {lines[index].Trim()}");
+                }
+            }
+        }
+
+        Assert.True(ungated.Count == 0,
+            "La chaîne de build passe au binaire une ligne que l'outil refuse, sans attendre "
+            + $"le code {expected} : {string.Join(" ; ", ungated)}. Ou c'est une sonde dont la "
+            + "vérification a disparu, ou c'est une commande réelle devenue irrecevable — et "
+            + "dans ce second cas le job s'arrêtera sur « rempart scan failed (6) », le jour "
+            + "d'une étiquette.");
+
+        foreach (var file in new[] { Ci, Verify })
+        {
+            Assert.True(probing.Contains(file),
+                $"{file} ne passe au binaire aucune ligne que l'outil doit refuser. Le refus "
+                + "des options inconnues est écrit dans Core, où tout l'éprouve, et relié à une "
+                + "ligne de commande par quelques jetons de Program.cs que le job Linux ne "
+                + "compile pas. Deux mutations d'un seul jeton y rouvrent le défaut de bout en "
+                + "bout avec la suite entièrement verte : c'est ici, en exécutant le binaire, "
+                + "que cela se voit.");
+        }
+    }
+
+    /// <summary>
     /// <c>verify.ps1</c> advertises itself as "replays locally what CI does" and ran not one
     /// of the four diagnostics the publish job runs against the published binary. Those are
     /// the checks that exist precisely because the Windows suite runs under JIT and the

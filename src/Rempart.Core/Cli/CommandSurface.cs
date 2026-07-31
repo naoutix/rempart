@@ -32,6 +32,14 @@ public sealed record CommandOption(string Name, OptionArity Arity);
 /// <summary>
 /// One command's whole argument surface: what it accepts and how many bare arguments it
 /// makes sense of.
+///
+/// <para>
+/// <paramref name="Positionals"/> is a ceiling and not a count. Zero of them is legitimate
+/// almost everywhere — <c>rempart explain</c> with no identifier lists the catalog, and that
+/// is what it is for — so a command answers for having too few; what nobody could answer for
+/// was having too many. <c>rempart scan capture.json</c> declared none, was given one, and
+/// scanned the local machine.
+/// </para>
 /// </summary>
 public sealed record CommandSpec(string Name, IReadOnlyList<CommandOption> Options, int Positionals);
 
@@ -222,40 +230,6 @@ public static class CommandSurface
     /// </summary>
     public static IReadOnlyList<string> ValueTaking(string command) =>
         ValueTakingByCommand.TryGetValue(command, out var options) ? options : [];
-
-    /// <summary>
-    /// The options on this command line that the command does not declare, in the order they
-    /// were typed and each named once.
-    ///
-    /// <para>
-    /// The complement of what is declared, and never a list of rejects: that direction is
-    /// the whole correction. An option added to a command tomorrow and forgotten here is
-    /// refused until it is declared — loudly, on the first line that uses it — where the
-    /// other direction would have gone on accepting whatever nobody thought to forbid, which
-    /// is how <c>rempart scan --replay capture.json</c> came to scan the local machine.
-    /// </para>
-    ///
-    /// <para>
-    /// What counts as an option is <see cref="CommandLine.Split"/>'s answer, taken with the
-    /// same value-taking list <see cref="CommandLine.Positional"/> is given, so a value and a
-    /// bare argument cannot be mistaken for one. An unknown command yields nothing rather
-    /// than everything: it has no declared surface to be measured against, and a lookup here
-    /// must not be what turns a mistyped command word into a complaint about its options.
-    /// </para>
-    /// </summary>
-    public static IReadOnlyList<string> Unknown(string command, string[] args)
-    {
-        if (Find(command) is not { } spec)
-        {
-            return [];
-        }
-
-        var declared = spec.Options.Select(option => option.Name).ToHashSet(StringComparer.Ordinal);
-
-        return [.. CommandLine.Split(args, ValueTaking(command)).Options
-            .Where(token => !declared.Contains(token))
-            .Distinct(StringComparer.Ordinal)];
-    }
 
     private static Dictionary<string, IReadOnlyList<string>> ValueTakingByCommand { get; } =
         All.ToDictionary(

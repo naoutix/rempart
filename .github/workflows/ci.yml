@@ -161,6 +161,25 @@ jobs:
           # {0, 3} after elevating would redden a correct build.
           if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "rempart scan failed ($LASTEXITCODE)" }
 
+      - name: A line the tool cannot honour scans nothing
+        shell: pwsh
+        run: |
+          # DET-OPTION-INCONNUE, on the binary. Usage.Check is a pure function of Core and
+          # every test of it passes with the call missing from Program.cs -- which this job
+          # is the only one to compile. Two single-token mutations there reopen the defect
+          # end to end with the whole suite green: dropping the `return` from the refusal
+          # branch printed « Rien n'a été exécuté » and then scanned the machine anyway,
+          # and handing the check the exempted command word rescanned it silently. No
+          # textual guard substitutes for running the thing. Both spellings of the same
+          # sentence: the option that does not exist -- the replay option is `--from` --
+          # and the capture path typed without it.
+          $exe = "src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe"
+          & $exe scan --replay nowhere.json
+          if ($LASTEXITCODE -ne 6) { throw "an unknown option was not refused ($LASTEXITCODE)" }
+
+          & $exe scan nowhere.json
+          if ($LASTEXITCODE -ne 6) { throw "a bare argument was not refused ($LASTEXITCODE)" }
+
       - name: WMI responds from the AOT binary
         shell: pwsh
         run: |

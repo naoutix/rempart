@@ -526,25 +526,65 @@ public sealed class CommandSurfaceTests
     /// <c>Dispatch</c> call is asserted with it: a second one is a second way in, and it
     /// would not have to pass this door.
     /// </para>
+    ///
+    /// <para>
+    /// Order alone is not the claim, and reading it as such is how this guard came to hold
+    /// nothing. Two mutations of one token each left it green and reopened the defect end to
+    /// end: deleting the <c>return</c> from the refusal branch — the check ran, printed
+    /// « Rien n'a été exécuté », and fell through to the scan, so the sentence became an
+    /// active lie — and passing <see cref="Usage.Fallback"/> instead of the resolved command
+    /// word, which is the exempted command and refuses nothing, silently. So the shape is
+    /// asserted, not the ordering of two <c>IndexOf</c>: the check is given <em>the same two
+    /// identifiers the dispatch is given</em>, and its answer leaves by a <c>return</c>
+    /// carrying its own code. Reading the source is the only way to see any of it — the Linux
+    /// job does not compile <c>Rempart.Cli</c> — and a textual guard is what that costs; what
+    /// it does not excuse is a textual guard that reads less than the line it is watching.
+    /// The other half is <c>scripts/verify.ps1</c> and the publish job, which run the built
+    /// binary on a line the tool must refuse; that is the only place the door is really
+    /// walked through, and <c>BuildChainParityTests</c> holds it there.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_usage_check_runs_before_the_dispatch()
     {
         var program = Read("src/Rempart.Cli/Program.cs");
 
-        var checkedAt = program.IndexOf("Usage.Check(", StringComparison.Ordinal);
-        var dispatchedAt = program.IndexOf("CommandTable.Dispatch(", StringComparison.Ordinal);
+        var dispatch = Regex.Match(program,
+            @"CommandTable\.Dispatch\(\s*(?<command>\w+)\s*\)\(\s*(?<args>\w+)\s*\)");
 
-        Assert.True(checkedAt >= 0,
-            "Program.cs n'appelle pas Usage.Check : le refus des options inconnues est écrit "
-            + "et testé dans Core, et aucune ligne de commande ne le rencontre. « rempart "
-            + "scan --replay capture.json » scanne de nouveau la machine locale en silence.");
+        Assert.True(dispatch.Success,
+            "Program.cs n'appelle plus CommandTable.Dispatch(<mot>)(<arguments>) : cette garde "
+            + "ne sait plus dire où passe la ligne de commande, ni avec quoi, et ne garde donc "
+            + "plus rien.");
 
-        Assert.True(dispatchedAt >= 0,
-            "Program.cs n'appelle plus CommandTable.Dispatch : cette garde ne sait plus dire "
-            + "où passe la ligne de commande, et ne garde donc plus rien.");
+        var word = dispatch.Groups["command"].Value;
+        var arguments = dispatch.Groups["args"].Value;
 
-        Assert.True(checkedAt < dispatchedAt,
+        // The whole refusal branch, and nothing less: the condition names what is checked, the
+        // body names what becomes of the answer. Split into two assertions the two mutations
+        // walk straight between.
+        var guard = Regex.Match(program,
+            $@"if\s*\(\s*Usage\.Check\(\s*{word}\s*,\s*{arguments}\s*\)\s+is\s+\{{\s*\}}\s*"
+            + @"(?<refusal>\w+)\s*\)\s*\{(?<body>(?:[^{}]|\{[^{}]*\})*)\}");
+
+        Assert.True(guard.Success,
+            $"Program.cs ne contient pas « if (Usage.Check({word}, {arguments}) is {{ }} … ) "
+            + "{ … } ». Le refus des options inconnues est écrit et testé dans Core, et soit "
+            + "aucune ligne de commande ne le rencontre, soit il est interrogé sur autre chose "
+            + $"que les deux valeurs remises au dispatch — « {word} » et « {arguments} ». "
+            + "Interrogé sur « Usage.Fallback », par exemple, il rend toujours null : « rempart "
+            + "scan --replay capture.json » rescanne la machine locale sans un mot.");
+
+        var refusal = guard.Groups["refusal"].Value;
+
+        Assert.True(
+            Regex.IsMatch(guard.Groups["body"].Value, $@"return\s*\(int\)\s*{refusal}\.Code\s*;"),
+            $"La branche de refus de Program.cs ne rend pas « return (int){refusal}.Code; ». "
+            + "Elle imprime alors le refus et laisse la ligne partir au dispatch : la machine "
+            + "est lue, le rapport est écrit, et « Rien n'a été exécuté. » devient un mensonge "
+            + "actif — le défaut entier, plus une phrase qui le nie.");
+
+        Assert.True(guard.Index < dispatch.Index,
             "Usage.Check est appelée après le dispatch. Une option inconnue serait alors "
             + "refusée une fois la machine lue et le rapport écrit : le défaut entier, plus "
             + "une phrase à la fin.");
@@ -556,6 +596,70 @@ public sealed class CommandSurfaceTests
             + "second appel est une seconde entrée vers les commandes, et rien n'oblige "
             + "celle-là à passer par la porte au-dessus.");
     }
+
+    /// <summary>
+    /// The line count the documents give for <c>Program.cs</c> is the one the file has.
+    ///
+    /// <para>
+    /// Three passages went on saying « 29 non-empty lines » after the usage check took the
+    /// file to forty, in the document that calls itself the reference for the architecture and
+    /// in the debt entry that cites the number as the proof the debt is closed. That is the
+    /// class of defect this repository is built against, applied to its own prose: a figure
+    /// nobody re-measures, describing a file anybody can measure.
+    /// </para>
+    ///
+    /// <para>
+    /// Over the documents that describe the tool <em>as it stands</em>. <c>docs/adr/</c> and
+    /// <c>docs/ROADMAP.md</c> are deliberately out: an ADR records what a decision did on the
+    /// day it was taken — « 1 881 lignes non vides à 29 » is what ADR-005 achieved, and it
+    /// still is — and correcting a dated record to today's figure is falsifying it, not
+    /// maintaining it. What has to stay true is the sentence written in the present tense.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_document_that_counts_the_lines_of_Program_cs_counts_them_right()
+    {
+        var measured = File.ReadAllLines(Path.Combine(RepositoryRoot,
+                "src", "Rempart.Cli", "Program.cs"))
+            .Count(line => line.Trim().Length > 0);
+
+        var claims = new List<string>();
+        var examined = 0;
+
+        foreach (var document in Describing)
+        {
+            // Bounded rather than open: past sixty characters the number found is no longer
+            // the one this sentence is about.
+            foreach (Match claim in Regex.Matches(Read(document),
+                         @"Program\.cs[\s\S]{0,60}?(?:\*\*)?(\d+)(?:\*\*)?\s*"
+                         + @"(?:non-empty lines|lignes non vides)"))
+            {
+                examined++;
+
+                if (int.Parse(claim.Groups[1].Value) != measured)
+                {
+                    claims.Add($"{document} → {Regex.Replace(claim.Value, @"\s+", " ")}");
+                }
+            }
+        }
+
+        Assert.True(examined > 0,
+            "Aucun des documents qui décrivent l'outil tel qu'il est ne chiffre les lignes de "
+            + "Program.cs, ou plus dans une forme que cette garde reconnaît : elle passerait "
+            + "au vert quel que soit le chiffre écrit.");
+
+        Assert.True(claims.Count == 0,
+            $"Program.cs porte {measured} lignes non vides, et la documentation en annonce "
+            + $"d'autres : {Join(claims)}. Un chiffre que personne ne remesure décrit un "
+            + "fichier que tout le monde peut mesurer.");
+    }
+
+    /// <summary>
+    /// The documents that speak of the tool in the present tense, and are therefore falsified
+    /// by a change rather than merely dated by one.
+    /// </summary>
+    private static readonly string[] Describing =
+        ["README.md", "docs/ARCHITECTURE.md", "docs/DEBT.md"];
 
     /// <summary>
     /// The one command the usage check exempts is the dispatch table's fallback, and the

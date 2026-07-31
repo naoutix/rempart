@@ -1,9 +1,18 @@
 namespace Rempart.Core.Cli;
 
 /// <summary>
-/// The arguments past the command word, sorted into the two kinds this parser knows.
-/// Together they account for every one of those tokens: nothing is dropped, which is what a
-/// caller wanting to refuse what it does not recognise depends on.
+/// The arguments past the command word, sorted into the two kinds a caller can judge on its
+/// own: the options, and the bare arguments.
+///
+/// <para>
+/// A third kind is in neither list, deliberately — the token a value-taking option swallowed.
+/// <c>explain --rules d</c> yields <c>Options = ["--rules"]</c> and no positional at all:
+/// <c>"d"</c> is spoken for by the option that took it, and a caller judging it on its own
+/// would refuse a line that works. What is true, and what a caller refusing what it does not
+/// recognise depends on, is the rest: every token that is <em>not</em> the value of an option
+/// appears in exactly one of the two lists. A token in neither used to be a token that
+/// reached nothing and was never reported.
+/// </para>
 /// </summary>
 public sealed record ArgumentSplit(
     IReadOnlyList<string> Options,
@@ -93,8 +102,12 @@ public static class CommandLine
     /// A token this parser counts as neither is a token that reaches nothing and is never
     /// reported — which is the whole of DET-OPTION-INCONNUE: <c>rempart scan --replay
     /// capture.json</c> scanned the local machine because <c>--replay</c> fell between the
-    /// two. Deriving <see cref="Positional"/> and <see cref="CommandSurface.Unknown"/> from
-    /// this one loop is what makes the partition a fact instead of a claim.
+    /// two, and <c>rempart scan capture.json</c> did the same because nobody asked what the
+    /// bare half held. <see cref="Positional"/> is this walk, and <see cref="Usage.Check"/>
+    /// reads both halves of it — the options against what the command declares, the bare
+    /// arguments against how many it declares. Sharing the loop is what stops the two from
+    /// drawing the value/argument line differently, which they would then be free to do
+    /// silently.
     /// </para>
     ///
     /// <para>
