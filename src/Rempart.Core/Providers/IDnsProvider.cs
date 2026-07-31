@@ -109,6 +109,23 @@ public sealed record DnsRead(
         new(ReadStatus.Found, interfaces);
 
     /// <summary>
+    /// Nobody walked the stacks: no provider was wired, or the capture being replayed holds no
+    /// DNS block at all. Not <see cref="Absent"/>, which is the machine's own answer — the
+    /// difference is « personne n'a regardé » against « j'ai regardé et il n'y a rien », and
+    /// only the second is a state a report may print (#192).
+    ///
+    /// <para>
+    /// Elevation is not the answer and the status says so: no privilege wires a provider, and
+    /// no console however elevated re-reads a snapshot.
+    /// <see cref="Findings.DnsResolverCollector"/> reads it as <c>AuditGap.Unreadable</c> — exit 5,
+    /// « non déterminé » — and the comment there had already written down that this state was
+    /// reachable from a capture before any factory could build it.
+    /// </para>
+    /// </summary>
+    /// <param name="reason">What was not read, in French — it reaches the report.</param>
+    public static DnsRead Failed(string reason) => new(ReadStatus.Failed, [], reason);
+
+    /// <summary>
     /// One or more of the keys this read walks was denied. Elevation is the answer.
     ///
     /// <para>

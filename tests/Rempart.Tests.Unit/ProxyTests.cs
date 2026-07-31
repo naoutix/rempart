@@ -17,7 +17,19 @@ internal sealed class FakeProxyProvider(ProxyConfiguration config) : IProxyProvi
 
 public class ProxyProviderSetTests
 {
-    /// <summary>When absent, no proxy is invented: the config is empty, like EmptyDns.</summary>
+    /// <summary>
+    /// When absent, no proxy is invented: the config is empty.
+    ///
+    /// <para>
+    /// « Like <c>EmptyDns</c> » is what this said, and that neighbour has since been corrected
+    /// the other way (#192): an unwired DNS read answers « pas lu » where this one answers « pas
+    /// de proxy ». The two do differ, and the reason is written in
+    /// <c>UnreadSurfaceTests.WithoutAChannel</c> rather than borrowed from a sibling —
+    /// <see cref="ProxyConfiguration"/> has no shape for « je n'ai pas regardé », and no proxy is
+    /// the normal configuration of a Windows machine, where nothing installed is not the normal
+    /// state of one.
+    /// </para>
+    /// </summary>
     [Fact]
     public void An_absent_proxy_provider_yields_an_empty_configuration()
     {

@@ -484,21 +484,42 @@ public class DnsResolverTests
     }
 
     /// <summary>
-    /// A capture that never collected the surface. An empty, successful read — the judgement
-    /// the partition guard has carried since it was written, « une machine sans interface
-    /// réseau configurée existe », and the one #184 deliberately did not reopen: reversing it
-    /// would put a gap on three of the four versioned captures and on every real capture
-    /// predating the field.
+    /// A capture that never collected the surface says so, since #192 — where it answered an
+    /// empty, successful read.
+    ///
+    /// <para>
+    /// The judgement reversed here is « une machine sans interface réseau configurée existe »,
+    /// and it was true of the other branch. It holds for an enumeration that <em>ran</em> and
+    /// came back with nothing: that is still <see cref="ReadStatus.Found"/> and still silent,
+    /// which the tests above pin. It never held for a capture carrying no <c>dns</c> block — no
+    /// interface was enumerated, so « zéro interface » was a claim the capture had not made, on
+    /// the surface a hijacked resolver sits on.
+    /// </para>
+    ///
+    /// <para>
+    /// What it costs is measured rather than feared: three of the four versioned captures land
+    /// here and gain one line each saying what they cannot answer. Not a verdict —
+    /// <see cref="AuditGap.Unreadable"/> is « non déterminé », exit 5, excluded from the score —
+    /// and not an instruction to elevate, which no console could act on against a file already
+    /// written.
+    /// </para>
     /// </summary>
     [Fact]
-    public void A_capture_that_never_collected_dns_replays_as_the_silence_it_produced()
+    public void A_capture_that_never_collected_dns_says_so_rather_than_reporting_no_resolver()
     {
         var read = new SnapshotDnsProvider(new MachineSnapshot()).Read();
 
-        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.Empty(read.Interfaces);
-        Assert.Null(read.Diagnostic);
-        Assert.Empty(Collect(read));
+        Assert.NotNull(read.Diagnostic);
+
+        var finding = Assert.Single(Collect(read));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.Contains(read.Diagnostic, finding.Reasons);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class CountingDnsProvider(DnsRead answer) : IDnsProvider

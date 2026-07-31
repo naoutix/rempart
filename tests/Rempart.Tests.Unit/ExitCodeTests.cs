@@ -929,10 +929,20 @@ public sealed class ExitCodeTests
     /// </para>
     ///
     /// <para>
-    /// Its other three gaps are not refusals and no longer say they are. Drivers, processes
-    /// and listening ports are surfaces this capture never recorded, and the snapshot provider
-    /// says so in as many words; elevating a <em>replay</em> repairs none of them. They are
-    /// asserted here beside the refusals precisely because the two used to be one number.
+    /// Its other seven gaps are not refusals and no longer say they are. Drivers, processes,
+    /// listening ports — and since #192 the resolvers, the <c>hosts</c> file, the software
+    /// inventory and the browser profiles — are surfaces this capture never recorded, and the
+    /// snapshot provider says so in as many words; elevating a <em>replay</em> repairs none of
+    /// them. They are asserted here beside the refusals precisely because the two used to be
+    /// one number.
+    /// </para>
+    ///
+    /// <para>
+    /// Seven and not three since #192, and that number is the whole of what the change costs
+    /// this capture: the score, the count of unknown verdicts and the exit code are asserted
+    /// above and none of them moves. Four surfaces this replay used to answer « rien à
+    /// signaler » about now say they were never collected — a line in the report, not a verdict
+    /// against the machine.
     /// </para>
     /// </summary>
     [Fact]
@@ -946,7 +956,7 @@ public sealed class ExitCodeTests
         Assert.All(scan.Collectors, c => Assert.Equal(CollectorStatus.Ok, c.Status));
 
         Assert.Equal(4, scan.Findings.Count(f => f.Gap == AuditGap.Refused));
-        Assert.Equal(3, scan.Findings.Count(f => f.Gap == AuditGap.Unreadable));
+        Assert.Equal(7, scan.Findings.Count(f => f.Gap == AuditGap.Unreadable));
         Assert.Equal(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(scan));
 
         Assert.Equal(ExitCode.Partial, ExitCodes.ForScan(WithoutGaps(scan)));
@@ -958,11 +968,13 @@ public sealed class ExitCodeTests
     /// moment it has no gap left it exits 0.
     ///
     /// <para>
-    /// It does have three, and they are why it no longer exits 0 on its own. This capture
-    /// predates the collection of drivers, processes and listening ports, so its replay cannot
+    /// It does have seven, and they are why it no longer exits 0 on its own. This capture
+    /// predates the collection of drivers, processes, listening ports, resolvers, the
+    /// <c>hosts</c> file, the software inventory and the browser profiles, so its replay cannot
     /// answer for any of them and says so in the report — while answering 0, which reads as a
     /// machine that was fully checked. That is REV-13 with the repository's own fixture as the
-    /// witness.
+    /// witness, and the last four of the seven are #192: they used to be answered rather than
+    /// left unanswered, which is the same silence one step further in.
     /// </para>
     ///
     /// <para>
@@ -983,7 +995,7 @@ public sealed class ExitCodeTests
         Assert.DoesNotContain(scan.Verdicts, v => v.Status == VerdictStatus.Unknown);
 
         Assert.DoesNotContain(scan.Findings, f => f.Gap == AuditGap.Refused);
-        Assert.Equal(3, scan.Findings.Count(f => f.Gap == AuditGap.Unreadable));
+        Assert.Equal(7, scan.Findings.Count(f => f.Gap == AuditGap.Unreadable));
         Assert.Equal(ExitCode.Partial, ExitCodes.ForScan(scan));
 
         Assert.Equal(ExitCode.Success, ExitCodes.ForScan(WithoutGaps(scan)));
@@ -1016,7 +1028,7 @@ public sealed class ExitCodeTests
         // Today's reading of that capture, round-tripped: the value survives the JSON, which
         // is the half a re-rendered report depends on.
         var today = RempartJson.DeserialiseScanResult(RempartJson.Serialise(scan));
-        Assert.Equal(3, today.Findings.Count(f => f.Gap == AuditGap.Unreadable));
+        Assert.Equal(7, today.Findings.Count(f => f.Gap == AuditGap.Unreadable));
         Assert.Equal(ExitCode.Partial, ExitCodes.ForScan(today));
 
         // The same report as it was written before this batch, when the three surfaces this
@@ -1025,7 +1037,7 @@ public sealed class ExitCodeTests
             RempartJson.Serialise(scan)
                 .Replace("\"gap\": \"Unreadable\"", "\"gap\": \"Refused\"", StringComparison.Ordinal));
 
-        Assert.Equal(3, yesterday.Findings.Count(f => f.Gap == AuditGap.Refused));
+        Assert.Equal(7, yesterday.Findings.Count(f => f.Gap == AuditGap.Refused));
         Assert.DoesNotContain(yesterday.Findings, f => f.Gap == AuditGap.Unreadable);
         Assert.Equal(ExitCode.InsufficientPrivileges, ExitCodes.ForScan(yesterday));
     }

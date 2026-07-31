@@ -114,12 +114,33 @@ public sealed class ProviderSet(
     /// <summary>Absent, the firewall state stays "unknown" — the cross-check rule stands down.</summary>
     public IFirewallProvider Firewall { get; } = firewall ?? UnreadFirewall.Instance;
 
-    /// <summary>Absent, no DNS interface is enumerated — no resolver is invented, and no
-    /// refusal either: nothing was asked, so there is nothing to report.</summary>
-    public IDnsProvider Dns { get; } = dns ?? EmptyDns.Instance;
+    /// <summary>
+    /// Absent, the DNS read comes back as one that did not happen — never as a machine that
+    /// resolves through nothing.
+    ///
+    /// <para>
+    /// « Nothing was asked, so there is nothing to report » is what this said until #192, and
+    /// what <c>EmptyDns</c> then answered: <c>DnsRead.Found([])</c>, a successful and empty
+    /// read, indistinguishable from an adapter carrying no resolver. The premise is the false
+    /// one — a scan that asked nothing has a hole in its coverage, and the surface it has a hole
+    /// on is the one a hijacked resolver sits on. The startup folders four properties up carried
+    /// the correction in writing for three milestones: a startup folder nobody enumerated is not
+    /// a startup folder with nothing in it.
+    /// </para>
+    /// </summary>
+    public IDnsProvider Dns { get; } = dns ?? UnreadDns.Instance;
 
-    /// <summary>Absent, the hosts file is seen as empty — no mapping is invented.</summary>
-    public IHostsFileProvider HostsFile { get; } = hostsFile ?? EmptyHostsFile.Instance;
+    /// <summary>
+    /// Absent, the <c>hosts</c> file is reported as unread — never as a file holding no mapping.
+    ///
+    /// <para>
+    /// The same correction as the DNS above and for the same reason (#192). A <c>hosts</c> file
+    /// with no entry is the ordinary state of Windows and stays silent; a <c>hosts</c> file
+    /// nobody opened is not that file, and a redirection written into the real one would have
+    /// left no trace in the report.
+    /// </para>
+    /// </summary>
+    public IHostsFileProvider HostsFile { get; } = hostsFile ?? UnreadHostsFile.Instance;
 
     /// <summary>Absent, no proxy configuration is invented — empty config.</summary>
     public IProxyProvider Proxy { get; } = proxy ?? EmptyProxy.Instance;
@@ -127,13 +148,24 @@ public sealed class ProviderSet(
     /// <summary>Absent, no Wi-Fi profile is enumerated — no network is invented.</summary>
     public IWifiProfileProvider Wifi { get; } = wifi ?? EmptyWifi.Instance;
 
-    /// <summary>Absent, no software is enumerated — no inventory is invented.</summary>
+    /// <summary>
+    /// Absent, the inventory is reported as unread — never as a machine with nothing installed,
+    /// which is a state no machine has (#192).
+    /// </summary>
     public ISoftwareInventoryProvider SoftwareInventory { get; } =
-        softwareInventory ?? EmptySoftwareInventory.Instance;
+        softwareInventory ?? UnreadSoftwareInventory.Instance;
 
-    /// <summary>Absent, no extension is enumerated — no install is invented.</summary>
+    /// <summary>
+    /// Absent, the profiles are reported as unwalked — never as profiles carrying no extension.
+    ///
+    /// <para>
+    /// Zero extension stays a plausible machine state and stays silent when a walk actually
+    /// happened; what may not stay silent is a walk that did not (#192). The profile nobody
+    /// opened is the one a sideloaded extension is installed into.
+    /// </para>
+    /// </summary>
     public IBrowserExtensionProvider BrowserExtensions { get; } =
-        browserExtensions ?? EmptyBrowserExtensions.Instance;
+        browserExtensions ?? UnreadBrowserExtensions.Instance;
 
     /// <summary>
     /// Absent, the store analysis is reported as not run — never as zero bytes to
@@ -167,24 +199,30 @@ internal sealed class UnanalysedComponentStore : IComponentStoreProvider
         "Analyse du magasin de composants non effectuée : aucun fournisseur câblé.");
 }
 
-internal sealed class EmptyDns : IDnsProvider
+// Failed and not Found, since #192. « Personne n'a regardé » is indeed not « j'ai regardé et on
+// m'a refusé » — that much of the sentence this class used to carry was true, and the status it
+// chose was the third one it did not consider. A read nobody performed is neither a refusal nor a
+// success: it is a hole in the coverage, and #187 gave this read the channel to say so. What made
+// the old answer wrong is that Found is the one member a rule reads as a state of the machine, so
+// an unwired provider printed « rien à signaler » over the surface a hijacked resolver sits on.
+internal sealed class UnreadDns : IDnsProvider
 {
-    public static readonly EmptyDns Instance = new();
+    public static readonly UnreadDns Instance = new();
 
-    // Found and empty, like the hosts file two classes down and unlike the drivers: nobody
-    // wired a provider, so no read was attempted, and « personne n'a regardé » is not « j'ai
-    // regardé et on m'a refusé ». Only the second reaches the report.
-    public DnsRead Read() => DnsRead.Found([]);
+    public DnsRead Read() => DnsRead.Failed(
+        "Aucun fournisseur de résolveurs DNS n'a été fourni à ce scan : les interfaces de la "
+        + "machine n'ont pas été énumérées.");
 }
 
-internal sealed class EmptyHostsFile : IHostsFileProvider
+internal sealed class UnreadHostsFile : IHostsFileProvider
 {
-    public static readonly EmptyHostsFile Instance = new();
+    public static readonly UnreadHostsFile Instance = new();
 
-    // Found and empty, not Failed: no provider wired means the surface was never looked at,
-    // and « personne n'a regardé » is not « j'ai regardé et on m'a refusé ». Only the second
-    // reaches the report, and only a read that was actually attempted may produce it.
-    public HostsFileRead ReadLines() => HostsFileRead.Found([]);
+    // The neighbour's correction, one interface over (#192). A hosts file with no entry is the
+    // ordinary state of Windows and is why this read is allowed to be silent on zero lines; a
+    // hosts file nobody opened is not that state, and it was answering as if it were.
+    public HostsFileRead ReadLines() => HostsFileRead.Failed(
+        "Aucun fournisseur de fichier hosts n'a été fourni à ce scan : le fichier n'a pas été lu.");
 }
 
 internal sealed class EmptyProxy : IProxyProvider
@@ -201,22 +239,30 @@ internal sealed class EmptyWifi : IWifiProfileProvider
     public IReadOnlyList<WifiProfile> Read() => [];
 }
 
-internal sealed class EmptySoftwareInventory : ISoftwareInventoryProvider
+internal sealed class UnreadSoftwareInventory : ISoftwareInventoryProvider
 {
-    public static readonly EmptySoftwareInventory Instance = new();
+    public static readonly UnreadSoftwareInventory Instance = new();
 
-    // Found and empty, for the reason its DNS neighbour gives: an unwired provider read
-    // nothing, and an empty inventory triggers no rule and accuses nobody.
-    public SoftwareInventoryRead Read() => SoftwareInventoryRead.Found([]);
+    // Found and empty until #192, « for the reason its DNS neighbour gives » — and the reason
+    // moved. « An empty inventory triggers no rule and accuses nobody » is true and is not the
+    // question: what the report printed was that this machine has nothing installed, which no
+    // machine does, over four sources nobody had opened.
+    public SoftwareInventoryRead Read() => SoftwareInventoryRead.Failed(
+        "Aucun fournisseur d'inventaire logiciel n'a été fourni à ce scan : aucune des quatre "
+        + "sources n'a été lue.");
 }
 
-internal sealed class EmptyBrowserExtensions : IBrowserExtensionProvider
+internal sealed class UnreadBrowserExtensions : IBrowserExtensionProvider
 {
-    public static readonly EmptyBrowserExtensions Instance = new();
+    public static readonly UnreadBrowserExtensions Instance = new();
 
-    // Found, not denied: a machine with no browser extension is ordinary, and unlike
-    // drivers or processes an empty list here is a real answer rather than a silence.
-    public BrowserExtensionRead Read() => BrowserExtensionRead.Found([]);
+    // Found until #192, on the argument that a machine with no browser extension is ordinary.
+    // It is, and that argument holds for a walk that took place and found none — the answer
+    // this read still gives there. It never held for a walk that did not: no profile was opened,
+    // so nothing distinguishes this from the corrupt profile the channel exists to name.
+    public BrowserExtensionRead Read() => BrowserExtensionRead.Failed(
+        "Aucun fournisseur d'extensions de navigateur n'a été fourni à ce scan : aucun profil "
+        + "n'a été parcouru.");
 }
 
 internal sealed class UnreadFirewall : IFirewallProvider
@@ -290,8 +336,17 @@ internal sealed class UnavailableWmi : IWmiProvider
 {
     public static readonly UnavailableWmi Instance = new();
 
+    // A failure and not a denial, which is the correction #177 made to the twin of this line in
+    // SnapshotWmiProvider and did not make here (#192). WmiRead.AccessDenied carries no reason,
+    // Finding.WmiGap reads exactly that as the refusal, and the two WMI-backed collectors then
+    // printed « Relancer en administrateur » — over a scan that had supplied no WMI provider at
+    // all. No privilege supplies one, so that advice cannot work; the fifth interface to receive
+    // the same fix, after the policy (#160), the file system (#173), the scheduler (#175) and
+    // the snapshot (#177).
     public WmiRead Query(string namespacePath, string className, IReadOnlyList<string> properties) =>
-        WmiRead.AccessDenied;
+        WmiRead.Failed(
+            $"Aucun fournisseur WMI n'a été fourni à ce scan : {className} sous "
+            + $"{namespacePath} n'a pas été interrogé.");
 }
 
 internal sealed class UnavailablePolicy : ISecurityPolicyProvider
@@ -307,10 +362,29 @@ internal sealed class UnavailablePolicy : ISecurityPolicyProvider
         "Aucun fournisseur de politique de sécurité n'a été fourni à ce scan.");
 }
 
-/// <summary>Answers "access denied" to every question: no conclusion can be drawn from it.</summary>
+/// <summary>
+/// Answers "the service was not read" to every question: no conclusion can be drawn from it.
+///
+/// <para>
+/// It answered « accès refusé » until #192, and that is the inversion CONTRIBUTING forbids read
+/// the other way round: nobody denied anything, no provider was supplied. Every
+/// <c>type: service</c> rule of a scan wired without one landed under « relancer en
+/// administrateur » at once — the exact shape #160 corrected for the policy provider, #173 for
+/// the file system and #175 for the scheduler, three siblings above in this file, each of them
+/// leaving this line as it was.
+/// </para>
+///
+/// <para>
+/// The verdict is deliberately unchanged: <c>Unknown</c>, excluded from the score, never
+/// <c>Fail</c>. What changes is the remedy the report offers, and the reason now reaches
+/// <c>Verdict.Observed</c> instead of an empty « accès refusé » heading.
+/// </para>
+/// </summary>
 internal sealed class UnavailableServices : IServiceStateProvider
 {
     public static readonly UnavailableServices Instance = new();
 
-    public ServiceRead Read(string serviceName) => ServiceRead.AccessDenied;
+    public ServiceRead Read(string serviceName) => ServiceRead.Failed(
+        $"Aucun fournisseur d'état de service n'a été fourni à ce scan : « {serviceName} » n'a "
+        + "pas été interrogé.");
 }

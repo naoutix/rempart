@@ -166,8 +166,17 @@ public sealed class ServiceCheckTests
         // Conflating them would penalize a scan for its own tooling.
         var providers = new ProviderSet(new FakeRegistryProvider(), new FakeSystemInfoProvider());
 
-        Assert.Equal(VerdictStatus.Unknown,
-            RuleEvaluator.Evaluate(StateRule("running"), providers).Status);
+        var verdict = RuleEvaluator.Evaluate(StateRule("running"), providers);
+
+        Assert.Equal(VerdictStatus.Unknown, verdict.Status);
+
+        // And unverifiable for the right reason, since #192. This read answered « accès refusé »
+        // with no diagnostic beside it, so every `type: service` rule of a scan wired without a
+        // provider came back under « relancer en administrateur » — the one remedy that supplies
+        // no provider. The status is unchanged; what the reader is told is not.
+        Assert.Contains("fournisseur", verdict.Observed!, StringComparison.Ordinal);
+        Assert.DoesNotContain("administrateur", verdict.Observed!,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
