@@ -264,18 +264,46 @@ if (-not $SkipPublish) {
 
                 # DET-OPTION-INCONNUE, sur le binaire. Usage.Check est une fonction pure de
                 # Core que toute la suite eprouve ; ce qui la relie a une ligne de commande
-                # tient en quatre jetons de Program.cs, que le job Linux ne compile pas. Deux
-                # mutations d'un seul jeton y rouvrent le defaut de bout en bout avec 1027
-                # tests verts : supprimer le « return » de la branche de refus, et passer au
-                # controle le mot de commande exempte. Aucune garde textuelle ne remplace le
-                # fait de lancer le binaire. Les deux formes de la meme phrase :
-                # « --replay » n'existe pas -- l'option de rejeu est « --from » --
-                & .\rempart.exe scan --replay t.capture.json | Out-Null
-                if ($LASTEXITCODE -ne 6) { throw "une option inconnue n'a pas ete refusee ($LASTEXITCODE)" }
+                # tient en quelques jetons de Program.cs, que le job Linux ne compile pas. Deux
+                # mutations d'un seul jeton y rouvrent le defaut de bout en bout avec la suite
+                # verte : supprimer le « return » de la branche de refus, et passer au controle
+                # le mot de commande exempte. Aucune garde textuelle ne remplace le fait de
+                # lancer le binaire.
+                #
+                # Un refus s'imprime sur la sortie d'erreur, et c'est ce qui rendait ces
+                # sondes inutilisables ici : sous Windows PowerShell 5.1, la sortie d'erreur
+                # d'un executable natif devient une erreur TERMINANTE tant que
+                # $ErrorActionPreference vaut 'Stop'. L'etape s'arretait donc sur la premiere
+                # sonde, en inscrivant le texte du refus comme son echec -- sur une
+                # compilation correcte, et sans jamais atteindre les suivantes. La CI ne l'a
+                # jamais vu : elle tourne sous pwsh 7, qui n'a pas cette regle. Meme
+                # sauvegarde/restauration que l'etape « Tests », et pour la meme raison. Un
+                # « throw » reste terminant quelle que soit la preference : les trois gardes
+                # ci-dessous font toujours echouer l'etape quand le code n'est pas celui
+                # attendu.
+                $previousPreference = $ErrorActionPreference
+                $ErrorActionPreference = 'Continue'
+                try {
+                    # Les trois formes de la meme phrase. D'abord l'option qui n'existe pas --
+                    # l'option de rejeu est « --from » --
+                    & .\rempart.exe scan --replay t.capture.json | Out-Null
+                    if ($LASTEXITCODE -ne 6) { throw "une option inconnue n'a pas ete refusee ($LASTEXITCODE)" }
 
-                # ... et le chemin de la capture tape sans son option.
-                & .\rempart.exe scan t.capture.json | Out-Null
-                if ($LASTEXITCODE -ne 6) { throw "un argument nu n'a pas ete refuse ($LASTEXITCODE)" }
+                    # ... le chemin de la capture tape sans son option ...
+                    & .\rempart.exe scan t.capture.json | Out-Null
+                    if ($LASTEXITCODE -ne 6) { throw "un argument nu n'a pas ete refuse ($LASTEXITCODE)" }
+
+                    # ... et le mot de commande lui-meme. « rempart scna --replay <capture> »
+                    # imprimait l'aide et rendait 0 : la faute de frappe emportait avec elle
+                    # une option qui n'existe pas, et l'ordonnanceur qui ne lit que le code de
+                    # sortie voyait une reussite. Le mot part maintenant a la porte du refus et
+                    # non au bras par defaut du dispatch, et c'est ici que ce changement de
+                    # porte se constate : la porte est dans Rempart.Cli, qu'aucun test du job
+                    # Linux ne compile.
+                    & .\rempart.exe scna --replay t.capture.json | Out-Null
+                    if ($LASTEXITCODE -ne 6) { throw "un mot de commande inconnu n'a pas ete refuse ($LASTEXITCODE)" }
+                }
+                finally { $ErrorActionPreference = $previousPreference }
 
                 # Les memes commandes que le job publish-aot passe au binaire publie, et
                 # pour la meme raison : la suite Windows tourne sous JIT, ou l'interop COM

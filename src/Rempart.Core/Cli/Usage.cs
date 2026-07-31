@@ -33,6 +33,21 @@ namespace Rempart.Core.Cli;
 /// </para>
 ///
 /// <para>
+/// The command word is refused on the same record and for the same reason.
+/// <c>rempart scna --replay capture.json</c> printed the usage text and exited <c>0</c>: the
+/// dispatch table sent every word it did not recognise to the help, which it documented as a
+/// decision rather than suffered as an oversight, and the typo took an option that does not
+/// exist down with it. So the tool did something other than what it was asked and the one
+/// channel a scheduler reads called it a success — the defect above, one rank up. Refusing it
+/// changes a contract, and the change is stated rather than slipped in: whoever relied on
+/// <c>rempart &lt;typo&gt;</c> exiting <c>0</c> will see it. What is untouched is the way the
+/// help is actually asked for — <c>rempart</c> alone, <c>rempart --help</c> and
+/// <c>rempart help</c> still print the usage text and exit <c>0</c>, the first two because a
+/// line carrying no command word at all resolves to <see cref="Fallback"/> before it gets
+/// here.
+/// </para>
+///
+/// <para>
 /// Two things it deliberately does not do. It does not read the help, because six declared
 /// options are undocumented and people type them — « undocumented » and « inexistent » are
 /// different, and merging them would break working command lines. And it says nothing about
@@ -44,15 +59,23 @@ namespace Rempart.Core.Cli;
 public static class Usage
 {
     /// <summary>
-    /// The command word an unusable line already lands on, and the one command this check
+    /// The command word a line carrying none resolves to, and the one command this check
     /// exempts.
     ///
     /// <para>
-    /// The exemption is structural rather than a taste. The help is where the dispatch table
-    /// sends every word it does not know, and <c>rempart --help</c> carries no command word
-    /// at all — refusing options there would answer an unreadable line with a second
-    /// unreadable line, and take the usage text away from the reader who needs it most. Every
-    /// other command <em>acts</em> on what it was given, which is the entire harm.
+    /// The exemption is structural rather than a taste. <c>rempart</c> alone and
+    /// <c>rempart --help</c> carry no command word at all, and both are the normal way of
+    /// asking what the tool does — refusing options there would answer an unreadable line with
+    /// a second unreadable line, and take the usage text away from the reader who needs it
+    /// most. Every other command <em>acts</em> on what it was given, which is the entire harm.
+    /// </para>
+    ///
+    /// <para>
+    /// It used to be more than that: the dispatch table sent every word it did not recognise
+    /// here too, so <c>rempart scna</c> was answered by the help with a code of success. That
+    /// arm is now unreachable — <see cref="Check"/> refuses a word naming no command ahead of
+    /// the dispatch — and what remains of the fallback is the one case it was always right
+    /// for: no word at all.
     /// </para>
     ///
     /// <para>
@@ -86,7 +109,9 @@ public static class Usage
     /// One refusal at a time, and the unknown word first: a typo makes every later judgement
     /// a judgement about a line nobody typed. Told all three at once, a caller who wrote
     /// <c>--rule ./mes-regles</c> would be informed of the misspelling and of a bare argument
-    /// that only exists because of it.
+    /// that only exists because of it. The command word is the first rank of that same rule —
+    /// the options of <c>scna</c> are not a question, because <c>scna</c> has no surface to
+    /// judge them against.
     /// </para>
     ///
     /// <para>
@@ -101,12 +126,13 @@ public static class Usage
             return null;
         }
 
-        // A word naming no command is not judged on its arguments: it already goes to the
-        // help, which is the answer to a line nobody can parse. An option error about a
-        // command that does not exist would bury the thing actually wrong.
+        // A word naming no command is refused here, and is not judged on its arguments: an
+        // option error about a command that does not exist would bury the thing actually
+        // wrong. What this arm used to do was return null, so the word went on to the
+        // dispatch table's fallback and was answered by the help with a code of success.
         if (CommandSurface.Find(command) is not { } spec)
         {
-            return null;
+            return Unknown(command);
         }
 
         var declared = spec.Options.ToDictionary(
@@ -159,6 +185,31 @@ public static class Usage
 
         return null;
     }
+
+    /// <summary>
+    /// The sentence a word naming no command gets, and the commands that do exist.
+    ///
+    /// <para>
+    /// The list is derived from <see cref="CommandSurface.All"/> for the reason
+    /// <see cref="Refuse"/> derives the accepted options: whoever typed <c>scna</c> was
+    /// reaching for <c>scan</c>, and a message that only says « non » leaves them guessing the
+    /// spelling — which is how the typo happened. Retyped here, the list would be a second
+    /// place to remember a command, next to the dispatch table, the surface and the help; it
+    /// would rot silently, and the command added tomorrow would be the one missing from it.
+    /// </para>
+    ///
+    /// <para>
+    /// The last sentence names <see cref="Fallback"/> rather than the word « help », so that
+    /// the tool cannot come to point at a command it no longer answers to.
+    /// </para>
+    /// </summary>
+    private static FailureExit Unknown(string command) =>
+        new(ExitCode.Usage,
+            $"Commande inconnue : « {command} ». Rien n'a été exécuté." + Environment.NewLine
+            + "Commandes : "
+            + string.Join(", ", CommandSurface.All.Select(spec => spec.Name)
+                .OrderBy(name => name, StringComparer.Ordinal))
+            + $". « rempart {Fallback} » les détaille.");
 
     /// <summary>
     /// The value-taking options this line names without giving one, each once.

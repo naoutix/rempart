@@ -187,6 +187,16 @@ jobs:
           $code = $LASTEXITCODE
           if ($code -ne 6) { throw "a bare argument was not refused ($code)" }
 
+          # And the command word itself, which is the third spelling of the same sentence and
+          # the one that went furthest: `rempart scna --replay nowhere.json` printed the usage
+          # text and exited 0, carrying an option that does not exist past a word that does
+          # not either. The dispatch table sent every word it did not recognise to the help,
+          # so nothing here can be proven by reading Core alone -- what changed is which of
+          # the two doors the word walks into, and only the binary crosses it.
+          & $exe scna --replay nowhere.json
+          $code = $LASTEXITCODE
+          if ($code -ne 6) { throw "an unknown command word was not refused ($code)" }
+
           # The refusal this step demands is the step's own last exit code, and the runner
           # reads that trailing code as the step's verdict: on the first run both probes
           # printed the right refusal, neither `throw` fired, and the step failed anyway.

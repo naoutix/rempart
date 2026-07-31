@@ -180,6 +180,13 @@ public sealed class BuildChainParityTests
     /// « rempart scan failed (6) » the day a tag is cut. So every workflow is walked, and only
     /// the two files that must carry a probe are required to have one.
     /// </para>
+    ///
+    /// <para>
+    /// Since a word naming no command is refused too, the probes now include one — the command
+    /// typo that used to be answered by the help with a code of success. That one is worth more
+    /// than the other two put together: what changed for it is which of two doors the word
+    /// walks into, and no reading of Core can see a door in <c>Rempart.Cli</c>.
+    /// </para>
     /// </summary>
     [Fact]
     public void The_build_chain_runs_the_binary_on_a_line_the_tool_must_refuse()
@@ -187,49 +194,28 @@ public sealed class BuildChainParityTests
         var expected = (int)ExitCode.Usage;
         var ungated = new List<string>();
         var probing = new List<string>();
+        var probingAWordNobodyDeclares = new List<string>();
 
-        foreach (var file in Files)
+        foreach (var call in Invocations())
         {
-            var lines = RepositoryFiles.Read(file)
-                .Replace("\r\n", "\n", StringComparison.Ordinal)
-                .Split('\n');
-
-            for (var index = 0; index < lines.Length; index++)
+            if (Usage.Check(call.Command, call.Typed) is null)
             {
-                // Stops at whatever ends the argument list in these scripts — a pipe, a
-                // closing parenthesis, a separator, a comment — so that « (& $exe version)
-                // .Trim() » is not read as a command carrying an argument named « ).Trim() ».
-                var call = Regex.Match(lines[index],
-                    @"(?:\$exe|rempart\.exe)\s+(?<command>[a-z][a-z0-9-]*)(?<rest>[^|)\n;#>]*)");
+                continue;
+            }
 
-                if (!call.Success)
-                {
-                    continue;
-                }
+            if (!call.GatedOnRefusal)
+            {
+                ungated.Add($"{call.File}:{call.Line} → {call.Text}");
+                continue;
+            }
 
-                var command = call.Groups["command"].Value;
-                string[] typed =
-                [
-                    command,
-                    .. call.Groups["rest"].Value
-                        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries),
-                ];
+            probing.Add(call.File);
 
-                if (Usage.Check(command, typed) is null)
-                {
-                    continue;
-                }
-
-                // The gate sits on the line below, or just under the comment explaining it.
-                if (string.Join('\n', lines.Skip(index).Take(4))
-                    .Contains($"-ne {expected}", StringComparison.Ordinal))
-                {
-                    probing.Add(file);
-                }
-                else
-                {
-                    ungated.Add($"{file}:{index + 1} → {lines[index].Trim()}");
-                }
+            // Which probe is about the command word is CommandSurface's answer rather than a
+            // spelling written here, for the reason the refusal itself is Usage.Check's.
+            if (CommandSurface.Find(call.Command) is null)
+            {
+                probingAWordNobodyDeclares.Add(call.File);
             }
         }
 
@@ -249,6 +235,16 @@ public sealed class BuildChainParityTests
                 + "compile pas. Deux mutations d'un seul jeton y rouvrent le défaut de bout en "
                 + "bout avec la suite entièrement verte : c'est ici, en exécutant le binaire, "
                 + "que cela se voit.");
+
+            Assert.True(probingAWordNobodyDeclares.Contains(file),
+                $"{file} ne passe au binaire aucun mot de commande que rien ne déclare. Un mot "
+                + "inconnu partait au bras par défaut du dispatch : l'aide imprimée, code 0, et "
+                + "l'ordonnanceur qui ne lit que ce code voyait une réussite. Ce qui a changé "
+                + "est la porte par laquelle ce mot entre, et cette porte est dans "
+                + "Rempart.Cli — que le job Linux ne compile pas. Aucune lecture de Core ne "
+                + "peut la voir : lancer le binaire est la seule preuve, et une sonde sur une "
+                + "option inconnue n'en tient pas lieu, la même ligne ayant toujours été "
+                + "refusée sur son option.");
         }
     }
 
@@ -297,17 +293,24 @@ public sealed class BuildChainParityTests
     /// The last hand-written link: a command word typed into a workflow or a script is a
     /// string nothing checks. Confronted here with <see cref="CommandSurface"/>, which is
     /// what the dispatch table actually knows.
+    ///
+    /// <para>
+    /// The calls the chain gates on <see cref="ExitCode.Usage"/> are left out, and that is the
+    /// one exemption: a line written to be refused names a word on purpose, and the probe for
+    /// the command typo names one that must never exist. The invariant is not weakened by it,
+    /// because the exemption is the gate and not the spelling — an ungated typo is now a
+    /// <em>refused</em> call with no gate, which is exactly what the guard above reports, and
+    /// with a better sentence than this one could give. Excluding on « the word is unknown »
+    /// instead would have made this test vacuous the day it was written: every typo would
+    /// exempt itself.
+    /// </para>
     /// </summary>
     [Fact]
     public void Every_command_the_build_chain_invokes_exists_in_the_command_surface()
     {
-        var invoked = Regex
-            .Matches(RepositoryFiles.Read(Ci) + RepositoryFiles.Read(Release),
-                @"\$exe\s+([a-z][a-z0-9-]*)")
-            .Select(match => match.Groups[1].Value)
-            .Concat(Regex
-                .Matches(RepositoryFiles.Read(Verify), @"rempart\.exe\s+([a-z][a-z0-9-]*)")
-                .Select(match => match.Groups[1].Value))
+        var invoked = Invocations()
+            .Where(call => !call.GatedOnRefusal)
+            .Select(call => call.Command)
             .Concat(LocalDiagnostics())
             .ToHashSet(StringComparer.Ordinal);
 
@@ -935,6 +938,73 @@ public sealed class BuildChainParityTests
             + "exécuté nulle part avant un tag : c'est ainsi qu'un dossier rules/ livré à côté "
             + "d'un binaire qui embarque déjà ces règles a produit une release dont chaque scan "
             + "s'arrêtait sur 82 identifiants en double.");
+    }
+
+    /// <summary>
+    /// One call of the binary found in the build chain: where it sits, the tokens the tool
+    /// would receive, and whether the chain requires that call to be refused.
+    /// </summary>
+    private sealed record Invocation(
+        string File, int Line, string Text, string Command, string[] Typed, bool GatedOnRefusal);
+
+    /// <summary>
+    /// Every call of the binary the build chain makes, parsed back into the tokens the tool
+    /// would receive.
+    ///
+    /// <para>
+    /// One walk read by two guards, for the reason <see cref="CommandLine.Split"/> is one walk
+    /// read by two refusals: they judge the same lines from opposite sides — is a line the tool
+    /// refuses gated on that refusal, and does a line nobody gated name a command at all — and
+    /// a word naming no command belongs to both questions at once. Two walks could disagree
+    /// about where a call stops, and then a probe would look like a typo to one guard while a
+    /// typo looked like a probe to the other.
+    /// </para>
+    ///
+    /// <para>
+    /// The argument list stops at whatever ends it in these scripts — a pipe, a closing
+    /// parenthesis, a separator, a comment — so that « (&amp; $exe version).Trim() » is not read
+    /// as a command carrying an argument named « ).Trim() ».
+    /// </para>
+    /// </summary>
+    private static List<Invocation> Invocations()
+    {
+        var found = new List<Invocation>();
+
+        foreach (var file in Files)
+        {
+            var lines = RepositoryFiles.Read(file)
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Split('\n');
+
+            for (var index = 0; index < lines.Length; index++)
+            {
+                var call = Regex.Match(lines[index],
+                    @"(?:\$exe|rempart\.exe)\s+(?<command>[a-z][a-z0-9-]*)(?<rest>[^|)\n;#>]*)");
+
+                if (!call.Success)
+                {
+                    continue;
+                }
+
+                var command = call.Groups["command"].Value;
+
+                found.Add(new Invocation(
+                    file,
+                    index + 1,
+                    lines[index].Trim(),
+                    command,
+                    [
+                        command,
+                        .. call.Groups["rest"].Value
+                            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries),
+                    ],
+                    // The gate sits on the line below, or just under the comment explaining it.
+                    string.Join('\n', lines.Skip(index).Take(4))
+                        .Contains($"-ne {(int)ExitCode.Usage}", StringComparison.Ordinal)));
+            }
+        }
+
+        return found;
     }
 
     /// <summary>
