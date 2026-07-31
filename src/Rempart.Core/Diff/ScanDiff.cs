@@ -246,6 +246,10 @@ public static class ScanDiff
     private static (string Kind, string Source, string Target) Key(Finding finding) =>
         (finding.Kind, finding.Source, finding.Target);
 
+    /// <summary>The same identity, read off a change rather than off a finding.</summary>
+    private static (string Kind, string Source, string Target) Identity(FindingChange change) =>
+        (change.Kind, change.Source, change.Target);
+
     private static (IReadOnlyList<FindingChange> Posture, IReadOnlyList<FindingChange> Transient)
         CompareFindings(IReadOnlyList<Finding> before, IReadOnlyList<Finding> after)
     {
@@ -275,7 +279,7 @@ public static class ScanDiff
             }
         }
 
-        var merged = MergeRetargets(changes, before, after);
+        var merged = MergeRetargets(changes, before, after, earlier, later);
 
         // Two kinds of expected movement, and they are not symmetric.
         //
@@ -287,8 +291,8 @@ public static class ScanDiff
         // while keeping the report wrong.
         bool Marked(FindingChange change, string key)
         {
-            var identity = (change.Kind, change.Source, change.Target);
-            var finding = earlier.GetValueOrDefault(identity) ?? later.GetValueOrDefault(identity);
+            var finding = earlier.GetValueOrDefault(Identity(change))
+                          ?? later.GetValueOrDefault(Identity(change));
             return finding?.Details.ContainsKey(key) == true;
         }
 
@@ -370,34 +374,58 @@ public static class ScanDiff
     /// else</em> — has to be reconstructed by the reader.
     ///
     /// <para>
-    /// Merged only when the source designates exactly one thing on each side. Some
-    /// families share a source across every element they enumerate — every loaded driver
-    /// comes from <c>Win32_SystemDriver</c> — and there, a removed driver and an added
-    /// one have nothing to do with each other.
+    /// Merged only when the place designates exactly one thing on each side. Some families
+    /// share a source across every element they enumerate — every redirection of the
+    /// <c>hosts</c> file comes from the one file — and there, a line removed and another
+    /// added have nothing to do with each other.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The place, and no longer the source alone.</b> The sentence above used to cite
+    /// <c>Win32_SystemDriver</c>, which no finding carries — <c>LoadedDriversCollector</c>
+    /// keys each driver by its own name — and the source stopped designating one thing for
+    /// real in #193, on a family where it matters: a card resolving on both stacks carries
+    /// two findings under one adapter GUID. See <see cref="Place"/>.
     /// </para>
     /// </summary>
     private static List<FindingChange> MergeRetargets(
-        List<FindingChange> changes, IReadOnlyList<Finding> before, IReadOnlyList<Finding> after)
+        List<FindingChange> changes,
+        IReadOnlyList<Finding> before,
+        IReadOnlyList<Finding> after,
+        Dictionary<(string, string, string), Finding> earlier,
+        Dictionary<(string, string, string), Finding> later)
     {
-        var uniqueBefore = SourcesDesignatingOne(before);
-        var uniqueAfter = SourcesDesignatingOne(after);
+        var uniqueBefore = PlacesDesignatingOne(before);
+        var uniqueAfter = PlacesDesignatingOne(after);
 
         var merged = new List<FindingChange>(changes.Count);
         var consumed = new HashSet<FindingChange>();
 
         foreach (var change in changes)
         {
+            // A change was built from one of the two indexes, so the finding behind it is
+            // there; missing it means the data is odder than a diff may fail on, and the
+            // conservative answer is the two lines the reader already had.
             if (consumed.Contains(change) || change.Change != ChangeKind.Disappeared
-                || !uniqueBefore.Contains((change.Kind, change.Source))
-                || !uniqueAfter.Contains((change.Kind, change.Source)))
+                || earlier.GetValueOrDefault(Identity(change)) is not { } vanished)
             {
                 continue;
             }
 
+            var place = Place(vanished);
+
+            if (!uniqueBefore.Contains(place) || !uniqueAfter.Contains(place))
+            {
+                continue;
+            }
+
+            // Kind and source are compared by the place itself, which carries them — and
+            // the coordinate with them, so an appearance on the other stack of the same
+            // card is not a candidate.
             var replacement = changes.FirstOrDefault(other =>
                 other.Change == ChangeKind.Appeared
-                && other.Kind == change.Kind
-                && other.Source == change.Source);
+                && later.GetValueOrDefault(Identity(other)) is { } arrived
+                && Place(arrived) == place);
 
             if (replacement is null)
             {
@@ -423,14 +451,68 @@ public static class ScanDiff
         return merged;
     }
 
-    private static HashSet<(string, string)> SourcesDesignatingOne(IReadOnlyList<Finding> findings)
+    /// <summary>
+    /// Where a finding sits: its family, its source, and — where one source addresses several
+    /// places — the coordinates the collector named.
+    ///
+    /// <para>
+    /// The source was the whole of it until #193. Windows keys the <c>Tcpip</c> and
+    /// <c>Tcpip6</c> subtrees of one adapter by the same GUID, so a card resolving on both
+    /// stacks carries two <c>dns-resolver</c> findings under one source, and a key blind to
+    /// that dimension got both halves wrong: it refused to merge a resolver repointed on such
+    /// a card, and it merged a v4 resolver dropped with a v6 one set — two places, one command
+    /// each, nothing substituted for anything.
+    /// </para>
+    ///
+    /// <para>
+    /// Which detail carries the coordinate is <see cref="FindingDetails.Place"/>, and it is
+    /// the collector's to name rather than this file's to guess — a family that names nothing
+    /// keeps exactly the key it had. That is what makes this general instead of a list of
+    /// families to treat apart.
+    /// </para>
+    /// </summary>
+    private static (string Kind, string Source, string Coordinates) Place(Finding finding) =>
+        (finding.Kind, finding.Source, Coordinates(finding));
+
+    /// <summary>
+    /// The coordinates a finding names, folded into one comparable string.
+    ///
+    /// <para>
+    /// Each named detail is written out with its own name beside its value, so two findings
+    /// naming different details cannot collide on a value alone, and the pairs are joined on a
+    /// unit separator. A named detail the finding does not hold reads as empty and folds back
+    /// onto the key without it — the conservative direction: two lines the reader can join up,
+    /// never a substitution invented for them.
+    /// </para>
+    ///
+    /// <para>
+    /// Three things it cannot do, written down rather than called impossible. A detail key
+    /// holding a ',' cannot be named. Nothing here can tell that a collector named one axis of
+    /// two — the diff sees details, never the surface they were read from. And the fold is not
+    /// injective over arbitrary text: a value carrying the separator, or an '=', could spell
+    /// out another finding's pairs. No claim is made that Windows never writes those
+    /// characters; what holds is that no shipped coordinate is machine text at all — the only
+    /// one there is, the DNS stack, is an enum member name.
+    /// </para>
+    /// </summary>
+    private static string Coordinates(Finding finding) =>
+        finding.Details.TryGetValue(FindingDetails.Place, out var named)
+            ? string.Join(
+                '\u001F',
+                named.Split(',')
+                    .Select(key => key.Trim())
+                    .Select(key => $"{key}={finding.Details.GetValueOrDefault(key)}"))
+            : string.Empty;
+
+    private static HashSet<(string, string, string)> PlacesDesignatingOne(
+        IReadOnlyList<Finding> findings)
     {
-        var counts = new Dictionary<(string, string), int>();
+        var counts = new Dictionary<(string, string, string), int>();
 
         foreach (var finding in findings)
         {
-            var key = (finding.Kind, finding.Source);
-            counts[key] = counts.GetValueOrDefault(key) + 1;
+            var place = Place(finding);
+            counts[place] = counts.GetValueOrDefault(place) + 1;
         }
 
         return [.. counts.Where(entry => entry.Value == 1).Select(entry => entry.Key)];

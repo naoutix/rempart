@@ -51,4 +51,38 @@ public static class FindingDetails
     /// </para>
     /// </summary>
     public const string Ephemeral = "éphémère";
+
+    /// <summary>
+    /// Names the detail that says <em>which</em> place, where one source addresses several.
+    ///
+    /// <para>
+    /// <c>rempart diff</c> folds a disappearance and an appearance at one place into a single
+    /// « le même emplacement lance autre chose », and refuses to when the source designates
+    /// more than one thing — two entries of the same <c>hosts</c> file are not a substitution
+    /// for one another. That took the source for the place, which held until #193: Windows
+    /// binds the two TCP/IP stacks of an adapter under one GUID, so a card that resolves on
+    /// both carries two <c>dns-resolver</c> findings under one source, told apart by the stack
+    /// and nothing else. The key knew no such dimension, so a resolver repointed on such a card
+    /// came out as two unrelated lines — and a v4 resolver dropped while a v6 one was set came
+    /// out as one substitution that never happened.
+    /// </para>
+    ///
+    /// <para>
+    /// The value is the detail key carrying the coordinate — <c>"pile"</c> — or several
+    /// separated by <c>", "</c> where a source is addressed along more than one axis. Named
+    /// rather than duplicated, so the row a reader needs keeps the word that reader needs:
+    /// <c>DnsResolverCollector</c> writes <c>pile</c> because the stack is also what says which
+    /// <c>netsh</c> command undoes the finding.
+    /// </para>
+    ///
+    /// <para>
+    /// Which detail that is belongs to the collector, for the reason <see cref="Transient"/>
+    /// does: the collector knows how its surface is indexed, and the diff would be inferring
+    /// it from a source path. A collector that names nothing keeps the key it had, so a family
+    /// sharing one source across its whole enumeration goes on refusing the merge without
+    /// having to know this key exists. What none of this can check is a collector naming one
+    /// axis of two — the diff sees the details, never the surface they were read from.
+    /// </para>
+    /// </summary>
+    public const string Place = "emplacement";
 }
