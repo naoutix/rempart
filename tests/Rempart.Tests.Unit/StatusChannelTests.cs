@@ -384,7 +384,7 @@ public sealed class StatusChannelTests
     public void A_refused_firewall_read_is_recorded_serialised_and_replayed_as_refused()
     {
         var snapshot = new MachineSnapshot();
-        var source = new CountingFirewallProvider(FirewallState.Failed(Refused));
+        var source = new CountingFirewallProvider(FirewallState.Refused(Refused));
         var recording = new RecordingFirewallProvider(source, snapshot);
 
         var first = recording.Read();
@@ -403,6 +403,90 @@ public sealed class StatusChannelTests
         Assert.Equal(Refused, replayed.Diagnostic);
         Assert.Equal(FirewallReachability.Unknown,
             replayed.InboundReachability("TCP", 4444, null));
+
+        // Through the file, which is the point of the test: a denial the source-generated
+        // serialiser did not carry would replay as a failure, and the reader of the capture
+        // would never be told that elevating repairs it.
+        Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
+    }
+
+    /// <summary>
+    /// The mirror, and the pair is what makes either half worth having: the same four steps
+    /// for a firewall read that <em>failed</em>.
+    ///
+    /// <para>
+    /// A capture carries one bit to tell the two apart, so a serialiser that dropped it would
+    /// leave both replaying as the same thing — and the test above alone cannot see that,
+    /// because the value it asserts is the one a dropped field would still produce on one of
+    /// the two sides. Which side depends on the default, and the default is <c>false</c>: the
+    /// failure. So this is the half that would go on passing, and the one above is the half
+    /// that catches the drop. Both are written down because the default could move.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_failed_firewall_read_is_recorded_serialised_and_replayed_as_failed()
+    {
+        var snapshot = new MachineSnapshot();
+        new RecordingFirewallProvider(
+            new CountingFirewallProvider(FirewallState.Failed(Refused)), snapshot).Read();
+
+        var replayed = new SnapshotFirewallProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read();
+
+        Assert.False(replayed.Readable);
+        Assert.Equal(Refused, replayed.Diagnostic);
+        Assert.Equal(ReadStatus.Failed, replayed.Status);
+        Assert.False(replayed.Denied);
+    }
+
+    /// <summary>
+    /// The compatibility half of #179, on the one shape no fixture holds: a capture written
+    /// before <c>denied</c> existed, whose firewall was recorded unreadable and with a reason.
+    ///
+    /// <para>
+    /// Such a file records that the read did not settle and <em>not</em> which of the two ways
+    /// it failed to — that distinction is what #179 added, so no older capture can carry it.
+    /// The absent key therefore has to mean « no denial was recorded », which replays as a
+    /// failure. Reading it as a refusal instead would invent a denial nobody wrote down, on
+    /// every capture older than this batch at once, and send its reader to elevate against a
+    /// file already on disk — the inversion CONTRIBUTING forbids and the exact shape #177
+    /// found on <c>SnapshotWmiProvider</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// Asserted on the value the replay produces, never on the presence of the key: the
+    /// premise below says the old shape really is old, and everything after it is behaviour.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_firewall_captured_before_the_denial_was_recorded_replays_as_failed()
+    {
+        // The shape a capture had between #115 and #179: rules, the boolean, and a reason.
+        const string OldShape =
+            """
+            {"firewall":{"rules":[],"publicFirewallEnabled":false,
+             "publicDefaultInboundAllow":false,"readable":false,
+             "diagnostic":"Pare-feu non lu : règles locales."}}
+            """;
+
+        using (var document = JsonDocument.Parse(OldShape))
+        {
+            Assert.False(
+                Carries(document.RootElement.GetProperty("firewall"), "denied"),
+                "La capture porte déjà le champ : elle ne prouve plus la compatibilité des "
+                + "captures antérieures.");
+        }
+
+        var read = new SnapshotFirewallProvider(
+            RempartJson.DeserialiseSnapshot(OldShape)).Read();
+
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
+
+        // And everything the capture *did* record still replays exactly as it did.
+        Assert.False(read.Readable);
+        Assert.Equal("Pare-feu non lu : règles locales.", read.Diagnostic);
+        Assert.Equal(FirewallReachability.Unknown, read.InboundReachability("TCP", 4444, null));
     }
 
     /// <summary>
@@ -440,6 +524,58 @@ public sealed class StatusChannelTests
         Assert.Null(read.Diagnostic);
         Assert.NotEmpty(read.Rules);
         Assert.Equal(FirewallReachability.Reachable, read.InboundReachability("TCP", 4444, null));
+
+        // And the status derived from that capture is « lue », not one of the two ways of not
+        // settling: the field added in #179 is absent here too, and its absence on a readable
+        // state has to stay silent.
+        Assert.Equal(ReadStatus.Found, read.Status);
+    }
+
+    /// <summary>
+    /// The branch no factory can reach, reached the way a capture reaches it — the same hole
+    /// #177 found on the scheduler's <c>Unreadable</c> branch and closed the same way.
+    ///
+    /// <para>
+    /// Both firewall factories write a sentence, so « denied, and nothing to say about it » is
+    /// unbuildable in memory. A capture is not built, it is deserialised field by field, and
+    /// this shape is one it can hold. Left uncovered, the fallback sentence beside the gap
+    /// would be prose nobody ever ran, and the collector's own summary would be claiming a
+    /// branch it never took.
+    /// </para>
+    ///
+    /// <para>
+    /// The gap is what matters here rather than the wording: the classification is read off
+    /// the state, so it has to survive a state that arrived with no words at all.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_captured_denial_with_no_sentence_still_advises_elevation_and_says_something()
+    {
+        const string NoSentence =
+            """
+            {"firewall":{"rules":[],"publicFirewallEnabled":false,
+             "publicDefaultInboundAllow":false,"readable":false,"denied":true}}
+            """;
+
+        var state = new SnapshotFirewallProvider(
+            RempartJson.DeserialiseSnapshot(NoSentence)).Read();
+
+        Assert.Equal(ReadStatus.AccessDenied, state.Status);
+        Assert.Null(state.Diagnostic);
+
+        var finding = Assert.Single(
+            new ListeningPortsCollector().Collect(new ProviderSet(
+                new FakeRegistryProvider(),
+                new FakeSystemInfoProvider(),
+                listeningPorts: new FakeListeningPortProvider(),
+                firewall: new FakeFirewallProvider(state))),
+            candidate => candidate.Source == "pare-feu");
+
+        Assert.Equal(AuditGap.Refused, finding.Gap);
+
+        // And it says *something*: a gap whose only reason was null would print an empty line
+        // where the report explains why the cross-check is missing.
+        Assert.NotEmpty(Assert.Single(finding.Reasons));
     }
 
     private static readonly TaskFolderGap Gap =

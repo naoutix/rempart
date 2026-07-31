@@ -145,7 +145,7 @@ public sealed class AnonymiserTests
         var snapshot = new MachineSnapshot
         {
             SystemInfo = FakeSystemInfoProvider.Default,
-            Firewall = FirewallState.Failed(
+            Firewall = FirewallState.Refused(
                 @"Pare-feu non lu : export C:\Users\leoar\AppData\Local\fw.log illisible."),
         };
 
@@ -156,6 +156,12 @@ public sealed class AnonymiserTests
         // Scrubbed, not dropped: the replay still has to know the read was refused, and why.
         Assert.False(result.Firewall!.Readable);
         Assert.Contains("Pare-feu non lu", result.Firewall.Diagnostic!, StringComparison.Ordinal);
+
+        // Including which kind of not-settling it was. The anonymiser rebuilds the state with
+        // a `with` expression, which carries every init property it does not name — so this
+        // holds today by construction and would stop holding the day the block is rewritten
+        // as a constructor call, which is exactly when nobody would think to check.
+        Assert.Equal(ReadStatus.AccessDenied, result.Firewall.Status);
     }
 
     [Fact]

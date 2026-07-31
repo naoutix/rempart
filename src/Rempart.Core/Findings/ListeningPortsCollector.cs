@@ -66,27 +66,34 @@ public sealed class ListeningPortsCollector : IFindingCollector
 
         var firewall = providers.Firewall.Read();
 
-        if (firewall.Diagnostic is { } failure)
+        if (firewall.Status is ReadStatus.AccessDenied or ReadStatus.Failed)
         {
-            // Said out loud, exactly as the listening table above is. A failed firewall
-            // read removes the cross-check from every port below it, and an audit that
-            // quietly loses its reachability question reads like one that asked it and got
-            // a reassuring answer.
+            // Said out loud, exactly as the listening table above is. A firewall read that
+            // did not settle removes the cross-check from every port below it, and an audit
+            // that quietly loses its reachability question reads like one that asked it and
+            // got a reassuring answer.
             //
-            // Only a read that *failed* speaks: the diagnostic is left null both for a state
-            // that was read and for one nobody looked at, so a capture predating the firewall
-            // collection replays as FirewallState.Unread and lands here with nothing.
-            // Announcing it on every older capture would be the crying wolf this repository
-            // keeps refusing.
+            // Only a read that was *attempted* speaks. A state that was read is Found and a
+            // capture predating the firewall collection replays as FirewallState.Unread,
+            // which is NotFound: neither reaches this branch. Announcing it on every older
+            // capture would be the crying wolf this repository keeps refusing.
             //
-            // Refused, because that is what FirewallState says the field means — « why the
-            // firewall could not be read, when the read was attempted and refused » — and
-            // what the live read builds it from: every surface it adds to the unreadable list
-            // it adds on KeyExists or ListValues coming back AccessDenied, the registry's only
-            // way of saying no. The rules key that answers with nothing parseable is the one
-            // entry that is a failure instead, and it travels in the same sentence with no
-            // way to be told apart; see the spillover note on the pull request.
-            findings.Add(Finding.Refused("listening-port", "pare-feu", [failure]));
+            // And which gap is read off the state rather than decided here, because the state
+            // is the only thing that knows. Until #179 this site answered Refused to both,
+            // quoting the summary on Diagnostic — « the read was attempted and refused » —
+            // over the summary on the factory that built it, which said « could not be
+            // completed ». Two of the five entries the live read composes that sentence from
+            // are not refusals: a universal key the machine does not have, and a rule
+            // container whose values none parse. Both exited 3, advising an elevation that
+            // repairs neither.
+            findings.Add(Finding.Unread(
+                "listening-port", "pare-feu",
+                firewall.Status == ReadStatus.AccessDenied
+                    ? AuditGap.Refused
+                    : AuditGap.Unreadable,
+                firewall.Diagnostic,
+                "Pare-feu interrogé sans réponse : la joignabilité des ports en écoute "
+                + "n'est pas tranchée."));
         }
 
         // The same binary often holds several ports: its signature is judged once.

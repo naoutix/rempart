@@ -343,9 +343,17 @@ public sealed class ReadFactoryNamingTests
     /// that can produce a refusal, and that is exactly what carrying this enum means. So it is
     /// narrower than « every factory in the provider layer », which is what one summary claimed
     /// and is not true — <c>FileSignature</c> has a <c>Status</c> of another type and is not one
-    /// of them; <c>PolicyFacts.Unread</c> and <c>FirewallState.Failed</c> invented bespoke
-    /// booleans instead and are not either, which <see cref="ProviderStatusChannelTests"/> is the
-    /// guard for.
+    /// of them; <c>PolicyFacts.Unread</c> invented a bespoke boolean instead and is not either,
+    /// which <see cref="ProviderStatusChannelTests"/> is the guard for.
+    /// </para>
+    ///
+    /// <para>
+    /// Selecting on the field is also what let <c>FirewallState</c> sit outside until #179 —
+    /// and the day it took a <see cref="ReadStatus"/>, the three factories below it were judged
+    /// without a line being added here. That is the property worth having, and it cuts both
+    /// ways: a type that gave the field up would leave just as quietly, which is why the
+    /// channel each provider read carries is pinned by name in
+    /// <see cref="ProviderStatusChannelTests"/> rather than left to this discovery alone.
     /// </para>
     ///
     /// <para>

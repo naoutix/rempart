@@ -224,11 +224,21 @@ public sealed record Finding(
     /// one for a failure and leaves it null for a refusal. No provider promises that. Half of
     /// them document the opposite: <c>DirectoryRead.Refused</c> and
     /// <c>HostsFileRead.Refused</c> are written by an ACL denial and always carry a reason,
-    /// <c>FirewallState.Diagnostic</c> is « the read was attempted and refused », and
+    /// <c>FirewallState.Refused</c> names the surface the registry said no on, and
     /// <c>ScheduledTaskRead.PartiallyRefused</c> carries a reason for the <c>E_ACCESSDENIED</c>
     /// its own interface calls « the one HRESULT that means elevate and retry ». Under that
     /// rule a startup folder denied to a non-elevated scan — the commonest gap there is — came
     /// back telling its reader that no amount of rights would change the answer.
+    /// </para>
+    ///
+    /// <para>
+    /// The firewall is also where the converse was found, and it is the reason this argument
+    /// may not be inferred from the read either. <c>FirewallState.Diagnostic</c> was documented
+    /// « the read was attempted and refused » while the factory that wrote it was called
+    /// <c>Failed</c>; the collector believed the summary, and every firewall read that failed
+    /// without anyone denying anything answered <see cref="AuditGap.Refused"/> (#179). A
+    /// summary is what a caller has instead of a guarantee, and this one was wrong for two
+    /// rounds — so the caller reads a field, and the field is the provider's.
     /// </para>
     ///
     /// <para>
