@@ -685,9 +685,37 @@ shape this batch adopted for the scheduler, under a green suite. A fold — `Par
 `Combine` — states no cause because it *has* none to state; it reads one off its arguments and
 calls the factory that names it. Declaring one is not a quiet exemption: the set is pinned in
 the guard, a declaration that does not really fold is refused, and each fold names the tests
-holding its branches, which the guard resolves against the assembly. What none of this reaches
-is a factory branching on a count above one or on the contents of a string; that is written
-down in the test rather than papered over with "by construction".
+holding its branches, which the guard resolves against the assembly.
+
+A fourth rule reads the **compiled body** instead of the answers, and it is the only one that
+speaks about every argument rather than three. It walks the instructions of a factory that is
+not a declared fold, carrying for each stack slot whether its value is a constant of the program
+text, and it demands that the `ReadStatus` reaching the record's constructor be one. That is a
+narrower claim than "the body holds no branch", and deliberately: the same instructions compute
+different values from different operands, so a body with no branch at all decides its status
+from an argument as soon as it indexes a table with one or subtracts one from a literal. Calls
+are followed into this assembly when what they return can carry a status, so pushing the
+decision into a private helper does not hide it; a call returning anything else — a diagnostic
+string — is left alone, and may branch as it likes.
+
+This replaces a rule that refused only a branch in the factory's own frame and a callee whose
+return type was literally `ReadStatus`. Four factories named `…Failed` handing out `AccessDenied`
+on three lost items — the decision delegated to a helper returning the record, the same through
+an `int`, a lookup in a `ReadStatus[]`, arithmetic on a list's `Count` — were planted in
+`Rempart.Core` and the whole suite stayed green. They are specimens of the test now, beside a
+legal factory that delegates to a builder and hands it a constant, so the rule reads "the status
+moves" and not "the factory calls something".
+
+Where it stops is a class, not an example, and the test names it: a read that **computes** its
+`Status` from its other fields hands no status to any constructor, so the walk finds nothing to
+pin and would pass it on nothing at all. `FirewallState` is the one, its status being
+`Readable ? Found : Denied ? AccessDenied : Diagnostic is null ? NotFound : Failed`; it is
+refused from the rule rather than passed by it, listed in the test, and held by the shapes
+alone. A conditional branch in the factory's own frame is also refused whatever it decides,
+because one origin per slot cannot merge two paths — that costs nothing here, the only two
+bodies that branch being exactly the two declared folds, in Debug and in Release alike.
+`ReadFactoryNamingTests` also carries specimens written to fail each rule, so the guard is read
+on the input it exists for and not only on a corpus that satisfies it.
 
 The one of the twelve that produced a wrong verdict rather than a wrong name was the scheduler:
 `ScheduledTaskRead` had `AccessDenied` for every way of not getting an inventory, so a scan
