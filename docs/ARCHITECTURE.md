@@ -685,9 +685,20 @@ shape this batch adopted for the scheduler, under a green suite. A fold — `Par
 `Combine` — states no cause because it *has* none to state; it reads one off its arguments and
 calls the factory that names it. Declaring one is not a quiet exemption: the set is pinned in
 the guard, a declaration that does not really fold is refused, and each fold names the tests
-holding its branches, which the guard resolves against the assembly. What none of this reaches
-is a factory branching on a count above one or on the contents of a string; that is written
-down in the test rather than papered over with "by construction".
+holding its branches, which the guard resolves against the assembly.
+
+A fourth rule reads the **compiled body** instead of the answers, and it is the only one that
+speaks about every argument rather than three. A factory that is not a declared fold may hold
+no conditional branch and may call nothing returning a `ReadStatus`: its status is then settled
+before its arguments are looked at. This replaces a note that said the guard could not reach a
+factory branching "on a count above one or on the contents of a string" — the first half was
+wrong, since the mixed shape builds two elements and crosses that threshold, and the second is
+now refused outright. Four factories named `…Failed` and handing out `AccessDenied` past the
+widest shape were planted in `Rempart.Core` to establish both, and the suite had been green with
+all four in place. What survives is written down in the test: a status derived from a numeric
+argument *arithmetically*, branching nowhere and calling nothing — no factory in this layer
+takes a number. `ReadFactoryNamingTests` also carries specimens written to fail each rule, so
+the guard is read on the input it exists for and not only on a corpus that satisfies it.
 
 The one of the twelve that produced a wrong verdict rather than a wrong name was the scheduler:
 `ScheduledTaskRead` had `AccessDenied` for every way of not getting an inventory, so a scan

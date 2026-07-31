@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Reflection.Emit;
 using Rempart.Core.Providers;
 
 namespace Rempart.Tests.Unit;
@@ -34,6 +35,19 @@ namespace Rempart.Tests.Unit;
 /// <c>unreadable</c> list was non-empty, which is the only way the live provider ever calls it.
 /// The whole suite stayed green. Reaching more than one shape of argument, and refusing the
 /// factories whose answer moves between them unless they declare it, is what this file is now.
+/// </para>
+///
+/// <para>
+/// <b>And three shapes are still three points of an infinite space, which is why the constancy
+/// of a factory is no longer decided by sampling at all.</b> Building on shapes answers « what
+/// status is this, and does the name agree » — a question about a value, which only running the
+/// factory can settle. It cannot answer « does this status move », because that is a question
+/// about every input, and no finite set of inputs settles it: four factories named
+/// <c>…Failed</c> handing out <see cref="ReadStatus.AccessDenied"/> — on a count above two, on
+/// the text of a path, on a numeric threshold, on an absent diagnostic — were planted in
+/// <c>Rempart.Core</c> and the whole suite came back green. The two questions are split
+/// accordingly: <c>Rule.ArgumentDependent</c> reads the compiled body and holds for every input,
+/// the shapes hold the value at three of them.
 /// </para>
 /// </summary>
 public sealed class ReadFactoryNamingTests
@@ -104,12 +118,24 @@ public sealed class ReadFactoryNamingTests
     /// </para>
     ///
     /// <para>
-    /// <b>What they do not reach, stated rather than implied.</b> A factory branching on a count
-    /// above one, on the text inside a string, or on a numeric threshold answers the same on all
-    /// three and is read as constant. That hole is real; it is not the hole this file was
-    /// rewritten over, which was that <em>every</em> argument-dependent factory was invisible —
-    /// including the two that exist. Nothing here is true « by construction », and the summaries
-    /// that said so have been corrected to say this instead.
+    /// <b>What they do not reach, measured rather than asserted — and the previous statement of
+    /// it was itself wrong.</b> It read « a factory branching on a count above one […] answers
+    /// the same on all three ». It does not: <see cref="Mixed"/> builds <em>two</em> elements per
+    /// list, so <c>lost.Count > 1</c> is false on <see cref="Empty"/> and <see cref="Populated"/>
+    /// and true on <see cref="Mixed"/>. Planted in <c>Rempart.Core</c>, such a factory was caught
+    /// on the spot — « construit AccessDenied sur des arguments Mixed ». The sentence describing
+    /// the guard's limit had never been run any more than the guard it described, which is the
+    /// reproach of this repository turned on its own prose one level further in.
+    /// </para>
+    ///
+    /// <para>
+    /// What is genuinely out of reach of three shapes: a threshold above <em>two</em>, the text
+    /// inside a string — <see cref="Sample"/> hands every string the same « … » — and any number,
+    /// which is always its default here. All three were planted and all three passed. They are
+    /// refused now, but not by adding shapes: a fourth shape moves the frontier by one and leaves
+    /// the fifth outside, which is the enumeration this repository keeps refusing. They are
+    /// refused by <see cref="Rule.ArgumentDependent"/>, which asks the compiled body whether the
+    /// answer <em>can</em> move rather than asking three inputs whether it did.
     /// </para>
     /// </summary>
     private enum Shape
@@ -142,7 +168,7 @@ public sealed class ReadFactoryNamingTests
     }
 
     /// <summary>
-    /// The three rules of the contract, and they are not symmetric.
+    /// The four rules of the contract, and they are not symmetric.
     ///
     /// <para>
     /// <b>A name that states a cause must carry it, on every shape.</b> That is the defect
@@ -172,43 +198,106 @@ public sealed class ReadFactoryNamingTests
     /// <see cref="A_declared_fold_really_folds_and_its_branches_are_covered"/> is what stops the
     /// attribute from being a way out of the first two.
     /// </para>
+    ///
+    /// <para>
+    /// <b>And the fourth is the third one proved instead of sampled.</b> Rule three catches a
+    /// factory whose answer moved between the shapes; <see cref="Rule.ArgumentDependent"/>
+    /// catches one whose answer <em>can</em> move at all, whether or not three inputs happened to
+    /// show it. It is the only rule here that says something about every argument the factory
+    /// will ever be handed.
+    /// </para>
     /// </summary>
     [Theory]
     [MemberData(nameof(Factories))]
     public void Every_read_factory_carries_the_state_its_name_names(string factory)
     {
-        var carried = Carried(factory);
-        var named = Named(MemberName(factory));
-        var fold = IsFold(factory);
+        var verdict = Verdict(Member(factory));
+
+        Assert.True(verdict.Count == 0,
+            string.Join("\n\n", verdict.Select(broken => broken.Complaint)));
+    }
+
+    /// <summary>
+    /// The ways a factory can break the contract, named so that
+    /// <see cref="The_guard_refuses_each_way_a_factory_can_be_written_wrong"/> can pin which one
+    /// fires on which specimen. A guard whose verdict is only ever « nothing to report » is a
+    /// guard nobody has watched work, and that is how the first two versions of this file shipped.
+    /// </summary>
+    private enum Rule
+    {
+        /// <summary>Its name states one cause and the field it builds holds another.</summary>
+        NameContradicted,
+
+        /// <summary>It builds a refusal under a name that does not say « refused ».</summary>
+        UnnamedDenial,
+
+        /// <summary>Its answer moved between the shapes without a <c>[StatusFold]</c>.</summary>
+        UndeclaredMove,
+
+        /// <summary>Its compiled body lets the answer move, on any input at all.</summary>
+        ArgumentDependent,
+    }
+
+    /// <summary>
+    /// Everything the contract holds against one factory, or nothing — the whole judgement in a
+    /// single function, so that it can be run over the corpus <em>and</em> over
+    /// <see cref="Specimen"/>, which is written to fail it.
+    /// </summary>
+    private static IReadOnlyList<(Rule Broken, string Complaint)> Verdict(MemberInfo member)
+    {
+        var factory = $"{member.DeclaringType!.Name}.{member.Name}";
+        var carried = Carried(member);
+        var named = Named(member.Name);
+        var fold = IsFold(member);
+        var verdict = new List<(Rule, string)>();
 
         foreach (var (shape, status) in carried)
         {
-            if (named is { } stated)
+            if (named is { } stated && stated != status)
             {
-                Assert.True(stated == status,
+                verdict.Add((Rule.NameContradicted,
                     $"La fabrique « {factory} » s'appelle d'après « {stated} » et construit "
                     + $"« {status} » sur des arguments {shape}. Le nom et le champ ne peuvent pas "
                     + "dire deux choses : c'est le nom que lit celui qui écrit l'appel, et le "
-                    + "champ que lit le collecteur qui décide s'il faut conseiller une élévation.");
+                    + "champ que lit le collecteur qui décide s'il faut conseiller une élévation."));
             }
 
-            Assert.True(
-                fold || status != ReadStatus.AccessDenied || named == ReadStatus.AccessDenied,
-                $"La fabrique « {factory} » construit un refus sur des arguments {shape} sans le "
-                + "dire dans son nom. AccessDenied est le seul statut que le rapport traduit en "
-                + "consigne — « relancer en administrateur » — donc il ne s'atteint que par un nom "
-                + "qui l'annonce (Refused, Denied, ou un qualificatif suivi de l'un des deux), ou "
-                + "par un [StatusFold] qui délègue à l'un d'eux.");
+            if (!fold && status == ReadStatus.AccessDenied && named != ReadStatus.AccessDenied)
+            {
+                verdict.Add((Rule.UnnamedDenial,
+                    $"La fabrique « {factory} » construit un refus sur des arguments {shape} sans "
+                    + "le dire dans son nom. AccessDenied est le seul statut que le rapport "
+                    + "traduit en consigne — « relancer en administrateur » — donc il ne s'atteint "
+                    + "que par un nom qui l'annonce (Refused, Denied, ou un qualificatif suivi de "
+                    + "l'un des deux), ou par un [StatusFold] qui délègue à l'un d'eux."));
+            }
         }
 
         var reached = carried.Select(answer => answer.Status).Distinct().Order().ToList();
 
-        Assert.True(fold || reached.Count == 1,
-            $"La fabrique « {factory} » répond « {string.Join(" / ", reached)} » selon ses "
-            + "arguments et n'est pas déclarée [StatusFold]. Un nom énonce une cause et une "
-            + "seule : ou bien elle en choisit une parmi les fabriques qui la nomment, et le "
-            + "déclare, ou bien c'est le défaut de #177 — un nom qui promet un état et un champ "
-            + "qui en porte un autre sur l'entrée qui, elle, se produit vraiment.");
+        if (!fold && reached.Count > 1)
+        {
+            verdict.Add((Rule.UndeclaredMove,
+                $"La fabrique « {factory} » répond « {string.Join(" / ", reached)} » selon ses "
+                + "arguments et n'est pas déclarée [StatusFold]. Un nom énonce une cause et une "
+                + "seule : ou bien elle en choisit une parmi les fabriques qui la nomment, et le "
+                + "déclare, ou bien c'est le défaut de #177 — un nom qui promet un état et un "
+                + "champ qui en porte un autre sur l'entrée qui, elle, se produit vraiment."));
+        }
+
+        if (!fold && member is MethodInfo method && Movable(method) is { Count: > 0 } reasons)
+        {
+            verdict.Add((Rule.ArgumentDependent,
+                $"La fabrique « {factory} » n'est pas déclarée [StatusFold] et son corps compilé "
+                + $"porte {string.Join(", ", reasons)}. Son statut peut donc dépendre de ses "
+                + "arguments, et trois formes ne lisent que trois points de l'espace où il en "
+                + "dépendrait : un seuil au-delà de deux, le contenu d'une chaîne, un nombre y "
+                + "passent verts — les trois ont été essayés. Ou bien elle rend le même statut "
+                + "quoi qu'on lui passe, et le branchement porte sur autre chose : le sortir de "
+                + "la fabrique. Ou bien elle plie vraiment, et le déclare."));
+        }
+
+        return verdict;
     }
 
     /// <summary>
@@ -327,6 +416,144 @@ public sealed class ReadFactoryNamingTests
         Assert.Null(Named("Combine"));
     }
 
+    /// <summary>
+    /// The guard read on the input it exists for: factories written to be wrong, one per way of
+    /// being wrong, and the exact set of rules each must break.
+    ///
+    /// <para>
+    /// <b>Why this test and not a clean corpus.</b> Every rule above is asserted over
+    /// <c>Rempart.Core</c>, where nothing violates any of them — so the whole file passes whether
+    /// its rules bite or not, which is precisely how its first two versions shipped and precisely
+    /// what four rounds of adverse review kept finding. Confronting the corpus proves the corpus
+    /// is clean; only a factory that must be refused proves the guard refuses.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Equality both ways, not « at least one complaint ».</b> The expected set is pinned
+    /// exactly, so a rule that starts firing on everything — the shape a guard fails in while
+    /// looking stricter — reddens here as loudly as one that stops firing. That is why the two
+    /// legal specimens are in the table with an empty set rather than left out.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>And the row that carries the finding is <c>FailedBeyondTheShapes</c>.</b> It is refused
+    /// by <see cref="Rule.ArgumentDependent"/> and by nothing else — the three sampled rules have
+    /// nothing to say about it, and saying so here is what keeps the split between proving and
+    /// sampling from quietly collapsing back into sampling. Delete the structural rule and this
+    /// row, alone, goes green.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_guard_refuses_each_way_a_factory_can_be_written_wrong()
+    {
+        (string Factory, Rule[] Broken)[] expected =
+        [
+            // Legal: the name states the cause the field holds, and nothing branches.
+            ("Failed", []),
+            ("Refused", []),
+
+            // Legal too, and the exemption is what makes it so: it branches, it answers two
+            // statuses, and it says it does.
+            ("Between", []),
+
+            // A refusal under a name that states no cause — the four « Partial » factories
+            // of #177, in one line.
+            ("Partial", [Rule.UnnamedDenial]),
+
+            // Caught by everything, including the shapes: Mixed builds two elements, so the
+            // count crosses one. This is the row that shows the old note on Shape was wrong.
+            ("FailedOnTwo",
+            [
+                Rule.NameContradicted,
+                Rule.UnnamedDenial,
+                Rule.UndeclaredMove,
+                Rule.ArgumentDependent,
+            ]),
+
+            // The three the shapes cannot see, each answering « Failed » at all three points
+            // and « AccessDenied » just outside them.
+            ("FailedBeyondTheShapes", [Rule.ArgumentDependent]),
+            ("FailedOnTheTextOfAPath", [Rule.ArgumentDependent]),
+            ("FailedAboveAThreshold", [Rule.ArgumentDependent]),
+
+            // And the choice delegated one frame down, where a body with no branch of its own
+            // would otherwise read as constant.
+            ("FailedByDelegation", [Rule.ArgumentDependent]),
+        ];
+
+        var members = FactoriesOf(typeof(Specimen)).ToList();
+
+        Assert.Equal(
+            expected.Select(row => row.Factory).OrderBy(name => name, StringComparer.Ordinal),
+            members.Select(member => member.Name).OrderBy(name => name, StringComparer.Ordinal));
+
+        Assert.Equal(
+            expected.Select(row => $"{row.Factory} → {string.Join(", ", row.Broken)}"),
+            expected.Select(row =>
+            {
+                var member = members.Single(candidate => candidate.Name == row.Factory);
+                var broken = Verdict(member).Select(complaint => complaint.Broken)
+                    .Distinct().Order();
+
+                return $"{row.Factory} → {string.Join(", ", broken)}";
+            }));
+    }
+
+    /// <summary>
+    /// Factories written to fail the contract, kept here and nowhere near
+    /// <c>Rempart.Core</c> — a demonstration of the defect does not get to ship inside the
+    /// thing it demonstrates against.
+    ///
+    /// <para>
+    /// They are invisible to <see cref="ReadTypes"/>, which discovers over the assembly holding
+    /// <see cref="ReadStatus"/>; nothing reaches them but
+    /// <see cref="The_guard_refuses_each_way_a_factory_can_be_written_wrong"/>, which names each
+    /// one. The record carries <c>Status</c> and a list because that is all the rules read, and
+    /// the shape a read of this layer has.
+    /// </para>
+    /// </summary>
+    private sealed record Specimen(ReadStatus Status, IReadOnlyList<string> Lost)
+    {
+        public static Specimen Failed(IReadOnlyList<string> lost) => new(ReadStatus.Failed, lost);
+
+        public static Specimen Refused(IReadOnlyList<string> lost) =>
+            new(ReadStatus.AccessDenied, lost);
+
+        /// <summary>States no cause and hands out the one status that becomes an instruction.</summary>
+        public static Specimen Partial(IReadOnlyList<string> lost) =>
+            new(ReadStatus.AccessDenied, lost);
+
+        /// <summary>Crosses its threshold on <see cref="Shape.Mixed"/>, so the shapes see it.</summary>
+        public static Specimen FailedOnTwo(IReadOnlyList<string> lost) =>
+            new(lost.Count > 1 ? ReadStatus.AccessDenied : ReadStatus.Failed, lost);
+
+        /// <summary>Crosses it one element past the widest shape, so they do not.</summary>
+        public static Specimen FailedBeyondTheShapes(IReadOnlyList<string> lost) =>
+            new(lost.Count > 2 ? ReadStatus.AccessDenied : ReadStatus.Failed, lost);
+
+        /// <summary>Reads the text of a string, which is « … » on all three shapes.</summary>
+        public static Specimen FailedOnTheTextOfAPath(string path) =>
+            new(path.Contains("System32", StringComparison.Ordinal)
+                ? ReadStatus.AccessDenied
+                : ReadStatus.Failed, [path]);
+
+        /// <summary>Reads a number, which is its default on all three shapes.</summary>
+        public static Specimen FailedAboveAThreshold(int errors) =>
+            new(errors > 10 ? ReadStatus.AccessDenied : ReadStatus.Failed, []);
+
+        /// <summary>Branches nowhere itself, and lets the callee choose.</summary>
+        public static Specimen FailedByDelegation(IReadOnlyList<string> lost) =>
+            new(Decide(lost), lost);
+
+        /// <summary>Really folds, and says so — the shape the exemption is for.</summary>
+        [StatusFold]
+        public static Specimen Between(IReadOnlyList<string> lost) =>
+            lost.Count > 1 ? Refused(lost) : Failed(lost);
+
+        private static ReadStatus Decide(IReadOnlyList<string> lost) =>
+            lost.Count > 2 ? ReadStatus.AccessDenied : ReadStatus.Failed;
+    }
+
     /// <summary>Every factory the provider layer offers, as « Type.Member ».</summary>
     public static TheoryData<string> Factories() => [.. FactoryNames()];
 
@@ -392,8 +619,153 @@ public sealed class ReadFactoryNamingTests
         return FactoriesOf(type).Single(candidate => candidate.Name == MemberName(factory));
     }
 
-    private static bool IsFold(string factory) =>
-        Member(factory).GetCustomAttribute<StatusFoldAttribute>() is not null;
+    private static bool IsFold(string factory) => IsFold(Member(factory));
+
+    private static bool IsFold(MemberInfo member) =>
+        member.GetCustomAttribute<StatusFoldAttribute>() is not null;
+
+    /// <summary>
+    /// Why a factory's status <em>could</em> move, read off the compiled body — empty when it
+    /// provably cannot, whatever it is handed.
+    ///
+    /// <para>
+    /// <b>The one thing here that is not a sample.</b> A body holding no conditional branch runs
+    /// the same instructions on every input, so the <see cref="ReadStatus"/> it hands to the
+    /// record is settled before the arguments are looked at; a body holding one is free to
+    /// choose, and three shapes only say whether it happened to choose differently at three
+    /// points. Both refusals are needed: without the second, a branch-free factory could delegate
+    /// the choice — <c>new(Decide(paths), …)</c> — and the branch would sit one frame down where
+    /// nothing looks.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Sufficient, deliberately not necessary.</b> A branch that decides something other than
+    /// the status — a diagnostic, a default — is refused too, and that is the price: proving
+    /// which branches reach the status field needs a dataflow pass over the stack, and a guard
+    /// nobody can repair is worse than a guard that asks for one line to be moved. It costs
+    /// nothing today. Every one of the factories in <c>Rempart.Core</c> is already branch-free,
+    /// measured, and the only two bodies that branch are exactly the two carrying
+    /// <see cref="StatusFoldAttribute"/> — in Debug and in Release alike, which matters because
+    /// CI runs Release and a workstation runs Debug.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What still escapes, and it is now nameable in one sentence.</b> A status derived from
+    /// an argument arithmetically — <c>(ReadStatus)errors</c> — branches nowhere and calls
+    /// nothing, so it passes here, and it passes the shapes too whenever it lands on the same
+    /// value at their three points. No factory in this layer takes a number at all, and this is
+    /// written down rather than covered by « by construction », which is the sentence that had to
+    /// be withdrawn from three files last round.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<string> Movable(MethodInfo method)
+    {
+        var il = method.GetMethodBody()?.GetILAsByteArray();
+
+        Assert.True(il is not null,
+            $"« {method.DeclaringType?.Name}.{method.Name} » n'a pas de corps lisible. La règle "
+            + "qui tient la constance du statut ne s'applique donc pas à elle, et une fabrique "
+            + "hors de la garde ne se saute pas en silence.");
+
+        var reasons = new List<string>();
+
+        foreach (var (op, operand) in Instructions(il!))
+        {
+            if (op.FlowControl is FlowControl.Cond_Branch)
+            {
+                reasons.Add($"un branchement conditionnel « {op.Name} »");
+                continue;
+            }
+
+            if (op.OperandType is not OperandType.InlineMethod)
+            {
+                continue;
+            }
+
+            var token = BitConverter.ToInt32(il!, operand);
+            MethodBase? called;
+
+            try
+            {
+                called = method.Module.ResolveMethod(token,
+                    method.DeclaringType!.GetGenericArguments(), method.GetGenericArguments());
+            }
+            catch (ArgumentException error)
+            {
+                called = null;
+
+                Assert.Fail($"« {method.DeclaringType?.Name}.{method.Name} » appelle un membre "
+                    + $"que cette garde ne sait pas résoudre ({error.Message}). Elle ne peut donc "
+                    + "pas dire si le statut y est décidé : c'est un cas à traiter ici, pas à "
+                    + "ignorer.");
+            }
+
+            if (called is MethodInfo { ReturnType: var returned } target
+                && returned == typeof(ReadStatus))
+            {
+                reasons.Add($"un appel à « {target.DeclaringType?.Name}.{target.Name} », "
+                    + "qui rend un ReadStatus");
+            }
+        }
+
+        return reasons;
+    }
+
+    /// <summary>
+    /// Every opcode by its encoded value, taken from the framework's own table rather than
+    /// transcribed: a hand-copied opcode list is one typo away from walking the body out of step
+    /// and reporting « no branch » on anything.
+    /// </summary>
+    private static readonly Dictionary<short, OpCode> Opcodes =
+        typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Select(field => (OpCode)field.GetValue(null)!)
+            .GroupBy(op => op.Value)
+            .ToDictionary(group => group.Key, group => group.First());
+
+    /// <summary>
+    /// The instructions of a method body, with the offset of each operand.
+    ///
+    /// <para>
+    /// Walking rather than scanning: an operand may hold any byte, so a body containing the value
+    /// of <c>brtrue</c> inside a metadata token would be read as branching by a search, and a
+    /// body whose branch sits inside what a search skipped would be read as constant. The length
+    /// of each operand comes from <see cref="OpCode.OperandType"/>, and <c>switch</c> — the one
+    /// variable-length form, and a conditional branch — from the count it carries.
+    /// </para>
+    /// </summary>
+    private static IEnumerable<(OpCode Op, int Operand)> Instructions(byte[] il)
+    {
+        var index = 0;
+
+        while (index < il.Length)
+        {
+            // 0xFE is the escape to the two-byte opcodes, and never an opcode itself.
+            var escaped = il[index] is 0xFE;
+            var key = escaped ? unchecked((short)((0xFE << 8) | il[index + 1])) : il[index];
+
+            index += escaped ? 2 : 1;
+
+            Assert.True(Opcodes.TryGetValue(key, out var op),
+                $"Opcode inconnu 0x{key:X4} dans un corps de fabrique : le parcours est désormais "
+                + "décalé et tout ce qui suit est lu de travers. Une garde qui ne sait plus lire "
+                + "son entrée doit le dire.");
+
+            var operand = index;
+
+            index += op.OperandType switch
+            {
+                OperandType.InlineNone => 0,
+                OperandType.ShortInlineBrTarget or OperandType.ShortInlineI
+                    or OperandType.ShortInlineVar => 1,
+                OperandType.InlineVar => 2,
+                OperandType.InlineI8 or OperandType.InlineR => 8,
+                OperandType.InlineSwitch => 4 + (4 * BitConverter.ToInt32(il, index)),
+                _ => 4,
+            };
+
+            yield return (op, operand);
+        }
+    }
 
     /// <summary>Whether the test named « Class.Method » exists in this assembly.</summary>
     private static bool TestExists(string test)
@@ -412,9 +784,11 @@ public sealed class ReadFactoryNamingTests
     /// branch on. Which is what the previous version did, and what let the defect of #177 be put
     /// back on <c>BrowserExtensionRead.Partial</c> under a green suite.
     /// </summary>
-    private static IReadOnlyList<(Shape Shape, ReadStatus Status)> Carried(string factory)
+    private static IReadOnlyList<(Shape Shape, ReadStatus Status)> Carried(string factory) =>
+        Carried(Member(factory));
+
+    private static IReadOnlyList<(Shape Shape, ReadStatus Status)> Carried(MemberInfo member)
     {
-        var member = Member(factory);
         var type = member.DeclaringType!;
 
         return [.. Enum.GetValues<Shape>().Select(shape =>
