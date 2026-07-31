@@ -130,10 +130,16 @@ public sealed class ShippedRulesTests
     /// </para>
     ///
     /// <para>
-    /// <b>« checks » here means catalog rules.</b> These documents use the two words for the
-    /// same thing — « 82 checks across 13 domains », « the 82 shipped rules » — so the pattern
-    /// reads both. The five checks CI runs are spelled out in words in <c>CONTRIBUTING</c>,
-    /// which is what keeps them out of this reading.
+    /// <b>« checks » here means catalog rules, and the reading is deliberately greedy.</b> These
+    /// documents use the two words for the same thing — « 82 checks across 13 domains », « the 82
+    /// shipped rules » — so the pattern reads both, and it reads <em>every</em> figure written
+    /// that way as a claim about the size of the catalog. It cannot tell « 82 rules » from « the
+    /// firewall domain ships 4 rules »: measured, the second reddens this test too. That is the
+    /// direction the error is wanted in. A pattern narrow enough to spare a subset count is a
+    /// pattern a rewording walks out of, and a figure nothing reads is exactly what
+    /// <c>CONTRIBUTING</c>'s « 827 tests » was for two hundred commits. A partial count is
+    /// therefore written in words, as the five checks CI runs already are — the cost is one
+    /// sentence phrased differently, and the failure says so rather than calling it a lie.
     /// </para>
     ///
     /// <para>
@@ -190,10 +196,14 @@ public sealed class ShippedRulesTests
         }
 
         Assert.True(wrong.Count == 0,
-            "La documentation chiffre le catalogue autrement qu'il n'est : "
+            "Un chiffre écrit sous cette forme est lu ici comme la taille du catalogue, et ne "
+            + "correspond pas à ce qu'il mesure : "
             + string.Join(" ; ", wrong)
-            + ". Un chiffre que personne ne remesure décrit un dossier que tout le monde peut "
-            + "compter.");
+            + ". Si la phrase chiffre bien le catalogue, c'est le chiffre qu'il faut corriger. "
+            + "Si elle chiffre un sous-ensemble — un domaine, les contrôles de la CI — elle "
+            + "s'écrit en toutes lettres, comme les cinq de CONTRIBUTING : cette garde ne sait "
+            + "pas distinguer les deux, et un motif qui épargne les sous-ensembles est un motif "
+            + "qu'une reformulation contourne.");
     }
 
     /// <summary>
@@ -201,7 +211,18 @@ public sealed class ShippedRulesTests
     /// a rule being added rather than merely dated by one. <c>docs/adr/</c> and
     /// <c>docs/ROADMAP.md</c> stay out for the reason #180 fixed: an ADR records what a decision
     /// did on the day it was taken, and correcting a dated record to today's figure falsifies it.
+    ///
+    /// <para>
+    /// <c>docs/DEBT.md</c> was in this list and is out for that same reason, which the first
+    /// version of this guard did not apply to it. It is a register of audits, every figure in it
+    /// carries the date it was measured on, and it says so itself — « le tableau ci-dessus reste
+    /// tel que mesuré le 2026-07-26 : c'est la photo qui a servi à prioriser, et la réécrire
+    /// effacerait le point de comparaison ». It holds none of the three claims today, so nothing
+    /// measured changes by removing it; what would have happened is that the day someone wrote
+    /// « 82 rules » into a dated cell, this guard would have demanded it be rewritten to the
+    /// figure of the day the suite next ran.
+    /// </para>
     /// </summary>
     private static readonly string[] Describing =
-        ["README.md", "CONTRIBUTING.md", "docs/ARCHITECTURE.md", "docs/DEBT.md"];
+        ["README.md", "CONTRIBUTING.md", "docs/ARCHITECTURE.md"];
 }

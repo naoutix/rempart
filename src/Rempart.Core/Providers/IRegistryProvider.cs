@@ -83,21 +83,22 @@ public enum ReadStatus
 ///
 /// <para>
 /// <b>This attribute exists because the guard could not otherwise tell a fold from a defect.</b>
-/// <c>ReadFactoryNamingTests</c> reads the compiled body of every factory and refuses one that
-/// can answer more than one status — the body of a fold branches, and a branch is exactly how a
-/// status stops being settled before the arguments are looked at. So a factory that chooses
-/// either is a fold and says so here, or is the bug #177 was opened over: a name promising one
-/// state and a field holding another, on the input that actually occurs. Declaring it is
-/// therefore not an exemption granted quietly: the guard pins the set of members carrying this
-/// attribute, refuses one that does not really fold, and requires a named test per branch.
+/// <c>ReadFactoryNamingTests</c> walks the compiled body of every factory and refuses one whose
+/// status it cannot trace back to an integer constant of the program text — a fold's cannot be
+/// traced there, because a fold chooses. So a factory that chooses either is a fold and says so
+/// here, or is the bug #177 was opened over: a name promising one state and a field holding
+/// another, on the input that actually occurs. Declaring it is therefore not an exemption
+/// granted quietly: the guard pins the set of members carrying this attribute, refuses one that
+/// does not really fold, and requires a named test per branch.
 /// </para>
 ///
 /// <para>
 /// The rule is written over the body rather than over sampled arguments because sampling could
 /// not carry it. Building each factory on three shapes of argument answers what status it hands
-/// out; it cannot answer whether that status <em>can</em> move, and factories branching past the
-/// widest shape — a threshold above two, the text of a string, a number — went green on all
-/// three. Both readings run: the shapes hold the value, the body holds the constancy.
+/// out; it cannot answer whether that status <em>can</em> move, and factories deciding past the
+/// widest shape — a threshold above two, the text of a string, a number, an entry of a table an
+/// argument indexes — went green on all three. Both readings run: the shapes hold the value, the
+/// body holds the constancy, and the test states exactly where the body reading stops.
 /// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
