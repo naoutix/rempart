@@ -508,6 +508,17 @@ public sealed class UsageTests
     /// The line carries nothing but the word, which is the harshest shape: there is no option
     /// to complain about, so a refusal can only come from the word itself.
     /// </para>
+    ///
+    /// <para>
+    /// « By construction » is on the alphabet that reaches this check, and that is narrower
+    /// than it sounds: <c>-scan</c> and <c>--scan</c> are not in the two families and would
+    /// fail if they were, because <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon
+    /// as the first token starts with a dash, so the line resolves to
+    /// <see cref="Usage.Fallback"/> and never gets here. A misspelt command word wearing a dash
+    /// still prints the help and exits <c>0</c> — measured on the binary,
+    /// <c>rempart -scan --from t.json</c> → 0 — and that is the same open question as
+    /// <c>rempart --json</c> rather than a hole this walk was meant to cover.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_typo_on_any_command_word_is_refused_rather_than_answered_with_the_help()
@@ -591,11 +602,16 @@ public sealed class UsageTests
     /// </para>
     ///
     /// <para>
-    /// Each line is resolved the way <c>Program.cs</c> resolves it rather than handed
-    /// <see cref="Usage.Fallback"/> outright, because that is exactly where the boundary of the
-    /// command-word refusal sits: a check reading « this word names no command » and given the
-    /// raw <c>args[0]</c> would answer the two commonest lines of the tool — no word, and
-    /// <c>--help</c> — with an error and a code of 6.
+    /// The resolution written below is a <em>copy</em> of the one <c>Program.cs</c> performs,
+    /// and saying otherwise would be the second list this repository forbids everywhere else:
+    /// nothing in this project compiles <c>Rempart.Cli</c>, so this test cannot read that line
+    /// and would stay green while it changed. It is written that way rather than with
+    /// <see cref="Usage.Fallback"/> handed over outright because that is where the boundary of
+    /// the command-word refusal sits — a check reading « this word names no command » and given
+    /// the raw <c>args[0]</c> answers the two commonest lines of the tool, no word and
+    /// <c>--help</c>, with an error and a code of 6 — but what holds the entry point to it is
+    /// <c>BuildChainParityTests</c>, which requires the build chain to run the binary itself on
+    /// <c>rempart --help</c> and demand a 0.
     /// </para>
     /// </summary>
     [Fact]

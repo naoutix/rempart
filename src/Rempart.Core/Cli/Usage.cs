@@ -44,7 +44,11 @@ namespace Rempart.Core.Cli;
 /// help is actually asked for — <c>rempart</c> alone, <c>rempart --help</c> and
 /// <c>rempart help</c> still print the usage text and exit <c>0</c>, the first two because a
 /// line carrying no command word at all resolves to <see cref="Fallback"/> before it gets
-/// here.
+/// here. « No command word » is a fact about the parser and not about the person typing:
+/// <see cref="CommandLine.WordAt"/> answers <c>null</c> as soon as the first token starts with
+/// a dash, so <c>rempart -scan --from t.json</c> is a misspelt command word carrying an option
+/// and still prints the help with a code of success — the same open question as
+/// <c>rempart --json</c>, and not something this check decides.
 /// </para>
 ///
 /// <para>
