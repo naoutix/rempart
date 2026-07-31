@@ -196,6 +196,15 @@ public static class Anonymiser
         snapshot.ListeningPortsDiagnostic = ScrubDiagnostic(snapshot.ListeningPortsDiagnostic);
         snapshot.BrowserExtensionsDiagnostic = ScrubDiagnostic(snapshot.BrowserExtensionsDiagnostic);
 
+        // The two that arrived with #184, and the second is the one that earns the line: the
+        // software read names the sources it lost, and one of them is the Chocolatey library —
+        // a configurable path, which on a machine that moved it sits under a profile. The DNS
+        // one quotes registry key paths only, and is scrubbed beside it rather than argued to
+        // be safe: it is free text naming what a read failed on, the shape that has already
+        // carried an account name out of a capture twice.
+        snapshot.DnsDiagnostic = ScrubDiagnostic(snapshot.DnsDiagnostic);
+        snapshot.SoftwareDiagnostic = ScrubDiagnostic(snapshot.SoftwareDiagnostic);
+
         // The sixth, and the one that quotes an operating-system message verbatim: a hosts
         // file held open comes back with whatever IOException said, in the machine's own
         // language and sometimes with a path in it.

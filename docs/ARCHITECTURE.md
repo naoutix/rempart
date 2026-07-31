@@ -288,14 +288,22 @@ the one surface where "nothing found" must never come from a failure to look. Fi
 separate debts closed that same silence one collector at a time before the shape was
 written down once.
 
-Five reads share the shape — a list, whether it could be obtained, and why not when
-it could not: loaded drivers, running processes, listening ports, browser
-extensions, directory listings. `Providers/StatusChannel.cs` defines it once, as
-`IStatusCarryingRead<TSelf, TItem>`.
+Eight reads share the shape — a list, whether it could be obtained, and why not when
+it could not: loaded drivers, running processes, listening ports, browser extensions,
+directory listings, the `hosts` file, the DNS interfaces and the software inventory.
+`Providers/StatusChannel.cs` defines it once, as `IStatusCarryingRead<TSelf, TItem>`.
+
+The last two arrived in #184, and their arrival is an argument for the guard rather
+than for the list: they were the two reads still returning a bare
+`IReadOnlyList<>`, so a registry key the scan was refused produced zero DNS resolver
+and zero installed program — and a report with nothing to say about either. The count
+above is written by hand and is not what keeps it right:
+`ProviderStatusChannelTests` compares the whole provider layer against a table, and a
+read that *gains* a channel fails it as readily as one that loses it.
 
 In a snapshot, the status is stored **beside** the list, never in place of it:
 `driversStatus` and `driversDiagnostic` next to `drivers`, and the same three fields
-for each of the other four reads. Turning `drivers` from a JSON array into an object
+for each of the other seven reads. Turning `drivers` from a JSON array into an object
 would make every existing capture unreadable — including the real-machine captures
 kept outside the repository. Three loose fields is the price of that compatibility,
 and it forces replay to be a decision rather than a deserialisation:

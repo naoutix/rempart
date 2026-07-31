@@ -55,13 +55,15 @@ public sealed class ProviderStatusChannelTests
         "IBrowserExtensionProvider.Read → statut + diagnostic",
         "IComponentStoreProvider.Read → statut + diagnostic",
 
-        // Une machine sans interface réseau configurée existe : zéro est une réponse. La
-        // raison ne couvre plus tout depuis REV-11 : ce provider énumère les interfaces avec
-        // ListSubKeys, qui sait désormais dire « refusé », et il jette ce statut faute d'un
-        // canal où le poser. Un refus sur Tcpip\Parameters\Interfaces rend donc encore zéro
-        // résolveur. Consigné ici plutôt que corrigé au passage — c'est une autre lecture,
-        // avec son propre champ d'instantané à ajouter.
-        "IDnsProvider.Read → aucun",
+        // Arrivée ici en « aucun », avec la raison « une machine sans interface réseau
+        // configurée existe : zéro est une réponse ». Cette raison est toujours vraie et ne
+        // couvrait pas tout : ce provider lit trois fois le registre — l'énumération des
+        // interfaces, puis les deux valeurs de chacune — et chacune sait dire « refusé »
+        // depuis REV-11. Le refus tombait dans la même liste vide que la réponse, donc une ACL
+        // sur Tcpip\Parameters\Interfaces rendait zéro résolveur et zéro constat, sur la
+        // surface même qui sert de vecteur de détournement (#184). Le canal sépare les deux, et
+        // zéro reste muet — c'est l'asymétrie, pas son abandon.
+        "IDnsProvider.Read → statut + diagnostic",
 
         // DET-WMI-MUET même : zéro pilote sur une machine allumée est une panne.
         "IDriverProvider.Enumerate → statut + diagnostic",
@@ -168,12 +170,14 @@ public sealed class ProviderStatusChannelTests
         // (DET-CATALOGUE-MUET, fermée).
         "ISignatureProvider.Verify → statut seul",
 
-        // Zéro logiciel installé est faux sur une machine réelle, mais un inventaire vide
-        // n'est pas une bonne nouvelle qu'on pourrait prendre pour un verdict : il ne
-        // déclenche aucune règle. Moins urgent que les ports. Même réserve que pour le DNS
-        // ci-dessus : les quatre ListSubKeys de ce provider savent maintenant dire « refusé »
-        // et il n'a pas où le mettre.
-        "ISoftwareInventoryProvider.Read → aucun",
+        // Arrivée ici en « aucun » avec la même réserve que le DNS ci-dessus, et fermée avec
+        // lui (#184). Un inventaire vide reste muet — il ne déclenche aucune règle et n'accuse
+        // personne — mais quatre sources indépendantes remplissent cette liste, six
+        // énumérations de registre et un listage de répertoire, et chacune peut manquer seule.
+        // Le diagnostic nomme celles qui manquent ; le statut dit laquelle des deux réponses
+        // c'est, parce que la bibliothèque Chocolatey est la seule source ici qui puisse
+        // échouer sans qu'on lui refuse rien.
+        "ISoftwareInventoryProvider.Read → statut + diagnostic",
 
         // Pas de forme « vide » : le type rend toujours une machine décrite.
         "ISystemInfoProvider.Read → aucun",

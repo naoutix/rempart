@@ -366,13 +366,37 @@ public sealed class SnapshotFirewallProvider(MachineSnapshot snapshot) : IFirewa
 
 public sealed class RecordingDnsProvider(IDnsProvider inner, MachineSnapshot snapshot) : IDnsProvider
 {
-    public IReadOnlyList<DnsInterface> Read() => snapshot.Dns ??= [.. inner.Read()];
+    public DnsRead Read() => StatusChannel.Record(
+        snapshot.DnsStatus, snapshot.Dns, snapshot.DnsDiagnostic,
+        inner.Read,
+        // The status is recorded alongside the list: a capture taken on a machine that refused
+        // Tcpip\Parameters\Interfaces must replay as « je n'ai pas pu regarder », not as a
+        // machine that resolves through nothing — which is what a refusal laid there is for.
+        read =>
+        {
+            snapshot.Dns = [.. read.Interfaces];
+            snapshot.DnsStatus = read.Status;
+            snapshot.DnsDiagnostic = read.Diagnostic;
+        });
 }
 
 public sealed class SnapshotDnsProvider(MachineSnapshot snapshot) : IDnsProvider
 {
-    // Absent from an earlier capture: empty list, the fixture stays replayable.
-    public IReadOnlyList<DnsInterface> Read() => snapshot.Dns ?? [];
+    public DnsRead Read() => StatusChannel.Replay(
+        snapshot.DnsStatus, snapshot.Dns, snapshot.DnsDiagnostic,
+        // Absent from an earlier capture: an empty, successful read. Unlike the drivers and
+        // like the hosts file, zero is a state this surface is allowed to answer — a machine
+        // with no configured interface exists, and the partition guard has said so since the
+        // day it was written. A capture predating this collection therefore replays exactly as
+        // it did rather than growing a gap it never recorded, which is the promise
+        // StatusChannel makes to the real captures kept outside this repository.
+        //
+        // What #184 corrected is the other reading, and only it: a refusal used to arrive here
+        // as this same empty list. It now arrives as a refusal, from the capture that recorded
+        // one. Whether « jamais capturé » should itself speak on this surface is a separate
+        // judgement about emptiness, and reversing it would put a NOTABLE on every capture
+        // older than this batch.
+        static () => DnsRead.Found([]));
 }
 
 public sealed class RecordingHostsFileProvider(
@@ -418,13 +442,29 @@ public sealed class SnapshotProxyProvider(MachineSnapshot snapshot) : IProxyProv
 public sealed class RecordingSoftwareInventoryProvider(
     ISoftwareInventoryProvider inner, MachineSnapshot snapshot) : ISoftwareInventoryProvider
 {
-    public IReadOnlyList<InstalledSoftware> Read() => snapshot.Software ??= [.. inner.Read()];
+    public SoftwareInventoryRead Read() => StatusChannel.Record(
+        snapshot.SoftwareStatus, snapshot.Software, snapshot.SoftwareDiagnostic,
+        inner.Read,
+        // The status is recorded alongside the list: a capture taken while an uninstall key
+        // was refused must replay as a partial inventory, not as a machine with nothing
+        // installed under it.
+        read =>
+        {
+            snapshot.Software = [.. read.Software];
+            snapshot.SoftwareStatus = read.Status;
+            snapshot.SoftwareDiagnostic = read.Diagnostic;
+        });
 }
 
-public sealed class SnapshotSoftwareInventoryProvider(MachineSnapshot snapshot) : ISoftwareInventoryProvider
+public sealed class SnapshotSoftwareInventoryProvider(MachineSnapshot snapshot)
+    : ISoftwareInventoryProvider
 {
-    // Absent from an earlier capture: empty list, the fixture stays replayable.
-    public IReadOnlyList<InstalledSoftware> Read() => snapshot.Software ?? [];
+    public SoftwareInventoryRead Read() => StatusChannel.Replay(
+        snapshot.SoftwareStatus, snapshot.Software, snapshot.SoftwareDiagnostic,
+        // Absent from an earlier capture: an empty, successful read, for the reason its DNS
+        // neighbour gives. An empty inventory triggers no rule and accuses no machine, so a
+        // capture predating this collection replays exactly as it did.
+        static () => SoftwareInventoryRead.Found([]));
 }
 
 public sealed class RecordingWifiProfileProvider(

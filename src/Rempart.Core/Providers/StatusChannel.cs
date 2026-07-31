@@ -5,9 +5,10 @@ namespace Rempart.Core.Providers;
 /// when it could not.
 ///
 /// <para>
-/// Five reads have exactly this shape — drivers, processes, listening ports, browser
-/// extensions, directory listings — and they got it one at a time, over DET-WMI-MUET,
-/// DET-EXT-MUET, DET-PORTS-MUET and DET-FICHIERS-MUET. What they share is not just the
+/// Eight reads have exactly this shape — drivers, processes, listening ports, browser
+/// extensions, directory listings, the <c>hosts</c> file, the DNS interfaces and the software
+/// inventory — and they got it one at a time, over DET-WMI-MUET, DET-EXT-MUET, DET-PORTS-MUET,
+/// DET-FICHIERS-MUET, REV-12 and #184. What they share is not just the
 /// record: it is the <em>three-way reading of a capture</em> that <see cref="StatusChannel"/>
 /// holds, and that reading was copied four times before this class existed. A fifth copy was
 /// where the next mistake would have sat, because the subtle branch — a capture taken before
