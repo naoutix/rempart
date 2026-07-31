@@ -287,18 +287,27 @@ public sealed class StatusChannelTests
     }
 
     /// <summary>
-    /// A directory the capture holds nothing about. <c>AccessDenied</c> and not an empty
-    /// listing, for the reason the debt was opened over: the replay would otherwise conclude
-    /// « aucun autorun » about a folder this capture never walked. Not <c>NotFound</c>
-    /// either — that would claim the folder was missing from the machine, which is a fact the
-    /// capture never recorded.
+    /// A directory the capture holds nothing about. A speaking state and not an empty listing,
+    /// for the reason the debt was opened over: the replay would otherwise conclude « aucun
+    /// autorun » about a folder this capture never walked. Not <c>NotFound</c> either — that
+    /// would claim the folder was missing from the machine, which is a fact the capture never
+    /// recorded.
+    ///
+    /// <para>
+    /// <c>Failed</c> since #173, and the change is the assertion catching up with what was
+    /// always meant. This read was <c>AccessDenied</c> because that was the only speaking state
+    /// the channel had, and the summary here argued only against the other two. Nobody denied
+    /// anything: a snapshot with no entry at this path is a capture that never walked it, and
+    /// no console however elevated re-walks a file on disk.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_directory_absent_from_a_capture_is_not_a_directory_that_was_empty()
     {
         var read = new SnapshotFileSystemProvider(new MachineSnapshot()).ListFiles(Startup);
 
-        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Equal(ReadStatus.Failed, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
         Assert.Empty(read.Files);
         Assert.Contains(Startup, read.Diagnostic ?? string.Empty, StringComparison.Ordinal);
     }
@@ -318,7 +327,9 @@ public sealed class StatusChannelTests
         var snapshot = new MachineSnapshot();
         var source = new CountingFileSystemProvider(new Dictionary<string, DirectoryRead>
         {
-            [Startup] = DirectoryRead.Failed("Accès refusé."),
+            // Refused, as the sentence beside it has always said. It read Failed until #173,
+            // when that factory stopped meaning a denial.
+            [Startup] = DirectoryRead.Refused("Accès refusé."),
             [Other] = DirectoryRead.Found([$@"{Other}\app.lnk"]),
         });
         var recording = new RecordingFileSystemProvider(source, snapshot);
@@ -524,7 +535,7 @@ public sealed class StatusChannelTests
     {
         var snapshot = new MachineSnapshot();
         var source = new CountingHostsFileProvider(
-            HostsFileRead.Failed("Fichier hosts illisible : accès refusé."));
+            HostsFileRead.Refused("Fichier hosts illisible : accès refusé."));
         var recording = new RecordingHostsFileProvider(source, snapshot);
 
         recording.ReadLines();
@@ -540,6 +551,43 @@ public sealed class StatusChannelTests
         Assert.Equal(ReadStatus.AccessDenied, replayed.Status);
         Assert.Equal("Fichier hosts illisible : accès refusé.", replayed.Diagnostic);
         Assert.Empty(replayed.Lines);
+    }
+
+    /// <summary>
+    /// The other half of the split, through the same file round trip: a read that failed
+    /// without being denied has to come back <em>as a failure</em>, not as the denial it was
+    /// indistinguishable from until #173.
+    ///
+    /// <para>
+    /// Written because <see cref="ReadStatus.Failed"/> is a new value of a field a capture
+    /// already stores, and a value the source-generated serialiser cannot write is a value the
+    /// replay silently downgrades. That is the whole class of defect this file exists for —
+    /// the status set in memory, dropped on the way to disk, and the machine replaying as one
+    /// that answered. The assertion is on the <em>value</em> of the field, never on the key
+    /// being present, so the capture stays the contract.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_failed_hosts_read_is_recorded_serialised_and_replayed_as_a_failure()
+    {
+        const string Reason = "Fichier hosts illisible : le fichier est ouvert en exclusif.";
+
+        var snapshot = new MachineSnapshot();
+        var recording = new RecordingHostsFileProvider(
+            new CountingHostsFileProvider(HostsFileRead.Failed(Reason)), snapshot);
+
+        recording.ReadLines();
+
+        var replayed = new SnapshotHostsFileProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).ReadLines();
+
+        Assert.Equal(ReadStatus.Failed, replayed.Status);
+        Assert.Equal(Reason, replayed.Diagnostic);
+        Assert.Empty(replayed.Lines);
+
+        // The point of the pair: a capture of a locked file must not replay as one telling its
+        // reader to re-run elevated.
+        Assert.NotEqual(ReadStatus.AccessDenied, replayed.Status);
     }
 
     /// <summary>

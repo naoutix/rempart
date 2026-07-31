@@ -73,6 +73,18 @@ public sealed record BrowserExtensionRead(
     /// listing where the same string is hashed. What a reader acts on is "a Firefox profile
     /// could not be read", and that survives.
     /// </para>
+    ///
+    /// <para>
+    /// <b>What reaches this state, now written down where the state is defined</b> (#173): the
+    /// live read catches <c>IOException</c> <em>and</em> <c>UnauthorizedAccessException</c> on
+    /// the profile walk, and this summary named only the corrupt file. Unlike the startup
+    /// folders and <c>hosts</c>, that undocumented half changes no answer and the state is not
+    /// split: the profiles walked are the current user's own, so
+    /// <c>BrowserExtensionsCollector</c> answers <see cref="Findings.AuditGap.Unreadable"/>
+    /// whichever of the two threw — elevation neither re-parses broken JSON nor pries a
+    /// profile out of the running browser holding it open. The defect here was a silent
+    /// omission in the documentation, not an inverted verdict, and it is corrected as one.
+    /// </para>
     /// </summary>
     public static BrowserExtensionRead Partial(
         IReadOnlyList<BrowserExtension> extensions, IReadOnlyList<string> unreadable) =>

@@ -185,15 +185,35 @@ public class HostsFileTests
     /// technique that protects a redirection already in place, and it produced the same
     /// empty list as the comment-only file Windows ships — so the collector reported
     /// nothing, <c>CriticalFragments</c> included.
+    ///
+    /// <para>
+    /// <c>Refused</c> and not <c>Failed</c> since #173, and the rename is why this guard had
+    /// to be reread: the factory it called kept its name and changed its meaning underneath
+    /// it, so REV-12's own test walked the failure branch and became a second copy of
+    /// <see cref="A_failure_that_is_not_a_denial_is_reported_as_itself"/> with a different
+    /// string. Its assertions could not have noticed — a severity both branches share and a
+    /// sentence the test itself planted. What separates the two is the value the collector
+    /// <em>chose</em>, so that is what each of them now asserts.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_refused_hosts_file_is_reported_rather_than_read_as_no_entry()
     {
         var finding = Assert.Single(Collect(
-            HostsFileRead.Failed("Fichier hosts illisible : accès refusé.")));
+            HostsFileRead.Refused("Fichier hosts illisible : accès refusé.")));
 
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal(AuditGap.Refused, finding.Gap);
         Assert.Contains("accès refusé", string.Join(" ", finding.Reasons), StringComparison.Ordinal);
+
+        // And the same read with nothing to say, which is the only way to reach the sentence
+        // the collector writes itself: a read carrying a diagnostic has it printed verbatim,
+        // so the fallback — the one that names elevation — is unreachable above.
+        var mute = Assert.Single(Collect(new HostsFileRead(ReadStatus.AccessDenied, [], null)));
+
+        Assert.Equal(AuditGap.Refused, mute.Gap);
+        Assert.Contains("administrateur", string.Join(" ", mute.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -213,6 +233,13 @@ public class HostsFileTests
     /// <c>IOException</c> on a file held open exclusively — which malware does as readily as
     /// it sets an ACL — and calling that « accès refusé » is the invariant CONTRIBUTING
     /// records, paid for once already by two milestones of a mute WMI.
+    ///
+    /// <para>
+    /// The pair of the guard above, and only the pair is a claim: this one alone is satisfied
+    /// by a collector that answers <see cref="AuditGap.Unreadable"/> to everything, which is
+    /// the shape that shipped once and told the reader nothing could be done about the
+    /// commonest gap the tool has.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_failure_that_is_not_a_denial_is_reported_as_itself()
@@ -221,7 +248,17 @@ public class HostsFileTests
             HostsFileRead.Failed("Fichier hosts illisible : le fichier est ouvert en exclusif.")));
 
         var reasons = string.Join(" ", finding.Reasons);
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
         Assert.Contains("exclusif", reasons, StringComparison.Ordinal);
         Assert.DoesNotContain("accès refusé", reasons, StringComparison.Ordinal);
+
+        // The mute half, as above: no remedy offered where there is none to offer, and this is
+        // the only read that reaches the collector's own sentence to check it.
+        var mute = Assert.Single(Collect(new HostsFileRead(ReadStatus.Failed, [], null)));
+
+        Assert.Equal(AuditGap.Unreadable, mute.Gap);
+        Assert.NotEmpty(mute.Reasons);
+        Assert.DoesNotContain("administrateur", string.Join(" ", mute.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 }

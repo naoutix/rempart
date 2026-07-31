@@ -809,6 +809,19 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
     /// it as an absence. A stand-in string is still a sentence, and one contradicting the
     /// mapping it sits beside teaches the next reader the thing that was just corrected.
     /// </para>
+    ///
+    /// <para>
+    /// The silent half changed in #173 and this test changed with it. It used to assert that
+    /// the projection <em>replaced</em> the silence of <c>WmiRead.AccessDenied</c> with a
+    /// « relancer en administrateur » sentence of its own. That substitution was the defect:
+    /// <see cref="Finding.WmiGap"/> tells a denial from a repository failure by the absence of
+    /// a reason, so filling it in one layer below the collector erased the only evidence the
+    /// classification rests on, and every refused namespace arrived marked as a failure with
+    /// an elevation sentence printed underneath it. The sentence still reaches the report —
+    /// <c>LoadedDriversCollector</c> and <c>RunningProcessesCollector</c> hold it as their
+    /// fallback, which is where wording for a silence belongs — and
+    /// <c>LiveDriverAndProcessProviderTests</c> is what asserts it arrives.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_total_failure_still_answers_an_empty_inventory()
@@ -826,9 +839,10 @@ public sealed class LiveWmiProviderTests(ITestOutputHelper output)
         Assert.Equal(ReadStatus.AccessDenied, processes.Status);
         Assert.Empty(processes.Processes);
 
-        // WmiRead.AccessDenied carries no diagnostic — a genuine refusal has nothing to
-        // explain — so the consumer's own sentence is what reaches the report.
-        Assert.Contains("administrateur", processes.Diagnostic!, StringComparison.Ordinal);
+        // The silence travels. A genuine refusal has nothing to explain, and that is precisely
+        // what the classification reads — so the projection forwards the null rather than
+        // being helpful about it.
+        Assert.Null(processes.Diagnostic);
     }
 
     /// <summary>

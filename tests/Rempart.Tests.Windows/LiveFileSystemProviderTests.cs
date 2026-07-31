@@ -21,8 +21,16 @@ namespace Rempart.Tests.Windows;
 /// does not already define — and nothing that could behave differently under Native AOT:
 /// <c>Directory.GetFiles</c> is managed code with no interop and no reflection. What is worth
 /// pinning is the <em>shape of what it returns</em>, and that only a real filesystem can say.
-/// That shape is now three states rather than a list (DET-FICHIERS-MUET), and the three are
-/// what these tests separate.
+/// That shape is four states rather than a list (DET-FICHIERS-MUET, then #173), and the four
+/// are what these tests separate.
+/// </para>
+///
+/// <para>
+/// Three of the four are staged against the real filesystem. The fourth cannot be: an
+/// <c>IOException</c> out of <c>Directory.GetFiles</c> wants a volume pulled mid-listing, so
+/// the last test drives the provider's listing seam instead. What it asserts is not the
+/// filesystem's behaviour but this file's own — which exception becomes which state — and that
+/// is precisely the sentence <c>IFileSystemProvider</c> documents.
 /// </para>
 /// </summary>
 public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
@@ -119,9 +127,20 @@ public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
                 + "servir de dossier refusé. Contrôle non exécuté.");
             return;
         }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+        catch (UnauthorizedAccessException)
         {
             // Denied, as expected: the provider must swallow this rather than propagate it.
+        }
+        catch (IOException ex)
+        {
+            // Not a denial, so not this test's subject — and since #173 not this test's
+            // answer either. The filter used to take both exceptions because both produced
+            // AccessDenied; now an IOException would satisfy the precondition and fail the
+            // assertion below over a machine state that has nothing to do with the provider.
+            output.WriteLine(
+                $"{Denied} échoue sans être refusé ({ex.GetType().Name}) : il ne peut pas "
+                + "servir de dossier refusé. Contrôle non exécuté.");
+            return;
         }
 
         var read = files.ListFiles(Denied);
@@ -138,5 +157,60 @@ public sealed class LiveFileSystemProviderTests(ITestOutputHelper output)
         // string would differ between a French and an English install and land, character
         // for character, inside a capture.
         Assert.Contains("accès refusé", read.Diagnostic, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The pair that ties the <c>catch</c> blocks to the sentence <c>IFileSystemProvider</c>
+    /// documents, which is the whole of #173 and the one thing the fix for it left unguarded.
+    ///
+    /// <para>
+    /// The defect was a single <c>catch (Exception ex) when (ex is UnauthorizedAccessException
+    /// or IOException)</c> behind a factory the interface called « the listing was refused »,
+    /// so <c>AutorunsCollector</c> sent the reader to elevate over a folder held open by
+    /// another process. Splitting the <c>catch</c> made the two states <em>expressible</em>;
+    /// only this pair makes them <em>true</em> — merge the blocks back and the failure half
+    /// goes red here, which is what nothing did before.
+    /// </para>
+    ///
+    /// <para>
+    /// Both halves, because only the pair is a claim: asserting the failure alone is satisfied
+    /// by a provider that answers <c>Failed</c> to everything, and that provider would report
+    /// « rien à faire » about the commonest gap this tool has. The directory is real and
+    /// exists — the seam replaces the listing, not the existence check, so the read reaches
+    /// the <c>catch</c> the same way a live one does.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_denied_listing_and_a_failed_listing_do_not_arrive_as_the_same_state()
+    {
+        var directory = Environment.SystemDirectory;
+
+        var denied = new LiveFileSystemProvider(
+            _ => throw new UnauthorizedAccessException()).ListFiles(directory);
+
+        Assert.Equal(ReadStatus.AccessDenied, denied.Status);
+        Assert.Empty(denied.Files);
+        Assert.NotNull(denied.Diagnostic);
+        Assert.Contains("accès refusé", denied.Diagnostic, StringComparison.Ordinal);
+
+        var failed = new LiveFileSystemProvider(
+            _ => throw new IOException("volume retiré")).ListFiles(directory);
+
+        Assert.Equal(ReadStatus.Failed, failed.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, failed.Status);
+        Assert.Empty(failed.Files);
+
+        // Named, not silent: the collector prints this, and a failure with nothing to say
+        // costs the report the folder as surely as an empty listing did.
+        Assert.NotNull(failed.Diagnostic);
+        Assert.Contains(directory, failed.Diagnostic, StringComparison.Ordinal);
+
+        // And it says what happened rather than borrowing the other branch's word — the
+        // invariant CONTRIBUTING records, and the sentence the state now agrees with.
+        Assert.DoesNotContain("accès refusé", failed.Diagnostic, StringComparison.Ordinal);
+
+        // The BCL's own message stays out of both: it is localised, and a diagnostic reaches
+        // a capture whose references are compared character for character.
+        Assert.DoesNotContain("volume retiré", failed.Diagnostic, StringComparison.Ordinal);
     }
 }

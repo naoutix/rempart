@@ -11,6 +11,49 @@ public enum ReadStatus
     Found,
     NotFound,
     AccessDenied,
+
+    /// <summary>
+    /// The read was attempted, did not complete, and <b>was not denied</b> — a file held open
+    /// by another process, a volume that went away mid-listing. Nothing about the caller's
+    /// rights changes this answer.
+    ///
+    /// <para>
+    /// Added because its absence is what made a documented contract untrue. With three values
+    /// a channel that wanted to speak had exactly one way to do it, so
+    /// <c>DirectoryRead.Failed</c> and <c>HostsFileRead.Failed</c> returned
+    /// <see cref="AccessDenied"/> for an <c>IOException</c> as much as for an ACL, while their
+    /// interfaces documented that state as « the listing was refused ». The collectors read the
+    /// documentation, answered <see cref="Findings.AuditGap.Refused"/>, and a startup folder
+    /// held open by another process told its reader to re-run as administrator — the invariant
+    /// CONTRIBUTING records, « never translate a failure into access denied », broken by the
+    /// vocabulary rather than by any one <c>catch</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What naming the fourth state buys, exactly, and what it does not.</b> It makes the
+    /// distinction <em>expressible</em>, so a collector can branch on the state instead of on a
+    /// sentence of prose — that part is structural and holds without anyone remembering it. It
+    /// does not make the documentation true by construction: nothing in the type stops a
+    /// <c>catch</c> from mapping <c>IOException</c> onto <see cref="AccessDenied"/> again, and
+    /// the first fix here shipped with exactly that mutation passing both suites, because the
+    /// one branch that names the defect was the one branch no test could reach. Each live read
+    /// therefore carries a seam and a test asserting its own mapping —
+    /// <c>LiveFileSystemProviderTests</c> and <c>LiveHostsFileProviderTests</c>. The type plus
+    /// those two is what closes it; the type alone was still discipline.
+    /// </para>
+    ///
+    /// <para>
+    /// Appended last, and only ever <em>produced</em> by the two reads above: every other
+    /// channel keeps spelling its failures <see cref="AccessDenied"/>, so no existing
+    /// <c>== AccessDenied</c> comparison changes meaning. Two callers of
+    /// <c>DirectoryRead.Failed</c> do change branch, though — a scan wired with no file
+    /// provider and a capture holding nothing at a path — and both move from « droits
+    /// insuffisants » to « audit partiel », which is the answer they always should have given.
+    /// Statuses are serialised by name, so a capture taken before this value simply never
+    /// carries it and replays exactly as it did.
+    /// </para>
+    /// </summary>
+    Failed,
 }
 
 public sealed record RegistryValue(string Kind, string? Text, long? Number)

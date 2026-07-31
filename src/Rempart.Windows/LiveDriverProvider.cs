@@ -65,8 +65,16 @@ public sealed class LiveDriverProvider(IWmiProvider wmi) : IDriverProvider
         // A WMI enumeration breaks one object at a time, so a driver already returned before
         // the provider faulted was dropped along with the failure that followed it — the
         // silence DET-WMI-MUET closed, re-entered from the other side.
-        return new DriverRead(read.Status, drivers,
-            read.Diagnostic ?? "Énumération des pilotes refusée par WMI. Relancer en "
-            + "administrateur : un pilote vulnérable chargé resterait invisible.");
+        //
+        // The status AND the diagnostic are forwarded untouched, the second one included when
+        // it is null. That null is not a missing sentence to be helpful about: on this channel
+        // it is the message. WmiRead spells a denial as AccessDenied carrying no reason and
+        // every other failure as one carrying the code, which is the single inference #166
+        // kept because LiveWmiProvider.Classify writes it down. Filling the silence in here
+        // erased it one layer below the collector that reads it, so a refused root\CIMV2 came
+        // back classified as a repository failure — while the sentence substituted underneath
+        // said « relancer en administrateur ». The collector holds the fallback wording for a
+        // read that said nothing, which is where a sentence for a silence belongs.
+        return new DriverRead(read.Status, drivers, read.Diagnostic);
     }
 }

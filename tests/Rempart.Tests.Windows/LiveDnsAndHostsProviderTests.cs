@@ -180,11 +180,21 @@ public sealed class LiveHostsFileProviderTests
     }
 
     /// <summary>
-    /// The refusal, staged the one way a non-elevated test can: a file held open with no
+    /// The failure, staged the one way a non-elevated test can: a file held open with no
     /// sharing, which is what malware protecting its own redirection does as readily as it
     /// sets an ACL. <c>File.ReadAllLines</c> throws <c>IOException</c> there, and the read
     /// must not call that « accès refusé » — the invariant CONTRIBUTING records, paid for
     /// once by two milestones of a mute WMI.
+    ///
+    /// <para>
+    /// This test could only check the <em>sentence</em> until #173, because the channel had a
+    /// single speaking state and the state was called <c>AccessDenied</c> whichever exception
+    /// arrived. So it passed while <c>HostsFileCollector</c>, which branches on the state and
+    /// not on the sentence, answered <see cref="Core.Findings.AuditGap.Refused"/> for exactly
+    /// this file and told its reader to re-run as administrator. Asserting the state is what
+    /// makes this the guard its name always claimed to be, and it is the one that ties the
+    /// <c>catch</c> below to the contract the interface documents.
+    /// </para>
     /// </summary>
     [Fact]
     public void A_hosts_file_held_open_fails_without_being_called_a_denial()
@@ -201,9 +211,20 @@ public sealed class LiveHostsFileProviderTests
             var read = new LiveHostsFileProvider(directory).ReadLines();
 
             Assert.Empty(read.Lines);
-            Assert.NotEqual(Core.Providers.ReadStatus.Found, read.Status);
             Assert.NotNull(read.Diagnostic);
             Assert.DoesNotContain("accès refusé", read.Diagnostic, StringComparison.Ordinal);
+
+            // The state, not only the wording: this is what the collector reads.
+            Assert.Equal(Core.Providers.ReadStatus.Failed, read.Status);
+            Assert.NotEqual(Core.Providers.ReadStatus.AccessDenied, read.Status);
+
+            // The category of the failure, and not the framework's own sentence. This branch
+            // interpolated ex.Message until #173's review, and the diagnostic is recorded into
+            // a capture whose references are compared character for character — so the same
+            // held-open file gave a French install and an English one two different captures.
+            // The BCL names the file it could not open; a diagnostic that does is carrying it.
+            Assert.Contains("erreur d'entrée/sortie", read.Diagnostic, StringComparison.Ordinal);
+            Assert.DoesNotContain(path, read.Diagnostic, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

@@ -37,8 +37,9 @@ public sealed class BrowserExtensionsCollector : IFindingCollector
         // Preferences silently removing a whole profile from the inventory. Elevating does not
         // re-parse broken JSON, and it does not pry a profile out of the running browser
         // holding it open. The live read also catches UnauthorizedAccessException on those
-        // same paths, which the interface does not describe; that mismatch travels as
-        // spillover on the pull request rather than being settled quietly here.
+        // same paths; the interface now says so (#173), and says why it changes no answer
+        // here — the profiles are the current user's own. The mismatch was in what the
+        // interface described, not in what this site concluded.
         if (read.Diagnostic is { } diagnostic)
         {
             findings.Add(Finding.Unreadable(

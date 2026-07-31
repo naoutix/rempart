@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Rempart.Core.Providers;
 
 namespace Rempart.Core.Findings;
 
@@ -77,11 +78,21 @@ public enum AuditGap
     /// thing that knows. There is no rule spanning the providers to read it off: a single
     /// <see cref="Providers.ReadStatus.AccessDenied"/> spells a refusal on one channel and a
     /// failure on the next, and the diagnostic beside it is no better a witness —
-    /// <c>DirectoryRead.Failed</c> is documented as « the listing was refused » <em>and</em>
-    /// carries a reason, <c>WmiRead.AccessDenied</c> is a genuine refusal and carries none.
-    /// Deriving the answer from either one is how a startup folder denied to a non-elevated
-    /// scan came back as « no amount of rights changes this », which is the opposite of true
-    /// and the reason this paragraph replaced the rule that used to be asserted here.
+    /// <c>WmiRead.Failed</c> carries a reason and is not a denial, <c>WmiRead.AccessDenied</c>
+    /// is a genuine refusal and carries none. Deriving the answer from either one is how a
+    /// startup folder denied to a non-elevated scan came back as « no amount of rights changes
+    /// this », which is the opposite of true and the reason this paragraph replaced the rule
+    /// that used to be asserted here.
+    /// </para>
+    ///
+    /// <para>
+    /// Two channels have since stopped needing the judgement to be delicate.
+    /// <c>DirectoryRead</c> and <c>HostsFileRead</c> split their one speaking state into
+    /// <c>Refused</c> and <c>Failed</c>, so their collectors branch on
+    /// <see cref="Providers.ReadStatus"/> and read no prose at all (#173). That is the shape to
+    /// copy where it is affordable — it is the difference between a contract and a convention —
+    /// but it is not a rule spanning the providers either, and the paragraph above still holds
+    /// for every channel that has not made the split.
     /// </para>
     ///
     /// <para>
@@ -193,8 +204,8 @@ public sealed record Finding(
     /// fallback — and deliberately <em>not</em> the classification. This door used to decide
     /// that too, from <paramref name="diagnostic"/>, on the belief that every provider writes
     /// one for a failure and leaves it null for a refusal. No provider promises that. Half of
-    /// them document the opposite: <c>DirectoryRead.Failed</c> is « the listing was refused »
-    /// and always carries a reason, <c>HostsFileRead.Failed</c> is written by an ACL denial,
+    /// them document the opposite: <c>DirectoryRead.Refused</c> and
+    /// <c>HostsFileRead.Refused</c> are written by an ACL denial and always carry a reason,
     /// <c>FirewallState.Diagnostic</c> is « the read was attempted and refused », and
     /// <c>ScheduledTaskRead.Partial</c> carries a reason for the <c>E_ACCESSDENIED</c> its own
     /// interface calls « the one HRESULT that means elevate and retry ». Under that rule a
@@ -259,9 +270,21 @@ public sealed record Finding(
     /// copies without checking whether its own provider earns it. That copying is how this
     /// rule reached the surfaces that do not.
     /// </para>
+    ///
+    /// <para>
+    /// <paramref name="status"/> is read as well as the reason, because silence alone is not
+    /// the denial: <c>Classify</c> answers a bare <c>WmiRead.NotFound</c> — no reason either —
+    /// for the three codes that mean « no such namespace, no such class », which is what a
+    /// Windows edition without the feature returns. Two of the four sites filter that out
+    /// before they get here and two do not, so the rule that read the reason on its own sent
+    /// the reader to elevate over a class the machine does not have. Only
+    /// <see cref="Providers.ReadStatus.AccessDenied"/> can be a refusal at all.
+    /// </para>
     /// </summary>
-    public static AuditGap WmiGap(string? diagnostic) =>
-        diagnostic is null ? AuditGap.Refused : AuditGap.Unreadable;
+    public static AuditGap WmiGap(ReadStatus status, string? diagnostic) =>
+        status is ReadStatus.AccessDenied && diagnostic is null
+            ? AuditGap.Refused
+            : AuditGap.Unreadable;
 
     /// <summary>
     /// A collector that threw. Distinct from <see cref="Refused"/> down to the exit code:

@@ -626,13 +626,22 @@ never held — and lands on `5`, because neither elevating nor filing a bug move
 Which of the two a gap is, **the collector says**, and it says so because it is the only
 thing that knows. There is no rule across the providers to read it off: one
 `ReadStatus.AccessDenied` spells a denial on one channel and a failure on the next, and
-the diagnostic beside it is no better a witness — `DirectoryRead.Failed` is documented as
-"the listing was refused" *and* carries a reason, `WmiRead.AccessDenied` is a genuine
-refusal and carries none. A first attempt at this derived the answer from the diagnostic
-and inverted it for five channels at once, so a startup folder denied to a non-elevated
-scan reported that no amount of rights would change it. `Finding.Unread` now takes the
-value as a required argument; the two guards in `ExitCodeTests` — one machine refusing
-everything, one failing everything — are what check the answer is right.
+the diagnostic beside it is no better a witness — `WmiRead.Failed` carries a reason and is
+not a denial, `WmiRead.AccessDenied` is a genuine refusal and carries none. A first attempt
+at this derived the answer from the diagnostic and inverted it for five channels at once, so
+a startup folder denied to a non-elevated scan reported that no amount of rights would
+change it. `Finding.Unread` now takes the value as a required argument; the two guards in
+`ExitCodeTests` — one machine refusing everything, one failing everything — are what check
+the answer is right.
+
+`ReadStatus` has a fourth value, `Failed`, for the channels that would otherwise have to
+lie. With three, a read that wanted to say "attempted, did not complete, **not** denied"
+had one door — `AccessDenied` — so `DirectoryRead` and `HostsFileRead` returned it for an
+`IOException` as much as for an ACL while their interfaces documented that state as "the
+listing was refused". Those two now split their speaking state into `Refused` and `Failed`
+and their collectors branch on it, reading no prose (#173). Every other channel still
+spells its failures `AccessDenied` and still needs the judgement above; the split is the
+shape to copy where it is affordable, not a rule that spans the providers.
 
 **`5` does not always mean "re-run elevated"** — in fact it never does. `WIN-ENC-001`
 returns `Unknown` from an elevated console too, when the machine has no

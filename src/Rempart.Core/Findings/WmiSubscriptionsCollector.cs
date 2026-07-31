@@ -66,7 +66,7 @@ public sealed class WmiSubscriptionsCollector : IFindingCollector
             // stop saying so. The WMI channel tells the two apart; nothing else here does.
             findings.Add(Finding.Unread(
                 "wmi-subscription", $"{Namespace}:{className}",
-                Finding.WmiGap(read.Diagnostic), read.Diagnostic,
+                Finding.WmiGap(read.Status, read.Diagnostic), read.Diagnostic,
                 "Énumération refusée. Relancer en administrateur : un abonnement permanent "
                 + "resterait invisible."));
         }

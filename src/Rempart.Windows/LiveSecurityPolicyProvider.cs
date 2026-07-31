@@ -291,17 +291,35 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
 
     private const string PasswordPolicyCall = "NetUserModalsGet(niveau 0)";
 
+    /// <summary>
+    /// The password policy — and, with its pair below, a buffer released on every path out.
+    ///
+    /// <para>
+    /// The release is tied to the <em>allocation</em> and not to the status code, which is the
+    /// shape <see cref="Enumerate"/> already had and the accessory half of #173. Both reads
+    /// used to return through <c>Missing(…)</c> before entering the <c>try</c>, so the
+    /// path « netapi32 failed <em>and</em> handed back a buffer » left it unfreed. That path is
+    /// unreachable by contract — <c>NetUserModalsGet</c> does not allocate on failure, so
+    /// <c>buffer</c> is <c>IntPtr.Zero</c> there and the guard below never fires — which is why
+    /// this is a defensive free and not a measured leak. It is written down because the
+    /// alternative is rediscovering it as a finding every time someone reads the file, which is
+    /// what the issue asked for; and because a contract nobody re-checks is exactly what the
+    /// rest of #173 was about. The file's own docstring promises the buffers are freed, and
+    /// « freed unless netapi32 does something it says it will not do » is a weaker promise than
+    /// the one written at the top.
+    /// </para>
+    /// </summary>
     private static unsafe PolicyGap? ReadPasswordPolicy(Dictionary<string, string> facts)
     {
         var status = NetUserModalsGet(null, 0, out var buffer);
 
-        if (status != NerrSuccess || buffer == IntPtr.Zero)
-        {
-            return Missing(PasswordPolicyCall, status, buffer);
-        }
-
         try
         {
+            if (status != NerrSuccess || buffer == IntPtr.Zero)
+            {
+                return Missing(PasswordPolicyCall, status, buffer);
+            }
+
             var info = *(UserModalsInfo0*)buffer;
 
             facts[PolicyFactNames.PasswordMinLength] = info.MinPasswordLength.ToString();
@@ -316,7 +334,10 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         }
         finally
         {
-            NetApiBufferFree(buffer);
+            if (buffer != IntPtr.Zero)
+            {
+                NetApiBufferFree(buffer);
+            }
         }
 
         return null;
@@ -324,17 +345,18 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
 
     private const string LockoutPolicyCall = "NetUserModalsGet(niveau 3)";
 
+    /// <summary>The pair of <see cref="ReadPasswordPolicy"/>, and the same release shape.</summary>
     private static unsafe PolicyGap? ReadLockoutPolicy(Dictionary<string, string> facts)
     {
         var status = NetUserModalsGet(null, 3, out var buffer);
 
-        if (status != NerrSuccess || buffer == IntPtr.Zero)
-        {
-            return Missing(LockoutPolicyCall, status, buffer);
-        }
-
         try
         {
+            if (status != NerrSuccess || buffer == IntPtr.Zero)
+            {
+                return Missing(LockoutPolicyCall, status, buffer);
+            }
+
             var info = *(UserModalsInfo3*)buffer;
 
             facts[PolicyFactNames.LockoutThreshold] = info.LockoutThreshold.ToString();
@@ -342,7 +364,10 @@ public sealed partial class LiveSecurityPolicyProvider : ISecurityPolicyProvider
         }
         finally
         {
-            NetApiBufferFree(buffer);
+            if (buffer != IntPtr.Zero)
+            {
+                NetApiBufferFree(buffer);
+            }
         }
 
         return null;

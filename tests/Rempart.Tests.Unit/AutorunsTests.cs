@@ -27,8 +27,26 @@ internal sealed class FakeFileSystemProvider : IFileSystemProvider
     {
         byDirectory[directory] = reason is null
             ? new DirectoryRead(ReadStatus.AccessDenied, [], null)
-            : DirectoryRead.Failed(
+            : DirectoryRead.Refused(
                 reason is "" ? $"Dossier « {directory} » illisible : accès refusé." : reason);
+        return this;
+    }
+
+    /// <summary>
+    /// A folder the scan could not list <em>without</em> being refused — held open, or on a
+    /// volume that went away. The other half of what <see cref="WithDenied"/> used to cover on
+    /// its own: both went through a factory called <c>Failed</c> that returned
+    /// <c>AccessDenied</c>, so a fake asked for a denial and a fake asked for a failure were
+    /// the same object and no test could tell the collector's two answers apart (#173).
+    /// </summary>
+    public FakeFileSystemProvider WithFailed(string directory, string? reason = "")
+    {
+        byDirectory[directory] = reason is null
+            ? new DirectoryRead(ReadStatus.Failed, [], null)
+            : DirectoryRead.Failed(
+                reason is ""
+                    ? $"Dossier « {directory} » illisible : erreur d'entrée/sortie."
+                    : reason);
         return this;
     }
 
@@ -267,5 +285,91 @@ public class AutorunsTests
 
         Assert.Equal(FindingSeverity.Notable, finding.Severity);
         Assert.Equal(MachineShellFolders, finding.Source);
+    }
+
+    /// <summary>
+    /// The two ways a startup folder stops answering, told apart by what the reader is asked
+    /// to do about it — the inversion #173 was opened over, at the collector that made it.
+    ///
+    /// <para>
+    /// <c>IFileSystemProvider</c> documented one speaking state as « the listing was refused »
+    /// while <c>LiveFileSystemProvider</c> reached it through <c>IOException</c> too, so a
+    /// folder held open by another process was reported as one elevation would open. Both
+    /// halves are asserted here because only the pair is a claim: a fix that answered
+    /// <c>Unreadable</c> to everything would satisfy the second assertion and break the first,
+    /// and it is the first that carries the commonest gap this tool has.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_startup_folder_that_failed_is_not_a_startup_folder_that_was_denied()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithText(MachineShellFolders, "Common Startup", CommonStartup);
+
+        var denied = Assert.Single(Collect(registry, new FakeSignatureProvider(),
+            new FakeFileSystemProvider().WithDenied(CommonStartup)));
+
+        Assert.Equal(AuditGap.Refused, denied.Gap);
+
+        var failed = Assert.Single(Collect(registry, new FakeSignatureProvider(),
+            new FakeFileSystemProvider().WithFailed(CommonStartup)));
+
+        Assert.Equal(AuditGap.Unreadable, failed.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", failed.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The same pair with nothing to print, which is the half the guards in
+    /// <c>ExitCodeTests</c> cannot reach: they plant a diagnostic on every provider, so the
+    /// sentence they check is always the read's own. A capture carrying a status and no
+    /// diagnostic beside it replays here, and then the <em>fallback</em> is what reaches the
+    /// report — a sentence promising elevation under <see cref="AuditGap.Unreadable"/> would
+    /// contradict the value in the same finding and nothing else would notice.
+    /// </summary>
+    [Fact]
+    public void A_startup_folder_that_failed_without_a_reason_still_offers_no_remedy()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithText(MachineShellFolders, "Common Startup", CommonStartup);
+
+        var failed = Assert.Single(Collect(registry, new FakeSignatureProvider(),
+            new FakeFileSystemProvider().WithFailed(CommonStartup, reason: null)));
+
+        Assert.Equal(AuditGap.Unreadable, failed.Gap);
+        Assert.NotEmpty(failed.Reasons);
+        Assert.DoesNotContain("administrateur", string.Join(" ", failed.Reasons),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// A scan wired with no file provider at all, which is the third producer on this channel
+    /// and the one that moved without being named.
+    ///
+    /// <para>
+    /// <c>UnavailableFileSystem</c> calls <c>DirectoryRead.Failed</c>, and that call changed
+    /// meaning under it in #173: the factory kept its name and stopped returning
+    /// <see cref="ReadStatus.AccessDenied"/>. The new answer is the right one — no privilege
+    /// supplies a provider nobody wired, so « droits insuffisants » was advice that could not
+    /// work — but nothing asserted either answer, before or after, and the whole argument for
+    /// keeping the name was that the callers who moved would be looked at one by one. This
+    /// looks at the one that was not.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_scan_with_no_file_provider_is_unreadable_rather_than_denied()
+    {
+        var registry = new FakeRegistryProvider()
+            .WithText(MachineShellFolders, "Common Startup", CommonStartup);
+
+        // No files argument: ProviderSet falls back to UnavailableFileSystem, which is the
+        // subject here and cannot be named from this assembly.
+        var finding = Assert.Single(new AutorunsCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), signatures: new FakeSignatureProvider())));
+
+        Assert.Equal(AuditGap.Unreadable, finding.Gap);
+        Assert.NotEqual(AuditGap.Refused, finding.Gap);
+        Assert.DoesNotContain("administrateur", string.Join(" ", finding.Reasons),
+            StringComparison.OrdinalIgnoreCase);
     }
 }
