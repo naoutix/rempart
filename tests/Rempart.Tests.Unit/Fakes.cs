@@ -26,6 +26,27 @@ internal sealed class FakeRegistryProvider : IRegistryProvider
         return this;
     }
 
+    /// <summary>
+    /// A <c>REG_MULTI_SZ</c>, in the shape the live provider hands one over: the entries joined
+    /// with newlines, under the kind Windows names it by.
+    ///
+    /// <para>
+    /// Staged rather than spelled as text at each call site so that a reader of a multi-string
+    /// value is exercised against the separator <c>LiveRegistryProvider</c> really produces —
+    /// a reader splitting on anything else finds one entry where Windows wrote several, and an
+    /// NRPT rule claiming <c>corp.example</c> and <c>lab.example</c> would come back claiming
+    /// one name space nobody configured.
+    /// </para>
+    /// </summary>
+    public FakeRegistryProvider WithMultiString(
+        string keyPath, string valueName, params string[] entries)
+    {
+        values[Key(keyPath, valueName)] =
+            RegistryRead.Found(new RegistryValue("MultiString", string.Join("\n", entries), null));
+
+        return this;
+    }
+
     public FakeRegistryProvider WithAccessDenied(string keyPath, string valueName)
     {
         values[Key(keyPath, valueName)] = RegistryRead.AccessDenied;

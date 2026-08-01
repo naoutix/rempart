@@ -361,6 +361,65 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
             });
         }
     }
+
+    /// <summary>
+    /// The two name resolution policy stores, held against the registry this machine really
+    /// has — the half of #199 no fake registry can answer, a key path being a fact about Windows
+    /// and not about this program.
+    ///
+    /// <para>
+    /// Written to hold either state, because the two stores are not in the same one on an
+    /// ordinary machine and both are ordinary: read-only on 2026-08-01, the policy store was
+    /// absent and the local store present with no subkey at all. So what is asserted is the
+    /// correspondence — as many rules read as the hive holds subkeys carrying a server list, each
+    /// under the key path it was read from — and, on this machine, the silence that follows from
+    /// it. An enumeration answering with nothing must produce no record, or every scan gains a
+    /// line.
+    /// </para>
+    ///
+    /// <para>
+    /// A wrong path here has no symptom of its own: <c>ListSubKeys</c> answers « cette clé
+    /// n'existe pas », the read finds no rule, and the report of a machine carrying a redirection
+    /// is the report of a machine carrying none. That is why the path is confronted with the hive
+    /// rather than with itself.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_name_resolution_policy_stores_are_read_as_the_registry_holds_them()
+    {
+        foreach (var store in Core.Providers.RegistryDnsProvider.NrptStores)
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(
+                store["HKLM\\".Length..], writable: false);
+
+            var expected = new List<string>();
+
+            foreach (var rule in key?.GetSubKeyNames() ?? [])
+            {
+                using var ruleKey = key!.OpenSubKey(rule, writable: false);
+
+                if (Core.Providers.RegistryDnsProvider
+                        .Split(ruleKey?.GetValue("GenericDNSServers") as string).Count > 0)
+                {
+                    expected.Add($@"{store}\{rule}");
+                }
+            }
+
+            var found = Interfaces
+                .Where(entry => entry.Scope is Core.Providers.DnsScope.NrptRule
+                    && entry.Id.StartsWith(store, StringComparison.OrdinalIgnoreCase))
+                .Select(entry => entry.Id)
+                .ToList();
+
+            output.WriteLine(
+                $"{store} : {(key is null ? "absente" : $"{key.SubKeyCount} sous-clé(s)")} → "
+                + $"{found.Count} règle(s) relevée(s).");
+
+            Assert.Equal(
+                expected.Order(StringComparer.OrdinalIgnoreCase),
+                found.Order(StringComparer.OrdinalIgnoreCase));
+        }
+    }
 }
 
 /// <summary>

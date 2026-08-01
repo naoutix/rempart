@@ -62,6 +62,14 @@ internal sealed record WellKnownResolver(
 /// nor the well-known list means there what it means under a card — see
 /// <see cref="SignalStackLevel"/>, which is the whole of what this collector says about it.
 /// </para>
+///
+/// <para>
+/// <b>Nor to a rule of the name resolution policy table (#199).</b> A rule points a set of names
+/// at a set of servers, which is neither an adapter's configuration nor a stack's: see
+/// <see cref="SignalNrptRule"/>. It is reported as an observation for the reason the level above
+/// the cards is, and it is the surface where overclaiming would cost most — « le résolveur de la
+/// machine est détourné » is a sentence about a reach nobody measured.
+/// </para>
 /// </summary>
 public sealed class DnsResolverCollector : IFindingCollector
 {
@@ -155,9 +163,13 @@ public sealed class DnsResolverCollector : IFindingCollector
 
         foreach (var iface in read.Interfaces)
         {
-            // The level above the adapters, which is not judged like one — first, so that
-            // nothing below can fall through to the adapter's verdict.
-            if (iface.Scope is DnsScope.Stack)
+            // The two scopes that are not judged like an adapter — first, so that nothing
+            // below can fall through to the adapter's verdict.
+            if (iface.Scope is DnsScope.NrptRule)
+            {
+                findings.Add(SignalNrptRule(iface));
+            }
+            else if (iface.Scope is DnsScope.Stack)
             {
                 findings.Add(SignalStackLevel(iface));
             }
@@ -230,6 +242,139 @@ public sealed class DnsResolverCollector : IFindingCollector
                 + "vérifier à la main.",
             ],
             Details(level, "niveau global de la pile", level.StaticServers));
+    }
+
+    /// <summary>
+    /// A rule of the name resolution policy table: said, and said as an observation — for the
+    /// reason <see cref="SignalStackLevel"/> is, on a surface where the temptation to overclaim
+    /// is stronger.
+    ///
+    /// <para>
+    /// <b>What was established, and it is more than for the level above the cards.</b> The rules
+    /// are subkeys of two stores that <c>dnsapi</c> opens and enumerates, and of the two it is
+    /// the policy store that applies when both are there — the local one is opened only if
+    /// opening the policy one fails, read in the binary rather than quoted from a specification.
+    /// So the store is stated in words, and it is inside the key path each finding is sourced by.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What was not, and why this is a signal and not a verdict.</b> How a rule's server list
+    /// ranks against the card's own was never measured — documented, never followed through the
+    /// code to the point where a server is picked — and nobody involved has ever seen a rule
+    /// written to disk. « Le résolveur de la machine est détourné » would claim a reach nobody
+    /// verified, which is the reproach #199 forbids in advance. The sentence therefore names the
+    /// name spaces the rule claims and stops there: an auditor reading it can tell whether those
+    /// names are ones they care about, which is a judgement this audit is in no position to make
+    /// for them.
+    /// </para>
+    ///
+    /// <para>
+    /// Nothing of the adapter's judgement reaches here either. « Statique contre DHCP » compares
+    /// two lists and a rule has one; the well-known list stays out, because recognising Quad9
+    /// under a card means « a deliberate hardening choice made where such choices are made » and
+    /// a rule is not that place. And no stack is printed: see <see cref="NrptDetails"/>.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="Finding.Source"/> is the rule's whole key path, store included, which
+    /// designates exactly one finding per scan — a rule is a subkey, a subkey's GUID is unique
+    /// in its store, and the store is in the path. So the same rule pushed by policy and laid
+    /// down locally gives two Sources instead of colliding on one, which is a real case:
+    /// <c>Add-DnsClientNrptRule</c> writes one store or the other depending on <c>-GpoName</c>.
+    /// The consequence to have wanted rather than suffered is that a rule a GPO moves between
+    /// the stores comes out as a disappearance and an appearance rather than as a « Change » —
+    /// which is correct, the two places not being read alike by Windows.
+    /// </para>
+    /// </summary>
+    private static Finding SignalNrptRule(DnsInterface rule)
+    {
+        var servers = string.Join(", ", rule.StaticServers);
+
+        // Never « pour tous les noms »: whether a rule can claim every name at once is
+        // documented one way by one Microsoft page and another by the protocol specification,
+        // and this audit did not settle it. What is printed is the space the registry holds.
+        var names = rule.Namespaces.Count > 0
+            ? string.Join(", ", rule.Namespaces)
+            : "des noms que cette lecture n'a pas relevés";
+
+        return new Finding("dns-resolver", rule.Id, servers, FindingSeverity.Notable,
+            [
+                $"Une règle de résolution de noms envoie les requêtes pour {names} vers "
+                + $"{servers} ; cette règle est portée par le {StoreOf(rule)}.",
+
+                "Cet audit n'a pas établi que la résolution suit cette règle pour ces noms, ni "
+                + "sa précédence face à la liste de serveurs de la carte : la règle est relevée "
+                + "telle quelle. À vérifier à la main.",
+            ],
+            NrptDetails(rule));
+    }
+
+    /// <summary>
+    /// Which of the two stores a rule was read from, in words — load-bearing and not
+    /// decoration.
+    ///
+    /// <para>
+    /// The local store is opened only when the policy store fails to open, so a report handing
+    /// over two server lists without saying where each came from would leave its reader unable
+    /// to tell which one applies. Read off the key path, which is where the store already is,
+    /// rather than carried in a field of its own that a replay could lose.
+    /// </para>
+    ///
+    /// <para>
+    /// The third branch is not dead weight: a capture written by a later version may hold a
+    /// store this one does not name, and calling that rule « local » would be a claim about
+    /// precedence that nothing read. The <see cref="Finding.Source"/> carries the path either
+    /// way.
+    /// </para>
+    /// </summary>
+    private static string StoreOf(DnsInterface rule) =>
+        rule.Id.StartsWith(RegistryDnsProvider.PolicyNrptStore, StringComparison.OrdinalIgnoreCase)
+            ? "magasin de stratégie"
+            : rule.Id.StartsWith(
+                RegistryDnsProvider.LocalNrptStore, StringComparison.OrdinalIgnoreCase)
+                ? "magasin local"
+                : "magasin que cette version ne sait pas nommer";
+
+    /// <summary>
+    /// What the reader needs beside a rule's addresses — and <b>no stack row</b>, which is the
+    /// whole point of writing this instead of reusing <see cref="Details"/>.
+    ///
+    /// <para>
+    /// A rule belongs to neither stack: it carries one server list, and one list may hold both
+    /// address families. <see cref="DnsInterface.Stack"/> therefore holds its zero member on
+    /// such a record, and letting that reach a report would print « pile : IPv4 » over something
+    /// nothing read a stack for — the silent label #196 refused when it kept « statique » away
+    /// from the level above the cards. <c>DnsResolverTests</c> states it rather than this
+    /// paragraph.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="FindingDetails.Place"/> goes with it, and not by oversight: it names the row
+    /// that tells two findings under one source apart, and a rule's source is its own key path —
+    /// already one place. Naming a row this finding does not carry would point <c>rempart
+    /// diff</c> at nothing.
+    /// </para>
+    ///
+    /// <para>
+    /// The name spaces are a row only when there are some. A rule with none is reported all the
+    /// same — what earns the line is the server list — and the sentence says in words that they
+    /// were not read, where an empty row would print a label with nothing after it.
+    /// </para>
+    /// </summary>
+    private static Dictionary<string, string> NrptDetails(DnsInterface rule)
+    {
+        var details = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["origine"] = "règle de résolution de noms (NRPT)",
+            ["résolveurs"] = string.Join(", ", rule.StaticServers),
+        };
+
+        if (rule.Namespaces.Count > 0)
+        {
+            details["espaces de noms"] = string.Join(", ", rule.Namespaces);
+        }
+
+        return details;
     }
 
     private static Finding JudgeStatic(DnsInterface iface)

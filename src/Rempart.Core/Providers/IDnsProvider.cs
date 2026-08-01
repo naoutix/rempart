@@ -90,6 +90,24 @@ public enum DnsScope
     /// <see cref="RegistryDnsProvider"/> for what was measured and what was not.
     /// </summary>
     Stack,
+
+    /// <summary>
+    /// One rule of the name resolution policy table — a subkey of one of the two
+    /// <c>DnsPolicyConfig</c> stores, carrying its own server list and the name spaces it
+    /// claims. Appended after <see cref="Stack"/> so that <see cref="Adapter"/> stays the zero
+    /// member, which is what a capture written before either level replays as.
+    ///
+    /// <para>
+    /// <b>The one scope for which <see cref="DnsInterface.Stack"/> says nothing</b>, and the
+    /// reason that field is documented as unread here rather than quietly carried: a rule's
+    /// server list is one list and may hold both address families at once, so a rule belongs to
+    /// neither stack. <see cref="Findings.DnsResolverCollector"/> prints no stack row for a
+    /// record of this scope, and <c>DnsResolverTests</c> holds it to that — the alternative,
+    /// letting the zero member reach a report, would write « pile IPv4 » over a rule nothing
+    /// read a stack for.
+    /// </para>
+    /// </summary>
+    NrptRule,
 }
 
 /// <summary>
@@ -118,7 +136,19 @@ public enum DnsScope
 /// unreadable, the real-machine ones outside the repository included.
 /// <see cref="Scope"/> says which level the record came from, and
 /// <see cref="Id"/> follows it: an adapter GUID for a card, the registry key path for the
-/// stack's own level.
+/// stack's own level, and the rule's full key path — store included — for a name resolution
+/// policy rule (#199).
+/// </para>
+///
+/// <para>
+/// <b><see cref="Stack"/> is read only where a scope names a stack.</b> A record of
+/// <see cref="DnsScope.NrptRule"/> belongs to neither stack — one server list, both families
+/// allowed in it — and carries the zero member because the field is not nullable and making it
+/// so would take the default a capture written before #191 replays on
+/// (<see cref="DnsStack.IPv4"/>, asserted on the value) with it. So the guard is at the reader:
+/// <see cref="Findings.DnsResolverCollector"/> writes no stack row for such a record, and a test
+/// states that rather than this paragraph. It is the same shape as <see cref="DhcpServers"/> one
+/// level up, which is empty because that half is unread and never because the machine has none.
 /// </para>
 /// </summary>
 public sealed record DnsInterface(
@@ -126,7 +156,49 @@ public sealed record DnsInterface(
     IReadOnlyList<string> StaticServers,
     IReadOnlyList<string> DhcpServers,
     DnsStack Stack,
-    DnsScope Scope = DnsScope.Adapter);
+    DnsScope Scope = DnsScope.Adapter)
+{
+    /// <summary>
+    /// The name spaces this record claims — the <c>Name</c> of an NRPT rule, and empty
+    /// everywhere else.
+    ///
+    /// <para>
+    /// A property rather than a sixth positional parameter, because <c>[]</c> is no constant and
+    /// a positional default has to be one: the manoeuvre <see cref="Scope"/> used could not be
+    /// repeated verbatim for a list.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>And the accessor is where the empty list is decided, which is a correction and not a
+    /// belt.</b> The initialiser alone reads as though it answered a document that carries no
+    /// <c>namespaces</c> — it does not, and the difference was measured by shipping it: the
+    /// source-generated serialiser can only reach an <c>init</c> property through an object
+    /// initialiser, so it builds the record with <em>every</em> such property assigned, handing
+    /// <c>default</c> for the ones the document did not carry. A positional parameter is not
+    /// like that, which is why <see cref="Scope"/> could rely on its default and this cannot.
+    /// The replay of two versioned fixtures came back holding <c>null</c> here, and every reader
+    /// of the field threw. So the <c>init</c> accessor refuses the null, the initialiser answers
+    /// anything that reaches the record without naming the field, and <c>DnsHostsTests</c>
+    /// asserts the result on the <em>value</em> and never on the key being absent (#163).
+    /// </para>
+    ///
+    /// <para>
+    /// <b>The one field of this record that carries machine text</b>, and therefore the one that
+    /// had to be anonymised in the same commit that added it: a rule's name space is typically
+    /// the organisation's internal domain. Until #199 the DNS block held adapter GUIDs, registry
+    /// key paths and IP addresses, which name nobody — which is why
+    /// <see cref="Snapshots.Anonymiser"/> touched only its diagnostic, and why that reasoning
+    /// stopped being true here.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<string> Namespaces
+    {
+        get => namespaces;
+        init => namespaces = value ?? [];
+    }
+
+    private readonly IReadOnlyList<string> namespaces = [];
+}
 
 /// <summary>
 /// The interfaces that resolve, plus whether they could be enumerated at all.
@@ -151,12 +223,13 @@ public sealed record DnsInterface(
 /// </para>
 ///
 /// <para>
-/// One list for both <em>levels</em> too, since #196: a record read from the stack's own
-/// <c>Parameters</c> key says so through <see cref="DnsInterface.Scope"/> and rides here rather
-/// than in a field of its own. Not for want of a better shape — a field beside the list is what
-/// this read would want — but because a capture stores this list as a JSON array and rebuilds
-/// the read from three values (<see cref="StatusChannel"/>), so a fourth would be written and
-/// silently dropped on the way back in.
+/// One list for both <em>levels</em> too, since #196, and for the rules of the name resolution
+/// policy table since #199: a record says which of the three it is through
+/// <see cref="DnsInterface.Scope"/> and rides here rather than in a field of its own. Not for
+/// want of a better shape — a field beside the list is what this read would want — but because a
+/// capture stores this list as a JSON array and rebuilds the read from three values
+/// (<see cref="StatusChannel"/>), so a fourth would be written and silently dropped on the way
+/// back in.
 /// </para>
 /// </summary>
 public sealed record DnsRead(
@@ -166,9 +239,17 @@ public sealed record DnsRead(
     : IStatusCarryingRead<DnsRead, DnsInterface>
 {
     /// <summary>
-    /// No stack answered anything, at either level. An answer and not a hole: it is what a
-    /// registry holding no TCP/IP stack says, and nothing resolves through an interface that
-    /// was never configured.
+    /// Nothing this read walks answered anything — neither level of either stack, nor either
+    /// name resolution policy store. An answer and not a hole: it is what a registry holding no
+    /// TCP/IP stack says, and nothing resolves through an interface that was never configured.
+    ///
+    /// <para>
+    /// Every surface, and that is load-bearing rather than tidy: this constant carries an
+    /// <em>empty</em> list, so a read that found something on a surface its « something
+    /// answered » flag ignored would put it in a list and drop it on the way out.
+    /// <c>RegistryDnsProviderTests</c> stages each surface alone against a registry answering
+    /// « cette clé n'existe pas » everywhere else.
+    /// </para>
     ///
     /// <para>
     /// Every declared stack, and not one of them: a machine with <c>Tcpip6</c> unbound and
@@ -204,10 +285,11 @@ public sealed record DnsRead(
     ///
     /// <para>
     /// Takes what the other keys gave, so the refusal costs nothing that was read: the stack's
-    /// own value, the enumeration of the interfaces and the two values of each interface are
-    /// separate reads, so a denial on one must not drop what the others gave. Partial by
-    /// design, like <see cref="ScheduledTaskRead"/> and for its reason — and the total case is
-    /// the same statement with an empty list, which is why there is one factory and not two.
+    /// own value, the enumeration of the interfaces, the two values of each interface, the
+    /// enumeration of each policy store and the values of each rule in it are separate reads, so
+    /// a denial on one must not drop what the others gave. Partial by design, like
+    /// <see cref="ScheduledTaskRead"/> and for its reason — and the total case is the same
+    /// statement with an empty list, which is why there is one factory and not two.
     /// </para>
     /// </summary>
     /// <param name="denied">
@@ -221,7 +303,7 @@ public sealed record DnsRead(
         new(ReadStatus.AccessDenied, interfaces,
             $"Lecture DNS refusée sur {denied.Count} clé(s) : "
             + string.Join(", ", denied.Distinct(StringComparer.Ordinal))
-            + ". Un résolveur posé sur une de ces interfaces n'apparaît pas dans ce rapport.");
+            + ". Un résolveur posé à un de ces emplacements n'apparaît pas dans ce rapport.");
 
     // Explicit, so "Interfaces" stays the only name a caller sees and nothing new appears in
     // any serialised shape. See IStatusCarryingRead.
