@@ -251,10 +251,15 @@ public sealed class DnsResolverCollector : IFindingCollector
     ///
     /// <para>
     /// <b>What was established, and it is more than for the level above the cards.</b> The rules
-    /// are subkeys of two stores that <c>dnsapi</c> opens and enumerates, and of the two it is
-    /// the policy store that applies when both are there — the local one is opened only if
-    /// opening the policy one fails, read in the binary rather than quoted from a specification.
-    /// So the store is stated in words, and it is inside the key path each finding is sourced by.
+    /// are subkeys of two stores that <c>dnsapi</c> opens and enumerates, and the two are not
+    /// read alike: in <em>the one enumerating function that was disassembled</em>, the local
+    /// store is opened only if opening the policy one fails — read in the binary rather than
+    /// quoted from a specification. That is one path among the several <c>dnsapi</c> has, so it
+    /// establishes that the store a rule sits in changes how it is reached, not a precedence rule
+    /// holding everywhere. Which is exactly why the store is stated in words and sits inside the
+    /// key path each finding is sourced by: naming where a rule was found costs nothing and
+    /// leaves the ranking to a reader who can go and check, whereas printing the ranking would
+    /// generalise one function.
     /// </para>
     ///
     /// <para>
@@ -314,10 +319,13 @@ public sealed class DnsResolverCollector : IFindingCollector
     /// decoration.
     ///
     /// <para>
-    /// The local store is opened only when the policy store fails to open, so a report handing
-    /// over two server lists without saying where each came from would leave its reader unable
-    /// to tell which one applies. Read off the key path, which is where the store already is,
-    /// rather than carried in a field of its own that a replay could lose.
+    /// In the enumerating function that was read, the local store is opened only when the policy
+    /// store fails to open — so the two are reached differently, and a report handing over two
+    /// server lists without saying where each came from would leave its reader unable to weigh
+    /// them. The store is named, and the ranking is not: which of the two wins is what that one
+    /// function shows for that one path, and this sentence does not turn it into a rule. Read off
+    /// the key path, which is where the store already is, rather than carried in a field of its
+    /// own that a replay could lose.
     /// </para>
     ///
     /// <para>

@@ -118,9 +118,20 @@ namespace Rempart.Core.Providers;
 /// <c>rules/security/legacy-protocols.yaml</c> already queries under that very key, is set. All
 /// four generic readers gate the policy read on that flag, and the <c>supportedOn</c> of the
 /// matching ADMX policy on this machine reads « Windows XP Professionnel uniquement ». So a
-/// resolver written there is not one the machine honours, and collecting it would be the line of
-/// noise this repository trades an audit's credibility for. Recorded here because the help text
-/// is an active trap: it will send the next reader back down this path.
+/// resolver written there is not one <em>either resolver binary reads from that key</em>, and
+/// collecting it would be the line of noise this repository trades an audit's credibility for.
+/// Recorded here because the help text is an active trap: it will send the next reader back down
+/// this path.
+/// </para>
+///
+/// <para>
+/// The bound on that conclusion is stated rather than left to be assumed, since the paragraph
+/// above is the one a reader six months out will weigh: what was read is <c>dnsrslvr.dll</c> and
+/// <c>dnsapi.dll</c>. Nothing established that no component elsewhere copies that value into the
+/// per-adapter configuration — the sweep behind this covered <c>System32</c> without recursing —
+/// so the claim is about where the resolver reads and not about everything the machine might do
+/// with the value. It is enough for the decision it carries, which is that reading the value here
+/// would report a resolver on the strength of the help text alone.
 /// </para>
 /// </summary>
 public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvider
@@ -484,10 +495,29 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
     /// two addresses glued together, which matches nothing in the well-known list and comes
     /// out as a <c>Notable</c> finding about a resolver that does not exist.
     /// </para>
+    ///
+    /// <para>
+    /// <b>And the newline, which is a fourth separator and not a fourth spelling of the three
+    /// above (#199).</b> The values this cuts under an adapter and under a stack are
+    /// <c>REG_SZ</c> and hold none, but <c>GenericDNSServers</c> is read off a key nobody
+    /// involved has ever seen written, so its on-disk type is not established — and if it is a
+    /// <c>REG_MULTI_SZ</c> then <c>IRegistryProvider</c> hands it over as its entries joined
+    /// with <c>\n</c>, which none of the three cuts. The cost is worse there than the glued
+    /// address above: the raw newline reaches the finding's target and the sentence built from
+    /// it, breaking the console alignment and the Markdown bullet of every finding beside it.
+    /// Cutting on it as well cannot cost anything on a <c>REG_SZ</c>, no resolver list holding a
+    /// line break, so the unestablished type stops deciding whether the read works.
+    /// </para>
+    ///
+    /// <para>
+    /// This stays distinct from <see cref="SplitNames"/> in the other direction, and that
+    /// asymmetry is deliberate: a name space must <em>not</em> be cut on space, comma or
+    /// semicolon, because nothing establishes those cannot appear in one.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<string> Split(string? raw) =>
         string.IsNullOrWhiteSpace(raw)
             ? []
-            : raw.Split([' ', ',', ';'],
+            : raw.Split([' ', ',', ';', '\n', '\r'],
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

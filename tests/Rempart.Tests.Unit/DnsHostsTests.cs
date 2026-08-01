@@ -527,11 +527,12 @@ public class DnsResolverTests
     /// <para>
     /// The arbitration of #199 was « signaler » and not « collecter », and this is where that
     /// distinction is either kept or lost. What is established is that the rule is there, that
-    /// Windows reads the store, and that of the two stores the policy one applies when both are
-    /// open. What is not: whether resolution follows the rule for those names, and how it ranks
-    /// against the card's own list. A verdict of the shape « le résolveur de la machine est
-    /// détourné » would claim a reach nobody measured — the very reproach the issue forbids in
-    /// advance.
+    /// Windows reads the store, and that the store a rule sits in is part of how it is reached.
+    /// What is not: whether resolution follows the rule for those names, how it ranks against the
+    /// card's own list, and which store wins in general — one enumerating function was read, not
+    /// every path. A verdict of the shape « le résolveur de la machine est détourné » would claim
+    /// a reach nobody measured, which is the very reproach the issue forbids in advance; hence
+    /// the guard below is on the stem « détourn » and not on a single inflection of it.
     /// </para>
     /// </summary>
     [Theory]
@@ -570,7 +571,13 @@ public class DnsResolverTests
         // machine resolves through the rule, and no claim about its precedence.
         Assert.Contains("n'a pas établi", said, StringComparison.Ordinal);
         Assert.Contains("précédence", said, StringComparison.Ordinal);
-        Assert.DoesNotContain("détournement", said, StringComparison.Ordinal);
+
+        // The stem and not the noun, because the forbidden sentence does not carry the noun:
+        // « le résolveur de la machine est détourné » holds « détourné », and a guard on
+        // « détournement » let it through word for word — measured by writing it into the first
+        // reason, which left the suite green. The stem catches the participle in either gender
+        // and the verb with it.
+        Assert.DoesNotContain("détourn", said, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -602,6 +609,41 @@ public class DnsResolverTests
         Assert.False(finding.Details.ContainsKey(FindingDetails.Place));
 
         Assert.Equal("règle de résolution de noms (NRPT)", finding.Details["origine"]);
+    }
+
+    /// <summary>
+    /// The second trap, and the one the arbitration of #199 settled « à la baisse »: a rule whose
+    /// name spaces this read did not get says so, and never that it claims every name.
+    ///
+    /// <para>
+    /// Whether a rule can cover all names at once is the point the measurement left NOT
+    /// established — one Microsoft table says it can, the protocol specification enumerates only
+    /// suffix, prefix, FQDN and subnet — so « pour tous les noms » would print a reach nobody
+    /// verified, over the whole of a machine's resolution rather than over a named space. It is
+    /// exactly the sentence the issue forbids in advance, one noun further along than the one the
+    /// neighbouring theory guards.
+    /// </para>
+    ///
+    /// <para>
+    /// The branch is reachable and not defensive: a rule carrying <c>GenericDNSServers</c> and no
+    /// readable <c>Name</c> lands on it, and <c>ListValues</c> answering without that value is an
+    /// ordinary read rather than a failure. It was held by a comment before this test, and a
+    /// comment is not a guard — replacing the string with « tous les noms » left the suite green.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_rule_whose_names_were_not_read_claims_no_names_rather_than_all_of_them()
+    {
+        var said = string.Join(" ", Assert.Single(Collect(new DnsInterface(
+            $@"{RegistryDnsProvider.LocalNrptStore}\{{regle}}",
+            ["192.0.2.53"], [], default, DnsScope.NrptRule))).Reasons);
+
+        // What it says instead, pinned to the sentence and not to its intent: any rewording of
+        // the fallback comes back through this line.
+        Assert.Contains("des noms que cette lecture n'a pas relevés", said, StringComparison.Ordinal);
+
+        // And the claim it may never make, named so the next reader sees which one is forbidden.
+        Assert.DoesNotContain("tous les noms", said, StringComparison.Ordinal);
     }
 
     /// <summary>

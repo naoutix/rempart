@@ -1038,17 +1038,18 @@ public sealed class RegistryDnsProviderTests
     }
 
     /// <summary>
-    /// Where Windows keeps the two stores, written out and in the order that decides which one
-    /// applies — the same discipline the stack keys get, and for the reason CONTRIBUTING gives:
-    /// a guessed registry path answers « rien » for ever and nothing tells that apart from a
-    /// machine with nothing to say.
+    /// Where Windows keeps the two stores, written out and in the order they were seen reached —
+    /// the same discipline the stack keys get, and for the reason CONTRIBUTING gives: a guessed
+    /// registry path answers « rien » for ever and nothing tells that apart from a machine with
+    /// nothing to say.
     ///
     /// <para>
     /// Policy first, because that is what was measured rather than read off a specification: in
-    /// <c>dnsapi</c> the local store is opened only when opening the policy store fails. A
-    /// report giving two lists without saying which store each came from would leave its reader
-    /// unable to tell which of them applies, which is why the store is inside the key path each
-    /// rule is identified by.
+    /// the <c>dnsapi</c> function that was disassembled, the local store is opened only when
+    /// opening the policy store fails. That is one of several NRPT paths, so the order here
+    /// records what was read and does not assert a precedence holding everywhere — which is
+    /// itself why the store is inside the key path each rule is identified by, leaving a reader
+    /// able to weigh two lists this audit will not rank for them.
     /// </para>
     /// </summary>
     [Fact]
@@ -1157,6 +1158,49 @@ public sealed class RegistryDnsProviderTests
         Assert.Equal(
             [RuleServerIn(store)],
             Assert.Single(new RegistryDnsProvider(registry).Read().Interfaces).StaticServers);
+    }
+
+    /// <summary>
+    /// A rule whose server list is a <c>REG_MULTI_SZ</c>: cut into servers, and not carried into
+    /// the report as one address with a line break inside it.
+    ///
+    /// <para>
+    /// The on-disk type of <c>GenericDNSServers</c> is the hole #199 left open — nobody involved
+    /// has ever seen a rule written — so the read may not be correct only for the type it
+    /// guessed. Staged through <see cref="FakeRegistryProvider.WithMultiString"/>, which builds
+    /// the value byte for byte the way <c>LiveRegistryProvider</c> hands a multi-string over:
+    /// the entries joined with <c>\n</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// Both halves are asserted, because the cost is not only a server that matches nothing. The
+    /// raw newline reaches the finding's target and the sentence built from it, so a rule read
+    /// this way breaks the console alignment and the Markdown bullet of a report — a defect in
+    /// the rendering of every other finding beside it, and not only in this one's accuracy.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_rule_whose_servers_are_a_multi_string_is_cut_into_servers(string store)
+    {
+        var rule = RuleIn(store);
+
+        var registry = new FakeRegistryProvider()
+            .WithSubKeys(store, rule)
+            .WithMultiString($@"{store}\{rule}", "GenericDNSServers", "192.0.2.53", "198.51.100.53");
+
+        var collected = Assert.Single(new RegistryDnsProvider(registry).Read().Interfaces);
+
+        Assert.Equal(["192.0.2.53", "198.51.100.53"], collected.StaticServers);
+
+        // And nothing the report prints holds the separator the registry used, on either of the
+        // two rows a reader sees.
+        var finding = Assert.Single(new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry))));
+
+        Assert.DoesNotContain('\n', finding.Target);
+        Assert.DoesNotContain('\n', string.Join(" ", finding.Reasons));
+        Assert.Equal("192.0.2.53, 198.51.100.53", finding.Target);
     }
 
     /// <summary>
