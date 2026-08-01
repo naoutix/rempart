@@ -62,6 +62,13 @@ public sealed class RegistryDnsProviderTests
     private static string ResolverOf(DnsStack stack) => $"203.0.113.{(int)stack + 1}";
 
     /// <summary>
+    /// A resolver of this stack's <em>global</em> level, out of a different documentation block
+    /// from <see cref="ResolverOf"/>: a read that took one level for the other would otherwise
+    /// pass by matching whatever the level next door happened to hold.
+    /// </summary>
+    private static string GlobalResolverOf(DnsStack stack) => $"198.51.100.{(int)stack + 1}";
+
+    /// <summary>
     /// The identifier this file gives its adapter — <b>one identifier for every stack</b>,
     /// because that is the only shape Windows produces.
     ///
@@ -405,48 +412,150 @@ public sealed class RegistryDnsProviderTests
     }
 
     /// <summary>
-    /// <b>The surface one level above the subtree this read walks</b>, and what the read says
-    /// about it: nothing — stated here so that it is a known boundary and not an oversight.
+    /// A resolver list written on the stack's own <c>Parameters</c> key, above the adapters,
+    /// read on every declared stack — the surface #193 pinned as unread and #196 measured.
     ///
     /// <para>
-    /// Each stack's service keeps a <c>Parameters</c> key above its <c>Interfaces</c> subtree,
-    /// and that key carries values under the very two names this read watches per adapter.
-    /// Measured on the machine this was written on:
-    /// <c>…\Services\Tcpip\Parameters\DhcpNameServer</c> holds <c>192.168.1.1</c>, written by
-    /// Windows itself; <c>…\Tcpip\Parameters\NameServer</c> is present and empty; and the v6
-    /// service keeps <c>Dhcpv6DNSServers</c> at the same level. <see cref="RegistryDnsProvider"/>
-    /// descends into <c>{interfaces}\{guid}</c> and never reads <c>{service}\Parameters</c>, so
-    /// none of them reaches a report.
+    /// What comes back is a record of that level and not of a card: <see cref="DnsScope.Stack"/>,
+    /// identified by the key it was read from rather than by an adapter GUID, and carrying no
+    /// DHCP list — that half is deliberately unread, and the theory below holds it so.
     /// </para>
     ///
     /// <para>
-    /// Whether Windows <em>resolves</em> through those values is a fact about the platform that
-    /// this repository has not established, and the two answers call for different work — a
-    /// second read, or a line saying why it is not one. What is not in doubt is that they exist
-    /// and carry the names this read treats as the hijack lever, so the silence is pinned here:
-    /// reading them one day reddens this test, which is a deliberate act, instead of quietly
-    /// adding a finding to every machine.
+    /// The address is out of a different block from <see cref="ResolverOf"/>, so a read that
+    /// found the adapter's list and labelled it « stack » — or the reverse — fails here instead
+    /// of matching whatever the other level happened to hold.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryStack))]
+    public void A_resolver_at_the_global_level_of_a_stack_is_read_on_every_stack(DnsStack stack)
+    {
+        var parameters = RegistryDnsProvider.ParametersKeyOf(stack);
+
+        var registry = new FakeRegistryProvider()
+            .WithText(parameters, "NameServer", GlobalResolverOf(stack));
+
+        var read = new RegistryDnsProvider(registry).Read();
+        var level = Assert.Single(read.Interfaces);
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.Equal(DnsScope.Stack, level.Scope);
+        Assert.Equal(stack, level.Stack);
+        Assert.Equal(parameters, level.Id);
+        Assert.Equal([GlobalResolverOf(stack)], level.StaticServers);
+        Assert.Empty(level.DhcpServers);
+    }
+
+    /// <summary>
+    /// And what the reader is told about it: an observation, named as one — never the verdict
+    /// the same address would earn on a card.
+    ///
+    /// <para>
+    /// The judgement of the adapter level does not transfer, and #196 is where that was
+    /// measured rather than assumed. « Statique contre DHCP » is a real distinction under a
+    /// card and it is not one here: the DHCP half of this level is written by Windows itself,
+    /// as a copy of the leasing adapter's list, and the static half is written by no supported
+    /// configuration path at all. So the finding says where the value is, that nothing ordinary
+    /// puts it there, and — the part that must not be dropped — that this audit did not
+    /// establish that the resolver consults it.
     /// </para>
     ///
     /// <para>
-    /// It is not an IPv6 gap — the v4 stack has the same one, and has had it since this read was
-    /// written — which is why #191 closes the stack that was missing and names this rather than
-    /// widening into it.
+    /// <c>origine</c> therefore says which level it came from and not « statique », which
+    /// would be the adapter's judgement extended in silence. Asserted as a difference, because
+    /// the difference is the invariant.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryStack))]
+    public void The_global_level_is_reported_as_an_observation_and_not_as_a_verdict(DnsStack stack)
+    {
+        var parameters = RegistryDnsProvider.ParametersKeyOf(stack);
+
+        var registry = new FakeRegistryProvider()
+            .WithText(parameters, "NameServer", GlobalResolverOf(stack));
+
+        var finding = Assert.Single(new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry))));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Null(finding.Gap);
+
+        // The source is the key, which designates exactly one finding per scan — one per
+        // stack, each on its own key — where an adapter GUID designates one per stack.
+        Assert.Equal(parameters, finding.Source);
+        Assert.Equal(GlobalResolverOf(stack), finding.Target);
+        Assert.Equal(stack.ToString(), finding.Details["pile"]);
+        Assert.NotEqual("statique", finding.Details["origine"]);
+
+        var said = string.Join(" ", finding.Reasons);
+
+        Assert.Contains(GlobalResolverOf(stack), said, StringComparison.Ordinal);
+
+        // The sentence that keeps this an observation. Without it the reader reads « résolveur
+        // posé au niveau global » as « la machine résout par là », which is the claim #196
+        // could not establish and forbade making.
+        Assert.Contains("n'a pas établi", said, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A recognised public resolver at that level is signalled all the same — the well-known
+    /// list is the adapter level's judgement and does not reach here.
+    ///
+    /// <para>
+    /// Under a card, Quad9 typed in by hand is an ordinary hardening choice and the collector
+    /// calls it benign; that reading rests on the value having been set through a supported
+    /// path, which is what a card's <c>NameServer</c> is and what this key is not. What is
+    /// reported here is the <em>place</em>, so the address cannot make it go quiet.
     /// </para>
     /// </summary>
     [Fact]
-    public void A_resolver_at_the_global_level_of_a_stack_is_not_where_this_read_looks()
+    public void A_recognised_resolver_at_the_global_level_is_signalled_all_the_same()
+    {
+        var parameters = RegistryDnsProvider.ParametersKeyOf(DnsStack.IPv4);
+
+        var registry = new FakeRegistryProvider().WithText(parameters, "NameServer", "9.9.9.9");
+
+        var finding = Assert.Single(new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry))));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal("9.9.9.9", finding.Target);
+    }
+
+    /// <summary>
+    /// <b>The half of that level this read still does not open, and the measurement that
+    /// decided it.</b>
+    ///
+    /// <para>
+    /// <c>{service}\Parameters\DhcpNameServer</c> is written by Windows itself. Measured on a
+    /// real Windows 11 machine on 2026-08-01: it held <c>192.168.1.1</c>, which is the
+    /// <c>DhcpNameServer</c> of the one connected adapter and not that of the disconnected card
+    /// beside it (<c>89.2.0.1 89.2.0.2</c>); the v6 service's <c>Dhcpv6DNSServers</c> held, byte
+    /// for byte, the blob its connected adapter's own key holds; and the key had last been
+    /// written at a lease renewal twelve hours after boot, so it is maintained rather than left
+    /// over. Reading it would add an inventory line the adapter beside it already carries.
+    /// </para>
+    ///
+    /// <para>
+    /// The empty <c>NameServer</c> is the other half of the ordinary machine and the reason
+    /// this read keys on the value and not on the key: that value is <em>present</em> on an
+    /// ordinary Windows install, and reporting its presence would put a finding on every scan.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_value_Windows_writes_at_the_global_level_is_not_read()
     {
         var registry = new FakeRegistryProvider();
 
-        foreach (var (_, interfacesKey) in RegistryDnsProvider.Stacks)
+        foreach (var (stack, _) in RegistryDnsProvider.Stacks)
         {
-            // The Parameters key above the Interfaces subtree, whatever the service is called.
-            var parameters = interfacesKey[..interfacesKey.LastIndexOf('\\')];
-
             registry
-                .WithText(parameters, "NameServer", "203.0.113.9")
-                .WithText(parameters, "DhcpNameServer", "192.168.1.1");
+                .WithText(RegistryDnsProvider.ParametersKeyOf(stack), "NameServer", string.Empty)
+                .WithText(
+                    RegistryDnsProvider.ParametersKeyOf(stack), "DhcpNameServer", "192.168.1.1");
         }
 
         var read = new RegistryDnsProvider(registry).Read();
@@ -455,9 +564,131 @@ public sealed class RegistryDnsProviderTests
         Assert.Null(read.Diagnostic);
         Assert.Empty(read.Interfaces);
 
-        // Silent, and not « aucun résolveur » spoken as a claim: the scan never read there.
         Assert.Empty(new DnsResolverCollector().Collect(new ProviderSet(
             registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry))));
+    }
+
+    /// <summary>
+    /// A refusal on the stack's own key is a refusal, named, and costs no other stack and no
+    /// adapter — #187's channel carried to the level #196 opens.
+    ///
+    /// <para>
+    /// An ACL laid there is the cheapest of the three: the enumeration below it answers
+    /// perfectly, every adapter answers, and the one value that would have shown a resolver
+    /// posed above them all reads back as « rien ». Without this branch the report of such a
+    /// machine is indistinguishable from the report of a machine whose global slot is the empty
+    /// one Windows ships.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryStack))]
+    public void A_refused_global_level_speaks_and_costs_nothing_that_answered(DnsStack refused)
+    {
+        var registry = new FakeRegistryProvider();
+        var readable = new List<DnsStack>();
+
+        foreach (var (stack, interfacesKey) in RegistryDnsProvider.Stacks)
+        {
+            registry
+                .WithSubKeys(interfacesKey, Adapter)
+                .WithText($@"{interfacesKey}\{Adapter}", "NameServer", ResolverOf(stack));
+
+            if (stack == refused)
+            {
+                registry.WithAccessDenied(RegistryDnsProvider.ParametersKeyOf(stack), "NameServer");
+                continue;
+            }
+
+            readable.Add(stack);
+        }
+
+        var read = new RegistryDnsProvider(registry).Read();
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Contains(RegistryDnsProvider.ParametersKeyOf(refused), read.Diagnostic!,
+            StringComparison.Ordinal);
+
+        // Every adapter still answers, on every stack: the refusal is one value, not the walk.
+        Assert.Equal(
+            RegistryDnsProvider.Stacks.Select(declared => declared.Stack),
+            read.Interfaces.Select(iface => iface.Stack));
+
+        Assert.All(read.Interfaces, iface => Assert.Equal(DnsScope.Adapter, iface.Scope));
+
+        var findings = new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry)));
+
+        Assert.Equal(AuditGap.Refused, Assert.Single(findings, f => f.Gap is not null).Gap);
+        Assert.Equal(
+            RegistryDnsProvider.Stacks.Select(declared => declared.Stack.ToString()),
+            findings.Where(f => f.Gap is null).Select(f => f.Details["pile"]));
+
+        // And the stacks whose global key answered stay silent about it: only the refusal
+        // speaks, never « aucun résolveur au niveau global », which nothing read.
+        Assert.All(readable, stack => Assert.DoesNotContain(
+            findings, f => f.Source == RegistryDnsProvider.ParametersKeyOf(stack)));
+    }
+
+    /// <summary>
+    /// The ordinary machine, both levels at once: an adapter with a lease, and the empty
+    /// <c>NameServer</c> Windows ships at the level above it. One benign inventory line, and
+    /// nothing about the global level at all.
+    ///
+    /// <para>
+    /// This is the noise guard. A read keyed on the key's presence, or a collector that
+    /// reported an empty list as « aucun résolveur global », would put a line on every scan
+    /// this tool ever runs — and a line of noise costs an audit tool more than it returns.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_ordinary_machine_says_nothing_about_the_level_above_its_adapters()
+    {
+        var registry = new FakeRegistryProvider();
+
+        foreach (var (stack, _) in RegistryDnsProvider.Stacks)
+        {
+            registry.WithText(
+                RegistryDnsProvider.ParametersKeyOf(stack), "NameServer", string.Empty);
+        }
+
+        registry
+            .WithSubKeys(Interfaces, Adapter)
+            .WithText($@"{Interfaces}\{Adapter}", "DhcpNameServer", "192.168.1.1");
+
+        var findings = new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry)));
+
+        var only = Assert.Single(findings);
+
+        Assert.Equal(FindingSeverity.Benign, only.Severity);
+        Assert.Equal(Adapter, only.Source);
+        Assert.Equal("DHCP", only.Details["origine"]);
+    }
+
+    /// <summary>
+    /// A registry with no interfaces subtree at all and a resolver on the stack's own key: read,
+    /// and the resolver kept.
+    ///
+    /// <para>
+    /// Written because every other test here stages an enumeration that answers — the fake
+    /// registry says <c>Found([])</c> for a key it was told nothing about — so all of them would
+    /// pass a read whose « something answered » flag ignored the level above the adapters
+    /// entirely. Nothing would then stop that read from returning <see cref="DnsRead.Absent"/>,
+    /// which is a shared constant carrying an <em>empty</em> list: the resolver would be found,
+    /// put in a list, and dropped on the way out.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryStack))]
+    public void A_stack_with_no_interfaces_subtree_still_answers_for_its_own_level(DnsStack stack)
+    {
+        var read = new RegistryDnsProvider(new GlobalLevelOnly(stack)).Read();
+        var level = Assert.Single(read.Interfaces);
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.NotEqual(ReadStatus.NotFound, read.Status);
+        Assert.Equal(DnsScope.Stack, level.Scope);
+        Assert.Equal([GlobalResolverOf(stack)], level.StaticServers);
     }
 
     /// <summary>
@@ -528,6 +759,19 @@ public sealed class RegistryDnsProviderTests
         Assert.Equal(
             RegistryDnsProvider.InterfacesKeyIPv6,
             RegistryDnsProvider.InterfacesKeyOf(DnsStack.IPv6));
+
+        // The second level of each stack, written out for the reason the first is: it is a
+        // fact about Windows, read off a real registry on 2026-08-01, and a derivation that
+        // silently produced something else would answer « rien » for ever. Both keys really
+        // carry the values this read watches — v4 holds NameServer and DhcpNameServer, v6 holds
+        // Dhcpv6DNSServers and neither of those two.
+        Assert.Equal(
+            @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters",
+            RegistryDnsProvider.ParametersKeyOf(DnsStack.IPv4));
+
+        Assert.Equal(
+            @"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters",
+            RegistryDnsProvider.ParametersKeyOf(DnsStack.IPv6));
     }
 
     /// <summary>
@@ -731,6 +975,30 @@ public sealed class RegistryDnsProviderTests
         public ReadStatus KeyExists(string keyPath) => ReadStatus.NotFound;
 
         public RegistryValueList ListValues(string keyPath) => RegistryValueList.NotFound;
+    }
+
+    /// <summary>
+    /// A machine whose stacks keep no <c>Interfaces</c> subtree at all — every enumeration
+    /// answers « cette clé n'existe pas » — and which holds a resolver on one stack's own
+    /// <c>Parameters</c> key. Written rather than staged with
+    /// <see cref="FakeRegistryProvider"/>, whose <c>Found([])</c> for an unknown key is an
+    /// enumeration that answered and is the state this theory is not about.
+    /// </summary>
+    private sealed class GlobalLevelOnly(DnsStack present) : IRegistryProvider
+    {
+        private readonly string key = RegistryDnsProvider.ParametersKeyOf(present);
+
+        public RegistryRead ReadValue(string keyPath, string valueName) =>
+            string.Equals(keyPath, key, StringComparison.OrdinalIgnoreCase)
+                && valueName == "NameServer"
+                    ? RegistryRead.Found(RegistryValue.OfText(GlobalResolverOf(present)))
+                    : RegistryRead.NotFound;
+
+        public ReadStatus KeyExists(string keyPath) => ReadStatus.NotFound;
+
+        public RegistryValueList ListValues(string keyPath) => RegistryValueList.NotFound;
+
+        public RegistrySubKeyList ListSubKeys(string keyPath) => RegistrySubKeyList.NotFound;
     }
 
     /// <summary>

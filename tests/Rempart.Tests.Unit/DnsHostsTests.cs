@@ -430,6 +430,91 @@ public class DnsResolverTests
     }
 
     /// <summary>
+    /// The same compatibility half for the level field #196 adds, asserted on the
+    /// <em>value</em> for the reason #163 gives: a capture written before it holds records read
+    /// from an adapter key and nothing else, that read having opened no other key.
+    ///
+    /// <para>
+    /// The default deciding the other way would be worse here than a shrug: every record of
+    /// every capture on disk would come back as « the stack's own level », and the collector
+    /// would replace two hundred adapter verdicts with two hundred lines saying that this audit
+    /// establishes nothing about them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_capture_written_before_the_levels_replays_its_records_as_adapters()
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(
+            """
+            {"dns":[{"id":"{ancienne}","staticServers":["203.0.113.5"],"dhcpServers":[],
+                     "stack":"IPv6"}]}
+            """);
+
+        var iface = Assert.Single(new SnapshotDnsProvider(snapshot).Read().Interfaces);
+
+        Assert.Equal(DnsScope.Adapter, iface.Scope);
+        Assert.NotEqual(DnsScope.Stack, iface.Scope);
+
+        // And the other mechanism that could answer the same question, held to the same answer.
+        // The line above is satisfied by the constructor default alone — reordering the enum so
+        // that « stack » becomes the zero member leaves it green, which was measured by doing
+        // it. A capture is not the only door: anything reaching this record through
+        // default(DnsScope) lands on the zero member, and the two must not disagree.
+        Assert.Equal(DnsScope.Adapter, default);
+
+        // And the verdict is the adapter's, unchanged: the unrecognised static resolver, not
+        // the observation the level above a card gets.
+        var finding = Assert.Single(Collect(iface));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal("statique", finding.Details["origine"]);
+        Assert.Contains("détournement", string.Join(" ", finding.Reasons),
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The four steps of #184 walked again for the level field, on the record that only exists
+    /// since #196: recorded by the scan, serialised into the capture, replayed out of it, and
+    /// judged there as what it is.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object, for the reason the
+    /// neighbouring test gives: a field the recorder sets and the source-generated serialiser
+    /// drops passes every in-memory assertion, and the replay then reads a resolver posed above
+    /// every adapter as a card's own deliberate configuration — which is the one reading #196
+    /// established this audit may not make.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_resolver_at_a_stacks_own_level_is_recorded_serialised_and_replayed_as_one()
+    {
+        var level = new DnsInterface(
+            RegistryDnsProvider.ParametersKeyOf(DnsStack.IPv6),
+            ["2001:db8::53"], [], DnsStack.IPv6, DnsScope.Stack);
+
+        var snapshot = new MachineSnapshot();
+        new RecordingDnsProvider(new FakeDnsProvider(level), snapshot).Read();
+
+        var replayed = new SnapshotDnsProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read();
+
+        var survivor = Assert.Single(replayed.Interfaces);
+
+        Assert.Equal(DnsScope.Stack, survivor.Scope);
+        Assert.Equal(DnsStack.IPv6, survivor.Stack);
+        Assert.Equal(RegistryDnsProvider.ParametersKeyOf(DnsStack.IPv6), survivor.Id);
+        Assert.Equal(["2001:db8::53"], survivor.StaticServers);
+
+        var finding = Assert.Single(Collect(replayed));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Null(finding.Gap);
+        Assert.Equal(RegistryDnsProvider.ParametersKeyOf(DnsStack.IPv6), finding.Source);
+        Assert.Contains("n'a pas établi", string.Join(" ", finding.Reasons),
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// The compatibility half, against a capture genuinely written before the field —
     /// <c>compromised-win11</c>, versioned, whose <c>dns</c> block is a bare array.
     ///
@@ -465,6 +550,11 @@ public class DnsResolverTests
             Assert.DoesNotContain(
                 document.RootElement.GetProperty("dns").EnumerateArray(),
                 iface => iface.TryGetProperty("stack", out _));
+
+            // And the level field of #196, by the same premise: this capture predates it too.
+            Assert.DoesNotContain(
+                document.RootElement.GetProperty("dns").EnumerateArray(),
+                iface => iface.TryGetProperty("scope", out _));
         }
 
         var read = new SnapshotDnsProvider(RempartJson.DeserialiseSnapshot(json)).Read();
@@ -475,8 +565,10 @@ public class DnsResolverTests
         Assert.Equal(2, read.Interfaces.Count);
 
         // The stack the interfaces of that capture were read on, and the only one the read
-        // that wrote it ever walked (#191).
+        // that wrote it ever walked (#191). The level likewise: that read descended into the
+        // adapters and opened nothing above them (#196).
         Assert.All(read.Interfaces, iface => Assert.Equal(DnsStack.IPv4, iface.Stack));
+        Assert.All(read.Interfaces, iface => Assert.Equal(DnsScope.Adapter, iface.Scope));
 
         // And the collector says exactly what it said about that capture yesterday: two
         // resolver findings and no gap.

@@ -182,12 +182,13 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
     /// <para>
     /// <b>And what it cannot reach at all</b>, which its name does not say and this paragraph
     /// does: it only ever builds <c>{service}\Parameters\Interfaces\{adapter}</c>, so a resolver
-    /// held at the global level of a service — <c>{service}\Parameters\NameServer</c>, which on
-    /// this machine exists on the declared v4 stack — is outside it in both directions, declared
-    /// stack or not. That surface is named by <c>RegistryDnsProvider</c> and pinned by
-    /// <c>RegistryDnsProviderTests</c>; widening this walk to it would redden here on an
-    /// ordinary machine, which is a question to settle before reading it and not by an
-    /// assertion.
+    /// held at the global level of a service — <c>{service}\Parameters\NameServer</c> — is
+    /// outside it. On the <em>declared</em> stacks that level is read since #196 and confronted
+    /// with the registry by
+    /// <see cref="The_level_above_the_adapters_is_read_as_the_registry_holds_it"/>; on an
+    /// undeclared service it is unread, and widening this walk to it is still not the way to
+    /// find out — <c>Tcpip\Parameters\NameServer</c> is present and empty on an ordinary
+    /// machine, so a walk keyed on the value name being there would redden on every runner.
     /// </para>
     ///
     /// <para>
@@ -266,6 +267,99 @@ public sealed class LiveDnsProviderTests(ITestOutputHelper output)
             + $"déclare : {string.Join(", ", elsewhere)}. Ou bien c'est une pile à déclarer "
             + "dans RegistryDnsProvider.Stacks, ou bien c'est une valeur homonyme à écarter "
             + "ici — dans les deux cas, un résolveur y est aujourd'hui invisible au rapport.");
+    }
+
+    /// <summary>
+    /// The second level of each declared stack, confronted with what the registry holds there —
+    /// the interop half of #196, which no fake registry can carry.
+    ///
+    /// <para>
+    /// The key path is derived from the interfaces key by cutting one segment off, and a
+    /// derivation that lands one key beside the right one answers « rien » for ever with nothing
+    /// downstream able to tell that apart from a machine whose slot is the empty one Windows
+    /// ships. So the value is read again here through <c>Microsoft.Win32</c>, a source that did
+    /// not come from the read, and the two are held equal in both directions.
+    /// </para>
+    ///
+    /// <para>
+    /// Equality and not a subset, which is what makes this assert on an ordinary machine rather
+    /// than only on a compromised one. The empty <c>NameServer</c> that ships with Windows must
+    /// produce <em>no</em> record — that is the whole noise argument — and the
+    /// <c>DhcpNameServer</c> beside it, which on a leased machine is not empty at all, must
+    /// produce none either: it is a copy Windows maintains of the leasing adapter's own list,
+    /// and reading it would repeat an inventory line. A read that opened it would carry
+    /// addresses this comparison does not have.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What it does not reach, written out rather than implied.</b> Reading the value here
+    /// through the derived path would let a wrong derivation compare a wrong key with itself
+    /// and pass, so the key is held to being the parent of the declared interfaces subtree on
+    /// this machine — the one thing that ties the cut to the registry. And the branch where the
+    /// value <em>holds</em> something stays out of reach: an ordinary Windows install ships it
+    /// empty and no supported command fills it, so what exercises that branch is the theory in
+    /// <c>RegistryDnsProviderTests</c>, against a fake registry. This one exercises the key,
+    /// the value name, and the silence.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_level_above_the_adapters_is_read_as_the_registry_holds_it()
+    {
+        foreach (var (stack, interfacesKey) in Core.Providers.RegistryDnsProvider.Stacks)
+        {
+            var parameters = Core.Providers.RegistryDnsProvider.ParametersKeyOf(stack);
+
+            using var key = Registry.LocalMachine.OpenSubKey(
+                parameters["HKLM\\".Length..], writable: false);
+
+            Assert.True(key is not null,
+                $"La clé « {parameters} » n'existe pas sur cette machine : le niveau global de "
+                + $"la pile « {stack} » n'est pas là où ce programme le découpe, et une clé qui "
+                + "n'est pas là rend « rien » pour toujours.");
+
+            // The cut tied to the registry rather than to itself: this key is the parent of the
+            // interfaces subtree the read walks, on this machine and not merely in the string.
+            Assert.Contains(
+                interfacesKey[(parameters.Length + 1)..],
+                key!.GetSubKeyNames(),
+                StringComparer.OrdinalIgnoreCase);
+
+            var raw = key.GetValue("NameServer") as string;
+
+            var found = Interfaces
+                .Where(entry => entry.Scope is Core.Providers.DnsScope.Stack
+                    && entry.Stack == stack)
+                .ToList();
+
+            output.WriteLine(
+                $"{parameters}\\NameServer = « {raw ?? "(absente)"} » → "
+                + $"{found.Count} enregistrement(s) de niveau pile.");
+
+            Assert.Equal(
+                Core.Providers.RegistryDnsProvider.Split(raw),
+                found.SelectMany(entry => entry.StaticServers).ToList());
+
+            // A record carrying nothing is not the same as no record, and the equality above
+            // is satisfied by either. The empty <c>NameServer</c> Windows ships must produce
+            // none at all, or every scan this tool runs gains a line about a value that holds
+            // nothing — which is the whole of why this read keys on the value.
+            Assert.Equal(
+                Core.Providers.RegistryDnsProvider.Split(raw).Count == 0 ? 0 : 1, found.Count);
+
+            Assert.All(found, entry =>
+            {
+                Assert.Equal(parameters, entry.Id);
+
+                // Each address as the registry spells it, checked without going back through
+                // the splitter this comparison already uses on the other side.
+                Assert.All(entry.StaticServers, server =>
+                    Assert.Contains(server, raw!, StringComparison.Ordinal));
+
+                // The DHCP half of this level is unread on purpose; a record carrying one
+                // would mean the read opened DhcpNameServer after all.
+                Assert.Empty(entry.DhcpServers);
+            });
+        }
     }
 }
 

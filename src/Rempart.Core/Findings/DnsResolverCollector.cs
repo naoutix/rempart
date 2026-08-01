@@ -55,6 +55,13 @@ internal sealed record WellKnownResolver(
 /// and the asymmetry is stated here rather than papered over by reporting v6 as « DHCP: aucun »,
 /// which would be a claim the scan never read.
 /// </para>
+///
+/// <para>
+/// <b>And nothing above transfers to the level above the cards (#196).</b> A stack keeps a
+/// resolver list on its own <c>Parameters</c> key as well, and neither « statique contre DHCP »
+/// nor the well-known list means there what it means under a card — see
+/// <see cref="SignalStackLevel"/>, which is the whole of what this collector says about it.
+/// </para>
 /// </summary>
 public sealed class DnsResolverCollector : IFindingCollector
 {
@@ -117,15 +124,15 @@ public sealed class DnsResolverCollector : IFindingCollector
         var findings = new List<Finding>();
 
         // A hole in what the scan saw, and not a machine that resolves nothing. Added rather
-        // than returned: the read is partial by nature — the interface enumeration and the two
-        // values of each interface are separate reads — so answering with this finding alone
-        // would drop the adapters that did answer, including the one carrying the resolver.
+        // than returned: the read is partial by nature — the stack's own value, the interface
+        // enumeration and the two values of each interface are separate reads — so answering
+        // with this finding alone would drop what did answer, resolver included.
         //
         // Refused for a denial, and the argument is the channel rather than the surface: the
         // only thing under the shipped read is IRegistryProvider, which catches the two denial
         // exceptions and lets every other failure through, so AccessDenied here is an ACL and
-        // nothing else — and an ACL on Tcpip\Parameters\Interfaces is opened by elevating.
-        // Exit 3, « droits insuffisants », which is exactly what the caller can act on.
+        // nothing else — and an ACL on Tcpip\Parameters, or on the Interfaces subtree under it,
+        // is opened by elevating. Exit 3, « droits insuffisants », which the caller can act on.
         //
         // Failed cannot be built by any factory of this read and a capture can still hold it,
         // which is the shape #177 found on the firewall: read as Unreadable, exit 5, because
@@ -148,7 +155,13 @@ public sealed class DnsResolverCollector : IFindingCollector
 
         foreach (var iface in read.Interfaces)
         {
-            if (iface.StaticServers.Count > 0)
+            // The level above the adapters, which is not judged like one — first, so that
+            // nothing below can fall through to the adapter's verdict.
+            if (iface.Scope is DnsScope.Stack)
+            {
+                findings.Add(SignalStackLevel(iface));
+            }
+            else if (iface.StaticServers.Count > 0)
             {
                 findings.Add(JudgeStatic(iface));
             }
@@ -161,6 +174,62 @@ public sealed class DnsResolverCollector : IFindingCollector
         }
 
         return findings;
+    }
+
+    /// <summary>
+    /// A resolver list sitting on the stack's own <c>Parameters</c> key: said, and said as an
+    /// observation — never as the verdict the same address earns under a card.
+    ///
+    /// <para>
+    /// <b>What #196 measured, and what it could not.</b> On a real Windows 11 machine the DHCP
+    /// half of that level is written by Windows as a copy of the leasing adapter's list, and the
+    /// resolver does not hand it to interfaces that have none of their own — four of that
+    /// machine's six interfaces reported no IPv4 server while the copy sat there. So that half
+    /// is not read: it would repeat an inventory line. The static half could not be settled:
+    /// <c>NameServer</c> is present and <em>empty</em> there on an ordinary install, writing one
+    /// to find out needs an elevation the measurement did not have, and no supported
+    /// configuration path writes it — <c>Set-DnsClientServerAddress</c> and
+    /// <c>netsh interface ipv4 set dnsservers</c> both require an interface.
+    /// </para>
+    ///
+    /// <para>
+    /// That is why this is a signal and not an inventory line. The reader is told a value is
+    /// there, that nothing ordinary put it there, and that whether the machine resolves through
+    /// it was <em>not</em> established — a finding claiming the third would be exactly the
+    /// « collecter la clé en laissant croire que sa présence a été vérifiée » the issue forbids.
+    /// </para>
+    ///
+    /// <para>
+    /// Neither half of the adapter's judgement reaches here, deliberately. « Statique contre
+    /// DHCP » compares two lists, and at this level there is one — the other is Windows' own
+    /// copy. And the well-known list stays out: recognising Quad9 under a card means « a
+    /// deliberate hardening choice, made where such choices are made », which is the very thing
+    /// a key no command writes cannot be read as. What is reported is the place, so no address
+    /// makes it go quiet.
+    /// </para>
+    ///
+    /// <para>
+    /// <see cref="Finding.Source"/> is the key, which designates exactly one finding per scan —
+    /// one per stack, each on its own key — where an adapter GUID designates one per stack since
+    /// #191. So <c>rempart diff</c> may merge a disappearance and an appearance on it into « the
+    /// same place now holds something else », which is the reading a reader wants there.
+    /// </para>
+    /// </summary>
+    private static Finding SignalStackLevel(DnsInterface level)
+    {
+        var servers = string.Join(", ", level.StaticServers);
+
+        return new Finding("dns-resolver", level.Id, servers, FindingSeverity.Notable,
+            [
+                $"Liste de résolveurs DNS ({servers}) posée au niveau global de la pile "
+                + $"{level.Stack}, au-dessus des cartes : aucune commande de configuration DNS "
+                + "de Windows n'écrit à cet endroit.",
+
+                "Cet audit n'a pas établi que la résolution consulte ce niveau : la valeur est "
+                + "relevée telle quelle, elle n'est pas comptée comme un résolveur actif. À "
+                + "vérifier à la main.",
+            ],
+            Details(level, "niveau global de la pile", level.StaticServers));
     }
 
     private static Finding JudgeStatic(DnsInterface iface)
@@ -223,6 +292,14 @@ public sealed class DnsResolverCollector : IFindingCollector
     /// happened. <see cref="FindingDetails.Place"/> names the row that tells the two apart
     /// rather than repeating its value, and <c>ScanDiffTests</c> exercises it on the findings
     /// this method builds.
+    /// </para>
+    ///
+    /// <para>
+    /// <c>origine</c> says where the addresses come from, and for the stack's own level that is
+    /// neither « statique » nor « DHCP » but the level itself: those two words compare a card's
+    /// two lists, and one level up there is one list — the other is Windows' own copy of an
+    /// adapter's. Writing « statique » there would extend the adapter's judgement in silence,
+    /// which is the one thing #196 asked not to do.
     /// </para>
     /// </summary>
     private static Dictionary<string, string> Details(
