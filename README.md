@@ -97,7 +97,7 @@ Correction — réversibilité : Trivial
 
 Runs on 64-bit Windows; the rule set targets Windows 11 defaults.
 
-**The current release is [v1.0.0](https://github.com/naoutix/rempart/releases)** —
+**The current release is [v1.1.0](https://github.com/naoutix/rempart/releases)** —
 stable, not a candidate: the sealed archive has been run on a machine other than the
 one that built it, on a different Windows feature update, with nothing pre-installed.
 
@@ -243,10 +243,15 @@ using it.
 
 ## Status
 
-**v1.0.0 — the read-only audit is complete**: three report formats, a signed
+**v1.1.0 — the read-only audit is complete**: three report formats, a signed
 integrity seal for the stick, and fleet comparison. It is a stable release rather
 than a candidate because the sealed archive has been run on a machine other than
 the one that built it — this project's own release condition.
+
+Since v1.0.0, nine rounds of adversarial review have gone into what the tool can
+say when a read is refused rather than answered, and into the DNS surface, where
+the IPv6 stack, the level above the adapters and the name resolution policy table
+were all outside the audit. See [CHANGELOG.md](CHANGELOG.md).
 
 Remediation — writing to the machine — is a later milestone and has not started.
 [ROADMAP.md](docs/ROADMAP.md) (French) records what was deferred and why. One

@@ -5,12 +5,20 @@ release. The milestone-by-milestone account of how the tool got here, including 
 tried and rejected, lives in [docs/ROADMAP.md](docs/ROADMAP.md) — this file records what
 changed between releases.
 
-## Unreleased
+## 1.1.0 — 2026-08-01
 
-The 33 findings of the [2026-07-29 review](docs/revues/2026-07-29-revue-complete.md), fixed
-one issue per pull request. What the review actually charged the repository with was fixing a
-class of defect in one place and leaving the layer next to it, so the entries below are grouped
-by the mechanism that replaced a hand-maintained list rather than by file.
+The 33 findings of the [2026-07-29 review](docs/revues/2026-07-29-revue-complete.md) and the
+nine rounds that followed them, in fifty-two pull requests of one issue each. Every round
+re-read the previous round's fixes adversarially, and what a review refuted became the next
+round's finding; eleven of the last eighteen fixes were refuted that way before merging.
+
+Nothing is removed and a capture written by 1.0.0 still replays. What is new is what the tool
+looks at, plus one contract that is deliberately broken and named as such below: a mistyped
+command word no longer exits `0`.
+
+What the review charged the repository with was fixing a class of defect in one place and
+leaving the layer next to it, so the entries below are grouped by the mechanism that replaced a
+hand-maintained list rather than by file.
 
 ### A refused read stops looking like a clean answer
 
@@ -103,6 +111,75 @@ root — and repaired before merging.
 - **Five guards that would have stopped guarding** — four compatibility assertions written on
   the presence of a JSON key rather than its value, and two reflection sweeps that only saw
   `const` fields.
+
+### A command line that was not understood stops exiting `0`
+
+Three spellings of one defect, found a round apart each, and all three the same thing to a
+scheduler: a success reported for a run that did something other than what was asked.
+
+- `rempart scan --replay capture.json` scanned the local machine. The replay option is
+  `--from`; `--replay` does not exist, and nothing read it or complained. Unknown options are
+  now refused against what the command declares — `CommandSurface.Unknown` returns the
+  complement of the declared set, so an option added tomorrow is refused until it is declared.
+- `rempart scna --from t.json` printed the usage text and exited `0`. **This is a contract
+  change, and the only one in this release**: a mistyped command word now exits `6`, and the
+  message lists the words that exist rather than leaving the speller to guess.
+- `rempart -scan --from t.json` did the same and had survived both fixes above — the parser
+  returned "no command word" on the leading dash, and the fallback exempted it without looking.
+  The spellings that ask for help without naming a command are now declared rather than
+  guessed, and a line that names no command and asks for nothing is refused.
+
+### "Attempted and failed" gets a word of its own
+
+The invariant CONTRIBUTING records first — a failure never borrows the meaning of a denial —
+had no vocabulary to be kept with. Each entry below is a surface that told the user to re-run
+as administrator where no privilege would have helped.
+
+- `ReadStatus` gains `Failed`. A startup folder held open by another process, and a `hosts`
+  file that could not be read, stop coming back as "accès refusé".
+- The issue listed eight factories named `Failed` carrying the status of a denial; a guard
+  written by construction found **twelve**, plus a fallback inheriting from one of them. Only
+  one produced a false verdict, and it is the one that mattered: replaying a capture taken
+  before scheduled tasks were collected exited `3`, "re-run elevated" — and no console,
+  however elevated, re-reads a snapshot.
+- The firewall's contract used two words for one member, which the issue recorded as a
+  contradiction of prose with nothing measured downstream. That part was wrong: a universal
+  key the machine does not have, and a rule container whose values do not parse, both came out
+  as denials.
+- The guard holding all of this now reads the compiled body instead of three sample arguments.
+  Four deliberately faulty factories had been planted in `Rempart.Core` — branching on a count,
+  on a path, on a threshold, on an absent diagnostic — and the whole suite stayed green.
+
+### The DNS surface, read from four levels it did not know about
+
+Six rounds on one surface, because each fix's review found the next hole in it.
+
+- **A refused read returned zero resolvers.** `IDnsProvider.Read` and
+  `ISoftwareInventoryProvider.Read` returned a bare list, so a deny ACL on
+  `Tcpip\Parameters\Interfaces` gave the same empty answer as a machine with no interface
+  configured — on the surface a hijack sits on. Both carry a status now, and a refusal on one
+  adapter no longer removes that adapter, and its static resolver, from the inventory.
+- **The IPv6 stack was not read at all**: `Tcpip6` appeared nowhere in the repository. Both
+  stacks are walked from a table keyed on `DnsStack`, and the tests are theories over its
+  members, so a stack declared tomorrow is exercised without this file being opened.
+- **An unwired read answered `Found([])`** — a successful, empty read, which every rule
+  downstream takes for a state of the machine. Six fallbacks answered the wrong side of
+  "nobody looked" against "I looked and there was nothing"; the second stays silent wherever
+  zero is a plausible answer, and every test pinning that is untouched.
+- **A repointed resolver came out as two unrelated lines.** Windows binds both stacks of an
+  adapter under one GUID, so a dual-stack card carried two findings under one source and
+  `rempart diff` refused to fold them into one "le même emplacement lance autre chose" — on
+  the command written to detect drift, for the hijack that collector exists to catch.
+- **The level above the adapters** carries the same two value names and was read on neither
+  stack. Measured on a real machine: what Windows writes there is a copy of the connected
+  adapter's own values, so collecting it would repeat an inventory line. It stays unread, now
+  with a reason, and the half that could not be settled says so instead of guessing.
+- **The name resolution policy table (NRPT)** points a namespace's queries at servers of its
+  own without touching the per-adapter configuration this tool inspects. Both stores are
+  enumerated now, and a rule is **signalled rather than judged**: the finding says which names,
+  which servers and which store, then says what this audit did not establish. The `NameServer`
+  policy value beside it is documented as *not read by the resolver of this build* — measured
+  in `dnsrslvr.dll` and `dnsapi.dll`, against a Microsoft help text that claims the opposite.
 
 ### Build and release
 
