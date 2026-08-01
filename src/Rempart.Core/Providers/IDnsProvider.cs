@@ -41,7 +41,60 @@ public enum DnsStack
 }
 
 /// <summary>
-/// The DNS resolution configuration of a network interface, on one stack.
+/// Which level of a stack a resolver list was read from.
+///
+/// <para>
+/// A stack keeps resolver lists at two levels, not one: under each adapter, and on the
+/// service's own <c>Parameters</c> key above them — the same two value names in both places.
+/// Until #196 only the lower one was read, on both stacks alike.
+/// </para>
+///
+/// <para>
+/// <b>The two levels are not judged alike, and this member is what keeps them apart at the
+/// place the judgement is made.</b> Under an adapter, « statique » against « DHCP » is a real
+/// distinction and a common configuration: a resolver typed on to a card is a deliberate act,
+/// and one that is a recognised public resolver is an ordinary hardening choice. At the level
+/// of the stack neither half of that holds — measurement in
+/// <see cref="RegistryDnsProvider"/> — so the collector states what it saw and explicitly
+/// does not call it an active resolver.
+/// </para>
+///
+/// <para>
+/// A capture taken before this field carries no <c>scope</c>, and it has to come back
+/// <see cref="Adapter"/>: every record such a capture holds was read from an adapter key, that
+/// read having opened nothing else. <c>DnsHostsTests</c> asserts that on the <em>value</em>,
+/// never on the key being absent (#163).
+/// </para>
+///
+/// <para>
+/// <b>Two mechanisms could decide it, and they are made to agree — which is a correction and
+/// not a belt.</b> <see cref="DnsStack.IPv4"/> is load-bearing by being the zero member, and
+/// the same sentence written here was false: the serialiser honours the constructor default of
+/// <see cref="DnsInterface.Scope"/> for a property a document does not carry, so reordering
+/// this enum left the compatibility test green — measured, by doing it. Being the zero member
+/// as well costs nothing and is what answers if that default is ever dropped or the serialiser
+/// stops reading it, so the test pins both.
+/// </para>
+/// </summary>
+public enum DnsScope
+{
+    /// <summary>
+    /// One network card's own list, under <c>{stack}\Parameters\Interfaces\{guid}</c> — the
+    /// only level read before #196, and what every capture written before it holds.
+    /// </summary>
+    Adapter,
+
+    /// <summary>
+    /// The stack's own <c>Parameters</c> key, above the adapters. Read for
+    /// <c>NameServer</c> only, and reported as an observation rather than as a resolver: see
+    /// <see cref="RegistryDnsProvider"/> for what was measured and what was not.
+    /// </summary>
+    Stack,
+}
+
+/// <summary>
+/// The DNS resolution configuration read at one place of one stack — a network card, or the
+/// stack's own level above the cards.
 ///
 /// <para>
 /// The distinction that matters: a resolver received from DHCP comes from the network
@@ -56,12 +109,24 @@ public enum DnsStack
 /// either lose one list or attribute an address to the stack it is not on — and the stack is
 /// what decides which command undoes it.
 /// </para>
+///
+/// <para>
+/// <b>The name says « interface » and one record per stack is not one</b>, which is a wart
+/// kept on purpose: this list is what a capture stores under <c>dns</c>, and it is the only
+/// place a new level could ride without turning that JSON array into an object — the change
+/// this repository has refused five times because it makes every capture ever taken
+/// unreadable, the real-machine ones outside the repository included.
+/// <see cref="Scope"/> says which level the record came from, and
+/// <see cref="Id"/> follows it: an adapter GUID for a card, the registry key path for the
+/// stack's own level.
+/// </para>
 /// </summary>
 public sealed record DnsInterface(
     string Id,
     IReadOnlyList<string> StaticServers,
     IReadOnlyList<string> DhcpServers,
-    DnsStack Stack);
+    DnsStack Stack,
+    DnsScope Scope = DnsScope.Adapter);
 
 /// <summary>
 /// The interfaces that resolve, plus whether they could be enumerated at all.
@@ -84,6 +149,15 @@ public sealed record DnsInterface(
 /// <c>Tcpip</c> alone, and what the other stack gave travels beside it — the same shape as the
 /// adapter next door, one level up (#191).
 /// </para>
+///
+/// <para>
+/// One list for both <em>levels</em> too, since #196: a record read from the stack's own
+/// <c>Parameters</c> key says so through <see cref="DnsInterface.Scope"/> and rides here rather
+/// than in a field of its own. Not for want of a better shape — a field beside the list is what
+/// this read would want — but because a capture stores this list as a JSON array and rebuilds
+/// the read from three values (<see cref="StatusChannel"/>), so a fourth would be written and
+/// silently dropped on the way back in.
+/// </para>
 /// </summary>
 public sealed record DnsRead(
     ReadStatus Status,
@@ -92,9 +166,9 @@ public sealed record DnsRead(
     : IStatusCarryingRead<DnsRead, DnsInterface>
 {
     /// <summary>
-    /// No stack keeps its interfaces where this read looks. An answer and not a hole: it
-    /// is what a registry holding no TCP/IP stack says, and nothing resolves through an
-    /// interface that was never configured.
+    /// No stack answered anything, at either level. An answer and not a hole: it is what a
+    /// registry holding no TCP/IP stack says, and nothing resolves through an interface that
+    /// was never configured.
     ///
     /// <para>
     /// Every declared stack, and not one of them: a machine with <c>Tcpip6</c> unbound and
@@ -129,9 +203,9 @@ public sealed record DnsRead(
     /// One or more of the keys this read walks was denied. Elevation is the answer.
     ///
     /// <para>
-    /// Takes what the other keys gave, so the refusal costs nothing that was read: the
-    /// enumeration of the interfaces and the two values of each interface are separate reads,
-    /// so a denial on one adapter must not drop the resolver of the one next to it. Partial by
+    /// Takes what the other keys gave, so the refusal costs nothing that was read: the stack's
+    /// own value, the enumeration of the interfaces and the two values of each interface are
+    /// separate reads, so a denial on one must not drop what the others gave. Partial by
     /// design, like <see cref="ScheduledTaskRead"/> and for its reason — and the total case is
     /// the same statement with an empty list, which is why there is one factory and not two.
     /// </para>
