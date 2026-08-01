@@ -83,6 +83,30 @@ public static class FindingDetails
     /// having to know this key exists. What none of this can check is a collector naming one
     /// axis of two — the diff sees the details, never the surface they were read from.
     /// </para>
+    ///
+    /// <para>
+    /// Naming it is the family's, not each finding's: <c>ScanDiff.CoordinateNames</c> gathers
+    /// the names off whichever findings carry them, on either side of the comparison, and reads
+    /// the whole family against them. That is what a comparison spanning two builds needs — a
+    /// baseline is written by an earlier version, and this marker is younger than the row it
+    /// names — and it is what a finding of the family that carries no row is read against too.
+    /// </para>
     /// </summary>
     public const string Place = "emplacement";
+
+    /// <summary>
+    /// Whether a detail row is addressed to the reader of a report as well as to code.
+    ///
+    /// <para>
+    /// The first two markers are: their value is the sentence the reader needs, and printing
+    /// them says something — « transitoire : entrée RunOnce, Windows l'exécute au prochain
+    /// démarrage puis la supprime ». <see cref="Place"/> is not, because its value is the name
+    /// of another row: printed the same way it reads « emplacement : pile », a row pointing at a
+    /// row that is already printed beside it. The renderers that print every detail ask here
+    /// rather than each keeping its own idea of which rows are plumbing — the JSON report keeps
+    /// all of them, being what <c>rempart diff</c> reads back.
+    /// </para>
+    /// </summary>
+    public static bool AddressedToTheReader(string key) =>
+        !string.Equals(key, Place, StringComparison.Ordinal);
 }

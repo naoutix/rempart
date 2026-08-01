@@ -395,8 +395,9 @@ public static class ScanDiff
         Dictionary<(string, string, string), Finding> earlier,
         Dictionary<(string, string, string), Finding> later)
     {
-        var uniqueBefore = PlacesDesignatingOne(before);
-        var uniqueAfter = PlacesDesignatingOne(after);
+        var axes = CoordinateNames(before, after);
+        var uniqueBefore = PlacesDesignatingOne(before, axes);
+        var uniqueAfter = PlacesDesignatingOne(after, axes);
 
         var merged = new List<FindingChange>(changes.Count);
         var consumed = new HashSet<FindingChange>();
@@ -412,7 +413,7 @@ public static class ScanDiff
                 continue;
             }
 
-            var place = Place(vanished);
+            var place = Place(vanished, axes);
 
             if (!uniqueBefore.Contains(place) || !uniqueAfter.Contains(place))
             {
@@ -425,7 +426,7 @@ public static class ScanDiff
             var replacement = changes.FirstOrDefault(other =>
                 other.Change == ChangeKind.Appeared
                 && later.GetValueOrDefault(Identity(other)) is { } arrived
-                && Place(arrived) == place);
+                && Place(arrived, axes) == place);
 
             if (replacement is null)
             {
@@ -468,50 +469,106 @@ public static class ScanDiff
     /// Which detail carries the coordinate is <see cref="FindingDetails.Place"/>, and it is
     /// the collector's to name rather than this file's to guess — a family that names nothing
     /// keeps exactly the key it had. That is what makes this general instead of a list of
-    /// families to treat apart.
+    /// families to treat apart. It is read per family and not per finding, which is what lets a
+    /// baseline written before the marker existed go on folding: see
+    /// <see cref="CoordinateNames"/>.
     /// </para>
     /// </summary>
-    private static (string Kind, string Source, string Coordinates) Place(Finding finding) =>
-        (finding.Kind, finding.Source, Coordinates(finding));
+    private static (string Kind, string Source, string Coordinates) Place(
+        Finding finding, IReadOnlyDictionary<string, string[]> axes) =>
+        (finding.Kind, finding.Source, Coordinates(finding, axes));
 
     /// <summary>
-    /// The coordinates a finding names, folded into one comparable string.
+    /// The detail keys a family names as its coordinates, gathered from both sides.
     ///
     /// <para>
-    /// Each named detail is written out with its own name beside its value, so two findings
-    /// naming different details cannot collide on a value alone, and the pairs are joined on a
-    /// unit separator. A named detail the finding does not hold reads as empty and folds back
-    /// onto the key without it — the conservative direction: two lines the reader can join up,
-    /// never a substitution invented for them.
+    /// <b>The family's, and not each finding's, because a comparison spans two builds.</b>
+    /// <c>rempart diff &lt;scan&gt;</c> reads the stick's baseline, which is stable on purpose
+    /// and therefore written by an earlier version, and there is no version barrier between two
+    /// reports — nor should there be, an audit that stops comparing the day it updates being no
+    /// audit. The marker is younger than the row it names: a baseline from the release before
+    /// this one carries <c>pile</c> without saying it is a coordinate. Read off each finding
+    /// alone, every place in that baseline came out coordinate-less, none matched the day's
+    /// scan, and the two lines this key exists to fold came back — on the single-stack card,
+    /// which is most of them. Taking the names from whichever side says them keeps the rule
+    /// that matters: they are a collector's, never inferred here from a source path.
     /// </para>
     ///
     /// <para>
-    /// Three things it cannot do, written down rather than called impossible. A detail key
-    /// holding a ',' cannot be named. Nothing here can tell that a collector named one axis of
-    /// two — the diff sees details, never the surface they were read from. And the fold is not
-    /// injective over arbitrary text: a value carrying the separator, or an '=', could spell
-    /// out another finding's pairs. No claim is made that Windows never writes those
-    /// characters; what holds is that no shipped coordinate is machine text at all — the only
-    /// one there is, the DNS stack, is an enum member name.
+    /// What it does not do is excuse a coordinate. A finding whose family names an axis it does
+    /// not carry reads as empty there, which is a place of its own and not a match for any
+    /// other — so a v4 resolver dropped against a v6 one set stays two lines across builds as
+    /// within one, the value telling those two apart being in the older report too and only its
+    /// name younger. A baseline older than the row <em>itself</em> — before #193, when no
+    /// resolver finding carried a stack — has nothing to be read against, so its places differ
+    /// from the day's and the merge refuses: the conservative direction, two lines to join up
+    /// rather than one substitution invented.
     /// </para>
     /// </summary>
-    private static string Coordinates(Finding finding) =>
-        finding.Details.TryGetValue(FindingDetails.Place, out var named)
+    private static Dictionary<string, string[]> CoordinateNames(
+        IReadOnlyList<Finding> before, IReadOnlyList<Finding> after)
+    {
+        var named = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+
+        foreach (var finding in before.Concat(after))
+        {
+            if (!finding.Details.TryGetValue(FindingDetails.Place, out var declaration))
+            {
+                continue;
+            }
+
+            if (!named.TryGetValue(finding.Kind, out var keys))
+            {
+                // Sorted, so the fold depends on neither the order two builds wrote the names
+                // in nor which side of the comparison was read first.
+                named[finding.Kind] = keys = new SortedSet<string>(StringComparer.Ordinal);
+            }
+
+            foreach (var key in declaration.Split(','))
+            {
+                keys.Add(key.Trim());
+            }
+        }
+
+        return named.ToDictionary(
+            entry => entry.Key, entry => entry.Value.ToArray(), StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Where a finding sits along its family's axes, folded into one comparable string.
+    ///
+    /// <para>
+    /// One field per axis, in the family's own order, joined on a unit separator — so a value is
+    /// read against the axis it was written on and never against a neighbouring one, and a
+    /// family naming nothing folds to the empty string and keeps the key it had. An axis the
+    /// finding does not hold reads as empty, which is the conservative direction: two lines the
+    /// reader can join up, never a substitution invented for them.
+    /// </para>
+    ///
+    /// <para>
+    /// Two things it cannot do, written down rather than called impossible. A detail key holding
+    /// a ',' cannot be named. And the fold is not injective over arbitrary text: a value carrying
+    /// the separator could spell out a neighbouring field. No claim is made that Windows never
+    /// writes that character; what holds is that no shipped coordinate is machine text at all —
+    /// the only one there is, the DNS stack, is an enum member name.
+    /// </para>
+    /// </summary>
+    private static string Coordinates(
+        Finding finding, IReadOnlyDictionary<string, string[]> axes) =>
+        axes.TryGetValue(finding.Kind, out var keys)
             ? string.Join(
                 '\u001F',
-                named.Split(',')
-                    .Select(key => key.Trim())
-                    .Select(key => $"{key}={finding.Details.GetValueOrDefault(key)}"))
+                keys.Select(key => finding.Details.GetValueOrDefault(key)))
             : string.Empty;
 
     private static HashSet<(string, string, string)> PlacesDesignatingOne(
-        IReadOnlyList<Finding> findings)
+        IReadOnlyList<Finding> findings, IReadOnlyDictionary<string, string[]> axes)
     {
         var counts = new Dictionary<(string, string, string), int>();
 
         foreach (var finding in findings)
         {
-            var place = Place(finding);
+            var place = Place(finding, axes);
             counts[place] = counts.GetValueOrDefault(place) + 1;
         }
 

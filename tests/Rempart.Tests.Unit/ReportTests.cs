@@ -318,6 +318,32 @@ public sealed class ReportTests
         Assert.DoesNotContain("pilote-sain.sys", markdown, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The two renderers that print every detail must not print the one addressed to code.
+    ///
+    /// <para>
+    /// <see cref="FindingDetails.Place"/> holds the <em>name</em> of another row, where the two
+    /// markers before it hold the sentence their reader needs. Printed like the rest it reads
+    /// « emplacement : pile » — a row pointing at a row, saying nothing the one it points at
+    /// does not, on the two formats a reader is handed. That row itself stays: the stack is also
+    /// what says which <c>netsh</c> command undoes the finding.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_detail_naming_a_coordinate_is_not_printed_to_the_reader()
+    {
+        var result = Minimal() with { Findings = Resolver("203.0.113.9") };
+
+        var markdown = MarkdownReport.Render(result);
+        var html = HtmlReport.Render(result);
+
+        Assert.Contains("- pile : IPv4\n", markdown, StringComparison.Ordinal);
+        Assert.Contains("<dt>pile</dt><dd>IPv4</dd>", html, StringComparison.Ordinal);
+
+        Assert.DoesNotContain(FindingDetails.Place, markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(FindingDetails.Place, html, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("POSTE-01", "POSTE-01-2026-07-24")]
     [InlineData("anon:3f2ab9", "anon-3f2ab9-2026-07-24")]
@@ -713,6 +739,17 @@ public sealed class ReportTests
         RulesFingerprint: "sha256:abcdef",
         DataAge: new DataAge("2026-07-01T00:00:00Z", 23, false, false, 180));
 
+    /// <summary>
+    /// A static resolver nobody recognises, as <c>DnsResolverCollector</c> writes it: the one
+    /// shipped finding carrying <see cref="FindingDetails.Place"/>, built by the collector so
+    /// that the rows asserted on are the rows a machine produces.
+    /// </summary>
+    private static List<Finding> Resolver(string server) =>
+        [.. new DnsResolverCollector().Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            dns: new FakeDnsProvider(new DnsInterface(
+                "{7C2B4A1E-9F3D-4E58-B0A6-5C1D2E3F4A5B}", [server], [], DnsStack.IPv4))))];
+
     /// <summary>A scan with something in every section, and a machine that is not clean.</summary>
     private static ScanResult Populated() => Minimal() with
     {
@@ -738,10 +775,14 @@ public sealed class ReportTests
         ],
         Findings =
         [
-            new Finding("driver", "Win32_SystemDriver", "pilote-douteux.sys",
+            // Keyed by the driver's own name and targeting its path, as
+            // LoadedDriversCollector has keyed each one since #29. The source used to read
+            // Win32_SystemDriver here, which is the class the enumeration comes from and
+            // not something any finding has ever carried.
+            new Finding("driver", "pilote-douteux.sys", @"C:\Windows\System32\drivers\pilote-douteux.sys",
                 FindingSeverity.Suspicious, ["signature absente"],
                 new Dictionary<string, string> { ["sha256"] = "0f1e2d", ["éditeur"] = "—" }),
-            new Finding("driver", "Win32_SystemDriver", "pilote-sain.sys",
+            new Finding("driver", "pilote-sain.sys", @"C:\Windows\System32\drivers\pilote-sain.sys",
                 FindingSeverity.Benign, [], new Dictionary<string, string>()),
             new Finding("software", "Uninstall", "Bloatware OEM",
                 FindingSeverity.Notable, ["catalogue bloatware"],

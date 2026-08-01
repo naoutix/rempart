@@ -330,6 +330,15 @@ present, and the comparison runs anywhere. Three kinds of data are compared thre
 different ways, because they answer different questions — verdicts by rule
 identifier, findings by what they designate, inventory fields as context.
 
+What a finding designates is a *place*, and not its source alone — a disappearance
+and an appearance at one place are folded into « le même emplacement lance autre
+chose », and where a source addresses several the fold has to be refused. Windows
+binds both TCP/IP stacks of an adapter under one GUID, so the collector names the
+detail that tells its places apart (`emplacement`, a third marker set for the reason
+the two below are); a family naming nothing keeps the key it had. Those names are
+read family by family and off either report, so a baseline written by a build older
+than the marker goes on folding rather than giving back two lines.
+
 **Losing sight of a control is not the same as the control failing.** The first
 calls for elevation, the second for a fix. `diff` keeps them separate: merged, the
 first would be buried under the second, and it is the one nobody notices otherwise.
