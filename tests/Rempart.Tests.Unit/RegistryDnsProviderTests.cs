@@ -104,6 +104,37 @@ public sealed class RegistryDnsProviderTests
         Assert.Equal(expected, RegistryDnsProvider.Split(raw));
 
     /// <summary>
+    /// The name spaces of a rule are cut on the separator a <c>REG_MULTI_SZ</c> arrives with,
+    /// and on <em>that one only</em> — the neighbouring theory's separators must not apply here.
+    ///
+    /// <para>
+    /// The failure has no symptom of its own, as with the resolver list next door. Cutting a
+    /// multi-string on spaces or commas would report a rule claiming name spaces nobody
+    /// configured; not cutting it at all would report two names as one, and a reader looking for
+    /// their own domain in that line would not find it. A name space legitimately carries none
+    /// of what a resolver list is cut on, which is why the two splitters are two.
+    /// </para>
+    /// </summary>
+    [Theory]
+    // What the provider layer hands a multi-string over as: the entries joined with newlines.
+    [InlineData("corp.example\nlab.example", new[] { "corp.example", "lab.example" })]
+    // A suffix rule keeps its leading dot: « tous les noms sous X » is not « exactement X ».
+    [InlineData(".corp.example", new[] { ".corp.example" })]
+    // The separators of a resolver list are not separators here — a name space may hold one,
+    // and a value that did would be one name and not several.
+    [InlineData("corp.example,lab.example", new[] { "corp.example,lab.example" })]
+    [InlineData("corp.example;lab.example", new[] { "corp.example;lab.example" })]
+    // A multi-string ends on an empty entry, and a CRLF pair is one break and not two.
+    [InlineData("corp.example\n", new[] { "corp.example" })]
+    [InlineData("corp.example\r\nlab.example", new[] { "corp.example", "lab.example" })]
+    // Nothing claimed, in the shapes a rule with no Name produces it.
+    [InlineData("", new string[0])]
+    [InlineData("   ", new string[0])]
+    public void Name_spaces_are_split_on_the_separator_a_multi_string_arrives_with(
+        string raw, string[] expected) =>
+        Assert.Equal(expected, RegistryDnsProvider.SplitNames(raw));
+
+    /// <summary>
     /// The distinction the collector is built on: a resolver typed in by hand is not a
     /// resolver handed out by the network. Swapping the two value names would keep the count
     /// right and invert every judgement about deliberate configuration.
@@ -948,6 +979,365 @@ public sealed class RegistryDnsProviderTests
     }
 
     /// <summary>
+    /// The two name resolution policy stores, discovered from the table the read walks rather
+    /// than written out here — a store declared tomorrow is exercised by every theory below
+    /// without anyone remembering this file, which is the shape <see cref="EveryStack"/> gave
+    /// the stacks in #191.
+    /// </summary>
+    public static TheoryData<string> EveryNrptStore() => [.. RegistryDnsProvider.NrptStores];
+
+    /// <summary>
+    /// A rule identifier of this store's own, so that a read walking one store twice cannot
+    /// pass for a read that walked both.
+    /// </summary>
+    private static string RuleIn(string store) =>
+        $"{{{RegistryDnsProvider.NrptStores.ToList().IndexOf(store)}0000000-0000-0000-0000-000000000000}}";
+
+    /// <summary>
+    /// A rule's server list, out of a third documentation block: a read that took an adapter's
+    /// list or a stack's for a rule's would otherwise pass by matching whatever sat next door.
+    /// </summary>
+    private static string RuleServerIn(string store) =>
+        $"192.0.2.{RegistryDnsProvider.NrptStores.ToList().IndexOf(store) + 1}";
+
+    /// <summary>
+    /// A rule of the name resolution policy table, read in every declared store: its server
+    /// list, the name spaces it claims, and the key path that says which store it came from.
+    ///
+    /// <para>
+    /// The values are read by enumeration and never by name — <c>ListValues</c> and not
+    /// <c>ReadValue</c> — because a capture taken before this batch never recorded them:
+    /// <c>SnapshotRegistryProvider.ReadValue</c> throws on a read the capture does not hold,
+    /// which would stop the replay of every fixture on disk, while its <c>ListValues</c>
+    /// answers <c>NotFound</c> and keeps the silence those captures had.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_name_resolution_policy_rule_is_read_in_every_store(string store)
+    {
+        var rule = RuleIn(store);
+
+        var registry = new FakeRegistryProvider()
+            .WithSubKeys(store, rule)
+            .WithText($@"{store}\{rule}", "GenericDNSServers", RuleServerIn(store))
+            .WithMultiString($@"{store}\{rule}", "Name", ".corp.example", "lab.example");
+
+        var read = new RegistryDnsProvider(registry).Read();
+        var collected = Assert.Single(read.Interfaces);
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.Equal(DnsScope.NrptRule, collected.Scope);
+        Assert.Equal($@"{store}\{rule}", collected.Id);
+        Assert.Equal([RuleServerIn(store)], collected.StaticServers);
+        Assert.Equal([".corp.example", "lab.example"], collected.Namespaces);
+
+        // Unread, exactly as at the level above the adapters: a rule carries one server list.
+        Assert.Empty(collected.DhcpServers);
+    }
+
+    /// <summary>
+    /// Where Windows keeps the two stores, written out and in the order they were seen reached —
+    /// the same discipline the stack keys get, and for the reason CONTRIBUTING gives: a guessed
+    /// registry path answers « rien » for ever and nothing tells that apart from a machine with
+    /// nothing to say.
+    ///
+    /// <para>
+    /// Policy first, because that is what was measured rather than read off a specification: in
+    /// the <c>dnsapi</c> function that was disassembled, the local store is opened only when
+    /// opening the policy store fails. That is one of several NRPT paths, so the order here
+    /// records what was read and does not assert a precedence holding everywhere — which is
+    /// itself why the store is inside the key path each rule is identified by, leaving a reader
+    /// able to weigh two lists this audit will not rank for them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_name_resolution_policy_stores_are_looked_for_where_Windows_keeps_them()
+    {
+        string[] verified =
+        [
+            @"HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient\DnsPolicyConfig",
+            @"HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig",
+        ];
+
+        Assert.Equal(verified, RegistryDnsProvider.NrptStores);
+
+        // And the two constants callers name are the same two paths, in the same order, so that
+        // neither can drift from the table the read walks.
+        Assert.Equal(
+            verified,
+            new List<string>
+            {
+                RegistryDnsProvider.PolicyNrptStore,
+                RegistryDnsProvider.LocalNrptStore,
+            });
+    }
+
+    /// <summary>
+    /// The same rule identifier pushed by policy and laid down locally is two rules, and they
+    /// keep two identities.
+    ///
+    /// <para>
+    /// A real case rather than a contrived one: <c>Add-DnsClientNrptRule</c> writes the local
+    /// store without <c>-GpoName</c> and the policy store with it, and nothing stops a GUID from
+    /// appearing in both. Identifying a rule by its GUID alone would collide the two — one line
+    /// where there are two rules — and <c>rempart diff</c> would read a rule moved from one
+    /// store to the other as no change at all, on the one axis that decides which of the two
+    /// Windows honours.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_rule_is_identified_by_its_key_path_and_the_store_is_in_it()
+    {
+        const string Shared = "{11111111-1111-1111-1111-111111111111}";
+
+        var registry = new FakeRegistryProvider();
+
+        foreach (var store in RegistryDnsProvider.NrptStores)
+        {
+            registry
+                .WithSubKeys(store, Shared)
+                .WithText($@"{store}\{Shared}", "GenericDNSServers", RuleServerIn(store));
+        }
+
+        var read = new RegistryDnsProvider(registry).Read();
+
+        Assert.Equal(
+            [.. RegistryDnsProvider.NrptStores.Select(store => $@"{store}\{Shared}")],
+            read.Interfaces.Select(rule => rule.Id));
+
+        var findings = new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry)));
+
+        Assert.Equal(2, findings.Count);
+        Assert.Equal(2, findings.Select(finding => finding.Source).Distinct().Count());
+    }
+
+    /// <summary>
+    /// A rule with no server list of its own is not this collector's business: the NRPT also
+    /// carries rules that only demand DNSSEC or name a proxy, and listing them would put a line
+    /// on a machine where nothing points anywhere.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_rule_that_names_no_server_is_left_out(string store)
+    {
+        var rule = RuleIn(store);
+
+        var registry = new FakeRegistryProvider()
+            .WithSubKeys(store, rule)
+            .WithMultiString($@"{store}\{rule}", "Name", ".corp.example")
+            .WithNumber($@"{store}\{rule}", "ConfigOptions", 0x2);
+
+        Assert.Empty(new RegistryDnsProvider(registry).Read().Interfaces);
+    }
+
+    /// <summary>
+    /// And the reverse, which is the one an attacker gets to choose: a rule carrying a server
+    /// list is reported whatever <c>ConfigOptions</c> says, including when that value is not
+    /// there at all.
+    ///
+    /// <para>
+    /// Gating the collection on the bit that declares « this rule sets servers » would hand
+    /// whoever writes the rule a way out of the report for the price of deleting one DWORD,
+    /// while the servers stayed exactly where they were. What is read is the list.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_rule_carrying_servers_is_read_whatever_ConfigOptions_says(string store)
+    {
+        var rule = RuleIn(store);
+
+        var registry = new FakeRegistryProvider()
+            .WithSubKeys(store, rule)
+            .WithText($@"{store}\{rule}", "GenericDNSServers", RuleServerIn(store))
+            .WithNumber($@"{store}\{rule}", "ConfigOptions", 0x0);
+
+        Assert.Equal(
+            [RuleServerIn(store)],
+            Assert.Single(new RegistryDnsProvider(registry).Read().Interfaces).StaticServers);
+    }
+
+    /// <summary>
+    /// A rule whose server list is a <c>REG_MULTI_SZ</c>: cut into servers, and not carried into
+    /// the report as one address with a line break inside it.
+    ///
+    /// <para>
+    /// The on-disk type of <c>GenericDNSServers</c> is the hole #199 left open — nobody involved
+    /// has ever seen a rule written — so the read may not be correct only for the type it
+    /// guessed. Staged through <see cref="FakeRegistryProvider.WithMultiString"/>, which builds
+    /// the value byte for byte the way <c>LiveRegistryProvider</c> hands a multi-string over:
+    /// the entries joined with <c>\n</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// Both halves are asserted, because the cost is not only a server that matches nothing. The
+    /// raw newline reaches the finding's target and the sentence built from it, so a rule read
+    /// this way breaks the console alignment and the Markdown bullet of a report — a defect in
+    /// the rendering of every other finding beside it, and not only in this one's accuracy.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_rule_whose_servers_are_a_multi_string_is_cut_into_servers(string store)
+    {
+        var rule = RuleIn(store);
+
+        var registry = new FakeRegistryProvider()
+            .WithSubKeys(store, rule)
+            .WithMultiString($@"{store}\{rule}", "GenericDNSServers", "192.0.2.53", "198.51.100.53");
+
+        var collected = Assert.Single(new RegistryDnsProvider(registry).Read().Interfaces);
+
+        Assert.Equal(["192.0.2.53", "198.51.100.53"], collected.StaticServers);
+
+        // And nothing the report prints holds the separator the registry used, on either of the
+        // two rows a reader sees.
+        var finding = Assert.Single(new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry))));
+
+        Assert.DoesNotContain('\n', finding.Target);
+        Assert.DoesNotContain('\n', string.Join(" ", finding.Reasons));
+        Assert.Equal("192.0.2.53, 198.51.100.53", finding.Target);
+    }
+
+    /// <summary>
+    /// An ACL on a whole store: named, and costing nothing that answered.
+    ///
+    /// <para>
+    /// The cheapest hiding place on this surface, and it is cheaper than the ones below it: one
+    /// key refused removes every rule of that store at once, and without the refusal channel the
+    /// report of a machine carrying a redirection would be the report of a machine carrying
+    /// none — the defect of #184 on a new surface.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_refused_policy_store_speaks_and_costs_nothing_that_answered(string refused)
+    {
+        var other = RegistryDnsProvider.NrptStores.Single(store => store != refused);
+        var rule = RuleIn(other);
+
+        var registry = new FakeRegistryProvider()
+            .WithDeniedEnumeration(refused)
+            .WithSubKeys(other, rule)
+            .WithText($@"{other}\{rule}", "GenericDNSServers", RuleServerIn(other))
+            .WithSubKeys(Interfaces, Adapter)
+            .WithText($@"{Interfaces}\{Adapter}", "DhcpNameServer", "192.168.1.1");
+
+        var read = new RegistryDnsProvider(registry).Read();
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Contains(refused, read.Diagnostic!, StringComparison.Ordinal);
+
+        // What the other store and the adapter gave travels beside the refusal.
+        Assert.Contains(read.Interfaces, entry => entry.Id == $@"{other}\{rule}");
+        Assert.Contains(read.Interfaces, entry => entry.Id == Adapter);
+
+        var findings = new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry)));
+
+        Assert.Contains(findings, finding => finding.Gap == AuditGap.Refused);
+        Assert.Contains(findings, finding => finding.Source == $@"{other}\{rule}");
+
+        // And the store that answered stays silent about answering: only the refusal speaks.
+        Assert.DoesNotContain(findings, finding => finding.Source == other);
+    }
+
+    /// <summary>
+    /// The refusal one level down, which a guard written for the store alone would miss
+    /// entirely: an ACL on a single rule key leaves the enumeration of the store answering
+    /// perfectly and makes that one rule's values read back as « rien ».
+    ///
+    /// <para>
+    /// It is the defect of #184 in the shape it took there — an ACL on one adapter key removed
+    /// that adapter from the inventory with its resolver — and it costs one rule rather than a
+    /// whole store, which is what makes it the quieter of the two.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_refused_rule_key_costs_neither_its_neighbour_nor_the_reader(string store)
+    {
+        var registry = new FakeRegistryProvider()
+            .WithSubKeys(store, "{muette}", "{lue}")
+            .WithDeniedEnumeration($@"{store}\{{muette}}")
+            .WithText($@"{store}\{{lue}}", "GenericDNSServers", RuleServerIn(store));
+
+        var read = new RegistryDnsProvider(registry).Read();
+
+        Assert.Equal(ReadStatus.AccessDenied, read.Status);
+        Assert.Contains($@"{store}\{{muette}}", read.Diagnostic!, StringComparison.Ordinal);
+
+        // The neighbour survives, rule and judgement alike.
+        Assert.Equal($@"{store}\{{lue}}", Assert.Single(read.Interfaces).Id);
+
+        var findings = new DnsResolverCollector().Collect(new ProviderSet(
+            registry, new FakeSystemInfoProvider(), dns: new RegistryDnsProvider(registry)));
+
+        Assert.Equal(2, findings.Count);
+        Assert.Contains(findings, finding => finding.Gap == AuditGap.Refused);
+        Assert.Contains(findings,
+            finding => finding.Source == $@"{store}\{{lue}}" && finding.Gap is null);
+    }
+
+    /// <summary>
+    /// A registry whose only answer is a policy rule: read, and the rule kept.
+    ///
+    /// <para>
+    /// The same trap #196 met one level up, on a third surface. Every other test here stages
+    /// enumerations that answer, so all of them would pass a read whose « something answered »
+    /// flag ignored the stores entirely — and nothing would then stop that read from returning
+    /// <see cref="DnsRead.Absent"/>, a shared constant carrying an <em>empty</em> list: the rule
+    /// would be found, put in a list, and dropped on the way out.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(EveryNrptStore))]
+    public void A_registry_whose_only_answer_is_a_policy_rule_still_answers(string store)
+    {
+        var read = new RegistryDnsProvider(new NrptStoreOnly(store)).Read();
+        var rule = Assert.Single(read.Interfaces);
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.NotEqual(ReadStatus.NotFound, read.Status);
+        Assert.Equal(DnsScope.NrptRule, rule.Scope);
+        Assert.Equal([RuleServerIn(store)], rule.StaticServers);
+    }
+
+    /// <summary>
+    /// The ordinary machine, in the exact asymmetry it really has — measured read-only on
+    /// 2026-08-01: the policy store is <em>absent</em>, the local store is <em>present and
+    /// empty</em>. Two different answers, and both must be the same silence.
+    ///
+    /// <para>
+    /// This is the noise guard for the surface. A read keying on the presence of the local store
+    /// — which exists on an ordinary Windows 11 install — would put a line on every scan this
+    /// tool ever runs; one treating the absence of the policy store as a signal would do the same
+    /// on every machine outside a domain. Neither is a refusal, and neither is « personne n'a
+    /// regardé » (#192): the read looked, and there is nothing.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void An_ordinary_machine_says_nothing_about_either_policy_store()
+    {
+        var registry = new OrdinaryNrptStores();
+
+        var read = new RegistryDnsProvider(registry).Read();
+
+        Assert.Equal(ReadStatus.Found, read.Status);
+        Assert.NotEqual(ReadStatus.AccessDenied, read.Status);
+        Assert.Null(read.Diagnostic);
+        Assert.Empty(read.Interfaces);
+
+        Assert.Empty(new DnsResolverCollector().Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            dns: new RegistryDnsProvider(registry))));
+    }
+
+    /// <summary>
     /// A machine that keeps interfaces under one stack's key and answers « cette clé n'existe
     /// pas » for every other — a registry with IPv6 unbound, or one predating it.
     ///
@@ -999,6 +1389,58 @@ public sealed class RegistryDnsProviderTests
         public RegistryValueList ListValues(string keyPath) => RegistryValueList.NotFound;
 
         public RegistrySubKeyList ListSubKeys(string keyPath) => RegistrySubKeyList.NotFound;
+    }
+
+    /// <summary>
+    /// A registry holding one name resolution policy rule and answering « cette clé n'existe
+    /// pas » to every other enumeration — no stack, no interfaces subtree, no second store.
+    /// Written rather than staged with <see cref="FakeRegistryProvider"/>, whose
+    /// <c>Found([])</c> for an unknown key is an enumeration that answered and is the state
+    /// this theory is not about.
+    /// </summary>
+    private sealed class NrptStoreOnly(string store) : IRegistryProvider
+    {
+        private readonly string rulePath = $@"{store}\{RuleIn(store)}";
+
+        public RegistrySubKeyList ListSubKeys(string keyPath) =>
+            string.Equals(keyPath, store, StringComparison.OrdinalIgnoreCase)
+                ? RegistrySubKeyList.Found([RuleIn(store)])
+                : RegistrySubKeyList.NotFound;
+
+        public RegistryValueList ListValues(string keyPath) =>
+            string.Equals(keyPath, rulePath, StringComparison.OrdinalIgnoreCase)
+                ? RegistryValueList.Found(new Dictionary<string, RegistryValue>(
+                    StringComparer.OrdinalIgnoreCase)
+                {
+                    ["GenericDNSServers"] = RegistryValue.OfText(RuleServerIn(store)),
+                })
+                : RegistryValueList.NotFound;
+
+        public RegistryRead ReadValue(string keyPath, string valueName) => RegistryRead.NotFound;
+
+        public ReadStatus KeyExists(string keyPath) => ReadStatus.NotFound;
+    }
+
+    /// <summary>
+    /// The two stores as an ordinary Windows 11 machine really holds them, read-only on
+    /// 2026-08-01: the policy store is not there, the local store is there and holds nothing.
+    /// Neither <see cref="FakeRegistryProvider"/> nor <see cref="EmptyRegistry"/> can stage
+    /// that — the first answers <c>Found([])</c> everywhere, the second <c>NotFound</c>
+    /// everywhere — and the whole point of this machine is that the two answers coexist on it.
+    /// </summary>
+    private sealed class OrdinaryNrptStores : IRegistryProvider
+    {
+        public RegistrySubKeyList ListSubKeys(string keyPath) =>
+            string.Equals(keyPath, RegistryDnsProvider.LocalNrptStore,
+                StringComparison.OrdinalIgnoreCase)
+                ? RegistrySubKeyList.Found([])
+                : RegistrySubKeyList.NotFound;
+
+        public RegistryRead ReadValue(string keyPath, string valueName) => RegistryRead.NotFound;
+
+        public ReadStatus KeyExists(string keyPath) => ReadStatus.NotFound;
+
+        public RegistryValueList ListValues(string keyPath) => RegistryValueList.NotFound;
     }
 
     /// <summary>

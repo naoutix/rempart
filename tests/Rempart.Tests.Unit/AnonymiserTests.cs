@@ -1,3 +1,4 @@
+using Rempart.Core.Findings;
 using Rempart.Core.Json;
 using Rempart.Core.Providers;
 using Rempart.Core.Snapshots;
@@ -362,6 +363,82 @@ public sealed class AnonymiserTests
     }
 
     /// <summary>
+    /// Cleaned, not erased, for the name spaces of a name resolution policy rule — the half the
+    /// planted-marker sweep cannot assert, since a field the anonymiser empties satisfies it for
+    /// free.
+    ///
+    /// <para>
+    /// What has to survive is the rule: the count of name spaces it claims, its servers, its key
+    /// path and therefore its store, and the finding the collector derives from all of that. A
+    /// capture is shared so that someone can replay it, and a rule scrubbed down to nothing
+    /// replays as a rule that claims nothing — which reads like a machine with no redirection on
+    /// a machine that has one.
+    /// </para>
+    ///
+    /// <para>
+    /// Read back out of the replay rather than off the object, and serialised twice: scrubbing
+    /// has to be a fixed point here as everywhere, or a synthetic fixture built from an already
+    /// anonymised capture comes out a digest of a digest.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_rule_name_space_is_scrubbed_and_the_rule_stays_what_it_was()
+    {
+        const string marker = "identifiant-a-masquer";
+
+        var path =
+            $@"{RegistryDnsProvider.PolicyNrptStore}\{{7b2c1f0e-0000-0000-0000-000000000001}}";
+
+        var snapshot = new MachineSnapshot
+        {
+            Dns =
+            [
+                new DnsInterface(path, ["192.0.2.53"], [], default, DnsScope.NrptRule)
+                {
+                    Namespaces = [$".{marker}.example", $"serveur.{marker}.example"],
+                },
+            ],
+            DnsStatus = ReadStatus.Found,
+        };
+
+        var once = RempartJson.Serialise(Anonymiser.Apply(snapshot));
+        var twice = RempartJson.Serialise(Anonymiser.Apply(snapshot));
+
+        Assert.DoesNotContain(marker, once);
+        Assert.Equal(once, twice);
+
+        var replayed = Assert.Single(
+            new SnapshotDnsProvider(RempartJson.DeserialiseSnapshot(once)).Read().Interfaces);
+
+        // Two name spaces went in and two come out: a rule claiming two names is not a rule
+        // claiming one, and a scrub that collapsed them would say so without saying so.
+        Assert.Equal(2, replayed.Namespaces.Count);
+        Assert.Equal(2, replayed.Namespaces.Distinct(StringComparer.Ordinal).Count());
+
+        // The suffix marker survives, as the port does on a scrubbed proxy host: « tous les noms
+        // sous X » and « exactement X » are different rules, and the leading dot is the whole of
+        // what tells them apart.
+        Assert.StartsWith(".", replayed.Namespaces[0], StringComparison.Ordinal);
+        Assert.DoesNotContain(".", replayed.Namespaces[1][1..], StringComparison.Ordinal);
+
+        // The rule itself is untouched: a GUID names no one, a key path names no one, and an IP
+        // address names no one — and the store lives inside that key path.
+        Assert.Equal(path, replayed.Id);
+        Assert.Equal(["192.0.2.53"], replayed.StaticServers);
+        Assert.Equal(DnsScope.NrptRule, replayed.Scope);
+
+        // And the finding is the same finding, which is what a replayable capture has to mean.
+        var finding = Assert.Single(new DnsResolverCollector().Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            dns: new SnapshotDnsProvider(RempartJson.DeserialiseSnapshot(once)))));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal(path, finding.Source);
+        Assert.Contains("magasin de stratégie", string.Join(" ", finding.Reasons),
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// The exclusion list names the internal domains a machine talks to directly, and
     /// very often the proxy itself — the same host the server field is hashed to hide.
     /// It sat three JSON fields from that hash, in the clear, in a capture whose
@@ -511,6 +588,22 @@ public sealed class AnonymiserTests
                 ["mpssvc"] = ServiceRead.Failed(
                     $@"OpenService : erreur Win32 123 sur C:\Users\{marker}\svc.exe"),
             },
+
+            // The eighth, and the first to sit in a *list* of the DNS block rather than beside
+            // it: a name resolution policy rule claims name spaces, and a name space is the
+            // organisation's internal domain written out. Until #199 that block held adapter
+            // GUIDs, key paths and IP addresses, which name nobody — which is exactly what the
+            // comment beside DnsDiagnostic gave as the reason nothing else there needed
+            // scrubbing.
+            Dns =
+            [
+                new DnsInterface(
+                    $@"HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig\{{r}}",
+                    ["192.0.2.53"], [], default, DnsScope.NrptRule)
+                {
+                    Namespaces = [$".{marker}.example", $"serveur.{marker}.example"],
+                },
+            ],
 
             // The folder a partial task walk names is not free text and is not a profile
             // path: it is a scheduler path, scrubbed by the rule that applies to a task.

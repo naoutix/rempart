@@ -455,6 +455,11 @@ public class DnsResolverTests
         Assert.Equal(DnsScope.Adapter, iface.Scope);
         Assert.NotEqual(DnsScope.Stack, iface.Scope);
 
+        // And the member #199 appends, held by this test rather than trusted to it: the file it
+        // is declared in says it goes after « stack » so that « adapter » stays the zero member,
+        // and a member declared before it would satisfy neither line below.
+        Assert.NotEqual(DnsScope.NrptRule, iface.Scope);
+
         // And the other mechanism that could answer the same question, held to the same answer.
         // The line above is satisfied by the constructor default alone — reordering the enum so
         // that « stack » becomes the zero member leaves it green, which was measured by doing
@@ -515,6 +520,223 @@ public class DnsResolverTests
     }
 
     /// <summary>
+    /// A rule of the name resolution policy table, in each of the two stores: reported as an
+    /// observation, naming the store in words, and saying in the same breath what this audit did
+    /// not establish about it.
+    ///
+    /// <para>
+    /// The arbitration of #199 was « signaler » and not « collecter », and this is where that
+    /// distinction is either kept or lost. What is established is that the rule is there, that
+    /// Windows reads the store, and that the store a rule sits in is part of how it is reached.
+    /// What is not: whether resolution follows the rule for those names, how it ranks against the
+    /// card's own list, and which store wins in general — one enumerating function was read, not
+    /// every path. A verdict of the shape « le résolveur de la machine est détourné » would claim
+    /// a reach nobody measured, which is the very reproach the issue forbids in advance; hence
+    /// the guard below is on the stem « détourn » and not on a single inflection of it.
+    /// </para>
+    /// </summary>
+    [Theory]
+    [InlineData(true, "magasin de stratégie")]
+    [InlineData(false, "magasin local")]
+    public void A_name_resolution_policy_rule_is_signalled_as_an_observation(
+        bool policy, string store)
+    {
+        var key = policy
+            ? RegistryDnsProvider.PolicyNrptStore
+            : RegistryDnsProvider.LocalNrptStore;
+
+        var path = $@"{key}\{{7b2c1f0e-0000-0000-0000-000000000001}}";
+
+        var finding = Assert.Single(Collect(
+            new DnsInterface(path, ["192.0.2.53"], [], default, DnsScope.NrptRule)
+            {
+                Namespaces = [".corp.example"],
+            }));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Null(finding.Gap);
+
+        // The Source is the rule's whole key path, store included: it designates exactly one
+        // finding per scan, and the same rule pushed by policy and laid down locally comes out
+        // as two Sources rather than colliding on one.
+        Assert.Equal(path, finding.Source);
+
+        var said = string.Join(" ", finding.Reasons);
+
+        Assert.Contains(".corp.example", said, StringComparison.Ordinal);
+        Assert.Contains("192.0.2.53", said, StringComparison.Ordinal);
+        Assert.Contains(store, said, StringComparison.Ordinal);
+
+        // What it does not say, which is the half that makes this a signal: no claim that the
+        // machine resolves through the rule, and no claim about its precedence.
+        Assert.Contains("n'a pas établi", said, StringComparison.Ordinal);
+        Assert.Contains("précédence", said, StringComparison.Ordinal);
+
+        // The stem and not the noun, because the forbidden sentence does not carry the noun:
+        // « le résolveur de la machine est détourné » holds « détourné », and a guard on
+        // « détournement » let it through word for word — measured by writing it into the first
+        // reason, which left the suite green. The stem catches the participle in either gender
+        // and the verb with it.
+        Assert.DoesNotContain("détourn", said, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The first of the two traps #199 named: <see cref="DnsStack"/> has no honest value for a
+    /// rule, one server list being allowed to carry both address families, so nothing may label
+    /// one with a stack.
+    ///
+    /// <para>
+    /// The record carries the zero member because the field is not nullable, and letting that
+    /// reach a report would print « pile : IPv4 » over a rule nothing read a stack for — the
+    /// silent label #196 refused to write when it kept « statique » away from the level above
+    /// the cards. So the row is absent, and the origin row says what the record really is.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Nothing_labels_a_name_resolution_policy_rule_with_a_stack()
+    {
+        var finding = Assert.Single(Collect(new DnsInterface(
+            $@"{RegistryDnsProvider.LocalNrptStore}\{{regle}}",
+            ["192.0.2.53"], [], default, DnsScope.NrptRule)));
+
+        Assert.False(finding.Details.ContainsKey("pile"));
+        Assert.DoesNotContain("IPv4", string.Join(" ", finding.Details.Values));
+        Assert.DoesNotContain("IPv4", string.Join(" ", finding.Reasons));
+
+        // And the coordinate row that points at « pile » goes with it: a rule's Source already
+        // designates one place on its own, so naming an axis the finding does not carry would
+        // point rempart diff at a row that is not there.
+        Assert.False(finding.Details.ContainsKey(FindingDetails.Place));
+
+        Assert.Equal("règle de résolution de noms (NRPT)", finding.Details["origine"]);
+    }
+
+    /// <summary>
+    /// The second trap, and the one the arbitration of #199 settled « à la baisse »: a rule whose
+    /// name spaces this read did not get says so, and never that it claims every name.
+    ///
+    /// <para>
+    /// Whether a rule can cover all names at once is the point the measurement left NOT
+    /// established — one Microsoft table says it can, the protocol specification enumerates only
+    /// suffix, prefix, FQDN and subnet — so « pour tous les noms » would print a reach nobody
+    /// verified, over the whole of a machine's resolution rather than over a named space. It is
+    /// exactly the sentence the issue forbids in advance, one noun further along than the one the
+    /// neighbouring theory guards.
+    /// </para>
+    ///
+    /// <para>
+    /// The branch is reachable and not defensive: a rule carrying <c>GenericDNSServers</c> and no
+    /// readable <c>Name</c> lands on it, and <c>ListValues</c> answering without that value is an
+    /// ordinary read rather than a failure. It was held by a comment before this test, and a
+    /// comment is not a guard — replacing the string with « tous les noms » left the suite green.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_rule_whose_names_were_not_read_claims_no_names_rather_than_all_of_them()
+    {
+        var said = string.Join(" ", Assert.Single(Collect(new DnsInterface(
+            $@"{RegistryDnsProvider.LocalNrptStore}\{{regle}}",
+            ["192.0.2.53"], [], default, DnsScope.NrptRule))).Reasons);
+
+        // What it says instead, pinned to the sentence and not to its intent: any rewording of
+        // the fallback comes back through this line.
+        Assert.Contains("des noms que cette lecture n'a pas relevés", said, StringComparison.Ordinal);
+
+        // And the claim it may never make, named so the next reader sees which one is forbidden.
+        Assert.DoesNotContain("tous les noms", said, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The four steps of #184 walked again for the field #199 adds: recorded by the scan,
+    /// serialised into the capture, replayed out of it, and judged there as what it is.
+    ///
+    /// <para>
+    /// Through <see cref="RempartJson"/> rather than against the object, for the reason its
+    /// neighbours give: a field the recorder sets and the source-generated serialiser drops
+    /// passes every in-memory assertion, and the replay then reports a rule whose name spaces
+    /// are gone — which is the whole of what the rule claims.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_policy_rule_is_recorded_serialised_and_replayed_as_one()
+    {
+        var path = $@"{RegistryDnsProvider.PolicyNrptStore}\{{regle}}";
+
+        var rule = new DnsInterface(path, ["192.0.2.53"], [], default, DnsScope.NrptRule)
+        {
+            Namespaces = [".corp.example", "lab.example"],
+        };
+
+        var snapshot = new MachineSnapshot();
+        new RecordingDnsProvider(new FakeDnsProvider(rule), snapshot).Read();
+
+        var replayed = new SnapshotDnsProvider(
+            RempartJson.DeserialiseSnapshot(RempartJson.Serialise(snapshot))).Read();
+
+        var survivor = Assert.Single(replayed.Interfaces);
+
+        Assert.Equal(DnsScope.NrptRule, survivor.Scope);
+        Assert.Equal(path, survivor.Id);
+        Assert.Equal(["192.0.2.53"], survivor.StaticServers);
+        Assert.Equal([".corp.example", "lab.example"], survivor.Namespaces);
+
+        var finding = Assert.Single(Collect(replayed));
+
+        Assert.Equal(FindingSeverity.Notable, finding.Severity);
+        Assert.Equal(path, finding.Source);
+        Assert.Equal(".corp.example, lab.example", finding.Details["espaces de noms"]);
+    }
+
+    /// <summary>
+    /// The compatibility half of the name spaces, asserted on the <em>value</em> a capture
+    /// written before them replays as — never on the key being missing, which is the premise
+    /// #163 caught going green over nothing.
+    ///
+    /// <para>
+    /// Every record of every capture on disk was read from an adapter key or from a stack's own
+    /// level, neither of which claims a name space; so the field has to come back empty, and the
+    /// record has to go on being judged exactly as it was. A default of anything else would put
+    /// a name space nobody read into two hundred findings.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_capture_written_before_the_name_spaces_replays_them_empty()
+    {
+        var snapshot = RempartJson.DeserialiseSnapshot(
+            """
+            {"dns":[{"id":"{ancienne}","staticServers":["203.0.113.5"],"dhcpServers":[],
+                     "stack":"IPv4","scope":"Adapter"}]}
+            """);
+
+        var iface = Assert.Single(new SnapshotDnsProvider(snapshot).Read().Interfaces);
+
+        Assert.Empty(iface.Namespaces);
+
+        // And the shape the serialiser really produces for an absent init-only property, which
+        // is why the initialiser alone was not the answer: it can only reach one through an
+        // object initialiser, so it builds the record with the property assigned to default —
+        // null — and every reader of the field threw. Measured by shipping it: two versioned
+        // fixtures replayed with a null here. The accessor is what refuses it, and this line is
+        // what reddens if that accessor is ever simplified back to a bare « get; init; ».
+        Assert.Empty(Assert.Single(new SnapshotDnsProvider(RempartJson.DeserialiseSnapshot(
+            """
+            {"dns":[{"id":"{nulle}","staticServers":["203.0.113.5"],"dhcpServers":[],
+                     "namespaces":null}]}
+            """)).Read().Interfaces).Namespaces);
+
+        // The other mechanism that could answer it, held to the same answer: anything reaching
+        // this record without naming the field — a collector building one, a fake in a test —
+        // lands on the property initialiser, and the two must not disagree.
+        Assert.Empty(new DnsInterface("x", [], [], DnsStack.IPv4).Namespaces);
+
+        // And the verdict is the adapter's, unchanged.
+        var finding = Assert.Single(Collect(iface));
+
+        Assert.Equal("statique", finding.Details["origine"]);
+        Assert.False(finding.Details.ContainsKey("espaces de noms"));
+    }
+
+    /// <summary>
     /// The compatibility half, against a capture genuinely written before the field —
     /// <c>compromised-win11</c>, versioned, whose <c>dns</c> block is a bare array.
     ///
@@ -555,6 +777,11 @@ public class DnsResolverTests
             Assert.DoesNotContain(
                 document.RootElement.GetProperty("dns").EnumerateArray(),
                 iface => iface.TryGetProperty("scope", out _));
+
+            // And the name spaces of #199, one batch later and by the same premise.
+            Assert.DoesNotContain(
+                document.RootElement.GetProperty("dns").EnumerateArray(),
+                iface => iface.TryGetProperty("namespaces", out _));
         }
 
         var read = new SnapshotDnsProvider(RempartJson.DeserialiseSnapshot(json)).Read();
@@ -569,6 +796,9 @@ public class DnsResolverTests
         // adapters and opened nothing above them (#196).
         Assert.All(read.Interfaces, iface => Assert.Equal(DnsStack.IPv4, iface.Stack));
         Assert.All(read.Interfaces, iface => Assert.Equal(DnsScope.Adapter, iface.Scope));
+
+        // And no name space, an adapter key claiming none (#199).
+        Assert.All(read.Interfaces, iface => Assert.Empty(iface.Namespaces));
 
         // And the collector says exactly what it said about that capture yesterday: two
         // resolver findings and no gap.

@@ -98,6 +98,41 @@ namespace Rempart.Core.Providers;
 /// written, which is why #191 closed the stack that was missing and named this instead of
 /// widening into it.
 /// </para>
+///
+/// <para>
+/// <b>And one surface that belongs to no stack at all (#199): the name resolution policy
+/// table.</b> Two stores of it are read — <see cref="PolicyNrptStore"/> and
+/// <see cref="LocalNrptStore"/> — and every rule that names servers of its own is collected as
+/// a record of <see cref="DnsScope.NrptRule"/>. See <c>ReadNrptRules</c> for what was measured
+/// there and what was deliberately left unread.
+/// </para>
+///
+/// <para>
+/// <b>What is <em>not</em> read under the policy hive, and it is a conclusion rather than an
+/// omission.</b> That hive also holds a <c>NameServer</c> value, and the help text Windows ships
+/// says it « remplace la liste des serveurs DNS configurés localement […] appliquée à toutes les
+/// connexions réseau ». The resolver does not read it there. The DNS configuration table of this
+/// build — 142 entries of 16 bytes, identical in <c>dnsrslvr.dll</c> and <c>dnsapi.dll</c>
+/// 10.0.26100.8875 — flags each entry with the keys it may be read from, and
+/// <c>NameServer</c>'s policy flag is clear while <c>EnableMulticast</c>'s, which
+/// <c>rules/security/legacy-protocols.yaml</c> already queries under that very key, is set. All
+/// four generic readers gate the policy read on that flag, and the <c>supportedOn</c> of the
+/// matching ADMX policy on this machine reads « Windows XP Professionnel uniquement ». So a
+/// resolver written there is not one <em>either resolver binary reads from that key</em>, and
+/// collecting it would be the line of noise this repository trades an audit's credibility for.
+/// Recorded here because the help text is an active trap: it will send the next reader back down
+/// this path.
+/// </para>
+///
+/// <para>
+/// The bound on that conclusion is stated rather than left to be assumed, since the paragraph
+/// above is the one a reader six months out will weigh: what was read is <c>dnsrslvr.dll</c> and
+/// <c>dnsapi.dll</c>. Nothing established that no component elsewhere copies that value into the
+/// per-adapter configuration — the sweep behind this covered <c>System32</c> without recursing —
+/// so the claim is about where the resolver reads and not about everything the machine might do
+/// with the value. It is enough for the decision it carries, which is that reading the value here
+/// would report a resolver on the strength of the help text alone.
+/// </para>
 /// </summary>
 public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvider
 {
@@ -129,6 +164,35 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
         (DnsStack.IPv4, InterfacesKey),
         (DnsStack.IPv6, InterfacesKeyIPv6),
     ];
+
+    /// <summary>
+    /// The name resolution policy table pushed by group policy. Rules are <em>subkeys</em> of
+    /// this key, one per rule, each named by a GUID.
+    /// </summary>
+    public const string PolicyNrptStore =
+        @"HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient\DnsPolicyConfig";
+
+    /// <summary>
+    /// The same table laid down locally — what <c>Add-DnsClientNrptRule</c> writes without a
+    /// <c>-GpoName</c>. Same shape, different store, and the two are not read alike by Windows.
+    /// </summary>
+    public const string LocalNrptStore =
+        @"HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig";
+
+    /// <summary>
+    /// The two stores, <b>policy first</b>, and that order is a measurement rather than a
+    /// habit: in <c>dnsapi</c> the local store is opened only if opening the policy store
+    /// fails, so of the two it is the policy one that applies when both exist. The store is
+    /// therefore part of what a finding reports, and it is part of the key path each rule is
+    /// identified by.
+    ///
+    /// <para>
+    /// A table for the reason <see cref="Stacks"/> is one: a store named here is a store that
+    /// is read, and <c>RegistryDnsProviderTests</c> holds every theory about rules against the
+    /// whole table rather than against the one store somebody remembered.
+    /// </para>
+    /// </summary>
+    public static readonly IReadOnlyList<string> NrptStores = [PolicyNrptStore, LocalNrptStore];
 
     /// <summary>
     /// The interfaces key of one stack. For callers naming a stack — the tests do; the read
@@ -235,6 +299,11 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
             }
         }
 
+        // The name resolution policy table, which belongs to no stack and is therefore read
+        // once rather than per stack. Last, so that the order of what a report already prints
+        // is unchanged by this read existing.
+        answered |= ReadNrptRules(interfaces, denied);
+
         // What the readable interfaces gave is kept beside the refusal: dropping them because
         // one adapter — or one whole stack — was denied would trade one silence for another.
         return denied.Count > 0 ? DnsRead.Refused(interfaces, denied)
@@ -294,6 +363,129 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
     }
 
     /// <summary>
+    /// The name resolution policy table, in both stores: every rule that names servers of its
+    /// own, identified by its whole key path.
+    ///
+    /// <para>
+    /// <b>Rules are subkeys and not values</b>, which is why this read enumerates rather than
+    /// asking for a name — measured in <c>dnsapi</c>, which opens the store with
+    /// <c>RegOpenKeyExW</c> and then calls <c>RegEnumKeyExW</c> on it. Each rule's own values are
+    /// enumerated too, with <c>ListValues</c> and never <c>ReadValue</c>: the latter throws on a
+    /// capture that never recorded the read, which would stop the replay of every fixture on
+    /// disk, while <c>ListValues</c> answers <c>NotFound</c> and keeps the silence those captures
+    /// already had.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>What decides that a rule is collected is its server list, and nothing else.</b>
+    /// <c>ConfigOptions</c> carries a bit declaring that a rule sets servers, and gating on it
+    /// would sell an exit from the report for the price of deleting one DWORD while the servers
+    /// stayed where they were. The rest of a rule — <c>DirectAccessDNSServers</c>,
+    /// <c>ProxyName</c>, <c>IDNConfig</c> — is out of scope here and stays unread rather than
+    /// half read.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Two states that must produce the same silence, and they coexist on an ordinary
+    /// machine.</b> Read-only on 2026-08-01: the policy store is <em>absent</em> and the local
+    /// store is <em>present with no subkey at all</em>. Neither is a signal — keying on the
+    /// presence of the local store would put a line on every scan this tool runs, and treating
+    /// the absence of the policy store as news would do the same off a domain. Only a refusal
+    /// speaks, which is the « personne n'a regardé » against « j'ai regardé et il n'y a rien »
+    /// of #192 on a surface holding both at once.
+    /// </para>
+    ///
+    /// <para>
+    /// What this read does <em>not</em> establish is left to the collector to say in words:
+    /// whether resolution follows a rule for the names it claims, and how a rule ranks against
+    /// the card's own list. Neither was measured, and #199 was arbitrated « signaler ».
+    /// </para>
+    /// </summary>
+    /// <returns>Whether either store answered — an answer being an enumeration that ran.</returns>
+    private bool ReadNrptRules(List<DnsInterface> into, List<string> denied)
+    {
+        var answered = false;
+
+        foreach (var store in NrptStores)
+        {
+            var listing = registry.ListSubKeys(store);
+
+            // A whole store refused, which is the cheapest hiding place here: one ACL removes
+            // every rule of that store at once, and without this the report of a machine
+            // carrying a redirection would be the report of a machine carrying none (#184).
+            // Gathered and not returned: the other store is still read.
+            if (listing.Status is ReadStatus.AccessDenied)
+            {
+                denied.Add(store);
+                continue;
+            }
+
+            if (listing.Status is ReadStatus.NotFound)
+            {
+                continue;
+            }
+
+            answered = true;
+
+            foreach (var rule in listing.Names)
+            {
+                var rulePath = $@"{store}\{rule}";
+                var values = registry.ListValues(rulePath);
+
+                // The refusal one level down, and the quieter of the two: the enumeration above
+                // answers perfectly and one rule reads back as « rien ». A rule whose values are
+                // refused must not vanish without a word — that is exactly the ACL of #184, one
+                // key narrower.
+                if (values.Status is ReadStatus.AccessDenied)
+                {
+                    denied.Add(rulePath);
+                    continue;
+                }
+
+                var servers = Split(Text(values, "GenericDNSServers"));
+
+                // A rule that names no server of its own is not this collector's business: the
+                // table also carries rules that only demand DNSSEC or name a proxy, and a line
+                // for those would report a redirection where nothing points anywhere.
+                if (servers.Count > 0)
+                {
+                    into.Add(new DnsInterface(rulePath, servers, [], default, DnsScope.NrptRule)
+                    {
+                        Namespaces = SplitNames(Text(values, "Name")),
+                    });
+                }
+            }
+        }
+
+        return answered;
+    }
+
+    /// <summary>
+    /// One value of an enumerated key, by name. Absent is <c>null</c> and never an exception:
+    /// a rule missing a value is an ordinary rule, and a capture that recorded the listing
+    /// without that value is an ordinary capture.
+    /// </summary>
+    private static string? Text(RegistryValueList values, string name) =>
+        values.Values.TryGetValue(name, out var value) ? value.Text : null;
+
+    /// <summary>
+    /// Splits the name spaces of a rule, which Windows keeps as a <c>REG_MULTI_SZ</c>.
+    ///
+    /// <para>
+    /// Newlines and not the separators <see cref="Split"/> knows, and the two must not be
+    /// confused: <c>IRegistryProvider</c> hands a multi-string over as its entries joined with
+    /// <c>\n</c>, while a name space may legitimately contain none of the space, comma or
+    /// semicolon a resolver list is cut on. Cutting one with the other would turn two name
+    /// spaces into one nobody configured, or one into several.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> SplitNames(string? raw) =>
+        string.IsNullOrWhiteSpace(raw)
+            ? []
+            : raw.Split(['\n', '\r'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>
     /// Splits a resolver list.
     ///
     /// <para>
@@ -303,10 +495,29 @@ public sealed class RegistryDnsProvider(IRegistryProvider registry) : IDnsProvid
     /// two addresses glued together, which matches nothing in the well-known list and comes
     /// out as a <c>Notable</c> finding about a resolver that does not exist.
     /// </para>
+    ///
+    /// <para>
+    /// <b>And the newline, which is a fourth separator and not a fourth spelling of the three
+    /// above (#199).</b> The values this cuts under an adapter and under a stack are
+    /// <c>REG_SZ</c> and hold none, but <c>GenericDNSServers</c> is read off a key nobody
+    /// involved has ever seen written, so its on-disk type is not established — and if it is a
+    /// <c>REG_MULTI_SZ</c> then <c>IRegistryProvider</c> hands it over as its entries joined
+    /// with <c>\n</c>, which none of the three cuts. The cost is worse there than the glued
+    /// address above: the raw newline reaches the finding's target and the sentence built from
+    /// it, breaking the console alignment and the Markdown bullet of every finding beside it.
+    /// Cutting on it as well cannot cost anything on a <c>REG_SZ</c>, no resolver list holding a
+    /// line break, so the unestablished type stops deciding whether the read works.
+    /// </para>
+    ///
+    /// <para>
+    /// This stays distinct from <see cref="SplitNames"/> in the other direction, and that
+    /// asymmetry is deliberate: a name space must <em>not</em> be cut on space, comma or
+    /// semicolon, because nothing establishes those cannot appear in one.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<string> Split(string? raw) =>
         string.IsNullOrWhiteSpace(raw)
             ? []
-            : raw.Split([' ', ',', ';'],
+            : raw.Split([' ', ',', ';', '\n', '\r'],
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

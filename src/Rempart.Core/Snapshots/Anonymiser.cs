@@ -205,6 +205,27 @@ public static class Anonymiser
         snapshot.DnsDiagnostic = ScrubDiagnostic(snapshot.DnsDiagnostic);
         snapshot.SoftwareDiagnostic = ScrubDiagnostic(snapshot.SoftwareDiagnostic);
 
+        if (snapshot.Dns is { Count: > 0 } dns)
+        {
+            // The comment beside the diagnostic above used to be the whole of the DNS block's
+            // story: its records held adapter GUIDs, registry key paths and IP addresses, none
+            // of which names anybody, so the free text was the only thing to clean. That stopped
+            // being true with #199 — a name resolution policy rule claims name spaces, and a
+            // name space is typically the organisation's internal domain spelled out.
+            //
+            // Cleaned in the snapshot and not in the finding, because a finding is derived from
+            // the snapshot at scan time: a capture that leaves this machine has to be clean
+            // already. The rest of the record stays readable on purpose — the key path is what
+            // says which store a rule sits in, and a fixture has to keep exercising that.
+            snapshot.Dns =
+            [
+                .. dns.Select(record => record with
+                {
+                    Namespaces = [.. record.Namespaces.Select(ScrubNameSpace)],
+                }),
+            ];
+        }
+
         // The sixth, and the one that quotes an operating-system message verbatim: a hosts
         // file held open comes back with whatever IOException said, in the machine's own
         // language and sometimes with a path in it.
@@ -365,6 +386,32 @@ public static class Anonymiser
             ? Hash(server[..colon]) + server[colon..]
             : Hash(server);
     }
+
+    /// <summary>
+    /// Hashes the name space a DNS policy rule claims, preserving the leading dot that says
+    /// what <em>kind</em> of name space it is.
+    ///
+    /// <para>
+    /// The same trade <see cref="ScrubHostPort"/> makes with a port: <c>.corp.example</c> is
+    /// « every name under this suffix » and <c>serveur.corp.example</c> is one host, which is
+    /// the difference between a rule covering a whole organisation and a rule covering one
+    /// machine. Losing it would cost a replay the only thing about a rule's reach that this
+    /// audit does know, and the dot names nobody.
+    /// </para>
+    ///
+    /// <para>
+    /// A bare <c>.</c> is left alone for the reason <c>&lt;local&gt;</c> is: it is the root, it
+    /// is identical on every machine, and it designates no one. <see cref="Hash"/> guards its
+    /// own idempotence and the guard is reached here — the label is handed over whole, unlike in
+    /// <see cref="ScrubHostPort"/>, which is why this needs no second one.
+    /// </para>
+    /// </summary>
+    private static string ScrubNameSpace(string space) => space switch
+    {
+        "" or "." => space,
+        ['.', .. var suffix] => "." + Hash(suffix),
+        _ => Hash(space),
+    };
 
     private static string? ScrubUrlHost(string? url)
     {
