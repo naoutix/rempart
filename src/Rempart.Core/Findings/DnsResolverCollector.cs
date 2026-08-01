@@ -212,13 +212,32 @@ public sealed class DnsResolverCollector : IFindingCollector
     /// Written from the member name, so a stack added to <see cref="DnsStack"/> is labelled
     /// rather than mapped to a default by a table nobody updated.
     /// </para>
+    ///
+    /// <para>
+    /// <b>And named as the coordinate, because a reader was not the only one needing it.</b>
+    /// <c>rempart diff</c> folds a disappearance and an appearance at one place into « le même
+    /// emplacement lance autre chose », keyed until #195 on the source — which is this
+    /// adapter's identifier and designates two places here, one per stack. So a repointed
+    /// resolver came out as two unrelated lines on a dual-stack card, and a resolver dropped on
+    /// one stack while another was set on the other came out as a substitution that never
+    /// happened. <see cref="FindingDetails.Place"/> names the row that tells the two apart
+    /// rather than repeating its value, and <c>ScanDiffTests</c> exercises it on the findings
+    /// this method builds.
+    /// </para>
     /// </summary>
     private static Dictionary<string, string> Details(
         DnsInterface iface, string origin, IReadOnlyList<string> servers) =>
         new(StringComparer.Ordinal)
         {
             ["origine"] = origin,
-            ["pile"] = iface.Stack.ToString(),
+            [FindingDetails.Place] = Stack,
+            [Stack] = iface.Stack.ToString(),
             ["résolveurs"] = string.Join(", ", servers),
         };
+
+    /// <summary>
+    /// The detail holding the stack, written once: the row and the name of the row have to
+    /// stay the same word, and two literals is how they stop being.
+    /// </summary>
+    private const string Stack = "pile";
 }

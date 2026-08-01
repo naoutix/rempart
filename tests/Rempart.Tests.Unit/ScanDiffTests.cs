@@ -2,6 +2,7 @@ using Rempart.Core.Collectors;
 using Rempart.Core.Diff;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
+using Rempart.Core.Providers;
 using Rempart.Core.Rules;
 using Rempart.Core.Updates;
 
@@ -129,33 +130,379 @@ public sealed class ScanDiffTests
     }
 
     /// <summary>
-    /// The merge above must not fire where a family shares one source across everything
-    /// it enumerates. Every loaded driver comes from <c>Win32_SystemDriver</c>: a driver
-    /// removed and another added have nothing to do with each other, and presenting them
-    /// as one substitution would invent a link.
+    /// The merge above must not fire where a family shares one source across everything it
+    /// enumerates. Every redirection of the <c>hosts</c> file comes from the one file, so a
+    /// line removed and another added have nothing to do with each other, and presenting
+    /// them as one substitution would invent a link on a hijack surface.
+    ///
+    /// <para>
+    /// The counter-example this test used to carry was <c>Win32_SystemDriver</c>, quoting the
+    /// sentence still written beside the guard. No driver finding has ever borne it:
+    /// <c>LoadedDriversCollector</c> has keyed each one by <c>driver.Name</c> since #29, so
+    /// two drivers never share a source and the guard was being exercised on a shape no
+    /// machine produces. The hosts file is a family that really does share one — built here
+    /// by the shipped collector rather than by hand, so the claim cannot drift from it.
+    /// </para>
     /// </summary>
     [Fact]
-    public void Two_unrelated_drivers_are_not_merged_into_a_substitution()
+    public void Two_redirections_of_one_hosts_file_are_not_merged_into_a_substitution()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings = Hosts("203.0.113.7 intranet.example", "198.51.100.20 ancien.example"),
+            },
+            Scan() with
+            {
+                Findings = Hosts("203.0.113.7 intranet.example", "198.51.100.21 nouveau.example"),
+            });
+
+        Assert.Equal(2, diff.Findings.Count);
+        Assert.Contains(diff.Findings, c =>
+            c.Change == ChangeKind.Disappeared && c.Target == "ancien.example → 198.51.100.20");
+        Assert.Contains(diff.Findings, c =>
+            c.Change == ChangeKind.Appeared && c.Target == "nouveau.example → 198.51.100.21");
+    }
+
+    // ---- one source, several places ----------------------------------------
+
+    /// <summary>
+    /// A resolver repointed on a card that resolves on both stacks — that is, on most cards.
+    ///
+    /// <para>
+    /// Windows binds the two TCP/IP stacks of one adapter under the same GUID (#193), so such
+    /// a card carries two <c>dns-resolver</c> findings under one source, told apart by the
+    /// stack alone. Keyed on the source, the merge refused: the reader got « disparu » plus
+    /// « apparu », two lines with no visible link, for the hijack this collector exists to
+    /// catch and on the command written to spot drift.
+    /// </para>
+    ///
+    /// <para>
+    /// Built by the shipped collector, not by a hand-written finding: what makes this case
+    /// exist at all is the shape <c>DnsResolverCollector</c> really emits, down to the
+    /// details it writes.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_resolver_repointed_on_a_dual_stack_card_is_one_change()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings = Resolvers(
+                    Static(Adapter, "9.9.9.9", DnsStack.IPv4),
+                    Static(Adapter, "2620:fe::fe", DnsStack.IPv6)),
+            },
+            Scan() with
+            {
+                Findings = Resolvers(
+                    Static(Adapter, "203.0.113.9", DnsStack.IPv4),
+                    Static(Adapter, "2620:fe::fe", DnsStack.IPv6)),
+            });
+
+        var change = Assert.Single(diff.Findings);
+
+        Assert.Equal(ChangeKind.Changed, change.Change);
+        Assert.Equal("203.0.113.9", change.Target);
+        Assert.Contains(change.Notes, note =>
+            note.Contains("9.9.9.9 → 203.0.113.9", StringComparison.Ordinal)
+            && note.Contains("lance autre chose", StringComparison.Ordinal));
+
+        // And the judgement travelled with it: a recognised operator gave way to an
+        // unrecognised server, which is the reason the line is worth reading.
+        Assert.Equal(FindingSeverity.Benign, change.Before);
+        Assert.Equal(FindingSeverity.Notable, change.After);
+    }
+
+    /// <summary>
+    /// The trap of the merge above, and it is not hypothetical: on main it fired.
+    ///
+    /// <para>
+    /// A card whose v4 resolver is dropped while a v6 one is set carries one finding on each
+    /// side, under one source — so the source « designated exactly one thing » both times and
+    /// the two were folded into « le même emplacement lance autre chose ». They are two
+    /// places: <c>netsh interface ipv4</c> undoes one and <c>netsh interface ipv6</c> the
+    /// other, and nothing was substituted for anything.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_v4_resolver_dropped_and_a_v6_one_set_are_not_one_substitution()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with { Findings = Resolvers(Static(Adapter, "9.9.9.9", DnsStack.IPv4)) },
+            Scan() with { Findings = Resolvers(Static(Adapter, "2620:fe::fe", DnsStack.IPv6)) });
+
+        Assert.Equal(2, diff.Findings.Count);
+        Assert.Contains(diff.Findings, c =>
+            c.Change == ChangeKind.Disappeared && c.Target == "9.9.9.9");
+        Assert.Contains(diff.Findings, c =>
+            c.Change == ChangeKind.Appeared && c.Target == "2620:fe::fe");
+        Assert.DoesNotContain(diff.Findings, c => c.Change == ChangeKind.Changed);
+    }
+
+    /// <summary>
+    /// Both resolvers of one card repointed at once, which is what a hijack that bothered to
+    /// cover the second stack looks like. Two changes, and each paired with its own stack.
+    ///
+    /// <para>
+    /// Splitting the key is not enough on its own here: the disappearance and the appearance
+    /// have to be matched on the place too. Matched on the source alone, the v4 line would
+    /// have been offered the v6 arrival — a substitution across two stacks, undone by two
+    /// different commands, reported as one event. The pairing is what this asserts, not the
+    /// count.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Both_stacks_repointed_at_once_are_paired_stack_by_stack()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings = Resolvers(
+                    Static(Adapter, "9.9.9.9", DnsStack.IPv4),
+                    Static(Adapter, "2620:fe::fe", DnsStack.IPv6)),
+            },
+            Scan() with
+            {
+                Findings = Resolvers(
+                    Static(Adapter, "203.0.113.9", DnsStack.IPv4),
+                    Static(Adapter, "2001:db8::5", DnsStack.IPv6)),
+            });
+
+        Assert.Equal(2, diff.Findings.Count);
+        Assert.All(diff.Findings, change => Assert.Equal(ChangeKind.Changed, change.Change));
+
+        Assert.Contains(diff.Findings, change =>
+            change.Target == "203.0.113.9"
+            && change.Notes.Any(note =>
+                note.Contains("9.9.9.9 → 203.0.113.9", StringComparison.Ordinal)));
+
+        Assert.Contains(diff.Findings, change =>
+            change.Target == "2001:db8::5"
+            && change.Notes.Any(note =>
+                note.Contains("2620:fe::fe → 2001:db8::5", StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    /// A source addressed along two axes has to name both, and the key has to read both.
+    ///
+    /// <para>
+    /// Naming one of two is how a false merge comes back: the findings differing only on the
+    /// unnamed axis collapse onto one place again, and one gets folded into the other. The
+    /// diff cannot detect that — it sees details, never the surface behind them — so what is
+    /// pinned here is that a collector <em>can</em> say it. Read on the first axis only, this
+    /// comparison gives back the two lines it gave before.
+    /// </para>
+    ///
+    /// <para>
+    /// Hand-written, the first of the three that are: no shipped collector names two axes
+    /// today — <c>dns-resolver</c> names the stack and nothing else — so this shape belongs to
+    /// the mechanism and not to a machine, and it is written down as such rather than dressed
+    /// up as a capture.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_source_addressed_along_two_axes_is_keyed_on_both()
     {
         var diff = ScanDiff.Compare(
             Scan() with
             {
                 Findings =
                 [
-                    Driver("ancien.sys"), Driver("commun.sys"),
+                    Placed("gauche", ("axe", "1"), ("volet", "A")),
+                    Placed("ancien", ("axe", "1"), ("volet", "B")),
                 ],
             },
             Scan() with
             {
                 Findings =
                 [
-                    Driver("nouveau.sys"), Driver("commun.sys"),
+                    Placed("gauche", ("axe", "1"), ("volet", "A")),
+                    Placed("nouveau", ("axe", "1"), ("volet", "B")),
+                ],
+            });
+
+        var change = Assert.Single(diff.Findings);
+
+        Assert.Equal(ChangeKind.Changed, change.Change);
+        Assert.Equal("nouveau", change.Target);
+    }
+
+    /// <summary>
+    /// What the key does when a collector names a detail it did not write — a typo, or a row
+    /// set on one branch and not on the other.
+    ///
+    /// <para>
+    /// It reads as no coordinate at all, which folds those findings back onto the source they
+    /// share, and the merge refuses. That is the direction to fail in: two lines a reader has
+    /// to join up cost a reading, an invented substitution costs a wrong one. And the diff
+    /// cannot do better here — a name it cannot resolve is exactly as informative as no name.
+    /// </para>
+    ///
+    /// <para>
+    /// Hand-written, the second of the three: a collector-side slip is not a shape any shipped
+    /// collector produces, which is the whole of what this pins.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_coordinate_named_but_not_written_does_not_split_a_shared_source()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings =
+                [
+                    Placed("gauche", ("absente", "")),
+                    Placed("ancien", ("absente", "")),
+                ],
+            },
+            Scan() with
+            {
+                Findings =
+                [
+                    Placed("gauche", ("absente", "")),
+                    Placed("nouveau", ("absente", "")),
                 ],
             });
 
         Assert.Equal(2, diff.Findings.Count);
-        Assert.Contains(diff.Findings, c => c.Change == ChangeKind.Disappeared && c.Target == "ancien.sys");
-        Assert.Contains(diff.Findings, c => c.Change == ChangeKind.Appeared && c.Target == "nouveau.sys");
+        Assert.DoesNotContain(diff.Findings, c => c.Change == ChangeKind.Changed);
+    }
+
+    /// <summary>
+    /// Two places of one source addressed along different axes, carrying the same value.
+    ///
+    /// <para>
+    /// What holds them apart is that a family's axes are one fixed vector every finding of the
+    /// family is read against, so a value sits in its own axis's field and nowhere else. Read as
+    /// the naked value of whichever axis each finding happens to name, both places read
+    /// « IPv4 », neither designates one thing any more, and the repointed one falls back to the
+    /// two lines it had.
+    /// </para>
+    ///
+    /// <para>
+    /// Hand-written, the third of the three, and for the first one's reason: no shipped collector
+    /// addresses one source along two axes, so the shape belongs to the mechanism.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Two_axes_carrying_the_same_value_stay_two_places()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings = [Placed("voisin", ("zone", "IPv4")), Placed("ancien", ("pile", "IPv4"))],
+            },
+            Scan() with
+            {
+                Findings = [Placed("voisin", ("zone", "IPv4")), Placed("nouveau", ("pile", "IPv4"))],
+            });
+
+        var change = Assert.Single(diff.Findings);
+
+        Assert.Equal(ChangeKind.Changed, change.Change);
+        Assert.Equal("nouveau", change.Target);
+    }
+
+    // ---- a baseline written by another build -------------------------------
+
+    /// <summary>
+    /// The comparison a user makes first: <c>rempart diff &lt;scan&gt;</c> reads the stick's
+    /// baseline, and a baseline is deliberately stable — so it was written by an earlier build,
+    /// and its resolver findings carry the stack without saying it is a coordinate.
+    ///
+    /// <para>
+    /// Read off each finding alone, that baseline's places were all coordinate-less, none of
+    /// them matched the day's scan, and the two lines #195 exists to remove came back on the
+    /// commonest card there is — a single-stack one, which the doc of the collector explains is
+    /// most of them, a v6 interface served by DHCPv6 alone emitting nothing. The axes are the
+    /// family's rather than the finding's for this: the names still come from a collector, and
+    /// either side of the comparison may be the side that says them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_baseline_written_before_the_coordinate_was_named_still_merges()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings = AsWrittenBeforeTheMarker(
+                    Resolvers(Static(Adapter, "9.9.9.9", DnsStack.IPv4))),
+            },
+            Scan() with { Findings = Resolvers(Static(Adapter, "203.0.113.9", DnsStack.IPv4)) });
+
+        var change = Assert.Single(diff.Findings);
+
+        Assert.Equal(ChangeKind.Changed, change.Change);
+        Assert.Equal("203.0.113.9", change.Target);
+        Assert.Contains(change.Notes, note =>
+            note.Contains("9.9.9.9 → 203.0.113.9", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// And the trap does not reopen on that older baseline: reading the family's axes off the
+    /// day's scan is not the same as matching anything under the source.
+    ///
+    /// <para>
+    /// A v4 resolver dropped while a v6 one is set is two places whatever build wrote either
+    /// side — the value telling them apart is in the older report too, it is only its name that
+    /// is younger. Excusing an unnamed coordinate instead of reading the family's would merge
+    /// these two, which is the substitution that never happened.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void A_baseline_written_before_the_coordinate_was_named_does_not_pair_two_stacks()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings = AsWrittenBeforeTheMarker(
+                    Resolvers(Static(Adapter, "9.9.9.9", DnsStack.IPv4))),
+            },
+            Scan() with { Findings = Resolvers(Static(Adapter, "2620:fe::fe", DnsStack.IPv6)) });
+
+        Assert.Equal(2, diff.Findings.Count);
+        Assert.DoesNotContain(diff.Findings, c => c.Change == ChangeKind.Changed);
+    }
+
+    // ---- the guard, one half at a time --------------------------------------
+
+    /// <summary>
+    /// One redirection removed from the <c>hosts</c> file and two added. The half of the guard
+    /// that reads the later scan is the only thing refusing here — the earlier one really did
+    /// hold a single line — and without it the removed redirection is paired with whichever
+    /// arrival comes first, which is a substitution picked at random on a hijack surface.
+    /// </summary>
+    [Fact]
+    public void One_hosts_line_removed_and_two_added_are_not_a_substitution()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with { Findings = Hosts("198.51.100.20 ancien.example") },
+            Scan() with
+            {
+                Findings = Hosts("203.0.113.7 banque.example", "198.51.100.21 nouveau.example"),
+            });
+
+        Assert.Equal(3, diff.Findings.Count);
+        Assert.DoesNotContain(diff.Findings, c => c.Change == ChangeKind.Changed);
+    }
+
+    /// <summary>
+    /// The mirror, and the other half: two redirections removed and one added. Here the later
+    /// scan holds a single line, so only the half reading the earlier one refuses.
+    /// </summary>
+    [Fact]
+    public void Two_hosts_lines_removed_and_one_added_are_not_a_substitution()
+    {
+        var diff = ScanDiff.Compare(
+            Scan() with
+            {
+                Findings = Hosts("198.51.100.20 ancien.example", "203.0.113.7 banque.example"),
+            },
+            Scan() with { Findings = Hosts("198.51.100.21 nouveau.example") });
+
+        Assert.Equal(3, diff.Findings.Count);
+        Assert.DoesNotContain(diff.Findings, c => c.Change == ChangeKind.Changed);
     }
 
     [Fact]
@@ -390,9 +737,74 @@ public sealed class ScanDiffTests
         new("autorun", source, target, FindingSeverity.Notable, ["au démarrage"],
             new Dictionary<string, string> { ["sha256"] = sha256 });
 
+    /// <summary>
+    /// Keyed by the driver's own name, as <c>LoadedDriversCollector</c> keys it. It used to
+    /// be keyed by <c>Win32_SystemDriver</c> here, which no scan has ever written.
+    /// </summary>
     private static Finding Driver(string name, FindingSeverity severity = FindingSeverity.Benign) =>
-        new("driver", "Win32_SystemDriver", name, severity, [],
+        new("driver", name, $@"C:\Windows\System32\drivers\{name}", severity, [],
             new Dictionary<string, string>());
+
+    /// <summary>
+    /// An adapter GUID, the shape <c>RegistryDnsProvider</c> reads off the interface subkeys
+    /// — the same one under <c>Tcpip</c> and under <c>Tcpip6</c>.
+    /// </summary>
+    private const string Adapter = "{7C2B4A1E-9F3D-4E58-B0A6-5C1D2E3F4A5B}";
+
+    private static DnsInterface Static(string card, string server, DnsStack stack) =>
+        new(card, [server], [], stack);
+
+    /// <summary>
+    /// The findings the shipped DNS collector makes of those interfaces — details included,
+    /// which is where the stack is written down.
+    /// </summary>
+    private static List<Finding> Resolvers(params DnsInterface[] interfaces) =>
+        [.. new DnsResolverCollector().Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            dns: new FakeDnsProvider(interfaces)))];
+
+    /// <summary>
+    /// A finding at a place named by <paramref name="axes"/>, under one shared source. An axis
+    /// given an empty value is named and not written — the collector-side slip the key has to
+    /// survive.
+    /// </summary>
+    private static Finding Placed(string target, params (string Axis, string Value)[] axes)
+    {
+        var details = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [FindingDetails.Place] = string.Join(", ", axes.Select(axis => axis.Axis)),
+        };
+
+        foreach (var (axis, value) in axes.Where(axis => axis.Value.Length > 0))
+        {
+            details[axis] = value;
+        }
+
+        return new Finding("surface", "une seule source", target,
+            FindingSeverity.Notable, [], details);
+    }
+
+    /// <summary>
+    /// The same findings as the build before #195 wrote them: the shipped collector's, minus
+    /// the row naming the coordinate, which is the one thing that release did not write. Taken
+    /// off the collector rather than typed out, so what a baseline on a stick really holds
+    /// cannot drift from what this compares against.
+    /// </summary>
+    private static List<Finding> AsWrittenBeforeTheMarker(IEnumerable<Finding> findings) =>
+    [
+        .. findings.Select(finding => finding with
+        {
+            Details = finding.Details
+                .Where(detail => detail.Key != FindingDetails.Place)
+                .ToDictionary(detail => detail.Key, detail => detail.Value, StringComparer.Ordinal),
+        }),
+    ];
+
+    /// <summary>The findings the shipped hosts collector makes of those lines.</summary>
+    private static List<Finding> Hosts(params string[] lines) =>
+        [.. new HostsFileCollector().Collect(new ProviderSet(
+            new FakeRegistryProvider(), new FakeSystemInfoProvider(),
+            hostsFile: new FakeHostsFileProvider(lines)))];
 
     private static Finding Ephemeral(int port) =>
         new("listening-port", $"UDP 0.0.0.0:{port}",

@@ -375,10 +375,15 @@ public static class HtmlReport
                 html.Append("</ul>\n");
             }
 
-            if (finding.Details.Count > 0)
+            var details = finding.Details
+                .Where(detail => FindingDetails.AddressedToTheReader(detail.Key))
+                .OrderBy(detail => detail.Key, StringComparer.Ordinal)
+                .ToList();
+
+            if (details.Count > 0)
             {
                 html.Append("<details class=\"det\"><summary>détails</summary>\n<dl>\n");
-                foreach (var (key, value) in finding.Details.OrderBy(d => d.Key, StringComparer.Ordinal))
+                foreach (var (key, value) in details)
                 {
                     html.Append($"<dt>{Escape(key)}</dt><dd>{Escape(value)}</dd>\n");
                 }

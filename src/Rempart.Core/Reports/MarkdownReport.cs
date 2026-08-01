@@ -227,7 +227,9 @@ public static class MarkdownReport
                     md.Append($"- {Cell(reason)}\n");
                 }
 
-                foreach (var (key, value) in finding.Details.OrderBy(d => d.Key, StringComparer.Ordinal))
+                foreach (var (key, value) in finding.Details
+                             .Where(detail => FindingDetails.AddressedToTheReader(detail.Key))
+                             .OrderBy(detail => detail.Key, StringComparer.Ordinal))
                 {
                     md.Append($"- {Cell(key)} : {Cell(value)}\n");
                 }
