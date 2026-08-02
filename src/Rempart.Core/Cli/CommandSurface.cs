@@ -113,6 +113,14 @@ public static class CommandSurface
             new("--out", OptionArity.Value),
         ], Positionals: 1),
 
+        // Same surface as "index" and for the same reason: both read a folder of reports
+        // and write one page out of it. Where they differ is the axis — index aggregates
+        // machines, drift aggregates dates.
+        new("drift",
+        [
+            new("--out", OptionArity.Value),
+        ], Positionals: 1),
+
         new("capture",
         [
             new("--out", OptionArity.Value),

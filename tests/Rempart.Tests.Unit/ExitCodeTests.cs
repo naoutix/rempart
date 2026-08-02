@@ -1117,33 +1117,15 @@ public sealed class ExitCodeTests
             ExitCode.Regression,
             ExitCodes.ForDrift([CleanSeries(), StaleSeries(), Drifted()]));
 
-    private static DriftReport CleanSeries() => new(
-        Machine: "POSTE-01",
-        Points: 3,
-        First: SeriesDay(1),
-        Last: SeriesDay(15),
-        Segments: [],
-        OpenRegressions: [],
-        Unstable: [],
-        Freshness: new SeriesFreshness(SeriesDay(15), 1, 7, Stale: false),
-        LastPointPartial: false);
+    // Shared with the renderers' tests rather than rebuilt here: a second set of fixtures
+    // would let this contract look right against a shape no series ever has.
+    private static DriftReport CleanSeries() => DriftFixtures.Clean();
 
-    private static DriftReport Drifted() => CleanSeries() with
-    {
-        OpenRegressions =
-        [
-            new("WIN-X-001", "Contrôle", "réseau", Severity.High, SeriesDay(8), 7),
-        ],
-    };
+    private static DriftReport Drifted() => DriftFixtures.Drifted();
 
-    private static DriftReport StaleSeries() => CleanSeries() with
-    {
-        Freshness = new SeriesFreshness(SeriesDay(15), 97, 7, Stale: true),
-    };
+    private static DriftReport StaleSeries() => DriftFixtures.Stale();
 
-    private static DriftReport PartialLastPoint() => CleanSeries() with { LastPointPartial = true };
-
-    private static DateTimeOffset SeriesDay(int day) => new(2026, 1, day, 9, 15, 0, TimeSpan.Zero);
+    private static DriftReport PartialLastPoint() => DriftFixtures.PartialLastPoint();
 
     /// <summary>
     /// The wording is compared in full, accents included: merging the two <c>catch</c>

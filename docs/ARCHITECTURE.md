@@ -175,8 +175,8 @@ rempart/
 │   │   ├── Program.cs          # 40 non-empty lines: encoding, usage refusal, dispatch, exit code
 │   │   ├── CommandTable.cs     # command word → command class, written out by hand
 │   │   ├── CliHost.cs          # what two or more commands share, and only the host can answer
-│   │   └── Commands/           # one class per command: scan, report, diff, index, capture,
-│   │                           #   explain, synthesise, keygen, sign, seal, update,
+│   │   └── Commands/           # one class per command: scan, report, diff, index, drift,
+│   │                           #   capture, explain, synthesise, keygen, sign, seal, update,
 │   │                           #   fetch-loldrivers, fetch-bloatware, version, help, and
 │   │                           #   diagnose-{wmi,tasks,drivers,processes,store}
 │   ├── Rempart.Core/           # net10.0 — no Windows, so the Linux job compiles and tests it
@@ -237,7 +237,7 @@ read the machine and written the report.
 flowchart TB
     ARGS["args"] --> PROG["Program.cs — 40 non-empty lines<br/>UTF-8 · usage refusal · dispatch · exception → exit code"]
     PROG --> TABLE["CommandTable<br/>command word → command class"]
-    TABLE --> CMDS["Commands/<br/>20 classes, one per command"]
+    TABLE --> CMDS["Commands/<br/>21 classes, one per command"]
     CMDS --> HOST["CliHost<br/>what two or more commands share:<br/>base directory, clock, console, hidden input"]
     CMDS --> CORE["Rempart.Core"]
 
@@ -407,10 +407,10 @@ clock, no Windows. `rempart report --from <rapport.json>` therefore runs anywher
 and so does everything below it.
 
 `Reports/` holds more than the three scan formats: the diff rendering
-(`rempart diff --report`, HTML and Markdown), the fleet page (`rempart index`), and
-the console output. The console renderer lives in Core rather than the CLI on
-purpose — `Rempart.Cli` targets `net10.0-windows`, so a golden test beside it would
-never run on the Linux job.
+(`rempart diff --report`, HTML and Markdown), the fleet page (`rempart index`), the
+drift page (`rempart drift`), and the console output. The console renderer lives in
+Core rather than the CLI on purpose — `Rempart.Cli` targets `net10.0-windows`, so a
+golden test beside it would never run on the Linux job.
 
 **Two testing regimes, chosen per renderer.** HTML and Markdown are tested by
 **property**: escaping holds for any machine-supplied string, the document

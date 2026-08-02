@@ -81,6 +81,17 @@ internal static class HelpCommand
               Signale les rapports issus de catalogues différents : leurs
               pourcentages ne sont pas sur la même échelle.
 
+          rempart drift [dossier] [--out <fichier>]
+              Lit la série des rapport.json d'un dossier et écrit, par machine,
+              la trajectoire : la pente du score, depuis quand un contrôle
+              échoue, ceux qui retombent, et la date de la dernière capture.
+              Ce que deux rapports comparés ne peuvent pas dire.
+              Ne supprime rien : la fenêtre couverte et la place occupée sont
+              dites, l'élagage reste un geste manuel.
+              Ne demande pas Windows. Code de sortie 4 s'il reste une régression
+              ouverte, 5 si la série s'est arrêtée ou si le dernier scan a laissé
+              des contrôles inévaluables.
+
           rempart capture [--out <fichier>] [--raw] [--analyze-store]
               Enregistre l'état brut de la machine, rejouable en test.
               Anonymisé par défaut ; --raw conserve les identifiants.

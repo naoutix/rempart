@@ -1,5 +1,6 @@
 using System.Text;
 using Rempart.Core.Diff;
+using Rempart.Core.Drift;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Rules;
@@ -306,6 +307,66 @@ public static class ConsoleReport
             text.AppendLine($"  {entry.Machine,-24} {entry.Date}  " +
                             $"{(entry.Score is { } s ? $"{s,3} %" : "  n/d")}  " +
                             $"échecs {entry.Failures}, à examiner {entry.FlaggedFindings}");
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// What a drift run says to whoever is watching it run — and, in a scheduled run, to
+    /// the transcript nobody reads until something looks wrong.
+    ///
+    /// <para>
+    /// <paramref name="bytesOnDisk"/> is not decoration. Nothing prunes the report folder,
+    /// and that choice is only defensible if the page says what it costs: the window it
+    /// covers, how many reports it read, and what they weigh. A retention policy the tool
+    /// refuses to enforce is one the reader has to be handed the numbers for.
+    /// </para>
+    /// </summary>
+    public static string Drift(
+        IReadOnlyList<DriftReport> reports, string outputPath, int unreadable, long bytesOnDisk)
+    {
+        var text = new StringBuilder();
+
+        text.AppendLine($"Dérive écrite dans {outputPath} — {reports.Count} machine(s), "
+                        + $"{reports.Sum(report => report.Points)} rapport(s) lus, "
+                        + $"{ReportLabels.Bytes(bytesOnDisk)} sur le disque"
+                        + (unreadable > 0 ? $", {unreadable} illisible(s)" : string.Empty));
+
+        foreach (var report in reports)
+        {
+            text.AppendLine($"  {report.Machine,-24} {DriftPage.Day(report.First)} → "
+                            + $"{DriftPage.Day(report.Last)}, {report.Points} point(s), "
+                            + $"cadence {DriftPage.Cadence(report)}");
+
+            if (report.Freshness.Stale)
+            {
+                text.AppendLine($"    dernière capture il y a {report.Freshness.DaysSinceLast} "
+                                + "jours — vérifier que le suivi tourne encore");
+            }
+
+            if (report.LastPointPartial)
+            {
+                text.AppendLine("    le dernier scan a laissé des contrôles inévaluables");
+            }
+
+            foreach (var open in report.OpenRegressions)
+            {
+                text.AppendLine($"    régression ouverte {open.RuleId} — {open.Title}, "
+                                + $"depuis le {DriftPage.Day(open.Since)} "
+                                + $"({open.DaysObserved} jours observés)");
+            }
+
+            foreach (var control in report.Unstable)
+            {
+                text.AppendLine($"    instable {control.RuleId} — {control.Title}, "
+                                + $"tombé {control.Regressions} fois");
+            }
+
+            if (report.OpenRegressions.Count == 0 && !report.Freshness.Stale)
+            {
+                text.AppendLine("    aucune régression ouverte");
+            }
         }
 
         return text.ToString();
