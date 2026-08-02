@@ -74,7 +74,8 @@ public sealed class ScanEngine(IReadOnlyList<ICollector> collectors, IReadOnlyLi
     /// <c>Collectors/</c>, and with the flag behind which the one absent collector sits.
     /// </para>
     /// </summary>
-    public static IReadOnlyList<ICollector> DefaultCollectors => [new InventoryCollector()];
+    public static IReadOnlyList<ICollector> DefaultCollectors =>
+        [new InventoryCollector(), new TlsCollector()];
 
     /// <summary>
     /// Finding collectors, supplied with the driver blocklist and the bloatware catalog in

@@ -99,11 +99,37 @@ public sealed class EndToEndTests
     public void The_inventory_collector_fills_the_fields_rules_depend_on()
     {
         var result = ScanEngine.Default().Run(Live(), "test", "2026-01-01T00:00:00Z", SignatureOnly);
-        var inventory = Assert.Single(result.Collectors);
+
+        // Named rather than taken as the only one: this asserted Assert.Single for as long as
+        // there was a single default field collector, which made it a test of the table's
+        // size wearing the name of a test about inventory. FieldCollectorRegistrationTests
+        // answers for the table.
+        var inventory = Assert.Single(result.Collectors, c => c.Name == "inventory");
 
         Assert.NotEqual(CollectorStatus.Failed, inventory.Status);
         Assert.False(string.IsNullOrWhiteSpace(inventory.Fields["os.name"]));
         Assert.False(string.IsNullOrWhiteSpace(inventory.Fields["os.build"]));
+    }
+
+    /// <summary>
+    /// The TLS collector against a real registry, which is the only place its key path can be
+    /// shown to be right: a fake answers whatever it was told, so a wrong path there produces
+    /// « absent » sixteen times and a green suite — the exact shape of a plausible, silently
+    /// wrong reading that this project's Windows suite exists for.
+    /// </summary>
+    [Fact]
+    public void The_tls_collector_reads_the_real_schannel_locations()
+    {
+        var result = ScanEngine.Default().Run(Live(), "test", "2026-01-01T00:00:00Z", SignatureOnly);
+        var tls = Assert.Single(result.Collectors, c => c.Name == "tls");
+
+        Assert.NotEqual(CollectorStatus.Failed, tls.Status);
+        Assert.Equal(16, tls.Fields.Count);
+
+        // Every field answers something. « absent » is an answer here and the ordinary one —
+        // what must never appear is a missing key, which would mean the collector skipped a
+        // location instead of reporting on it.
+        Assert.All(tls.Fields.Values, value => Assert.False(string.IsNullOrWhiteSpace(value)));
     }
 
     [Fact]

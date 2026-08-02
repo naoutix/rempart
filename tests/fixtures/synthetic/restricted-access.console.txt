@@ -103,3 +103,20 @@ données : catalogue au 2026-07-21, à jour
   scan.elevated                    False
   os.registryProductName           Windows 10 Pro
   ! Scan non élevé : certaines valeurs sont hors de portée. Relancer en administrateur pour un inventaire complet.
+[tls] Ok
+  tls.1_0.client.enabled           absent
+  tls.1_0.client.disabledByDefault absent
+  tls.1_0.server.enabled           absent
+  tls.1_0.server.disabledByDefault absent
+  tls.1_1.client.enabled           absent
+  tls.1_1.client.disabledByDefault absent
+  tls.1_1.server.enabled           absent
+  tls.1_1.server.disabledByDefault absent
+  tls.1_2.client.enabled           absent
+  tls.1_2.client.disabledByDefault absent
+  tls.1_2.server.enabled           absent
+  tls.1_2.server.disabledByDefault absent
+  tls.1_3.client.enabled           absent
+  tls.1_3.client.disabledByDefault absent
+  tls.1_3.server.enabled           absent
+  tls.1_3.server.disabledByDefault absent
