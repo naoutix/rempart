@@ -113,6 +113,14 @@ public static class CommandSurface
             new("--out", OptionArity.Value),
         ], Positionals: 1),
 
+        // --baseline names the same file "diff" reads it from, and is spelled the same way
+        // on purpose: one option, one meaning, whichever command is typing it.
+        new("baseline",
+        [
+            new("--baseline", OptionArity.Value),
+            new("--force", OptionArity.Flag),
+        ], Positionals: 1),
+
         // Same surface as "index" and for the same reason: both read a folder of reports
         // and write one page out of it. Where they differ is the axis — index aggregates
         // machines, drift aggregates dates.

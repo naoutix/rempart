@@ -81,6 +81,14 @@ internal static class HelpCommand
               Signale les rapports issus de catalogues différents : leurs
               pourcentages ne sont pas sur la même échelle.
 
+          rempart baseline <rapport.json> [--baseline <fichier>] [--force]
+              Promeut un rapport en référence de « rempart diff ». Refuse plutôt
+              qu'installer : fichier tronqué, fichier qui n'est pas un rapport,
+              rapport d'une autre machine, rapport d'un autre catalogue.
+              Dit les deux empreintes de catalogue, et la date de la référence
+              remplacée — écraser une référence est une perte.
+              --force passe un désaccord, jamais un fichier illisible.
+
           rempart drift [dossier] [--out <fichier>]
               Lit la série des rapport.json d'un dossier et écrit, par machine,
               la trajectoire : la pente du score, depuis quand un contrôle

@@ -262,6 +262,33 @@ if (-not $SkipPublish) {
                 # memes controles non verifiables, et rend le meme code.
                 if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "le rejeu a echoue ($LASTEXITCODE)" }
 
+                # La promotion d'une reference, sur le binaire. Le jugement est une fonction
+                # pure de Core que BaselinePromotionTests eprouve ; ce qu'aucune suite ne peut
+                # atteindre est le fichier lui-meme -- ni Rempart.Tests.Unit ni
+                # Rempart.Tests.Windows ne referencent Rempart.Cli. Or c'est exactement ce que
+                # l'issue #100 demande de prouver : qu'un fichier tronque ne remplace pas la
+                # reference en place. L'ecriture passe par un fichier temporaire deplace sur
+                # la cible, donc meme une coupure laisse l'ancienne entiere.
+                & .\rempart.exe scan --json | Set-Content t.rapport.json -Encoding utf8
+                # Meme jeu que le scan ci-dessus, et pour la meme raison : 5 est le cas
+                # ORDINAIRE sur une machine non elevee. L'exiger a 0 rendrait cette sonde
+                # rouge sur toute machine qui n'est pas la plus favorable.
+                if ($LASTEXITCODE -notin @(0, 3, 5)) { throw "rempart scan --json a echoue ($LASTEXITCODE)" }
+
+                & .\rempart.exe baseline t.rapport.json | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "la reference n'a pas ete installee ($LASTEXITCODE)" }
+                if (-not (Test-Path baseline.json)) { throw "rempart baseline n'a rien ecrit" }
+                $installed = (Get-FileHash baseline.json).Hash
+
+                # Le refus, puis la seule chose qui prouve qu'il a servi a quelque chose :
+                # l'octet pres, la reference en place n'a pas bouge.
+                Set-Content t.tronque.json -Value '{ "toolVersion": "1.1.0", "start' -Encoding utf8
+                & .\rempart.exe baseline t.tronque.json | Out-Null
+                if ($LASTEXITCODE -ne 1) { throw "un rapport tronque a ete promu ($LASTEXITCODE)" }
+                if ((Get-FileHash baseline.json).Hash -ne $installed) {
+                    throw "la reference a bouge alors que la promotion etait refusee"
+                }
+
                 # DET-OPTION-INCONNUE, sur le binaire. Usage.Check est une fonction pure de
                 # Core que toute la suite eprouve ; ce qui la relie a une ligne de commande
                 # tient en quelques jetons de Program.cs, que le job Linux ne compile pas. Deux
