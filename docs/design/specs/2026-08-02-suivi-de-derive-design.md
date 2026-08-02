@@ -94,9 +94,23 @@ tâche planifiée (#101).
 | `DriftSeries.Build(points)` | trie, enchaîne les comparaisons, produit le `DriftReport` |
 | `DriftReport` | trajectoire, régressions ouvertes avec leur âge, contrôles instables, fraîcheur |
 
-**La comparaison n'est pas réimplémentée.** `DriftSeries` enchaîne `ScanDiff.Compare` sur
-les points consécutifs. Une seconde implémentation de la comparaison pourrait diverger de
-la vraie, ce que `DET-SCRIPTS` a déjà coûté une fois.
+**La comparaison n'est pas réimplémentée** — mais elle ne suffit pas, et la frontière
+mérite d'être écrite ici plutôt que découverte à l'implémentation. `ScanDiff.Compare` est
+appelé sur chaque paire consécutive et produit les mouvements que la page liste : une
+seconde implémentation de la comparaison pourrait diverger de la vraie, ce que
+`DET-SCRIPTS` a déjà coûté une fois.
+
+En revanche, **la régression ouverte et l'instabilité ne s'obtiennent pas en enchaînant des
+paires**, et c'est la thèse de ce document plutôt qu'une entorse. Un contrôle qui passe,
+devient illisible, puis échoue ne produit *aucune* paire classée `Regression` :
+`Pass → Unknown` est une visibilité perdue, `Unknown → Fail` une visibilité retrouvée, et
+les deux classements sont justes à leur échelle. La chute n'existe qu'à l'échelle de la
+série. Ces deux calculs lisent donc la **suite des états connus** d'une règle, `Unknown` et
+`NotApplicable` retirés — ce que ni l'une ni l'autre des paires ne porte.
+
+La règle tient en une ligne : *comparer deux points* reste chez `ScanDiff`, *lire une
+suite* est ce que ce moteur ajoute. C'est aussi la meilleure preuve que la commande a une
+raison d'exister.
 
 **La clé de série est la machine**, lue dans le rapport. Elle reste stable sur une capture
 anonymisée : `Anonymiser.Hash` est un SHA-256 sans sel et idempotent, donc deux captures
