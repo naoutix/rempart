@@ -7,14 +7,31 @@ changed between releases.
 
 ## 1.1.0 — 2026-08-01
 
-The 33 findings of the [2026-07-29 review](docs/revues/2026-07-29-revue-complete.md) and the
-nine rounds that followed them, in fifty-two pull requests of one issue each. Every round
-re-read the previous round's fixes adversarially, and what a review refuted became the next
-round's finding; eleven of the last eighteen fixes were refuted that way before merging.
+**In short.** This release is about what the audit can see, and about what it says when it
+cannot see.
 
-Nothing is removed and a capture written by 1.0.0 still replays. What is new is what the tool
-looks at, plus one contract that is deliberately broken and named as such below: a mistyped
-command word no longer exits `0`.
+- **Three DNS surfaces are now read** that were outside the audit entirely: the IPv6 stack, the
+  resolver list above the adapters, and the name resolution policy table. All three are places
+  a resolver can be redirected without touching the per-adapter settings the tool inspected.
+- **A refused read no longer looks like a clean answer.** Where the tool handed back an empty
+  list — no autorun, no resolver, no scheduled task — it now says it could not look, and the
+  exit code says so too.
+- **Fewer wrong instructions.** Surfaces that failed for reasons no privilege repairs stopped
+  telling you to re-run as administrator.
+- **One breaking change:** a mistyped command word — `rempart scna`, `rempart -scan` — exits
+  `6` instead of `0`. A scheduled job that relied on the old behaviour will start reporting
+  failure, which is the point: it was reporting success for a run that did something else.
+
+**Upgrading** is replacing the executable. A capture written by 1.0.0 still replays; its exit
+code can differ, because a refusal the tool used to swallow now reaches the exit code.
+
+---
+
+The rest of this section is the record: the 33 findings of the
+[2026-07-29 review](docs/revues/2026-07-29-revue-complete.md) and the nine rounds that followed
+them, in fifty-two pull requests of one issue each. Every round re-read the previous round's
+fixes adversarially, and what a review refuted became the next round's finding; eleven of the
+last eighteen fixes were refuted that way before merging.
 
 What the review charged the repository with was fixing a class of defect in one place and
 leaving the layer next to it, so the entries below are grouped by the mechanism that replaced a
