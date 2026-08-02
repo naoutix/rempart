@@ -130,7 +130,7 @@ public sealed class CommandSurfaceTests
 
         // A call written as OptionValue(args, name) would match nothing and take this
         // guard down with it, silently. The count says out loud how much it is watching.
-        Assert.Equal(45, reads.Count);
+        Assert.Equal(46, reads.Count);
 
         var declared = CommandSurface.All
             .SelectMany(command => command.Options)
@@ -157,7 +157,7 @@ public sealed class CommandSurfaceTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(20, dispatched.Count);
+        Assert.Equal(21, dispatched.Count);
 
         var declared = CommandSurface.All.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
 

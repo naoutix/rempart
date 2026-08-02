@@ -143,7 +143,12 @@ public static class FleetIndex
             .ThenBy(e => e.Machine, StringComparer.OrdinalIgnoreCase)
             .ThenBy(e => e.Date, StringComparer.Ordinal);
 
-    private static string Band(int score) => score switch
+    /// <summary>
+    /// The band a score falls in. Internal rather than private because the drift page draws
+    /// the same gauge: two thresholds, one here and one there, would eventually colour the
+    /// same percentage differently on two pages of the same report folder.
+    /// </summary>
+    internal static string Band(int score) => score switch
     {
         >= 90 => "good",
         >= 60 => "warn",

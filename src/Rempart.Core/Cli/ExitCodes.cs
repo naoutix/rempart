@@ -1,5 +1,6 @@
 using Rempart.Core.Collectors;
 using Rempart.Core.Diff;
+using Rempart.Core.Drift;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Rules;
@@ -195,6 +196,41 @@ public static class ExitCodes
     /// </summary>
     public static ExitCode ForDiff(DiffResult diff) =>
         diff.Of(VerdictShift.Regression).Any() ? ExitCode.Regression : ExitCode.Success;
+
+    /// <summary>
+    /// What a periodic drift run is worth to the scheduler that started it.
+    ///
+    /// <para>
+    /// No new code, and that is the point: a scheduled run is judged by callers already
+    /// written against <see cref="ForScan"/>, and the precedence here is the same one —
+    /// ranked by what the caller can do about it. An open regression is <c>4</c>, which has
+    /// meant exactly that since the comparison existed. Everything else a series shows —
+    /// an improvement, a rule that appeared, a control repaired weeks ago — is read, not
+    /// acted on, and wakes nobody.
+    /// </para>
+    ///
+    /// <para>
+    /// A stale series lands on <see cref="ExitCode.Partial"/> beside an unevaluable last
+    /// point, and the reading is worth stating because it stretches that code: <c>5</c>
+    /// says the report answers for less of the machine than it appears to, and a trajectory
+    /// whose last point is three months old describes a machine as it was three months ago.
+    /// The objection is real — until now <c>5</c> has always meant an unevaluable
+    /// <em>control</em>, never data that merely got old — and the alternative is to say the
+    /// staleness in the page without touching the code. Decided the first way; reversing it
+    /// is this one line.
+    /// </para>
+    ///
+    /// <para>
+    /// An empty list is a failure rather than a success. A folder holding no readable
+    /// report exiting <c>0</c> would tell a scheduler that a machine nobody measured is
+    /// fine, which is the exact silence <c>DET-SORTIE-PARTIELLE</c> was opened for.
+    /// </para>
+    /// </summary>
+    public static ExitCode ForDrift(IReadOnlyList<DriftReport> reports) =>
+        reports.Count == 0 ? ExitCode.Failure
+        : reports.Any(report => report.OpenRegressions.Count > 0) ? ExitCode.Regression
+        : reports.Any(report => report.LastPointPartial || report.Freshness.Stale) ? ExitCode.Partial
+        : ExitCode.Success;
 
     /// <summary>
     /// An incomplete snapshot is told apart from any other failure, because it is the one

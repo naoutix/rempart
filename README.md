@@ -149,6 +149,7 @@ compliant.
 | `rempart report --from <rapport.json>` | Re-render the HTML, Markdown and JSON without scanning again — `--format` narrows it to one. Runs anywhere. |
 | `rempart diff <a.json> <b.json>` | Compare two scans: what regressed, what the audit stopped seeing. Exits `4` on a regression. |
 | `rempart index [dir]` | Build the fleet page from a folder of reports, worst first. |
+| `rempart drift [dir]` | Read the same folder as a series per machine: the slope, how long a control has been failing, which ones keep falling back, and when the series stopped. Exits `4` on a regression still open. |
 | `rempart explain [<ID>]` | List all checks, or detail one: rationale, references, cost of fixing. |
 | `rempart capture [--raw]` | Record a replayable snapshot, anonymized by default. |
 | `rempart synthesise --from <capture> --out <file>` | Turn a real capture into a versioned test fixture — `--profile hardened\|defaults`, `--domain-joined`, `--not-elevated`, and `--compromised` to plant fabricated signs of intrusion. |

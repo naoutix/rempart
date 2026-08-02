@@ -39,6 +39,7 @@ internal static class CommandTable
         "report" => ReportCommand.Run,
         "diff" => DiffCommand.Run,
         "index" => IndexCommand.Run,
+        "drift" => DriftCommand.Run,
         "capture" => CaptureCommand.Run,
         "explain" => ExplainCommand.Run,
         "synthesise" => SynthesiseCommand.Run,
