@@ -176,9 +176,9 @@ rempart/
 │   │   ├── CommandTable.cs     # command word → command class, written out by hand
 │   │   ├── CliHost.cs          # what two or more commands share, and only the host can answer
 │   │   └── Commands/           # one class per command: scan, report, diff, index, drift,
-│   │                           #   baseline, capture, explain, synthesise, keygen, sign,
-│   │                           #   seal, update, fetch-loldrivers, fetch-bloatware, version,
-│   │                           #   help, and diagnose-{wmi,tasks,drivers,processes,store}
+│   │                           #   survey, baseline, capture, explain, synthesise, keygen,
+│   │                           #   sign, seal, update, fetch-loldrivers, fetch-bloatware,
+│   │                           #   version, help, and diagnose-{wmi,tasks,drivers,processes,store}
 │   ├── Rempart.Core/           # net10.0 — no Windows, so the Linux job compiles and tests it
 │   │   ├── Cli/                # the CLI contract that must be testable: ExitCodes,
 │   │   │                       #   CommandLine (parsing), CommandSurface (command → options)
@@ -237,7 +237,7 @@ read the machine and written the report.
 flowchart TB
     ARGS["args"] --> PROG["Program.cs — 40 non-empty lines<br/>UTF-8 · usage refusal · dispatch · exception → exit code"]
     PROG --> TABLE["CommandTable<br/>command word → command class"]
-    TABLE --> CMDS["Commands/<br/>22 classes, one per command"]
+    TABLE --> CMDS["Commands/<br/>23 classes, one per command"]
     CMDS --> HOST["CliHost<br/>what two or more commands share:<br/>base directory, clock, console, hidden input"]
     CMDS --> CORE["Rempart.Core"]
 
