@@ -59,7 +59,7 @@ claims** and **what it exposes**, not remote compromise:
 
 ## Supported versions
 
-Only the latest release is supported. The project is at `1.0.0`; there is no
+Only the latest release is supported. The project is at `1.1.0`; there is no
 maintenance branch and no backporting.
 
 ## Signature and provenance
