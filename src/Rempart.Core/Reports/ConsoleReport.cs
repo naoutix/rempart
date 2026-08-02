@@ -4,6 +4,7 @@ using Rempart.Core.Drift;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Rules;
+using Rempart.Core.Survey;
 using Rempart.Core.Updates;
 
 namespace Rempart.Core.Reports;
@@ -366,6 +367,56 @@ public static class ConsoleReport
             if (report.OpenRegressions.Count == 0 && !report.Freshness.Stale)
             {
                 text.AppendLine("    aucune régression ouverte");
+            }
+        }
+
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// One key across every machine captured, and whether it depends on the Windows build.
+    ///
+    /// <para>
+    /// The answer a reader comes for is the first line: does this agree everywhere or not.
+    /// A survey nobody could answer says so in those words rather than reporting agreement —
+    /// « personne ne l'a » and « tout le monde dit pareil » must never print alike, which is
+    /// the silence this repository has closed five times over.
+    /// </para>
+    /// </summary>
+    public static string Survey(FieldSurvey survey, string root)
+    {
+        var text = new StringBuilder();
+        var kind = survey.IsRule ? "règle" : "champ";
+
+        text.AppendLine($"{survey.Name} ({kind}) — {root}");
+        text.AppendLine($"  {survey.Reports} rapport(s) lus, {survey.Machines} machine(s) "
+                        + $"portant cette valeur, {survey.Builds.Count} build(s)");
+
+        if (survey.Machines == 0)
+        {
+            text.AppendLine("  Aucun rapport ne porte ce nom — vérifier l'orthographe, ou "
+                            + "recapturer : une capture n'enregistre que ce qui a été lu.");
+            return text.ToString();
+        }
+
+        // A survey of one machine agrees with itself, and saying so plainly would hand back
+        // the reassurance this command was written to remove: DET-WINDEFAULT is precisely
+        // sixty values that looked unanimous on one machine. One is not a consensus.
+        text.AppendLine(survey.Machines == 1
+            ? "  Une seule machine vue — ce n'est pas un défaut observé, c'est un défaut supposé."
+            : survey.Agrees
+                ? $"  Une seule valeur sur les {survey.Machines} machines vues."
+                : "  ⚠ Plusieurs valeurs : un défaut deviné à partir d'une seule machine serait faux ailleurs.");
+
+        foreach (var build in survey.Builds)
+        {
+            text.AppendLine();
+            text.AppendLine($"  build {build.Build} — {build.Machines} machine(s)");
+
+            foreach (var value in build.Values)
+            {
+                text.AppendLine($"    {value.Value,-24} {value.Machines,3}  "
+                                + string.Join(", ", value.Examples));
             }
         }
 

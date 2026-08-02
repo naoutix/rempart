@@ -121,6 +121,11 @@ public static class CommandSurface
             new("--force", OptionArity.Flag),
         ], Positionals: 1),
 
+        // Two positionals: the name to survey, then the folder. The name comes first because
+        // it is the argument nobody would guess a default for, and the folder second because
+        // it has one -- the same ordering "diff" uses for the report it cannot guess.
+        new("survey", [], Positionals: 2),
+
         // Same surface as "index" and for the same reason: both read a folder of reports
         // and write one page out of it. Where they differ is the axis — index aggregates
         // machines, drift aggregates dates.

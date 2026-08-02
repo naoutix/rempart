@@ -81,6 +81,14 @@ internal static class HelpCommand
               Signale les rapports issus de catalogues différents : leurs
               pourcentages ne sont pas sur la même échelle.
 
+          rempart survey <champ|règle> [dossier]
+              Relève une même valeur sur toutes les machines capturées, groupée
+              par build de Windows. Répond à « ce défaut est-il le même partout,
+              ou dépend-il de la build » — la question qui bloque les règles TLS
+              et IPv6. « tls.1_2.client.enabled » pour un champ de collecteur,
+              « WIN-LEG-003 » pour ce qu'une règle a relevé.
+              Une machine compte une fois, son rapport le plus récent parlant.
+
           rempart baseline <rapport.json> [--baseline <fichier>] [--force]
               Promeut un rapport en référence de « rempart diff ». Refuse plutôt
               qu'installer : fichier tronqué, fichier qui n'est pas un rapport,

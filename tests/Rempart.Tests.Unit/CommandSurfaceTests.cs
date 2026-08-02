@@ -157,7 +157,7 @@ public sealed class CommandSurfaceTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(22, dispatched.Count);
+        Assert.Equal(23, dispatched.Count);
 
         var declared = CommandSurface.All.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
 
