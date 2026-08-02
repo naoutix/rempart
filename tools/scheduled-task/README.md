@@ -22,6 +22,13 @@ schtasks /Create /XML tools\scheduled-task\rempart-derive.xml /TN "Rempart\Weekl
 
 Remove it the same way, with `schtasks /Delete /TN "Rempart\Weekly audit"`.
 
+**Keep the file as UTF-16.** `schtasks` refuses any other encoding, and it refuses it before
+reading a single element: an UTF-8 copy answers `impossible de changer d'encodage` at line 1,
+column 40 — the encoding declaration. This is measured, not quoted from documentation; the
+first version of this file was UTF-8 and imported nowhere. Most editors will offer to
+"fix" the encoding, and a test pins the byte order mark so that offer cannot be accepted
+quietly.
+
 ## What it runs, and where the reports land
 
 The task runs `rempart scan --report`, which writes `rapport.html`, `.md` and `.json` into

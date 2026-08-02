@@ -80,9 +80,35 @@ public sealed class ScheduledTaskDefinitionTests
     }
 
     /// <summary>
-    /// The definition stays ASCII. A Task Scheduler XML is read by <c>schtasks</c> before
-    /// anything in this repository sees it, and encoding is where that import fails first;
-    /// no accented word in a comment is worth that failure on someone else's machine.
+    /// <c>schtasks</c> refuses a definition that is not UTF-16, and this is measured rather
+    /// than quoted from documentation: the first version of this file was UTF-8, every guard
+    /// here was green, and the real import answered « impossible de changer d'encodage » at
+    /// line 1 column 40 — the encoding declaration. Nothing in a test could have found that,
+    /// because the file parses perfectly well; only registering it does.
+    ///
+    /// <para>
+    /// So the bytes are pinned. An editor re-saving this file as UTF-8 — which every editor
+    /// would like to do — breaks the import on a user's machine while leaving this suite
+    /// entirely green, and the failure would surface as a scheduler error weeks later.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void The_definition_is_saved_as_the_encoding_schtasks_accepts()
+    {
+        var bytes = File.ReadAllBytes(RepositoryFiles.Resolve(Definition));
+
+        Assert.True(bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE,
+            "la definition doit porter une marque d'ordre des octets UTF-16 LE : schtasks "
+            + "refuse le fichier autrement, sans que rien dans cette suite ne le voie.");
+
+        Assert.Contains("encoding=\"UTF-16\"", RepositoryFiles.Read(Definition), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The definition stays ASCII, which is a second and independent line of defence on the
+    /// same weak point: the encoding declaration is only honoured if the bytes agree with
+    /// it, and no accented word in a comment is worth an import failing on someone else's
+    /// machine.
     /// </summary>
     [Fact]
     public void The_definition_carries_nothing_but_ascii()
