@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A weekly read-only audit, imported by hand and never created by the tool.
+
+  Creating a scheduled task means changing the machine's configuration, which is the one
+  thing v1 promises not to do: the only thing rempart writes is its own store, and only
+  when asked. Triggering is the Windows scheduler's job, not the auditor's.
+
+  Two lines to edit before importing: Command and WorkingDirectory, both naming the
+  folder rempart.exe sits in. Then:
+
+      schtasks /Create /XML tools\scheduled-task\rempart-derive.xml /TN "Rempart\Weekly audit"
+
+  What it runs writes a report beside the binary, and "rempart drift" reads the series
+  they form. See tools/scheduled-task/README.md for what to know before importing, in
+  particular that a non-elevated run exits 5, which is the ordinary case and not a failure.
+-->
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>rempart</Author>
+    <Description>Weekly read-only audit. Writes a report next to the binary and changes nothing on the machine.</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-01-05T09:00:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByWeek>
+        <DaysOfWeek>
+          <Monday />
+        </DaysOfWeek>
+        <WeeksInterval>1</WeeksInterval>
+      </ScheduleByWeek>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <!--
+        Not elevated, and that is a decision rather than a default. An elevated task would
+        read more of the machine, and it would also mean this repository shipped a file that
+        runs a binary as administrator on a schedule. A non-elevated run exits 5 with some
+        controls unverifiable, which the drift page states plainly; whoever wants the fuller
+        picture raises this to HighestAvailable themselves, knowing what they are granting.
+      -->
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>C:\rempart\rempart.exe</Command>
+      <Arguments>scan --report</Arguments>
+      <WorkingDirectory>C:\rempart</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
