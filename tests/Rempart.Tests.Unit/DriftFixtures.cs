@@ -51,6 +51,11 @@ internal static class DriftFixtures
             Unstable = [new("WIN-DEF-002", title, 2, [Day(8), Day(15)])],
         };
 
+    public static DriftReport WithCadence(double days) => Clean() with
+    {
+        Freshness = new SeriesFreshness(Day(15), 1, days, Stale: false),
+    };
+
     public static DriftReport Stale() => Clean() with
     {
         Freshness = new SeriesFreshness(Day(15), 97, 7, Stale: true),

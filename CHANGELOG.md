@@ -5,7 +5,7 @@ release. The milestone-by-milestone account of how the tool got here, including 
 tried and rejected, lives in [docs/ROADMAP.md](docs/ROADMAP.md) — this file records what
 changed between releases.
 
-## 1.2.0 — in preparation
+## 1.2.0 — 2026-08-02
 
 **In short.** `diff` compares two points; this release reads a series.
 

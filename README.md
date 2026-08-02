@@ -97,7 +97,7 @@ Correction — réversibilité : Trivial
 
 Runs on 64-bit Windows; the rule set targets Windows 11 defaults.
 
-**The current release is [v1.1.0](https://github.com/naoutix/rempart/releases)** —
+**The current release is [v1.2.0](https://github.com/naoutix/rempart/releases)** —
 stable, not a candidate: the sealed archive has been run on a machine other than the
 one that built it, on a different Windows feature update, with nothing pre-installed.
 
@@ -245,15 +245,17 @@ using it.
 
 ## Status
 
-**v1.1.0 — the read-only audit is complete**: three report formats, a signed
-integrity seal for the stick, and fleet comparison. It is a stable release rather
-than a candidate because the sealed archive has been run on a machine other than
-the one that built it — this project's own release condition.
+**v1.2.0 — the read-only audit is complete**: three report formats, a signed
+integrity seal for the stick, fleet comparison, and drift over time. The release
+condition this project set itself — a sealed archive running on a machine the
+toolchain never touched — was met at v1.0.0, and the stick layout has not changed
+since; every release after it is additive and replays what came before.
 
-Since v1.0.0, nine rounds of adversarial review have gone into what the tool can
-say when a read is refused rather than answered, and into the DNS surface, where
-the IPv6 stack, the level above the adapters and the name resolution policy table
-were all outside the audit. See [CHANGELOG.md](CHANGELOG.md).
+v1.2.0 reads a folder of reports as a series rather than as a fleet: how long a
+control has been failing, which ones keep falling back after being repaired, and
+whether the series is still being fed at all. v1.1.0 before it went into what the
+tool says when a read is refused rather than answered, and into three DNS surfaces
+that were outside the audit entirely. See [CHANGELOG.md](CHANGELOG.md).
 
 Remediation — writing to the machine — is a later milestone and has not started.
 [ROADMAP.md](docs/ROADMAP.md) (French) records what was deferred and why. One
