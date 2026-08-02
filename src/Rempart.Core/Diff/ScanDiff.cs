@@ -160,7 +160,13 @@ public static class ScanDiff
             Fields: CompareFields(before.Collectors, after.Collectors));
     }
 
-    private static string MachineName(ScanResult result) =>
+    /// <summary>
+    /// The machine a report is about. Public because the drift series keys on it: two
+    /// notions of "the same machine", one here and one over there, would eventually
+    /// disagree about which reports belong to one curve — and the disagreement would show
+    /// up as a trajectory silently cut in half.
+    /// </summary>
+    public static string MachineName(ScanResult result) =>
         result.Collectors
             .FirstOrDefault(c => c.Name == "inventory")
             ?.Fields.GetValueOrDefault("machine.name")
