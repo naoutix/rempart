@@ -122,13 +122,37 @@ public sealed record FieldSurvey(
                 .Select(collector => collector.Fields.TryGetValue(name, out var value) ? value : null)
                 .FirstOrDefault(value => value is not null);
 
+    /// <summary>
+    /// The build, and the edition beside it.
+    ///
+    /// <para>
+    /// Grouping on the build alone conflates two machines that are not comparable: build
+    /// 26100 is <em>both</em> Windows 11 24H2 and Windows Server 2025, and SCHANNEL defaults
+    /// genuinely differ between client and server editions. Measured rather than feared — the
+    /// CI runner (26100, Server 2025 Datacenter) disables TLS 1.0 and 1.1 explicitly where a
+    /// Windows 11 workstation on 26200 leaves both absent. Folding those under one heading
+    /// would produce the exact false consensus this command exists to prevent.
+    /// </para>
+    ///
+    /// <para>
+    /// The edition is read from <c>os.registryProductName</c>, the raw string, and not from
+    /// <c>os.name</c>: the latter is derived from the build number and prefixes a server with
+    /// "Windows 11", which would put the edition it is meant to distinguish behind a label
+    /// that denies it.
+    /// </para>
+    /// </summary>
     private static string BuildOf(ScanResult report)
     {
-        var build = report.Collectors
-            .FirstOrDefault(collector => collector.Name == "inventory")
-            ?.Fields.GetValueOrDefault("os.build");
+        var inventory = report.Collectors.FirstOrDefault(collector => collector.Name == "inventory");
+        var build = inventory?.Fields.GetValueOrDefault("os.build");
+        var edition = inventory?.Fields.GetValueOrDefault("os.registryProductName");
 
-        return string.IsNullOrWhiteSpace(build) ? UnknownBuild : build;
+        if (string.IsNullOrWhiteSpace(build))
+        {
+            return UnknownBuild;
+        }
+
+        return string.IsNullOrWhiteSpace(edition) ? build : $"{build} · {edition}";
     }
 
     private static bool Later(ScanResult candidate, ScanResult kept) =>

@@ -166,6 +166,44 @@ public sealed class FieldSurveyTests
         Assert.DoesNotContain("Une seule valeur sur", console, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Build 26100 is both Windows 11 24H2 and Windows Server 2025, and SCHANNEL defaults
+    /// genuinely differ between client and server editions — measured, not feared: the CI
+    /// runner on 26100 Server disables TLS 1.0 and 1.1 explicitly where a Windows 11
+    /// workstation on 26200 leaves both absent. Grouping on the build alone would fold two
+    /// machines that answer differently under one heading, which is the false consensus this
+    /// whole command exists to prevent.
+    /// </summary>
+    [Fact]
+    public void One_build_number_shared_by_two_editions_is_two_groups()
+    {
+        var survey = FieldSurvey.Of("tls.1_0.client.enabled",
+        [
+            Edition("POSTE-01", "26100", "Windows 11 Pro", "absent"),
+            Edition("SRV-01", "26100", "Windows Server 2025 Datacenter", "0"),
+        ]);
+
+        Assert.Equal(2, survey.Builds.Count);
+        Assert.False(survey.Agrees);
+        Assert.All(survey.Builds, build => Assert.Contains("26100", build.Build, StringComparison.Ordinal));
+    }
+
+    private static ScanResult Edition(string machine, string build, string edition, string value) =>
+        Blank("2026-08-02T09:15:00Z") with
+        {
+            Collectors =
+            [
+                new("inventory", CollectorStatus.Ok, new Dictionary<string, string?>
+                {
+                    ["machine.name"] = machine,
+                    ["os.build"] = build,
+                    ["os.registryProductName"] = edition,
+                }, []),
+                new("tls", CollectorStatus.Ok,
+                    new Dictionary<string, string?> { ["tls.1_0.client.enabled"] = value }, []),
+            ],
+        };
+
     // ---- helpers -----------------------------------------------------------
 
     private static ScanResult Report(
