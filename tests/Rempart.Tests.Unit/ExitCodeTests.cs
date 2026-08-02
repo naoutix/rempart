@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Rempart.Core.Cli;
 using Rempart.Core.Collectors;
 using Rempart.Core.Diff;
+using Rempart.Core.Drift;
 using Rempart.Core.Engine;
 using Rempart.Core.Findings;
 using Rempart.Core.Json;
@@ -1068,6 +1069,81 @@ public sealed class ExitCodeTests
     [Fact]
     public void A_diff_with_nothing_to_report_succeeds() =>
         Assert.Equal(ExitCode.Success, ExitCodes.ForDiff(ScanDiff.Compare(Scan(), Scan())));
+
+    // ---- drift -------------------------------------------------------------
+
+    /// <summary>
+    /// A drift run answers on the same rungs a scan does, and adds no code: an open
+    /// regression is the 4 that has meant exactly that since M7.
+    /// </summary>
+    [Fact]
+    public void An_open_regression_is_what_a_drift_run_answers() =>
+        Assert.Equal(ExitCode.Regression, ExitCodes.ForDrift([Drifted()]));
+
+    /// <summary>
+    /// A series nobody has fed for three times its own cadence describes the machine as it
+    /// was three months ago. That is the sentence code 5 already carries — the report
+    /// answers for less than it appears to — and the alternative, saying it without
+    /// touching the code, is one line away if this reading is ever refuted.
+    /// </summary>
+    [Fact]
+    public void A_stale_series_answers_partial_and_not_success() =>
+        Assert.Equal(ExitCode.Partial, ExitCodes.ForDrift([StaleSeries()]));
+
+    [Fact]
+    public void An_unevaluable_last_point_answers_partial() =>
+        Assert.Equal(ExitCode.Partial, ExitCodes.ForDrift([PartialLastPoint()]));
+
+    [Fact]
+    public void A_clean_series_succeeds() =>
+        Assert.Equal(ExitCode.Success, ExitCodes.ForDrift([CleanSeries()]));
+
+    /// <summary>
+    /// Nothing readable is a failure and not a clean run. A folder with no report in it
+    /// exiting 0 would tell a scheduler that a machine it never measured is fine.
+    /// </summary>
+    [Fact]
+    public void Nothing_readable_is_a_failure() =>
+        Assert.Equal(ExitCode.Failure, ExitCodes.ForDrift([]));
+
+    /// <summary>
+    /// Several machines: the worst answer wins, in the order the scan precedence already
+    /// uses — what the caller can do about it. A fleet where one machine regressed does not
+    /// exit 0 because the other nine are clean.
+    /// </summary>
+    [Fact]
+    public void The_worst_machine_decides_the_code() =>
+        Assert.Equal(
+            ExitCode.Regression,
+            ExitCodes.ForDrift([CleanSeries(), StaleSeries(), Drifted()]));
+
+    private static DriftReport CleanSeries() => new(
+        Machine: "POSTE-01",
+        Points: 3,
+        First: SeriesDay(1),
+        Last: SeriesDay(15),
+        Segments: [],
+        OpenRegressions: [],
+        Unstable: [],
+        Freshness: new SeriesFreshness(SeriesDay(15), 1, 7, Stale: false),
+        LastPointPartial: false);
+
+    private static DriftReport Drifted() => CleanSeries() with
+    {
+        OpenRegressions =
+        [
+            new("WIN-X-001", "Contrôle", "réseau", Severity.High, SeriesDay(8), 7),
+        ],
+    };
+
+    private static DriftReport StaleSeries() => CleanSeries() with
+    {
+        Freshness = new SeriesFreshness(SeriesDay(15), 97, 7, Stale: true),
+    };
+
+    private static DriftReport PartialLastPoint() => CleanSeries() with { LastPointPartial = true };
+
+    private static DateTimeOffset SeriesDay(int day) => new(2026, 1, day, 9, 15, 0, TimeSpan.Zero);
 
     /// <summary>
     /// The wording is compared in full, accents included: merging the two <c>catch</c>
