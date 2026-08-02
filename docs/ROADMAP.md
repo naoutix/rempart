@@ -684,8 +684,27 @@ est le seul candidat restant et n'a pas été mesuré.
 
 ### Le flux qui reste
 
-- [ ] **Suivi de dérive** — tâche planifiée comparant à la baseline, alerte sur écart. S'appuie
-      sur `diff` et `capture`, qui existent.
+- [x] **Suivi de dérive** — livré le 2026-08-02. Pas la forme annoncée : la ligne ci-dessus
+      décrivait une tâche planifiée comparant à la baseline, c'est-à-dire `diff` déclenché
+      plus souvent. La spec ([2026-08-02](design/specs/2026-08-02-suivi-de-derive-design.md))
+      a demandé ce qu'une **série** dit qu'une paire ne dit pas, et la réponse a fait le lot :
+      la pente, l'âge d'une régression, un contrôle qui retombe après réparation, et le trou
+      dans la série elle-même — ce dernier étant la seule façon de voir qu'un suivi a cessé de
+      tourner. `rempart drift` lit, `rempart baseline` promeut en refusant, la tâche planifiée
+      est **fournie et jamais créée** par l'outil.
+
+      **Ce qui a été réfuté en chemin.** La spec affirmait que le moteur enchaînerait
+      `ScanDiff.Compare` sur les points consécutifs ; écrire le plan a montré que non. Un
+      contrôle qui passe, devient illisible, puis échoue ne produit aucune paire classée
+      régression — `Pass → Unknown` est une visibilité perdue, `Unknown → Fail` une visibilité
+      retrouvée, et les deux sont justes à leur échelle. La chute n'existe qu'à l'échelle de la
+      série, et c'est devenu le meilleur argument que la commande a une raison d'exister.
+
+      **Ce qui reste ouvert, et pourquoi.** Le seuil de péremption est mesuré — la cadence
+      médiane de la série — mais le facteur trois posé dessus est un choix, pas une mesure
+      (`DET-DERIVE-FACTEUR`). Aucune série réelle n'existe encore : c'est la première qui le
+      recalera. Et faire répondre **5** à une série périmée étend le sens de « audit partiel » ;
+      l'argument contraire est écrit dans `ExitCodes`, à une ligne d'être retourné.
 - [ ] **Mode appairé** — `rempart listen` / `rempart probe <ip>`, la seule façon honnête de
       vérifier que le pare-feu filtre réellement plutôt que de constater qu'il *devrait*
       filtrer. Lit, n'écrit rien : d'où son passage de M8 à 1.x.

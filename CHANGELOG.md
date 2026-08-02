@@ -5,6 +5,27 @@ release. The milestone-by-milestone account of how the tool got here, including 
 tried and rejected, lives in [docs/ROADMAP.md](docs/ROADMAP.md) — this file records what
 changed between releases.
 
+## 1.2.0 — in preparation
+
+**In short.** `diff` compares two points; this release reads a series.
+
+- **`rempart drift [dir]`** reads a folder of reports as one trajectory per machine: the
+  slope of the score, how long a control has been failing, which controls keep falling back
+  after being repaired, and when the series stopped being fed. That last one is how a
+  scheduled audit that quietly stopped running three months ago becomes visible.
+- **`rempart baseline <rapport.json>`** promotes a report to the reference `diff` compares
+  against, and refuses a truncated file, a report of another machine, or one produced by
+  another catalog instead of installing it. Until now the reference was put in place by a
+  copy, and a copy cannot refuse.
+- **A scheduled task definition** is shipped in `tools/scheduled-task/`, imported by hand.
+  The tool does not create it, and will not: registering a task changes the machine's
+  configuration, which is what v1 promises not to do.
+- **No new exit code.** A drift run answers `4` when a control that used to pass still
+  fails, `5` when the series went stale or the last scan left controls unevaluable.
+
+**Upgrading** is replacing the executable. Nothing in a report changed shape, so the reports
+already on a stick are the series this release reads.
+
 ## 1.1.0 — 2026-08-01
 
 **In short.** This release is about what the audit can see, and about what it says when it
