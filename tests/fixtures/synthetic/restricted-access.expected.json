@@ -31,6 +31,29 @@
       "diagnostics": [
         "Scan non \u00E9lev\u00E9 : certaines valeurs sont hors de port\u00E9e. Relancer en administrateur pour un inventaire complet."
       ]
+    },
+    {
+      "name": "tls",
+      "status": "Ok",
+      "fields": {
+        "tls.1_0.client.enabled": "absent",
+        "tls.1_0.client.disabledByDefault": "absent",
+        "tls.1_0.server.enabled": "absent",
+        "tls.1_0.server.disabledByDefault": "absent",
+        "tls.1_1.client.enabled": "absent",
+        "tls.1_1.client.disabledByDefault": "absent",
+        "tls.1_1.server.enabled": "absent",
+        "tls.1_1.server.disabledByDefault": "absent",
+        "tls.1_2.client.enabled": "absent",
+        "tls.1_2.client.disabledByDefault": "absent",
+        "tls.1_2.server.enabled": "absent",
+        "tls.1_2.server.disabledByDefault": "absent",
+        "tls.1_3.client.enabled": "absent",
+        "tls.1_3.client.disabledByDefault": "absent",
+        "tls.1_3.server.enabled": "absent",
+        "tls.1_3.server.disabledByDefault": "absent"
+      },
+      "diagnostics": []
     }
   ],
   "verdicts": [
