@@ -97,6 +97,24 @@ public sealed class SoftwareInventoryCollector(BloatwareCatalog catalog) : IFind
                 reasons.Add(hit.Impact);
                 details["bloatware"] = hit.Category;
                 details["catalogue"] = hit.Id;
+
+                // What removing a piece of software breaks is the claim this project has been
+                // wrong about three times by deducing it instead of observing it (ADR-006,
+                // D20), and 120 of the 123 notes are still deductions. The field existed so
+                // the count would be readable in the register; until now the report itself
+                // gave a one-line upstream description the authority of a measurement.
+                //
+                // Said as its own reason rather than appended to the catalogue's sentence:
+                // the caveat is this repository's, the sentence is the data's, and merging
+                // them would make an imported note impossible to quote unchanged.
+                details["note"] = hit.ImpactSource == ImpactProvenance.Verified ? "vérifiée" : "amont";
+
+                if (hit.ImpactSource == ImpactProvenance.Upstream)
+                {
+                    reasons.Add(
+                        "Note d'impact décrite en amont, jamais confrontée au logiciel "
+                        + "réellement installé : à vérifier avant de désinstaller.");
+                }
             }
 
             findings.Add(new Finding(

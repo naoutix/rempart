@@ -236,6 +236,58 @@ public class SoftwareInventoryCollectorTests
         Assert.Contains("désinstallable", string.Join(" ", finding.Reasons));
     }
 
+    /// <summary>
+    /// The claim this project has been wrong about three times by deducing it instead of
+    /// observing it: what removing a piece of software breaks. 120 of the 123 notes are still
+    /// deductions (DET-NOTES-AMONT), and until now the report handed a one-line upstream
+    /// description the authority of a measurement — a reader had no way to tell « personne
+    /// n'a essayé » from « on a vérifié ».
+    /// </summary>
+    [Fact]
+    public void An_upstream_impact_note_says_nobody_checked_it()
+    {
+        var finding = CollectWith(
+            OneEntry(new BloatwareEntry("BLOAT-GAME", BloatwareMatch.Name, "candy crush",
+                "game", BloatwareRisk.Unwanted, "Jeu préinstallé, désinstallable sans impact.")),
+            new InstalledSoftware("Candy Crush Saga", null, null, SoftwareSource.Appx, true, true, "king.CandyCrush_x"));
+
+        Assert.Equal("amont", finding.Details["note"]);
+        Assert.Contains("jamais confrontée", string.Join(" ", finding.Reasons));
+
+        // The catalogue's own sentence is quoted unchanged beside the caveat, never merged
+        // into it: one is the data's, the other is this repository's.
+        Assert.Contains("Jeu préinstallé, désinstallable sans impact.", finding.Reasons);
+    }
+
+    [Fact]
+    public void A_verified_impact_note_carries_no_caveat()
+    {
+        var finding = CollectWith(
+            OneEntry(new BloatwareEntry("BLOAT-GAME", BloatwareMatch.Name, "candy crush",
+                "game", BloatwareRisk.Unwanted, "Jeu préinstallé, désinstallable sans impact.",
+                ImpactProvenance.Verified)),
+            new InstalledSoftware("Candy Crush Saga", null, null, SoftwareSource.Appx, true, true, "king.CandyCrush_x"));
+
+        Assert.Equal("vérifiée", finding.Details["note"]);
+        Assert.DoesNotContain("jamais confrontée", string.Join(" ", finding.Reasons));
+    }
+
+    /// <summary>
+    /// Software the catalogue does not know carries no note at all, so it carries no
+    /// provenance either: the caveat belongs to a claim, and there is no claim here.
+    /// </summary>
+    [Fact]
+    public void Software_outside_the_catalogue_carries_no_provenance()
+    {
+        var finding = CollectWith(
+            OneEntry(new BloatwareEntry("BLOAT-GAME", BloatwareMatch.Name, "candy crush",
+                "game", BloatwareRisk.Unwanted, "Jeu préinstallé.")),
+            new InstalledSoftware("Visual Studio Code", null, "Microsoft", SoftwareSource.Uninstall, false, true, "{vscode}"));
+
+        Assert.False(finding.Details.ContainsKey("note"));
+        Assert.Empty(finding.Reasons);
+    }
+
     [Fact]
     public void A_security_relevant_match_escalates_to_suspicious()
     {
