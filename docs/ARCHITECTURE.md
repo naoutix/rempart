@@ -319,9 +319,42 @@ factory delegates: calls resolve at compile time through the type parameter, so 
 pattern survives Native AOT (ADR-001) with no reflection, no `Activator`, and no
 type resolved at run time.
 
+**A factory's name states the cause, and `ReadStatus` is the same statement in a form a
+caller can branch on.** `Found`, `Absent`, `Refused`, `Failed` — one word per member, and
+a qualifier may sit in front of it (`PartiallyRefused`). The fourth value exists because a
+read wanting to say "attempted, did not complete, **not** denied" had only `AccessDenied`
+to say it with: twelve factories were spelling failures that way, and the scheduler's
+turned a capture taken before tasks were collected into « relancer en administrateur ».
+
+`ReadFactoryNamingTests` holds that rule by reflection over every read carrying a
+`ReadStatus`, and its fourth rule reads the **compiled body** rather than three sample
+arguments: a factory whose status is decided by an argument, a table lookup or arithmetic
+is refused unless it declares itself a `[StatusFold]`. That rule is what makes the others
+bite — built on sample inputs alone, the guard let four deliberately faulty factories
+through under a green suite. The test carries the reasoning and the specimens written to
+fail each rule.
+
 Directories the roadmap plans but that do not exist yet — hardware add-on,
 remediation profiles, image layer — are described in [ROADMAP.md](ROADMAP.md), not
 announced here as if they existed.
+
+### What the DNS read covers
+
+A resolver can be pointed somewhere else at three levels, and the read walks all three
+because each one alone leaves the other two invisible:
+
+| Level | Where | Judged? |
+|---|---|---|
+| Per adapter | `Tcpip\Parameters\Interfaces\{GUID}` and its `Tcpip6` twin — Windows binds both stacks of one card under the same GUID, so a finding is told apart by its stack | Yes: a static resolver that is neither a known public one nor a loopback is reported |
+| Above the adapters | `Tcpip\Parameters` itself, on each stack | The DHCP half is a copy of the connected adapter's own value and stays unread, with the reason written down; the static half is signalled, not judged |
+| Name resolution policy (NRPT) | `…\DNSClient\DnsPolicyConfig` and its local twin under `Dnscache\Parameters` — rules are subkeys, and the policy store wins when both exist | Signalled only: the finding names the namespaces, the servers and the store, then says what this audit did not establish |
+
+The `NameServer` value of the DNS policy key is **deliberately not read**. Its shipped help
+text claims it replaces every locally configured server, and the resolver binaries of this
+build do not read it there — measured in the configuration table `dnsrslvr.dll` and
+`dnsapi.dll` share. Collecting it would put a line in an audit report that the machine
+does not act on, which costs more than it pays; the measurement is written down in
+`RegistryDnsProvider` because the help text is an active trap.
 
 ## Comparing scans
 
@@ -547,19 +580,6 @@ skipped.
 consult, including keys out of scope on the current machine. Otherwise a snapshot
 would only replay in the context it was captured in.
 
-### Regenerating fixtures
-
-```powershell
-./scripts/regenerate-fixtures.ps1
-```
-
-Run it after any catalog change: an added rule reads a key that existing fixtures do
-not contain, and replay fails.
-
-The script relies on `rempart synthesise`, i.e. on the rules as loaded by the engine
-itself. An earlier version re-parsed the YAML with regular expressions — a second,
-unversioned, untested implementation of the loader that nobody else could reproduce.
-
 ### External rules
 
 Shipped rules are embedded in the binary — the USB stick must stay self-contained,
@@ -608,7 +628,7 @@ which is precisely the knowledge that makes the rule correct.
 Severity weighting is non-linear — ten minor settings do not offset one critical
 weakness.
 
-### Exit codes
+## Exit codes
 
 `src/Rempart.Core/Cli/ExitCodes.cs` is the single source: the mapping, the French
 wording, and the block `rempart help` prints all derive from it, so the help cannot
@@ -622,143 +642,35 @@ list a code the tool does not return — which it did, for code 4, for months.
 | `3` | droits insuffisants | A **surface** was denied — re-run elevated |
 | `4` | régression | `diff` found a control that used to pass |
 | `5` | audit partiel | A **rule** came back `Unknown`, or a **surface** answered with a failure — the score covers less than the machine, and nothing the caller does to the run changes that |
-| `6` | erreur d'usage | The command line named something nothing declares — a command word, an option, a bare argument, or an option left without its value. **Nothing ran**, so the machine is not the suspect and a retry loop is the wrong answer: the remedy is to retype the line |
+| `6` | erreur d'usage | The command line named something nothing declares — a command word, an option, a bare argument, or an option left without its value. **Nothing ran**, so the machine is not the suspect and the remedy is to retype the line, not to retry |
 
-`6` is not `1`, and the distance between them is the same one the five above are ordered
-by — what the caller can do about it. `1` says a run was attempted and broke, which is
-something a scheduler may reasonably retry; a word that will never exist is not. Both
-fall outside what the build chain accepts from a scan, so a usage error reddens CI
-either way; what the seventh number buys is that the caller can tell the two apart.
+The codes are ordered by **what the caller can do about it**, and precedence for a scan
+is `1 > 3 > 5 > 0`: a breakdown does not repair itself by re-running elevated, a denied
+surface does, and a control with no answer at all is the weakest of the three signals
+without being nothing. `6` stands outside that order — `1` says a run was attempted and
+broke, which a scheduler may reasonably retry, and a word that will never exist is not.
 
-`3` and `5` are deliberately distinct: the first says a surface was denied and hands
-the caller a key, the second that part of the audit has no answer the caller can go
-and get. Precedence for a scan is `1 > 3 > 5 > 0`, ordered by what the caller can act
-on: a breakdown does not repair itself by re-running elevated, a denied surface does,
-and everything with no answer at all is the weakest of the three signals without being
-nothing.
-
-A **surface**, not a collector, because the two halves of the tool say it differently.
-A field collector carries a `CollectorStatus`; a finding collector answers with findings
-and nothing else, so it reports a gap as a finding carrying an `AuditGap` — and both
-reach `ForScan`. Until they did, a refused surface reached the report, the console and
-the HTML, then stopped at the one channel a scheduler reads.
+A **surface**, not a collector, because the two halves of the tool say it differently: a
+field collector carries a `CollectorStatus`, a finding collector answers with findings
+and so reports a gap as a finding carrying an `AuditGap`. Both reach `ForScan`. Until
+they did, a refused surface reached the report, the console and the HTML, then stopped
+at the one channel a scheduler reads.
 
 `AuditGap` has three values because a gap has three possible owners, and the owner is
 what decides the code. `Refused` is the caller's rights, and lands on `3`. `Broken` is
 our bug, and lands on `1`. `Unreadable` is the machine's own state — a WMI repository
-that no longer serves, a listening table that failed a call needing no privilege, a
-browser profile whose preferences will not parse, a capture replayed for a surface it
-never held — and lands on `5`, because neither elevating nor filing a bug moves it.
+that no longer serves, a capture replayed for a surface it never held — and lands on
+`5`, because neither elevating nor filing a bug moves it. **Which of the three a gap is,
+the collector says**, because it is the only thing that knows which surface it asked;
+a first attempt derived it from the diagnostic instead and inverted five channels at
+once, so a startup folder denied to a non-elevated scan reported that no amount of
+rights would change it.
 
-Which of the two a gap is, **the collector says**, and it says so because it is the only
-thing that knows *which surface it asked*. What it no longer has to guess is what the read
-meant. A first attempt at this derived the answer from the diagnostic and inverted it for
-five channels at once, so a startup folder denied to a non-elevated scan reported that no
-amount of rights would change it. `Finding.Unread` takes the value as a required argument;
-the two guards in `ExitCodeTests` — one machine refusing everything, one failing everything
-— are what check the answer is right.
-
-`ReadStatus` has a fourth value, `Failed`, for the channels that would otherwise have to
-lie. With three, a read that wanted to say "attempted, did not complete, **not** denied"
-had one door — `AccessDenied` — so `DirectoryRead` and `HostsFileRead` returned it for an
-`IOException` as much as for an ACL while their interfaces documented that state as "the
-listing was refused". Those two split their speaking state into `Refused` and `Failed` in
-#173, and #177 finished the layer: twelve factories named `Failed` or `Partial` were still
-spelling their failures `AccessDenied`, found one at a time by four rounds of review and never
-all at once — the fourth listed eight of them.
-
-**A factory's name states the cause, and `ReadStatus` is the same statement in a form a
-caller can branch on.** `Found`, `Absent`/`NotFound`/`NotInstalled`,
-`Refused`/`Denied`/`AccessDenied`, `Failed` — one word per member, and a qualifier may sit in
-front of it (`PartiallyRefused`). `Partial` alone says how much came back and not why the
-rest did not, so it may carry anything except a refusal.
-
-`ReadFactoryNamingTests` discovers by reflection every factory of **every read record carrying
-a `ReadStatus`** — narrower than "the provider layer", and deliberately so: `PolicyFacts`
-invented a bespoke boolean instead of taking this channel, so it is out of this guard and
-inside `ProviderStatusChannelTests`. `FirewallState` was out on the same ground until #179, and
-what the exemption cost is the argument for the channel: its boolean answered "readable" and
-nothing else, so the question it could not ask — refused, or failed? — was answered in prose,
-and its three summaries called the same member a refusal twice and a failure once. Taking the
-`ReadStatus` put it under this guard with no list to add it to, and its three factories were
-judged on the first run. It builds each factory on three shapes of
-argument and holds three rules: a name that states a cause carries it on every shape;
-`AccessDenied` is reached only through a name that says so — or through a declared fold that
-delegates to one — because it is the only status the report turns into an instruction to its
-reader; and a factory whose answer *moves* between shapes must declare itself `[StatusFold]`.
-
-That third rule is the one the guard was missing, and its absence made the other two
-decorative: built once on empty lists, the guard read every factory on the input no caller
-passes. The defect of #177 could be put straight back on `BrowserExtensionRead.Partial`, in the
-shape this batch adopted for the scheduler, under a green suite. A fold — `Partially`,
-`Combine` — states no cause because it *has* none to state; it reads one off its arguments and
-calls the factory that names it. Declaring one is not a quiet exemption: the set is pinned in
-the guard, a declaration that does not really fold is refused, and each fold names the tests
-holding its branches, which the guard resolves against the assembly.
-
-A fourth rule reads the **compiled body** instead of the answers, and it is the only one that
-speaks about every argument rather than three. It walks the instructions of a factory that is
-not a declared fold, carrying for each stack slot whether its value is a constant of the program
-text, and it demands that the `ReadStatus` reaching the record's constructor be one. That is a
-narrower claim than "the body holds no branch", and deliberately: the same instructions compute
-different values from different operands, so a body with no branch at all decides its status
-from an argument as soon as it indexes a table with one or subtracts one from a literal. Calls
-are followed into this assembly when what they return can carry a status, so pushing the
-decision into a private helper does not hide it; a call returning anything else — a diagnostic
-string — is left alone, and may branch as it likes.
-
-This replaces a rule that refused only a branch in the factory's own frame and a callee whose
-return type was literally `ReadStatus`. Four factories named `…Failed` handing out `AccessDenied`
-on three lost items — the decision delegated to a helper returning the record, the same through
-an `int`, a lookup in a `ReadStatus[]`, arithmetic on a list's `Count` — were planted in
-`Rempart.Core` and the whole suite stayed green. They are specimens of the test now, beside a
-legal factory that delegates to a builder and hands it a constant, so the rule reads "the status
-moves" and not "the factory calls something".
-
-Where it stops is a class, not an example, and the test names it: a read that **computes** its
-`Status` from its other fields hands no status to any constructor, so the walk finds nothing to
-pin and would pass it on nothing at all. `FirewallState` is the one, its status being
-`Readable ? Found : Denied ? AccessDenied : Diagnostic is null ? NotFound : Failed`; it is
-refused from the rule rather than passed by it, listed in the test, and held by the shapes
-alone. A conditional branch in the factory's own frame is also refused whatever it decides,
-because one origin per slot cannot merge two paths — that costs nothing here, the only two
-bodies that branch being exactly the two declared folds, in Debug and in Release alike.
-`ReadFactoryNamingTests` also carries specimens written to fail each rule, so the guard is read
-on the input it exists for and not only on a corpus that satisfies it.
-
-The one of the twelve that produced a wrong verdict rather than a wrong name was the scheduler:
-`ScheduledTaskRead` had `AccessDenied` for every way of not getting an inventory, so a scan
-with no task enumerator, a COM call that blew up and a capture taken before scheduled tasks
-were collected all came back "relancer en administrateur" and exited `3`.
-
-**A correctly named factory can produce it too, which is why the naming rule is a guard and not
-the whole answer.** `SnapshotWmiProvider` answered the perfectly-named `WmiRead.AccessDenied`
-for a query the capture never held — and that read carries no reason, which is exactly what
-`Finding.WmiGap` reads as a genuine denial. Replaying such a capture advised elevating against
-a file already written, on the eight WMI keys at once. It answers `WmiRead.Failed` with a
-sentence now. It was latent, not observed: the snapshot key embeds the property list, so the
-next property added to any query would have moved every capture ever taken onto that line —
-including the real ones outside this repository that the status channel promises to keep
-replayable.
-
-**`5` does not always mean "re-run elevated"** — in fact it never does. `WIN-ENC-001`
-returns `Unknown` from an elevated console too, when the machine has no
-volume-encryption WMI class to ask. The three CI guards accept `0`, `3` or `5` for that
-reason, which is also why the third `AuditGap` needed no contract change to land. The
-consequences for a caller are spelled out once, in the
+**`5` never means "re-run elevated".** `WIN-ENC-001` comes back `Unknown` from an
+elevated console too, when the machine has no volume-encryption WMI class to ask — which
+is why the three CI guards accept `0`, `3` or `5`, and why the third `AuditGap` needed no
+contract change to land. The consequences for a caller are spelled out once, in the
 [README](../README.md#exit-codes).
-
-### Cleanup actions (planned, M9)
-
-Remediation ships in a later milestone; its data format is already settled:
-
-```yaml
-- id: CLEAN-APPX-COPILOT
-  layer: B                        # A=image · B=policy · C=component
-  reversibility: reinstallable    # trivial | reinstallable | restore-point-only | irreversible
-  impact: "Copilot indisponible. Aucune dépendance système connue."
-  survives_feature_update: false  # will be reinstalled by a feature update
-```
 
 ## Security guarantees
 
@@ -823,3 +735,16 @@ already-hardened snapshot to verify idempotence.
 
 Out of a VM's reach, to be tested on physical machines: SMART, temperatures,
 throttling, battery, hardware TPM, OEM bloatware.
+
+### Regenerating fixtures
+
+```powershell
+./scripts/regenerate-fixtures.ps1
+```
+
+Run it after any catalog change: an added rule reads a key that existing fixtures do
+not contain, and replay fails.
+
+The script relies on `rempart synthesise`, i.e. on the rules as loaded by the engine
+itself. An earlier version re-parsed the YAML with regular expressions — a second,
+unversioned, untested implementation of the loader that nobody else could reproduce.

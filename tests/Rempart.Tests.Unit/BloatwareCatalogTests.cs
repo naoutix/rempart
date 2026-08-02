@@ -385,6 +385,69 @@ public class BloatwareCatalogTests
             + "test en garde d'autant moins qu'il n'en dit rien.");
     }
 
+    /// <summary>
+    /// The catalogue's own size, wherever a document states it, held against the catalogue.
+    ///
+    /// <para>
+    /// The sweep above holds four sentences and its documentation claims that a fifth copy
+    /// written tomorrow is held too. That is true inside the two French documents it reads,
+    /// and false one file over: the README states the same total in English — "a signed
+    /// 123-entry bloatware catalog" — where neither the file list nor the French shapes reach
+    /// it. It was correct when this was written, which is exactly the state the other count
+    /// was in before it drifted by seven entries.
+    /// </para>
+    ///
+    /// <para>
+    /// Held on the total alone, and separately, because it is a different claim: the share of
+    /// unverified notes moves when a machine is observed, the catalogue's size moves when a
+    /// vendor is catalogued, and a guard that folded the two would go green on a document
+    /// stating one of them.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_document_that_counts_the_catalogue_counts_it_right()
+    {
+        var total = BloatwareCatalog.Embedded.Count;
+        var wrong = new List<string>();
+        var seen = 0;
+
+        foreach (var document in new[] { "README.md", "docs/DEBT.md", "docs/ROADMAP.md" })
+        {
+            foreach (var line in RepositoryFiles.Read(document).Split('\n'))
+            {
+                // Scoped to the sentence and not to the file, for the reason the sweep above
+                // states: both roadmap and register carry dated measurements frozen on purpose
+                // — « socle de 5 entrées », « 3 entrées confirmées » — and an archived figure
+                // must not be asked to age. A line stating the size of *this* catalogue names it.
+                if (line.IndexOf("bloatware", StringComparison.OrdinalIgnoreCase) < 0
+                    && line.IndexOf("catalogue", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                // Both spellings in use: "123-entry bloatware catalog" in the English showcase,
+                // "123 entrées" where a French document states the size on its own.
+                foreach (Match claim in Regex.Matches(line, @"(\d+)[- ]entr(?:y|ies|ée|ées)\b"))
+                {
+                    seen++;
+                    if (Number(claim.Groups[1]) != total)
+                    {
+                        wrong.Add($"{document} : « {claim.Value} »");
+                    }
+                }
+            }
+        }
+
+        Assert.True(wrong.Count == 0,
+            $"Le catalogue embarqué porte {total} entrées. Affirment autre chose : "
+            + $"{string.Join(" ; ", wrong)}. Un chiffre recopié à la main cesse d'être vrai "
+            + "au premier éditeur catalogué.");
+
+        Assert.True(seen > 0,
+            "Aucune affirmation chiffrée sur la taille du catalogue n'a été trouvée : la "
+            + "phrase a été reformulée, et ce test n'en garde plus aucune.");
+    }
+
     private static int Number(Group group) =>
         int.Parse(group.Value, CultureInfo.InvariantCulture);
 }

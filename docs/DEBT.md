@@ -2,8 +2,15 @@
 
 Ce que le projet sait devoir améliorer, tenu à jour au fil des audits. La dette du code
 vit surtout en commentaires ; ce registre la rassemble pour qu'elle soit lisible d'un coup
-et priorisable, plutôt que dispersée. Dernier audit : **2026-07-26, post-v1.0.0-rc.1** —
-audit complet, toutes catégories, mesures refaites plutôt que reprises.
+et priorisable, plutôt que dispersée.
+
+**Dernier audit complet : 2026-07-26, post-v1.0.0-rc.1** — toutes catégories, mesures refaites
+plutôt que reprises. **Revu le 2026-08-02, à la 1.1.0** : ce passage n'a pas recoté les entrées,
+il a confronté celles qui restaient ouvertes à ce que la revue du 2026-07-29 et les neuf tours
+qui l'ont suivie ont effectivement fermé. Une seule avait cessé d'être vraie — `DET-REJEU-REFUS`,
+dont la condition écrite était « un quatrième `ReadStatus` », lequel existe depuis. Les cotations
+des neuf autres tiennent ; ce qui a changé depuis l'audit est dans
+[CHANGELOG.md](../CHANGELOG.md).
 
 Priorité indicative : `(Impact + Risque) × (6 − Effort)`.
 
@@ -96,6 +103,7 @@ cesse d'être un registre.
 | DET-WINDOWS-TESTS | La couche P/Invoke — celle dont l'échec est « une valeur plausible et fausse » — laissait quatre fournisseurs sans test dédié : `LiveSecurityPolicyProvider`, `LiveDnsProvider`, `LiveHostsFileProvider`, `LiveFileSystemProvider` | 2026-07-27 — **l'entrée était fausse sur deux des quatre** : ils avaient un test depuis M4, dont un qui assertait dans une boucle et passait au vert quand la lecture était cassée. Une forme par fournisseur, choisie et non appliquée |
 | DET-SCRIPTS | `verify.ps1` réimplémentait la CI sans être appelé par elle. **Le prix avait déjà été payé** : le lot du code 5 a élargi les deux workflows à `{0, 3, 5}` et laissé `verify.ps1` à `{0, 3}`, ce qui aurait fait rejeter en local tout build correct. Un relecteur l'a attrapé, pas un test | 2026-07-27 — un garde, `BuildChainParityTests`, plutôt qu'une source unique ; les deux autres voies sont écartées par écrit. Sept gardes, tous vérifiés par mutation |
 | DET-FICHIERS-MUET | `IFileSystemProvider.ListFiles` rendait une liste nue : un dossier de démarrage **refusé** rendait exactement ce que rend un dossier vide, et le rapport concluait « aucun autorun » sur la première surface qu'une persistance utilise | 2026-07-27 — **cinquième et dernière occurrence de la forme DET-*-MUET**. `DirectoryRead` passe par `StatusChannel`. Trois états et non deux : pour un dossier de démarrage une liste vide est une réponse, seul un refus parle |
+| DET-REJEU-REFUS | Un fournisseur d'instantané rendait `AccessDenied` pour une surface que la capture n'a jamais portée, et depuis #116 ce refus atteignait le code de sortie : un rejeu sortait **3**, « relancer en administrateur », là où il faut recapturer | Le quatrième `ReadStatus` que cette entrée posait comme condition existe (#173, #177) : la lecture répond `WmiRead.Failed` avec une phrase, `ISystemInfoProvider.cs` |
 
 ## Ouvert
 
@@ -109,7 +117,6 @@ Classé par priorité décroissante.
 | DET-TLS | Règles SCHANNEL/TLS non livrées : les défauts varient selon la build | Code | 3 | 3 | 4 | 12 | Demande une vérification sur plusieurs machines (ROADMAP M2b) |
 | DET-MSIX-VOLUME | L'exemption MSIX accepte un magasin à la racine de **n'importe quel volume**, parce qu'un volume déclare son propre chemin de magasin (`Get-AppxVolume`) et qu'exiger `%ProgramFiles%` accuserait toutes les applications d'une machine qui installe ailleurs. Un support amovible, inscriptible sans privilège, permet donc encore le contournement fermé par REV-01 — à `E:\WindowsApps\` cette fois | Code | 2 | 2 | 4 | 8 | Le distinguer demande de savoir quels volumes sont des magasins, une lecture qu'aucun collecteur de cette échelle ne possède. Le contournement passe de « n'importe quel dossier d'un profil » à « la racine d'un volume inscriptible », et la persistance doit alors désigner ce volume |
 | DET-INTERPRETEURS | La charge utile d'un autorun n'est jugée que si son exécutable figure dans une liste de huit interpréteurs tenue à la main. Rien dans une capture ne dit qu'un binaire interprète ses arguments | Code | 2 | 2 | 4 | 8 | Aucune construction ne remplace la liste : c'est une propriété du logiciel, pas de la donnée. Un hôte absent, et une charge `javascript:` passée à mshta, ne sont pas couverts |
-| DET-REJEU-REFUS | Un fournisseur d'instantané rend `AccessDenied` pour une surface que la capture n'a jamais portée. Depuis #116 ce refus atteint le code de sortie : un rejeu sort **3**, « relancer en administrateur », là où il faut recapturer | Code | 2 | 1 | 4 | 6 | Les séparer demande un quatrième `ReadStatus` traversant tout le canal de statut. Aucun des deux ne mérite un `0`, ce qui rend l'écart supportable |
 | DET-VERROU-NUGET | Aucun fichier de verrou : le graphe résolu n'est vérifié par aucune empreinte entre deux restaurations, et `CentralPackageTransitivePinningEnabled` n'est pas posé. `nuget.config` fixe en revanche les sources | Build | 1 | 1 | 3 | 6 | Coût mesuré le 2026-07-29 : mode verrouillé sur chaque appel de build des deux workflows et de `verify.ps1`, contre un graphe d'un seul paquet tiers sans dépendances. Un verrou qui dérive rougit un commit qui n'a rien changé |
 | DET-COUVERTURE | **Moitié fermée le 2026-07-27.** `Rempart.Windows` entre désormais au dénominateur, mesuré par le job `test-windows` — le seul qui puisse le compiler. Reste dehors `Rempart.Cli` (1 799 l.) | Test | 1 | 1 | 2 | 8 | **L'absence de seuil reste un choix, pas un oubli** — l'encadré ci-dessous est inchangé et n'a pas été affaibli : ce qui a bougé est le périmètre *vu*, pas ce qui est *imposé*. Voir le détail sous l'encadré |
 | DET-DIRTY | **Moitié fermée le 2026-07-27.** Une fixture compromise fabriquée existe désormais (`compromised-win11`, `synthesise --compromised`) : 17 marqueurs, 7 constats `Suspicious` et 3 `Notable`, chacun apparié à un jumeau bénin que le collecteur doit laisser tranquille. Reste ouverte la partie qu'aucun code ne peut produire : **une capture réelle compromise** | Test | 2 | 2 | 5 | 4 | La fabrication prouve la non-régression du jugement, pas la détection sur du réel — c'est ce qu'on attendait d'elle, et c'est tout ce qu'elle prouve. Ce qu'elle a révélé dépasse la couverture : le score d'une machine portant un implant actif, un port de commande joignable et un DNS détourné est **identique au point près** à celui d'une machine simplement non durcie et saine (52 %), domaine par domaine. Voulu (les constats n'entrent pas au score) mais jamais démontré de bout en bout avant |
