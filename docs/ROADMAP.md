@@ -9,9 +9,9 @@ La dette technique connue est suivie à part, dans [DEBT.md](DEBT.md).
 
 | | |
 |---|---|
-| Dernière version | **1.1.0**, publiée le 2026-08-01 |
+| Dernière version | **1.2.0**, publiée le 2026-08-02 |
 | Ce qui est livré | L'audit en lecture seule. v1 close le 2026-07-28 — huit lots, les deux critères de sortie réglés |
-| Ce qui vient | Le flux **1.x** — additif, en lecture seule, rien ne casse |
+| Ce qui vient | La suite du flux **1.x** — mode appairé, règles TLS/IPv6, notes vérifiées, couche image |
 | Ce qui attend une décision | La **2.0**, celle où l'outil écrit sur la machine |
 
 Ce qui a changé entre deux versions est dans [CHANGELOG.md](../CHANGELOG.md), pas ici. Ce

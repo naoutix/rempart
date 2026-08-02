@@ -94,6 +94,26 @@ public sealed class DriftPageTests
         Assert.Contains("2 illisible", console);
     }
 
+    /// <summary>
+    /// Three trial runs a minute apart are the first thing anyone does with this command,
+    /// and they produced « cadence 0 jours » — arithmetically true, and unreadable on the
+    /// one screen that is a reader's first contact with it. Measured on a real folder, not
+    /// imagined.
+    /// </summary>
+    [Theory]
+    [InlineData(0.0005, "moins d'un jour")]
+    [InlineData(0.9, "moins d'un jour")]
+    [InlineData(1, "1 jour")]
+    [InlineData(7, "7 jours")]
+    [InlineData(3.5, "3.5 jours")]   // point décimal, comme ReportLabels.Bytes ailleurs
+    public void A_cadence_shorter_than_a_day_is_said_in_words(double days, string expected)
+    {
+        var console = ConsoleReport.Drift(
+            [DriftFixtures.WithCadence(days)], "derive.html", unreadable: 0, bytesOnDisk: 1024);
+
+        Assert.Contains(expected, console, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void An_open_regression_is_named_with_the_date_it_started()
     {

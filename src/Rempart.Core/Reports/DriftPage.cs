@@ -221,11 +221,29 @@ public static class DriftPage
     /// <summary>
     /// The cadence, or the sentence that replaces it. Below three points nothing is claimed:
     /// two captures establish one interval, which is a gap and not a rhythm.
+    ///
+    /// <para>
+    /// An interval shorter than a day is said in words rather than rounded to « 0 jours »,
+    /// which is what three trial runs a minute apart produced the first time this command met
+    /// a real folder — arithmetically true and unreadable, on the one screen that is a
+    /// reader's first contact with the command.
+    /// </para>
     /// </summary>
-    internal static string Cadence(DriftReport report) =>
-        report.Freshness.CadenceDays is { } days
-            ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{days:0.#} jours")
-            : "non observable";
+    internal static string Cadence(DriftReport report)
+    {
+        if (report.Freshness.CadenceDays is not { } days)
+        {
+            return "non observable";
+        }
+
+        if (days < 1)
+        {
+            return "moins d'un jour";
+        }
+
+        var value = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{days:0.#}");
+        return value == "1" ? "1 jour" : $"{value} jours";
+    }
 
     internal static string Day(DateTimeOffset at) => at.ToString("yyyy-MM-dd");
 
