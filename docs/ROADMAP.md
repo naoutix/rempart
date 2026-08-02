@@ -5,6 +5,19 @@ Pas de lot qui ne produise que de l'infrastructure invisible.
 
 La dette technique connue est suivie à part, dans [DEBT.md](DEBT.md).
 
+## Où on en est
+
+| | |
+|---|---|
+| Dernière version | **1.1.0**, publiée le 2026-08-01 |
+| Ce qui est livré | L'audit en lecture seule. v1 close le 2026-07-28 — huit lots, les deux critères de sortie réglés |
+| Ce qui vient | Le flux **1.x** — additif, en lecture seule, rien ne casse |
+| Ce qui attend une décision | La **2.0**, celle où l'outil écrit sur la machine |
+
+Ce qui a changé entre deux versions est dans [CHANGELOG.md](../CHANGELOG.md), pas ici. Ce
+document garde les jalons **et surtout ce qui a été reporté, avec la raison** — c'est la partie
+qu'aucun autre fichier ne porte, et la seule qu'on relit.
+
 ## Langue de la documentation
 
 Décision du 2026-07-23, sur retour de relecture externe : la vitrine du dépôt passe
@@ -25,7 +38,7 @@ tant que l'outil vise un public francophone.
 de sortie sont réglés**, et la version empaquetée est **v1.0.0** (voir
 [CHANGELOG.md](../CHANGELOG.md)). Deux candidates l'ont précédée : rc.1, construite et jamais
 publiée, et rc.2, publiée — et c'est en la faisant tourner ailleurs que le dernier critère est
-tombé.
+tombé. La **1.1.0** a suivi le 2026-08-01 ; ce qu'elle ajoute est plus bas, sous 1.x.
 
 **M6 — atteint le 2026-07-28, et à la lettre.** L'archive **scellée** de rc.2, celle qui ne
 contient plus de `rules/`, a tourné sur une machine tierce sans rien installer. Ce qui est
@@ -646,6 +659,31 @@ accumulent les **captures réelles**, et ce sont les captures réelles qui ferme
 D2 posait comme condition « une fois l'audit éprouvé sur des machines réelles » : les 1.x
 **sont** cette épreuve.
 
+### 1.1.0 — livrée le 2026-08-01
+
+Rien de ce qui suivait cette liste : ce lot est sorti d'une **revue de l'intégralité du code**
+(33 trouvailles) puis de neuf tours où les correctifs d'un tour étaient relus de façon adverse,
+ce que la relecture réfutait devenant la trouvaille du tour suivant. Onze des dix-huit derniers
+correctifs ont été réfutés avant fusion.
+
+Ce qu'il change, et pourquoi c'était de la feuille de route et pas du correctif :
+
+- **Trois niveaux de résolution DNS entrent dans l'audit** — la pile IPv6, le niveau au-dessus
+  des cartes, et la table de stratégie de résolution de noms (NRPT). Chacun est un endroit où
+  un résolveur se repointe sans toucher la configuration par carte que l'outil inspectait.
+  Détail dans [ARCHITECTURE.md](ARCHITECTURE.md#what-the-dns-read-covers).
+- **Une lecture refusée cesse de ressembler à une réponse propre**, et atteint le code de
+  sortie. C'est la dette que cinq entrées fermaient une par une ; elle est fermée par un canal
+  unique.
+- **Un mot de commande mal tapé sort `6` et non `0`.** Seule rupture de contrat du lot.
+
+Ce que ce lot **n'a pas** tranché, et qui reste ouvert : la valeur `NameServer` sous la clé de
+stratégie DNS n'est pas lue, parce que les binaires du résolveur ne la lisent pas là — mesuré,
+contre un texte d'aide Microsoft qui affirme l'inverse. `RemoteDnsResolver`, sous la même clé,
+est le seul candidat restant et n'a pas été mesuré.
+
+### Le flux qui reste
+
 - [ ] **Suivi de dérive** — tâche planifiée comparant à la baseline, alerte sur écart. S'appuie
       sur `diff` et `capture`, qui existent.
 - [ ] **Mode appairé** — `rempart listen` / `rempart probe <ip>`, la seule façon honnête de
@@ -683,6 +721,17 @@ services sont **hors périmètre** et demanderont leur propre ADR.
 Modèle de plan et planificateur pur dans `Rempart.Core` : à partir d'un `ScanResult`, la liste
 des actions avec valeur observée, valeur visée, réversibilité et ce que la correction casse.
 Éprouvé sur les quatre fixtures versionnées, sans qu'aucune machine soit touchée.
+
+Le format de données d'une action de nettoyage est déjà arrêté — il vivait dans
+`ARCHITECTURE.md`, qui décrit ce qui existe, alors qu'il décrit ce qui viendra :
+
+```yaml
+- id: CLEAN-APPX-COPILOT
+  layer: B                        # A=image · B=policy · C=component
+  reversibility: reinstallable    # trivial | reinstallable | restore-point-only | irreversible
+  impact: "Copilot indisponible. Aucune dépendance système connue."
+  survives_feature_update: false  # revient à la mise à jour de fonctionnalité
+```
 
 ### R2 · Le plan rendu — n'écrit toujours rien
 `rempart fix` affiche le plan. **`--dry-run` n'est pas un mode**, c'est ce rendu (D25) : un mode
