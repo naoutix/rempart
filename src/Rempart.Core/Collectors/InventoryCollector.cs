@@ -67,7 +67,7 @@ public sealed class InventoryCollector : ICollector
         // less likely to be mistaken for the authoritative version.
         var fields = new Dictionary<string, string?>
         {
-            ["os.name"] = DeriveOsName(build, registryProductName),
+            ["os.name"] = DeriveOsName(build, registryProductName, installationType),
             ["os.displayVersion"] = displayVersion,
             ["os.build"] = build,
             ["os.updateBuildRevision"] = updateBuildRevision,
@@ -151,11 +151,27 @@ public sealed class InventoryCollector : ICollector
     }
 
     /// <summary>
-    /// Build thresholds: 22000 marks Windows 11, 10240 Windows 10. Server editions are
-    /// not covered here — the target fleet consists of client workstations.
+    /// Build thresholds: 22000 marks Windows 11, 10240 Windows 10.
+    ///
+    /// The correction is a client one, and only a client one: <c>ProductName</c> reports
+    /// "Windows 10" on every Windows 11 client and Microsoft never fixed it. On a server
+    /// that same value is accurate, and the build number cannot arbitrate — 26100 belongs
+    /// to Windows 11 24H2 and to Windows Server 2025 alike. <c>InstallationType</c> is
+    /// what separates them, and it is already read for <c>os.installationType</c>.
+    ///
+    /// An absent installation type keeps the client derivation: every capture taken
+    /// before this field was consulted came from a workstation, and dropping them to the
+    /// raw registry value would reintroduce the "Windows 10" lie on all of them.
     /// </summary>
-    internal static string? DeriveOsName(string? build, string? productName)
+    internal static string? DeriveOsName(
+        string? build, string? productName, string? installationType = null)
     {
+        if (installationType is not null
+            && !installationType.Equals("Client", StringComparison.OrdinalIgnoreCase))
+        {
+            return productName;
+        }
+
         if (!int.TryParse(build, out var buildNumber))
         {
             // Without a parseable build number, return the raw registry value rather
