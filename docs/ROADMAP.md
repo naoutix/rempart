@@ -89,6 +89,11 @@ identifiants ; `rempart diff` (M7) s'appuiera sur la même distinction.
 Microsoft ne l'a jamais corrigé. `os.name` dérive du numéro de build, faute de quoi
 toute règle conditionnée à la version porterait sur une valeur fausse.
 
+**Corrigé le 2026-08-03** (#226) : la dérivation ne vaut que pour une installation
+**cliente**. La build 26100 appartient à Windows 11 24H2 comme à Windows Server 2025 ;
+le numéro seul ne peut donc pas les séparer, et `InstallationType` — déjà lu — le fait.
+Sur une édition Serveur la valeur du registre est juste, et c'est elle qui est rendue.
+
 ### M1 · Moteur de règles — ✅ terminé
 
 - [x] Schéma de règle + chargeur strict, validation au chargement
