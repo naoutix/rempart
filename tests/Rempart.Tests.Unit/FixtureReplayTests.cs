@@ -15,10 +15,13 @@ namespace Rempart.Tests.Unit;
 /// Level-2 tests: the collectors replay snapshots, compared against a versioned
 /// reference output. A regression becomes visible without starting a VM.
 ///
-/// Two directories, two regimes:
+/// Two regimes, and the line between them is version control rather than a list of
+/// folder names:
 /// <list type="bullet">
-///   <item><c>synthetic/</c> — versioned, fabricated values. The repository being
-///   public, no real machine appears there.</item>
+///   <item>Versioned — everything outside <c>local/</c>, starting with
+///   <c>synthetic/</c> and its fabricated values. The repository is public, so a
+///   capture kept here carries no machine identity, and the guard below holds every
+///   one of them to it.</item>
 ///   <item><c>local/</c> — outside version control. Captures of real machines stay
 ///   there, and are replayed when present: that is where the cases live that
 ///   nobody would have thought to fabricate.</item>
@@ -389,12 +392,73 @@ public sealed class FixtureReplayTests(ITestOutputHelper output)
         Assert.False(replayed.Denied);
     }
 
+    /// <summary>
+    /// Every capture the repository versions — that is, every one that is not under
+    /// <c>local/</c>.
+    ///
+    /// <para>
+    /// Stated as an exclusion, never as a list of blessed folders. The guard below named
+    /// <c>synthetic/</c> and looked no further: a capture dropped in any other directory
+    /// was replayed by the suite like the rest and checked for anonymisation by nothing.
+    /// The repository is public, so that gap ends with a real machine's inventory being
+    /// published. Naming the one directory that is <em>outside</em> version control makes
+    /// a new directory covered on the day it is created rather than on the day someone
+    /// remembers to add it here.
+    /// </para>
+    /// </summary>
+    internal static IEnumerable<string> VersionedCaptures(string root) =>
+        Directory.EnumerateFiles(root, "*.capture.json", SearchOption.AllDirectories)
+            .Where(path => !IsUnderLocal(root, path));
+
+    private static bool IsUnderLocal(string root, string path) =>
+        Path.GetRelativePath(root, path)
+            .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .SkipLast(1)
+            .Contains("local", StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The guard's reach, on a tree built for the purpose: what protects the repository is
+    /// not that <c>synthetic/</c> is checked but that nothing versioned is missed.
+    /// </summary>
+    [Fact]
+    public void No_versioned_directory_escapes_the_anonymisation_guard()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"rempart-fixtures-{Guid.NewGuid():N}");
+
+        foreach (var relative in new[] { "synthetic", "lab", "local" })
+        {
+            Directory.CreateDirectory(Path.Combine(root, relative));
+            File.WriteAllText(Path.Combine(root, relative, "m.capture.json"), "{}");
+        }
+
+        try
+        {
+            var found = VersionedCaptures(root)
+                .Select(path => Path.GetRelativePath(root, path)
+                    .Replace(Path.DirectorySeparatorChar, '/'))
+                .ToList();
+
+            Assert.Contains("synthetic/m.capture.json", found);
+
+            // A directory the guard has never heard of. This is the parc de VM's, and the
+            // assertion is the point: it is covered without this test naming it twice.
+            Assert.Contains("lab/m.capture.json", found);
+
+            // And the one directory that must stay out: it is gitignored, so demanding
+            // that a real machine's capture be anonymised would fail every workstation
+            // holding one.
+            Assert.DoesNotContain("local/m.capture.json", found);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void Versioned_fixtures_are_anonymised()
     {
-        var synthetic = Path.Combine(FixtureDirectory, "synthetic");
-
-        foreach (var path in Directory.EnumerateFiles(synthetic, "*.capture.json"))
+        foreach (var path in VersionedCaptures(FixtureDirectory))
         {
             var snapshot = RempartJson.DeserialiseSnapshot(File.ReadAllText(path));
 
