@@ -705,11 +705,21 @@ est le seul candidat restant et n'a pas été mesuré.
       (`DET-DERIVE-FACTEUR`). Aucune série réelle n'existe encore : c'est la première qui le
       recalera. Et faire répondre **5** à une série périmée étend le sens de « audit partiel » ;
       l'argument contraire est écrit dans `ExitCodes`, à une ligne d'être retourné.
+- [ ] **Parc de VM** — six machines installées depuis des images Microsoft, capturées
+      **hors ligne** (une VM connectée mesure la build *plus les correctifs du jour*) et
+      versionnées comme fixtures rejouées en CI. Spec :
+      [2026-08-03](design/specs/2026-08-03-parc-de-vm-design.md). Ce n'est pas un lot de
+      code — les commandes existent, il leur manquait des machines. Construit en
+      **matrice** et non en liste : chaque paire ne fait varier qu'une chose, build,
+      édition ou famille, parce que « ces machines diffèrent » ne répond pas à « de quoi
+      ce défaut dépend ». C'est lui qui débloque les deux lignes suivantes.
 - [ ] **Mode appairé** — `rempart listen` / `rempart probe <ip>`, la seule façon honnête de
       vérifier que le pare-feu filtre réellement plutôt que de constater qu'il *devrait*
       filtrer. Lit, n'écrit rien : d'où son passage de M8 à 1.x.
 - [ ] **Règles TLS/SCHANNEL et durcissement IPv6** — le jour où assez de builds auront été
-      observées. Aujourd'hui bloquées par `DET-TLS` et non par le code.
+      observées. Aujourd'hui bloquées par `DET-TLS` et non par le code. La collecte
+      SCHANNEL est faite depuis le 2026-08-02 (#223) ; ce qui manque est le parc qui
+      l'observe sur plus d'une build.
 - [ ] **Notes d'impact vérifiées** — `DET-NOTES-AMONT`, 120 des 123 à confronter au logiciel
       réellement installé. Baisse d'une unité à chaque machine vue.
 - [ ] **Couche image** — `autounattend.xml` versionné, marqueur registre posé à l'installation
