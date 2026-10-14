@@ -79,7 +79,7 @@ jobs:
         shell: pwsh
         run: ./scripts/coverage-summary.ps1 -ResultsDirectory artifacts/coverage
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: coverage-cobertura
@@ -117,7 +117,7 @@ jobs:
           -ResultsDirectory artifacts/coverage-windows
           -Package Rempart.Windows
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: coverage-cobertura-windows
@@ -321,7 +321,7 @@ jobs:
           & $exe diagnose-processes
           if ($LASTEXITCODE -ne 0) { throw "Running processes do not enumerate from the AOT binary" }
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rempart-win-x64
           path: src/Rempart.Cli/bin/Release/net10.0-windows/win-x64/publish/rempart.exe
